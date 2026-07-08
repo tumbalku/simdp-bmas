@@ -9,6 +9,7 @@ SIMDP adalah Sistem Informasi Manajemen Dokumen Pegawai untuk RSUD Bahteramas.
 - Tailwind CSS v4
 - shadcn/ui dengan CSS variables
 - Tremor Charts pola Tremor Raw berbasis Recharts untuk visualisasi statistik
+- Prisma ORM untuk PostgreSQL/Supabase
 - ESLint + TypeScript typecheck
 
 ## Menjalankan project
@@ -26,6 +27,7 @@ Buka [http://localhost:3000](http://localhost:3000) di browser.
 npm run lint
 npm run typecheck
 npm run build
+npm run prisma:validate
 ```
 
 ## Struktur penting
@@ -36,5 +38,7 @@ npm run build
 - `src/modules/statistics/components/` — wrapper domain dashboard statistik yang memakai chart reusable.
 - `src/lib/utils.ts` — helper shared seperti `cn()`.
 - `src/lib/chartUtils.ts` — helper warna/formatter untuk chart.
+- `prisma/schema.prisma` — Prisma schema yang disinkronkan dari `dms_pegawai_schema.sql`.
+- `prisma.config.ts` — konfigurasi Prisma 7 untuk lokasi schema/migrations dan `DATABASE_URL`.
 - `DESIGN.md` — design tokens dan aturan visual SIMDP.
 - `context/` — dokumentasi keputusan, arsitektur, standar kode, dan progress project.

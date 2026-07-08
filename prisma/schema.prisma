@@ -1,0 +1,459 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  EMPLOYEE
+}
+
+enum DocumentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  REPLACED
+}
+
+enum ArchiveCategory {
+  PERSONAL
+  EDUCATION
+  EMPLOYMENT
+  CERTIFICATION
+  LEGAL
+}
+
+model User {
+  id           String    @id
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(EMPLOYEE)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  employee            Employee?
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  notifications       Notification[]
+
+  createdEmploymentStatuses EmploymentStatus[]      @relation("EmploymentStatusCreatedBy")
+  updatedEmploymentStatuses EmploymentStatus[]      @relation("EmploymentStatusUpdatedBy")
+  createdEmployeeGroups     EmployeeGroup[]         @relation("EmployeeGroupCreatedBy")
+  updatedEmployeeGroups     EmployeeGroup[]         @relation("EmployeeGroupUpdatedBy")
+  createdProfessionGroups   ProfessionGroup[]       @relation("ProfessionGroupCreatedBy")
+  updatedProfessionGroups   ProfessionGroup[]       @relation("ProfessionGroupUpdatedBy")
+  createdEmployeePositions  EmployeePosition[]      @relation("EmployeePositionCreatedBy")
+  updatedEmployeePositions  EmployeePosition[]      @relation("EmployeePositionUpdatedBy")
+  createdEmployeeRanks      EmployeeRank[]          @relation("EmployeeRankCreatedBy")
+  updatedEmployeeRanks      EmployeeRank[]          @relation("EmployeeRankUpdatedBy")
+  createdWorkplaces         Workplace[]             @relation("WorkplaceCreatedBy")
+  updatedWorkplaces         Workplace[]             @relation("WorkplaceUpdatedBy")
+  createdEmployees          Employee[]              @relation("EmployeeCreatedBy")
+  updatedEmployees          Employee[]              @relation("EmployeeUpdatedBy")
+  createdCareerHistories    EmployeeCareerHistory[] @relation("EmployeeCareerHistoryCreatedBy")
+  createdDocumentTypes      DocumentType[]          @relation("DocumentTypeCreatedBy")
+  updatedDocumentTypes      DocumentType[]          @relation("DocumentTypeUpdatedBy")
+  createdDocumentRecords    DocumentRecord[]        @relation("DocumentRecordCreatedBy")
+  updatedDocumentRecords    DocumentRecord[]        @relation("DocumentRecordUpdatedBy")
+  reviewedVerifications     VerificationHistory[]   @relation("VerificationReviewer")
+  securityLogs              SecurityLog[]           @relation("SecurityLogActor")
+  updatedSystemSettings     SystemSetting[]         @relation("SystemSettingUpdatedBy")
+}
+
+model RefreshToken {
+  id        String    @id
+  userId    String
+  token     String    @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_refreshtoken_user")
+}
+
+model PasswordResetToken {
+  id        String    @id
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_passwordreset_user")
+}
+
+model EmploymentStatus {
+  id        String   @id
+  name      String   @unique
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  createdByUser User? @relation("EmploymentStatusCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User? @relation("EmploymentStatusUpdatedBy", fields: [updatedBy], references: [id])
+
+  employeeGroups                 EmployeeGroup[]
+  employees                      Employee[]
+  careerHistories                EmployeeCareerHistory[]
+  documentTypeEmploymentStatuses DocumentTypeEmploymentStatus[]
+}
+
+model EmployeeGroup {
+  id                 String   @id
+  name               String
+  employmentStatusId String
+  createdBy          String?
+  updatedBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @default(now())
+
+  employmentStatus EmploymentStatus @relation(fields: [employmentStatusId], references: [id])
+  createdByUser    User?            @relation("EmployeeGroupCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser    User?            @relation("EmployeeGroupUpdatedBy", fields: [updatedBy], references: [id])
+
+  employees                  Employee[]
+  careerHistories            EmployeeCareerHistory[]
+  documentTypeEmployeeGroups DocumentTypeEmployeeGroup[]
+
+  @@unique([name, employmentStatusId])
+}
+
+model ProfessionGroup {
+  id        String   @id
+  name      String   @unique
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  createdByUser User? @relation("ProfessionGroupCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User? @relation("ProfessionGroupUpdatedBy", fields: [updatedBy], references: [id])
+
+  employeePositions DocumentTypeProfessionGroup[]
+  positions         EmployeePosition[]
+}
+
+model EmployeePosition {
+  id                String   @id
+  name              String
+  professionGroupId String
+  createdBy         String?
+  updatedBy         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now())
+
+  professionGroup ProfessionGroup @relation(fields: [professionGroupId], references: [id])
+  createdByUser   User?           @relation("EmployeePositionCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser   User?           @relation("EmployeePositionUpdatedBy", fields: [updatedBy], references: [id])
+
+  employees       Employee[]
+  careerHistories EmployeeCareerHistory[]
+
+  @@unique([name, professionGroupId])
+}
+
+model EmployeeRank {
+  id        String   @id
+  name      String   @unique
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  createdByUser User? @relation("EmployeeRankCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User? @relation("EmployeeRankUpdatedBy", fields: [updatedBy], references: [id])
+
+  employees                 Employee[]
+  careerHistories           EmployeeCareerHistory[]
+  documentTypeEmployeeRanks DocumentTypeEmployeeRank[]
+}
+
+model Workplace {
+  id        String   @id
+  name      String   @unique
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  createdByUser User? @relation("WorkplaceCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User? @relation("WorkplaceUpdatedBy", fields: [updatedBy], references: [id])
+
+  employees              Employee[]
+  careerHistories        EmployeeCareerHistory[]
+  documentTypeWorkplaces DocumentTypeWorkplace[]
+}
+
+/// SQL has CHECK ("employeeId" IS NOT NULL OR nik IS NOT NULL).
+/// Prisma does not represent CHECK constraints; keep it in SQL migrations.
+model Employee {
+  id                 String    @id
+  userId             String    @unique
+  employeeId         String?   @unique
+  nik                String?   @unique
+  name               String
+  avatarUrl          String?
+  gender             String?
+  birthDate          DateTime? @db.Date
+  birthPlace         String?
+  academicDegree     String?
+  lastEducation      String?
+  religion           String?
+  maritalStatus      String?
+  phone              String?
+  address            String?
+  joinDate           DateTime? @db.Date
+  hasTmt             Boolean   @default(false)
+  tmtStartDate       DateTime? @db.Date
+  tmtEndDate         DateTime? @db.Date
+  employmentStatusId String?
+  employeeGroupId    String?
+  employeePositionId String?
+  employeeRankId     String?
+  workplaceId        String?
+  createdBy          String?
+  updatedBy          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now())
+  deletedAt          DateTime?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employmentStatus EmploymentStatus? @relation(fields: [employmentStatusId], references: [id])
+  employeeGroup    EmployeeGroup?    @relation(fields: [employeeGroupId], references: [id])
+  employeePosition EmployeePosition? @relation(fields: [employeePositionId], references: [id])
+  employeeRank     EmployeeRank?     @relation(fields: [employeeRankId], references: [id])
+  workplace        Workplace?        @relation(fields: [workplaceId], references: [id])
+  createdByUser    User?             @relation("EmployeeCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser    User?             @relation("EmployeeUpdatedBy", fields: [updatedBy], references: [id])
+
+  careerHistories EmployeeCareerHistory[]
+  documentRecords DocumentRecord[]
+
+  @@index([deletedAt], map: "idx_employee_deleted")
+}
+
+model EmployeeCareerHistory {
+  id                 String    @id
+  employeeId         String
+  employmentStatusId String?
+  employeeGroupId    String?
+  employeePositionId String?
+  employeeRankId     String?
+  workplaceId        String?
+  effectiveDate      DateTime  @db.Date
+  endDate            DateTime? @db.Date
+  note               String?
+  createdBy          String?
+  createdAt          DateTime  @default(now())
+
+  employee         Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employmentStatus EmploymentStatus? @relation(fields: [employmentStatusId], references: [id])
+  employeeGroup    EmployeeGroup?    @relation(fields: [employeeGroupId], references: [id])
+  employeePosition EmployeePosition? @relation(fields: [employeePositionId], references: [id])
+  employeeRank     EmployeeRank?     @relation(fields: [employeeRankId], references: [id])
+  workplace        Workplace?        @relation(fields: [workplaceId], references: [id])
+  createdByUser    User?             @relation("EmployeeCareerHistoryCreatedBy", fields: [createdBy], references: [id])
+
+  @@index([employeeId, effectiveDate], map: "idx_careerhistory_employee")
+}
+
+model DocumentType {
+  id                     String          @id
+  code                   String          @unique
+  name                   String
+  description            String?
+  archiveCategory        ArchiveCategory
+  isMandatory            Boolean         @default(false)
+  allowMultiple          Boolean         @default(false)
+  requiresExpiryDate     Boolean         @default(false)
+  requiresIssueDate      Boolean         @default(false)
+  requiresDocumentNumber Boolean         @default(false)
+  allowedFormats         String
+  maxSizeMb              Float
+  icon                   String?
+  createdBy              String?
+  updatedBy              String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @default(now())
+  deletedAt              DateTime?
+
+  createdByUser User? @relation("DocumentTypeCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User? @relation("DocumentTypeUpdatedBy", fields: [updatedBy], references: [id])
+
+  professionGroups   DocumentTypeProfessionGroup[]
+  employmentStatuses DocumentTypeEmploymentStatus[]
+  employeeGroups     DocumentTypeEmployeeGroup[]
+  employeeRanks      DocumentTypeEmployeeRank[]
+  workplaces         DocumentTypeWorkplace[]
+  documentRecords    DocumentRecord[]
+}
+
+model DocumentTypeProfessionGroup {
+  id                String @id
+  documentTypeId    String
+  professionGroupId String
+
+  documentType    DocumentType    @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  professionGroup ProfessionGroup @relation(fields: [professionGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([documentTypeId, professionGroupId])
+}
+
+model DocumentTypeEmploymentStatus {
+  id                 String @id
+  documentTypeId     String
+  employmentStatusId String
+
+  documentType     DocumentType     @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  employmentStatus EmploymentStatus @relation(fields: [employmentStatusId], references: [id], onDelete: Cascade)
+
+  @@unique([documentTypeId, employmentStatusId])
+}
+
+model DocumentTypeEmployeeGroup {
+  id              String @id
+  documentTypeId  String
+  employeeGroupId String
+
+  documentType  DocumentType  @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  employeeGroup EmployeeGroup @relation(fields: [employeeGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([documentTypeId, employeeGroupId])
+}
+
+model DocumentTypeEmployeeRank {
+  id             String @id
+  documentTypeId String
+  employeeRankId String
+
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  employeeRank EmployeeRank @relation(fields: [employeeRankId], references: [id], onDelete: Cascade)
+
+  @@unique([documentTypeId, employeeRankId])
+}
+
+model DocumentTypeWorkplace {
+  id             String @id
+  documentTypeId String
+  workplaceId    String
+
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  workplace    Workplace    @relation(fields: [workplaceId], references: [id], onDelete: Cascade)
+
+  @@unique([documentTypeId, workplaceId])
+}
+
+/// SQL has CHECK storageProvider IN ('local', 'supabase', 's3').
+/// SQL also has a partial unique index uniq_current_document_per_type.
+/// Prisma does not represent partial indexes or CHECK constraints; keep them in SQL migrations.
+model DocumentRecord {
+  id                    String         @id
+  ownerId               String
+  documentTypeId        String
+  title                 String?
+  status                DocumentStatus @default(PENDING)
+  isCurrent             Boolean        @default(true)
+  allowMultipleSnapshot Boolean        @default(false)
+  fileName              String
+  filePath              String
+  fileSize              BigInt?
+  mimeType              String?
+  fileHash              String?
+  storageProvider       String         @default("local")
+  documentNumber        String?
+  issueDate             DateTime?      @db.Date
+  expiryDate            DateTime?      @db.Date
+  reminderH30SentAt     DateTime?
+  reminderH7SentAt      DateTime?
+  reminderH1SentAt      DateTime?
+  createdBy             String?
+  updatedBy             String?
+  uploadedAt            DateTime       @default(now())
+  updatedAt             DateTime       @default(now())
+  deletedAt             DateTime?
+
+  owner         Employee     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documentType  DocumentType @relation(fields: [documentTypeId], references: [id])
+  createdByUser User?        @relation("DocumentRecordCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser User?        @relation("DocumentRecordUpdatedBy", fields: [updatedBy], references: [id])
+
+  verificationHistories VerificationHistory[]
+
+  @@index([ownerId, documentTypeId], map: "idx_documentrecord_owner_type")
+  @@index([expiryDate], map: "idx_documentrecord_expiry")
+  @@index([fileHash], map: "idx_documentrecord_hash")
+}
+
+model VerificationHistory {
+  id               String         @id
+  documentRecordId String
+  status           DocumentStatus
+  reviewedById     String?
+  reviewNote       String?
+  reviewedAt       DateTime       @default(now())
+
+  documentRecord DocumentRecord @relation(fields: [documentRecordId], references: [id], onDelete: Cascade)
+  reviewedBy     User?          @relation("VerificationReviewer", fields: [reviewedById], references: [id])
+
+  @@index([documentRecordId], map: "idx_verificationhistory_document")
+}
+
+model Notification {
+  id                String   @id
+  userId            String
+  type              String
+  title             String
+  message           String?
+  isRead            Boolean  @default(false)
+  relatedEntityType String?
+  relatedEntityId   String?
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead], map: "idx_notification_user_unread")
+}
+
+model SecurityLog {
+  id        String   @id
+  timestamp DateTime @default(now())
+  actorId   String?
+  actorName String
+  actorRole String
+  eventType String
+  resource  String
+  ipAddress String?
+  status    String
+  metadata  Json?
+
+  actor User? @relation("SecurityLogActor", fields: [actorId], references: [id])
+
+  @@index([actorId], map: "idx_securitylog_actor")
+  @@index([timestamp], map: "idx_securitylog_timestamp")
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String
+  label       String?
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @default(now())
+
+  updatedByUser User? @relation("SystemSettingUpdatedBy", fields: [updatedBy], references: [id])
+}

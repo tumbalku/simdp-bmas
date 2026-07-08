@@ -2,11 +2,11 @@
 
 ## Backlog
 
-- [ ] SIMDP-DB-001: Sinkronkan Prisma schema dengan `dms_pegawai_schema.sql`.
+Belum ada.
 
 ## In Progress
 
-Belum ada.
+- [ ] SIMDP-DB-001: Sinkronkan Prisma schema dengan `dms_pegawai_schema.sql`.
 
 ## Done
 

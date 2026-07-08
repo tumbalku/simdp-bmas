@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Added
+- Menambahkan Prisma ORM untuk `SIMDP-DB-001`, termasuk `prisma/schema.prisma`, `prisma.config.ts`, script Prisma, dan model yang disinkronkan dari `dms_pegawai_schema.sql`.
 - Setup Tremor Charts dengan pola Tremor Raw untuk `SIMDP-SETUP-002`, termasuk dependency `recharts`, `tailwind-variants`, `@remixicon/react`, `@tailwindcss/forms`, shadcn `Card`, komponen chart reusable di `src/components/charts/`, utility `src/lib/chartUtils.ts`, wrapper domain di modul `statistics`, dan preview dashboard statistik dengan data contoh.
 - Scaffold aplikasi Next.js 15 + TypeScript + Tailwind CSS v4 + shadcn/ui untuk `SIMDP-SETUP-001`.
 - Menambahkan konfigurasi dasar `components.json`, `src/components/ui/button.tsx`, `src/lib/utils.ts`, dan theme token SIMDP di `src/app/globals.css`.

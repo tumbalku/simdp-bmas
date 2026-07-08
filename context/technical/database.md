@@ -100,6 +100,25 @@ WHERE "isCurrent" = true AND "allowMultipleSnapshot" = false;
 
 Makna: satu pegawai hanya punya satu dokumen current untuk DocumentType non-multiple.
 
+
+## Prisma Schema
+
+`prisma/schema.prisma` dibuat dari `dms_pegawai_schema.sql` sebagai baseline ORM. Prisma 7 memakai `prisma.config.ts` untuk membaca `DATABASE_URL`; schema file hanya menyimpan provider PostgreSQL dan model/enum.
+
+Validasi lokal:
+
+```bash
+npm run prisma:format
+npm run prisma:validate
+npm run prisma:generate
+```
+
+Batasan representasi Prisma:
+- CHECK constraint `chk_employee_identifier_required` tetap harus dijaga di SQL migration karena Prisma schema belum merepresentasikan CHECK constraint.
+- CHECK constraint `DocumentRecord.storageProvider IN ('local', 'supabase', 's3')` tetap harus dijaga di SQL migration.
+- Partial unique index `uniq_current_document_per_type` tetap harus dijaga di SQL migration karena Prisma tidak merepresentasikan partial unique index secara native.
+- Trigger `handle_document_replacement()` dan `set_updated_at()` tetap berada di SQL migration; Prisma model hanya merepresentasikan tabel/relasi/field.
+
 ## Aturan Implementasi
 
 - Prisma schema harus mengikuti SQL ini.
