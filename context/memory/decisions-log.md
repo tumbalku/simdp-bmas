@@ -67,7 +67,7 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 
 ## [2026-07-08] UI shadcn/ui-first dan Charting Tremor
 - Konteks: perlu menyamakan arah visual SIMDP agar UI konsisten, modern, dan mudah diimplementasikan dengan komponen siap pakai.
-- Keputusan: design system SIMDP wajib mengikuti estetika dan pola komponen shadcn/ui. Semua komponen umum memakai shadcn/ui atau wrapper internal berbasis shadcn/ui. Chart dashboard memakai Tremor Charts (`@tremor/react`) dan dibungkus layout/state shadcn/ui.
+- Keputusan: design system SIMDP wajib mengikuti estetika dan pola komponen shadcn/ui. Semua komponen umum memakai shadcn/ui atau wrapper internal berbasis shadcn/ui. Chart dashboard memakai Tremor Charts pola Tremor Raw berbasis `recharts`: komponen reusable berada di `src/components/charts/`, utility di `src/lib/chartUtils.ts`, dan pemakaian domain tetap dibungkus layout/state shadcn/ui.
 - Alasan: shadcn/ui memberi foundation design system yang clean dan mudah dikustomisasi; Tremor mempercepat implementasi chart/dashboard tanpa mengganti primitive UI umum.
 - Dampak ke modul: UI shared components, statistics dashboard, semua page/form/table/dialog.
 - Referensi: §4, §9.7, §17, §19 PRD.

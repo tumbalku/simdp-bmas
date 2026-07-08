@@ -14,6 +14,7 @@ File ini mencatat technical debt, known bug, dan hal yang sengaja belum dikerjak
 
 ## Resolved
 
+- [2026-07-08] Tremor Charts sudah dipasang dan preview dashboard statistik sudah tersedia melalui wrapper modul `statistics`.
 - [2026-07-08] Project Next.js sudah discaffold; `npm run lint`, `npm run typecheck`, dan `npm run build` tersedia sebagai quality gate awal.
 - [2026-07-08] Folder context tahap awal `ui`, `memory`, dan `progress` sudah dibuat.
 - [2026-07-08] Folder context `business`, `domain`, dan `security` sudah dibuat.

@@ -56,12 +56,12 @@ Komponen domain tetap harus memakai primitive shadcn/ui + Tailwind token.
 
 ## 3. Charting
 
-Charting canonical v1 adalah **Tremor Charts** dari `@tremor/react`.
+Charting canonical v1 adalah **Tremor Charts** pola Tremor Raw berbasis `recharts`.
 
 Aturan chart:
 - Tremor hanya untuk chart/dashboard visualization, bukan untuk menggantikan komponen umum shadcn/ui.
 - Chart wajib dibungkus dengan container shadcn/ui seperti `Card`, `CardHeader`, `CardContent`, `Tabs`, `Select`, dan `Skeleton`.
-- Chart diletakkan sebagai wrapper internal di modul `statistics`, misalnya `src/modules/statistics/components/*Chart.tsx`.
+- Komponen chart reusable diletakkan di `src/components/charts/*Chart.tsx`, dengan utility di `src/lib/chartUtils.ts` mengikuti struktur Tremor Raw. Modul `statistics` hanya membuat wrapper domain yang memakai chart reusable tersebut.
 - Modul lain tidak boleh bergantung langsung pada detail konfigurasi Tremor.
 - Warna chart harus memakai token SIMDP/shadcn, bukan warna default acak.
 

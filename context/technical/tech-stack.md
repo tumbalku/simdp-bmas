@@ -10,7 +10,7 @@
 |---|---|---|
 | Framework | Next.js 15.5.x App Router + TypeScript | Satu aplikasi untuk frontend dan backend. Gunakan Server Components bila memungkinkan. |
 | Styling/UI | Tailwind CSS v4 + shadcn/ui | shadcn/ui adalah canonical design system untuk komponen umum. |
-| Charting | Tremor Charts (`@tremor/react`) | Khusus chart/statistik, dibungkus layout shadcn/ui. |
+| Charting | Tremor Charts pola Tremor Raw berbasis `recharts` | Khusus chart/statistik, dibungkus layout shadcn/ui. |
 | Client Data Fetching | TanStack Query | Semua client query lewat `hooks.ts`, bukan `fetch` langsung di komponen. |
 | Database | PostgreSQL hosted di Supabase | SQL schema awal ada di `dms_pegawai_schema.sql`. |
 | ORM | Prisma | Prisma schema harus sinkron dengan SQL. |
@@ -37,4 +37,6 @@ Project Next.js sudah discaffold pada `SIMDP-SETUP-001` dengan script awal:
 - `npm run typecheck`
 - `npm run build`
 
-Script `npm test` belum tersedia dan akan ditambahkan saat setup testing dimulai. Tremor Charts belum dipasang; lihat backlog `SIMDP-SETUP-002`.
+Script `npm test` belum tersedia dan akan ditambahkan saat setup testing dimulai. Tremor Charts dipasang dengan pola Tremor Raw pada `SIMDP-SETUP-002`: komponen reusable berada di `src/components/charts/`, utility berada di `src/lib/chartUtils.ts`, dan modul `statistics` membuat wrapper domain di `src/modules/statistics/components/`.
+
+Catatan dependency: mengikuti dokumentasi Tremor terbaru, project tidak memakai package lama `@tremor/react`; chart dibangun sebagai komponen lokal berbasis `recharts` agar kompatibel dengan React 19.
