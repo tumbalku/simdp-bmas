@@ -13,10 +13,10 @@
 | Charting | Tremor Charts pola Tremor Raw berbasis `recharts` | Khusus chart/statistik, dibungkus layout shadcn/ui. |
 | Client Data Fetching | TanStack Query | Semua client query lewat `hooks.ts`, bukan `fetch` langsung di komponen. |
 | Database | PostgreSQL hosted di Supabase | SQL schema awal ada di `dms_pegawai_schema.sql`. |
-| ORM | Prisma 7.x | Prisma schema harus sinkron dengan SQL; konfigurasi `DATABASE_URL` berada di `prisma.config.ts`. |
+| ORM | Prisma 7.x + `@prisma/adapter-pg` | Prisma schema harus sinkron dengan SQL; konfigurasi migrate ada di `prisma.config.ts`, runtime client ada di `src/lib/prisma.ts`. |
 | File Storage | Pluggable Storage Provider | `local`, `supabase`, atau `s3` via `IStorageProvider`. |
 | Auth | Custom JWT + Refresh Token | Access token 15 menit, refresh token hash di DB. |
-| Validation | Zod | Semua input dari luar wajib divalidasi. |
+| Validation | Zod | Semua input dari luar dan environment variable wajib divalidasi. |
 | Password Hashing | Argon2id | Jangan gunakan plaintext/bcrypt baru kecuali ada keputusan baru. |
 | Scheduled Job | Vercel Cron Jobs | Memanggil `/api/v1/cron/check-expiry` dengan `CRON_SECRET`. |
 | Email | Resend atau Supabase SMTP | Reset password dan reminder dokumen. |
@@ -37,7 +37,7 @@ Project Next.js sudah discaffold pada `SIMDP-SETUP-001` dengan script awal:
 - `npm run typecheck`
 - `npm run build`
 
-Script Prisma tersedia: `npm run prisma:format`, `npm run prisma:validate`, dan `npm run prisma:generate`.
+Script Prisma tersedia: `npm run prisma:format`, `npm run prisma:validate`, dan `npm run prisma:generate`. Prisma Client singleton tersedia di `src/lib/prisma.ts`, dan environment validation tersedia di `src/lib/env.ts`.
 
 Script `npm test` belum tersedia dan akan ditambahkan saat setup testing dimulai.
 
