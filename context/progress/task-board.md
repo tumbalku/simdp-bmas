@@ -2,7 +2,6 @@
 
 ## Backlog
 
-- [ ] SIMDP-SETUP-002: Setup Tremor Charts untuk dashboard statistics.
 - [ ] SIMDP-DB-001: Sinkronkan Prisma schema dengan `dms_pegawai_schema.sql`.
 
 ## In Progress
@@ -11,6 +10,7 @@ Belum ada.
 
 ## Done
 
+- [x] SIMDP-SETUP-002: Setup Tremor Charts untuk dashboard statistics (selesai: 2026-07-08)
 - [x] SIMDP-SETUP-001: Scaffold Next.js 15 + TypeScript + Tailwind + shadcn/ui (selesai: 2026-07-08)
 - [x] SIMDP-CTX-001: Setup folder context tahap pertama (`ui`, `memory`, `progress`) (selesai: 2026-07-08)
 - [x] SIMDP-CTX-002: Setup `context/business` sesuai PRD §23.1 (selesai: 2026-07-08)

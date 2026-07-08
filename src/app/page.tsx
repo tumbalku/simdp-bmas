@@ -1,6 +1,7 @@
 import { ArrowRight, FileCheck2, ShieldCheck, UsersRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { StatisticsDashboardPreview } from "@/modules/statistics/components/statistics-dashboard-preview";
 
 const features = [
   {
@@ -75,6 +76,8 @@ export default function Home() {
             );
           })}
         </div>
+
+        <StatisticsDashboardPreview />
       </section>
     </main>
   );

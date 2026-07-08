@@ -155,7 +155,7 @@ Membangun **SIMDP**, sebuah Document Management System (DMS) berbasis web yang:
 | Autentikasi | **Custom JWT** (access token + refresh token) | Sesuai tabel `RefreshToken`/`PasswordResetToken` yang dirancang custom |
 | Validasi | **Zod** (shared schema client-server) | Memastikan data yang masuk ke API sudah benar sebelum diproses |
 | Password Hashing | **Argon2id** | Lebih aman dari bcrypt, standar industri modern |
-| Charting | **Tremor Charts** (`@tremor/react`) | Chart dashboard siap pakai dengan default visual rapi; gunakan untuk chart/statistik, disesuaikan agar visualnya konsisten dengan shadcn/ui |
+| Charting | **Tremor Charts** pola Tremor Raw berbasis `recharts` | Chart dashboard siap pakai dengan default visual rapi; gunakan untuk chart/statistik, disesuaikan agar visualnya konsisten dengan shadcn/ui |
 | Job Terjadwal | **Vercel Cron Jobs** | Memanggil Route Handler internal untuk cek expiry & kirim notifikasi |
 | Email | **Resend** atau **Supabase SMTP** | Reset password & reminder kadaluarsa via email |
 | Testing | **Vitest** (unit) + **Playwright** (E2E) | — |
@@ -1236,7 +1236,7 @@ Implementasi warna harus melalui **Tailwind theme + CSS variables** agar pola li
 
 ### 17.6 Chart & Dashboard Visualization
 
-**Canonical charting v1:** gunakan **Tremor Charts** dari `@tremor/react` untuk visualisasi data dashboard/statistik.
+**Canonical charting v1:** gunakan **Tremor Charts** pola Tremor Raw berbasis `recharts` untuk visualisasi data dashboard/statistik.
 
 Aturan implementasi chart:
 - Chart yang wajib tersedia minimal: line chart untuk tren upload dokumen, bar chart untuk breakdown kategori/status, donut/pie chart untuk distribusi status dokumen, dan area/line chart untuk tren compliance bila data tersedia.
