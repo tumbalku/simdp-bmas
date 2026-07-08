@@ -1,0 +1,93 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js
+.next/
+out/
+build/
+dist/
+.vercel/
+.turbo/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.kdbx
+secrets/
+secret/
+credentials/
+credentials.json
+service-account*.json
+*-service-account.json
+
+# Supabase / database local artifacts
+.supabase/
+supabase/.branches/
+supabase/.temp/
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+
+# Prisma generated/local
+prisma/dev.db
+prisma/dev.db-journal
+
+# Upload/storage data
+LocalStorage/
+uploads/
+storage/
+private-storage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime/cache
+.cache/
+.tmp/
+tmp/
+temp/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# Package manager cache
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Misc confidential exports
+*.csv
+*.xlsx
+*.xls
+*.pdf
+!docs/**/*.pdf
