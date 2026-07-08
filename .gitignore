@@ -91,3 +91,6 @@ Thumbs.db
 *.xls
 *.pdf
 !docs/**/*.pdf
+
+# Local-only personal/project-owner notes
+*.local.md
