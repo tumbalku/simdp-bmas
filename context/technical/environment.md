@@ -4,7 +4,7 @@
 **Sumber utama:** `PRD-SIMDP-v2.0-20260708.md` §18.1
 **Terakhir diperbarui:** 2026-07-08
 
-Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/env.ts`.
+Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/env.ts`. Modul server-side harus mengimpor `env` dari file ini, bukan membaca `process.env` langsung, kecuali file konfigurasi tooling seperti `prisma.config.ts`.
 
 ## Database
 
@@ -63,4 +63,10 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
 ## File Contoh
 
-Gunakan `.env.example` untuk nama variable tanpa nilai secret asli.
+Gunakan `.env.example` untuk nama variable dan nilai development dummy. Jangan commit nilai secret asli.
+
+## Pola Pemakaian
+
+- Server-side code: `import { env } from "@/lib/env"`.
+- Prisma runtime: `src/lib/prisma.ts` memakai `env.DATABASE_URL` dan Prisma PostgreSQL adapter.
+- Client-side code hanya boleh membaca variable berawalan `NEXT_PUBLIC_`; jangan import `src/lib/env.ts` dari Client Component.

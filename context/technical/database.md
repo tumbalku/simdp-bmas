@@ -119,6 +119,22 @@ Batasan representasi Prisma:
 - Partial unique index `uniq_current_document_per_type` tetap harus dijaga di SQL migration karena Prisma tidak merepresentasikan partial unique index secara native.
 - Trigger `handle_document_replacement()` dan `set_updated_at()` tetap berada di SQL migration; Prisma model hanya merepresentasikan tabel/relasi/field.
 
+
+## Prisma Client Runtime
+
+`src/lib/prisma.ts` menyediakan Prisma Client singleton untuk server-side code. Singleton ini mencegah terlalu banyak koneksi saat Next.js development hot reload membuat module di-load ulang.
+
+Pola pemakaian:
+
+```ts
+import { prisma } from "@/lib/prisma";
+```
+
+Catatan Prisma 7:
+- Runtime client memakai `@prisma/adapter-pg` dan `pg`.
+- `DATABASE_URL` dibaca dari `src/lib/env.ts`.
+- File ini server-only; jangan import dari Client Component.
+
 ## Aturan Implementasi
 
 - Prisma schema harus mengikuti SQL ini.
