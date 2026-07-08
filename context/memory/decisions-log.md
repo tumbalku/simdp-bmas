@@ -1,0 +1,80 @@
+# Decisions Log — SIMDP
+
+File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
+
+## [2026-07-08] Pemisahan User dan Employee menjadi 2 tabel
+- Konteks: perlu memisahkan concern akun login dari profil kepegawaian.
+- Keputusan: `User` hanya menyimpan email, password, dan role. `Employee` menyimpan seluruh data kepegawaian dengan relasi 1-1 ke `User`.
+- Alasan: memudahkan manajemen akun terpisah dari data HR.
+- Dampak ke modul: auth, employee.
+- Referensi: §8.4 PRD.
+
+## [2026-07-08] Pluggable Storage Provider
+- Konteks: perlu storage yang bisa dipakai lokal saat development tanpa konfigurasi cloud, tetapi tetap siap pindah ke Supabase atau S3.
+- Keputusan: gunakan interface `IStorageProvider` dengan `LocalStorageProvider` untuk development, `SupabaseStorageProvider` untuk production option A, dan `S3StorageProvider` untuk production option B/future-proof.
+- Alasan: portabilitas; pindah provider hanya butuh ganti `STORAGE_PROVIDER` tanpa mengubah logika bisnis modul document.
+- Dampak ke modul: document, `lib/storage/`.
+- Referensi: ADR-003, §13 PRD.
+
+## [2026-07-08] Upload Dokumen Canonical via Server-Mediated IStorageProvider
+- Konteks: PRD lama mencampur signed URL upload langsung dan server upload sehingga membingungkan implementasi local vs Supabase vs S3.
+- Keputusan: v1 memakai `POST /api/v1/documents/upload` multipart/form-data; server melakukan validasi, hash, generate `filePath`, lalu memanggil `IStorageProvider.upload()`.
+- Alasan: satu kontrak storage konsisten untuk local, Supabase, dan S3; validasi MIME dan SHA-256 lebih aman.
+- Dampak ke modul: document, `lib/storage/`, `app/api/v1/documents/upload`.
+- Referensi: §9.3, §11.1, §13 PRD.
+
+## [2026-07-08] Reminder Expiry Dipisah per Tahap
+- Konteks: satu kolom `reminderSentAt` tidak cukup untuk reminder H-30, H-7, dan H-1 karena reminder pertama akan menghalangi reminder berikutnya.
+- Keputusan: gunakan `reminderH30SentAt`, `reminderH7SentAt`, dan `reminderH1SentAt` di `DocumentRecord`.
+- Alasan: sederhana untuk junior programmer dan eksplisit di query cron.
+- Dampak ke modul: document, notification, cron/check-expiry, database schema.
+- Referensi: §3.3, §8.5, §9.5 PRD.
+
+## [2026-07-08] S3StorageProvider Disiapkan sebagai Provider Resmi
+- Konteks: sistem perlu fleksibel jika storage production tidak selalu memakai Supabase.
+- Keputusan: `IStorageProvider` mendukung provider `local`, `supabase`, dan `s3`.
+- Alasan: menjaga portabilitas storage dan menghindari vendor lock-in.
+- Dampak ke modul: `lib/storage/`, document.
+- Referensi: ADR-003, §13 PRD.
+
+## [2026-07-08] Custom JWT + Single-Device Login
+- Konteks: butuh kontrol penuh atas sesi dan token.
+- Keputusan: Custom JWT 15 menit + Refresh Token hash di DB. Login baru otomatis revoke semua sesi lama.
+- Alasan: mencegah akses bersamaan dari multiple device.
+- Dampak ke modul: auth.
+- Referensi: ADR-004, ADR-006, §9.1 PRD.
+
+## [2026-07-08] Login Identifier Fleksibel (NIP / NIK / Email)
+- Konteks: pegawai non-IT lebih hafal NIP daripada email.
+- Keputusan: satu field identifier yang dideteksi otomatis di server.
+- Alasan: UX lebih baik; user tidak perlu pilih tipe identifier sebelum login.
+- Dampak ke modul: auth.
+- Referensi: ADR-007, §9.1 PRD.
+
+## [2026-07-08] Format Nama File Dokumen
+- Konteks: perlu nama file yang konsisten di semua storage provider.
+- Keputusan: `{KODE-DOKUMEN}-{URUTAN}-{NIP-atau-NIK}.{ext}`. Gunakan NIP jika ada; jika pegawai tidak memiliki NIP, gunakan NIK. Contoh: `STR-1-198501012010011001.pdf`.
+- Alasan: mudah dibaca manusia dan konsisten antar provider.
+- Dampak ke modul: document.
+- Referensi: §16.1 PRD.
+
+## [2026-07-08] ArchiveCategory: PERSONAL/EDUCATION/EMPLOYMENT/CERTIFICATION/LEGAL
+- Konteks: PRD lama memakai `UTAMA/KONDISIONAL/PROFESI`; skema SQL baru memakai enum berbeda.
+- Keputusan: ikuti skema SQL baru sebagai ground truth.
+- Alasan: SQL adalah ground truth; kategori baru lebih universal.
+- Dampak ke modul: document.
+- Referensi: §8.3 PRD.
+
+## [2026-07-08] UI shadcn/ui-first dan Charting Tremor
+- Konteks: perlu menyamakan arah visual SIMDP agar UI konsisten, modern, dan mudah diimplementasikan dengan komponen siap pakai.
+- Keputusan: design system SIMDP wajib mengikuti estetika dan pola komponen shadcn/ui. Semua komponen umum memakai shadcn/ui atau wrapper internal berbasis shadcn/ui. Chart dashboard memakai Tremor Charts (`@tremor/react`) dan dibungkus layout/state shadcn/ui.
+- Alasan: shadcn/ui memberi foundation design system yang clean dan mudah dikustomisasi; Tremor mempercepat implementasi chart/dashboard tanpa mengganti primitive UI umum.
+- Dampak ke modul: UI shared components, statistics dashboard, semua page/form/table/dialog.
+- Referensi: §4, §9.7, §17, §19 PRD.
+
+## [2026-07-08] NIP Optional, NIP atau NIK Wajib
+- Konteks: tidak semua pegawai memiliki NIP; pegawai tanpa NIP harus tetap bisa dibuat dan login memakai NIK.
+- Keputusan: `Employee.employeeId` (NIP) dan `Employee.nik` (NIK) sama-sama unik nullable, tetapi minimal salah satu wajib diisi melalui constraint database dan validasi aplikasi.
+- Alasan: model data mengikuti kondisi nyata pegawai RSUD tanpa mengorbankan identitas login unik.
+- Dampak ke modul: employee, auth, document filename generation, database schema.
+- Referensi: §8.1, §9.1, §16.1 PRD.

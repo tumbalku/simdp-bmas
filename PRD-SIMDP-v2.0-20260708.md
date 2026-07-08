@@ -18,7 +18,7 @@
 | **Gaya Arsitektur** | Monolit Modular, komunikasi REST API & Server Actions |
 | **Supersedes** | `PRD-SMDP-PORTAL-v1.0-20260627`, `PRD.md (draft 07 Juli 2026)` |
 
-> **Cara Membaca:** Dokumen ini adalah *single source of truth* agar AI agent & programmer dapat membangun sistem ini dengan minim halusinasi dan minim revisi. Setiap keputusan desain disertai alasannya. Perubahan apapun terhadap dokumen ini wajib dicatat di `memory/decisions-log.md`.
+> **Cara Membaca:** Dokumen ini adalah *single source of truth* agar AI agent & programmer dapat membangun sistem ini dengan minim halusinasi dan minim revisi. Setiap keputusan desain disertai alasannya. Perubahan apapun terhadap dokumen ini wajib dicatat di `context/memory/decisions-log.md`.
 
 ---
 
@@ -29,7 +29,7 @@ Dokumen ini ditulis dengan satu prinsip utama: **mudah dikerjakan, mudah dipaham
 **Asumsi kemampuan tim:**
 - Mengerti dasar **RESTful API** dan autentikasi berbasis token (JWT).
 - Mengerti **Next.js** App Router dengan TypeScript.
-- Mengerti **Tailwind CSS** dan **Shadcn UI**.
+- Mengerti **Tailwind CSS** dan **shadcn/ui**.
 - Mengerti dasar **PostgreSQL** (tabel, relasi, query, index).
 - Mengerti ORM **Prisma** untuk operasi database.
 
@@ -147,7 +147,7 @@ Membangun **SIMDP**, sebuah Document Management System (DMS) berbasis web yang:
 | Layer | Teknologi | Alasan |
 |---|---|---|
 | Framework | **Next.js 15+** (App Router, TypeScript) | Satu framework untuk frontend & backend, Server Components mengurangi bundle JS |
-| Styling | **Tailwind CSS** + **Shadcn UI** | Sudah dikenal tim, komponen siap pakai |
+| Styling / UI Components | **Tailwind CSS** + **shadcn/ui** | Canonical design system. Semua komponen aplikasi wajib memakai primitives/pattern shadcn/ui terlebih dahulu |
 | Data Fetching (Client) | **TanStack Query** (`@tanstack/react-query`) | Mengurus cache, loading, error, dan refetch otomatis |
 | Database | **PostgreSQL** (hosted di Supabase) | Relasional, mendukung enum, partial index, trigger, jsonb |
 | ORM | **Prisma** | Query database aman dari SQL Injection, type-safe |
@@ -155,7 +155,7 @@ Membangun **SIMDP**, sebuah Document Management System (DMS) berbasis web yang:
 | Autentikasi | **Custom JWT** (access token + refresh token) | Sesuai tabel `RefreshToken`/`PasswordResetToken` yang dirancang custom |
 | Validasi | **Zod** (shared schema client-server) | Memastikan data yang masuk ke API sudah benar sebelum diproses |
 | Password Hashing | **Argon2id** | Lebih aman dari bcrypt, standar industri modern |
-| Charting | **Recharts** | Library charting React yang ringan dan mudah dikustomisasi |
+| Charting | **Tremor Charts** (`@tremor/react`) | Chart dashboard siap pakai dengan default visual rapi; gunakan untuk chart/statistik, disesuaikan agar visualnya konsisten dengan shadcn/ui |
 | Job Terjadwal | **Vercel Cron Jobs** | Memanggil Route Handler internal untuk cek expiry & kirim notifikasi |
 | Email | **Resend** atau **Supabase SMTP** | Reset password & reminder kadaluarsa via email |
 | Testing | **Vitest** (unit) + **Playwright** (E2E) | — |
@@ -309,8 +309,8 @@ simdp/
 │   │   ├── statistics/  { service.ts, repository.ts, types.ts, hooks.ts, components/ }
 │   │   ├── security/    { service.ts, repository.ts, types.ts, hooks.ts, components/ }
 │   │   └── settings/    { service.ts, repository.ts, schema.ts, types.ts, actions.ts, components/ }
-│   ├── components/                    # UI bersama (design system berbasis Shadcn)
-│   │   ├── ui/                        # Shadcn components
+│   ├── components/                    # UI bersama (design system berbasis shadcn/ui)
+│   │   ├── ui/                        # shadcn/ui components (canonical primitives)
 │   │   ├── layout/                    # Sidebar, Navbar, PageHeader
 │   │   └── shared/                    # StatusBadge, DataTable, EmptyState, dll
 │   ├── lib/
@@ -378,7 +378,7 @@ simdp/
 │       ├── sprint-log.md
 │       └── task-board.md
 ├── public/
-├── components.json                    # Shadcn config
+├── components.json                    # shadcn/ui config
 └── next.config.ts
 ```
 
@@ -393,6 +393,7 @@ simdp/
 - Semua tabel utama memiliki `createdAt` dan `updatedAt` (diisi otomatis oleh trigger `set_updated_at`).
 - Tabel yang mendukung **soft delete** memiliki kolom `deletedAt` (null = aktif, isi timestamp = terhapus).
 - Tabel yang mendukung **audit trail** memiliki kolom `createdBy` dan `updatedBy` (FK ke `User.id`).
+- Identitas pegawai wajib memiliki **minimal salah satu** dari NIP (`Employee.employeeId`) atau NIK (`Employee.nik`). Tidak semua pegawai memiliki NIP; jika NIP tidak ada, NIK menjadi identifier utama.
 
 ### 8.2 Enum Database
 
@@ -507,8 +508,8 @@ WHERE "isCurrent" = true AND "allowMultipleSnapshot" = false;
 **Login — Identifier Fleksibel (NIP / NIK / Email):**
 - Satu field `identifier` menerima salah satu dari: **NIP** (`Employee.employeeId`), **NIK** (`Employee.nik`), atau **Email** (`User.email`).
 - Server mendeteksi otomatis jenis identifier (tanpa user perlu pilih tipe):
-  - Jika cocok dengan pola NIP (numerik murni, ≥ 10 digit) → cari via `Employee.employeeId`.
   - Jika cocok dengan pola NIK (numerik murni, 16 digit) → cari via `Employee.nik`.
+  - Jika cocok dengan pola NIP (numerik murni, ≥ 10 digit) → cari via `Employee.employeeId`.
   - Selainnya → cari via `User.email`.
 - Server lalu verifikasi `passwordHash` dengan Argon2id.
 - Rate limiting: maks **5x percobaan gagal / 15 menit / IP**. Catat ke `SecurityLog`.
@@ -685,7 +686,7 @@ WHERE "isCurrent" = true AND "allowMultipleSnapshot" = false;
 - Jumlah dokumen per `ArchiveCategory`.
 - Dokumen yang akan kadaluarsa dalam 30 hari (list + count).
 - **Compliance rate**: persentase pegawai yang sudah upload semua `DocumentType` wajib yang relevan.
-- Tren upload dokumen per bulan (line chart — Recharts).
+- Tren upload dokumen per bulan (line chart — Tremor Charts).
 - Rata-rata waktu verifikasi (dari `uploadedAt` ke `reviewedAt` pertama).
 - Antrian verifikasi saat ini (jumlah `PENDING`).
 
@@ -708,7 +709,7 @@ WHERE "isCurrent" = true AND "allowMultipleSnapshot" = false;
 ```
 Login:
   Client -> POST /api/v1/auth/login ({ identifier: NIP/NIK/email, password })
-  Server -> deteksi tipe identifier (NIP=numerik>=10, NIK=numerik 16 digit, else=email)
+  Server -> deteksi tipe identifier (NIK=numerik 16 digit, NIP=numerik>=10, else=email)
          -> cari User via identifier yang relevan
          -> verifikasi Argon2id hash
          -> REVOKE SEMUA RefreshToken aktif milik user (single-device enforcement)
@@ -1125,7 +1126,7 @@ Format penamaan file dirancang agar **konsisten di semua storage provider** dan 
 |---|---|---|
 | `KODE-DOKUMEN` | `DocumentType.code` | Huruf kapital, hanya `[A-Z0-9]` dan `-`. Contoh: `STR`, `DIKLAT`, `KTP` |
 | `URUTAN` | Dihitung dari DB | Nomor urut dokumen dengan tipe yang sama milik pegawai ini (mulai dari 1). Untuk `allowMultiple=false`, nilainya selalu 1 (digantikan oleh trigger REPLACED). Untuk `allowMultiple=true`, naik setiap unggahan baru. |
-| `NIP-atau-NIK` | `Employee.employeeId` (NIP) | Gunakan NIP. Jika NIP tidak ada, gunakan NIK. Hanya karakter numerik. |
+| `NIP-atau-NIK` | `Employee.employeeId` (NIP) atau `Employee.nik` (NIK) | Gunakan NIP jika ada. Jika pegawai tidak memiliki NIP, gunakan NIK. Minimal salah satu wajib ada. Hanya karakter numerik. |
 | `ext` | Dari file yang diunggah | Huruf kecil. Contoh: `pdf`, `jpg`, `png` |
 
 **Contoh:**
@@ -1187,41 +1188,64 @@ Contoh: `Export-Data-Pegawai_Seluruh-Unit_20260708_0900.csv`
 
 ## 17. Design System & UI Guidelines
 
-### 17.1 Konsep Visual: "Modern Clinical / Hospital Tech"
+### 17.1 Canonical UI Direction: shadcn/ui-first
 
-Menggabungkan **kebersihan visual rumah sakit** (whitespace, rasa steril-tenang) dengan **estetika dashboard modern/SaaS**.
+Design system SIMDP **wajib mengikuti estetika dan pola komponen shadcn/ui**: clean, minimal, banyak whitespace, border halus, radius konsisten, typography tajam, state jelas, dan layout dashboard modern. Inspirasi visual utama adalah website **https://ui.shadcn.com**.
 
-### 17.2 Palet Warna
+**Aturan wajib:**
+- Semua komponen umum aplikasi (button, input, form, dialog, dropdown, table, badge, tabs, card, sheet, toast/sonner, command, navigation, pagination) harus berasal dari **shadcn/ui** atau wrapper internal yang dibangun di atas shadcn/ui.
+- Jangan membuat custom component dari nol jika equivalent shadcn/ui tersedia.
+- Custom component boleh dibuat hanya sebagai komposisi/wrapper domain, misalnya `StatusBadge`, `MetricCard`, `DocumentDataTable`, tetapi primitive visualnya tetap memakai shadcn/ui + Tailwind token.
+- Tremor dipakai **khusus untuk chart/dashboard visualization**, bukan menggantikan komponen umum shadcn/ui.
+
+### 17.2 Konsep Visual: "shadcn/ui Clinical Dashboard"
+
+Menggabungkan **kebersihan visual rumah sakit** (whitespace, rasa steril-tenang) dengan **estetika dashboard modern ala shadcn/ui**. Tema rumah sakit hanya menjadi aksen brand; struktur, spacing, border, card, form, dan navigasi tetap mengikuti pola shadcn/ui.
+
+### 17.3 Palet Warna
 
 | Peran | Warna | Hex |
 |---|---|---|
-| Primary (aksi utama) | Teal Medis | `#0F766E` (teal-700) |
-| Primary Light (hover/bg) | Teal muda | `#CCFBF1` (teal-100) |
+| Primary (aksi utama) | Teal Medis sebagai brand accent | `#0F766E` (teal-700) |
+| Primary Light (hover/bg) | Teal muda sebagai accent background | `#CCFBF1` (teal-100) |
 | Secondary/Accent | Biru langit | `#0EA5E9` (sky-500) |
 | Success / Approved | Hijau | `#16A34A` |
 | Warning / Pending / Expiring | Amber | `#D97706` |
 | Danger / Rejected / Expired | Merah | `#DC2626` |
 | Neutral / Replaced | Abu gelap | `#64748B` |
-| Background | Slate sangat terang | `#F8FAFC` (slate-50) |
+| Background | Netral/slate sangat terang ala shadcn/ui | `#F8FAFC` (slate-50) |
 | Teks utama | Slate gelap | `#0F172A` (slate-900) |
-| Border/Divider | Slate muda | `#E2E8F0` (slate-200) |
+| Border/Divider | Slate muda / border halus | `#E2E8F0` (slate-200) |
 
-### 17.3 Tipografi
+Implementasi warna harus melalui **Tailwind theme + CSS variables** agar pola light/dark mode shadcn/ui tetap mudah didukung.
+
+### 17.4 Tipografi
 
 - Font: **Inter** atau **Plus Jakarta Sans** (modern, mudah dibaca di data-heavy table).
 - Heading: semi-bold/bold. Body text: regular.
 - Hierarki ukuran: 12 / 14 / 16 / 20 / 24 / 32px.
 
-### 17.4 Komponen Kunci
+### 17.5 Komponen Kunci
 
 - **Status Badge** sesuai `DocumentStatus` (pill/rounded-full): Pending=amber, Approved=hijau, Rejected=merah, Expired=abu gelap, Replaced=abu muda.
-- **Card statistik** di dashboard: ikon medis line-style, angka besar, trend indicator (▲▼ %).
+- **Card statistik** di dashboard: gunakan shadcn/ui `Card`; ikon medis line-style, angka besar, trend indicator (▲▼ %).
 - **Sidebar navigasi** persisten kiri: ikon + label, menu berbeda sesuai role.
 - **Notification Badge** di navbar: jumlah unread.
 - **Empty state** ramah: ilustrasi + copy yang jelas, bukan sekadar "No data".
 - Gunakan **rounded-xl** dan **soft shadow** untuk card — kesan tenang & rapi.
 
-### 17.5 Aksesibilitas & Responsivitas
+### 17.6 Chart & Dashboard Visualization
+
+**Canonical charting v1:** gunakan **Tremor Charts** dari `@tremor/react` untuk visualisasi data dashboard/statistik.
+
+Aturan implementasi chart:
+- Chart yang wajib tersedia minimal: line chart untuk tren upload dokumen, bar chart untuk breakdown kategori/status, donut/pie chart untuk distribusi status dokumen, dan area/line chart untuk tren compliance bila data tersedia.
+- Bungkus chart dalam wrapper internal, misalnya `modules/statistics/components/*Chart.tsx`, agar modul lain tidak bergantung langsung pada detail konfigurasi Tremor.
+- Wrapper chart harus memakai container/layout shadcn/ui (`Card`, `CardHeader`, `CardContent`, `Tabs`, `Select`, `Skeleton`) sehingga tampilan keseluruhan tetap seperti shadcn/ui.
+- Warna chart harus memakai palette token SIMDP/shadcn (`primary`, `muted`, `destructive`, `warning`, `success`) dan tidak memakai warna default yang bertabrakan dengan tema.
+- Empty/loading/error state chart wajib memakai komponen shadcn/ui (`Skeleton`, `Alert`, `EmptyState` internal).
+
+### 17.7 Aksesibilitas & Responsivitas
 
 - Kontras warna minimal **WCAG AA**.
 - **Mobile-first** untuk halaman Employee (upload & lihat status nyaman di layar kecil).
@@ -1272,7 +1296,7 @@ NEXT_PUBLIC_APP_URL=            # URL aplikasi (untuk link di email)
 | **Fase 1 — Core Employee & Document** | Modul `employee` (CRUD, profil, master data), `document` (upload, lihat, DocumentType) | Employee bisa upload & lihat dokumen sendiri |
 | **Fase 2 — Verification & Notification** | Modul `verification`, `notification` (in-app + cron expiry) | Staff bisa approve/reject, Employee dapat notifikasi |
 | **Fase 3 — Admin & Master Data** | CRUD Employee lengkap, import/export CSV, riwayat karier, User management, soft delete & restore | Admin penuh kelola sistem |
-| **Fase 4 — Statistik & Dashboard** | Modul `statistics`, charting Recharts | Dashboard admin/staff lengkap |
+| **Fase 4 — Statistik & Dashboard** | Modul `statistics`, charting Tremor, layout/wrapper shadcn/ui | Dashboard admin/staff lengkap |
 | **Fase 5 — Security & Hardening** | Security log UI, rate limiting, session management UI, audit trail lengkap | Sistem siap produksi |
 | **Fase 6 — Polish UI/UX** | Tema rumah sakit final, responsive, aksesibilitas, empty states | UI konsisten §17 |
 
@@ -1539,10 +1563,17 @@ Ini adalah folder **paling penting** untuk kontinuitas antar sesi AI.
 
 ## [2026-07-08] Format Nama File Dokumen
 - Konteks: perlu nama file yang konsisten di semua storage provider
-- Keputusan: {KODE-DOKUMEN}-{URUTAN}-{NIP}.{ext} - contoh: STR-1-198501012010011001.pdf
+- Keputusan: `{KODE-DOKUMEN}-{URUTAN}-{NIP-atau-NIK}.{ext}`. Gunakan NIP jika ada; jika pegawai tidak memiliki NIP, gunakan NIK. Contoh: `STR-1-198501012010011001.pdf`
 - Alasan: mudah dibaca manusia, konsisten antar provider
 - Dampak ke modul: document
 - Referensi: §16.1 PRD
+
+## [2026-07-08] NIP Optional, NIP atau NIK Wajib
+- Konteks: tidak semua pegawai memiliki NIP; pegawai tanpa NIP harus tetap bisa dibuat dan login memakai NIK
+- Keputusan: `Employee.employeeId` (NIP) dan `Employee.nik` (NIK) sama-sama unik nullable, tetapi minimal salah satu wajib diisi melalui constraint database dan validasi aplikasi
+- Alasan: model data mengikuti kondisi nyata pegawai RSUD tanpa mengorbankan identitas login unik
+- Dampak ke modul: employee, auth, document filename generation, database schema
+- Referensi: §8.1, §9.1, §16.1 PRD
 
 ## [2026-07-08] ArchiveCategory: PERSONAL/EDUCATION/EMPLOYMENT/CERTIFICATION/LEGAL
 - Konteks: PRD lama memakai UTAMA/KONDISIONAL/PROFESI; skema SQL baru memakai enum berbeda

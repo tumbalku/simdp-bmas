@@ -115,7 +115,7 @@ CREATE TABLE "Workplace" (
 CREATE TABLE "Employee" (
   id text PRIMARY KEY,
   "userId" text NOT NULL UNIQUE REFERENCES "User"(id) ON DELETE CASCADE,
-  "employeeId" text NOT NULL UNIQUE,
+  "employeeId" text UNIQUE,
   nik text UNIQUE,
   name text NOT NULL,
   "avatarUrl" text,
@@ -143,7 +143,10 @@ CREATE TABLE "Employee" (
   "updatedBy" text REFERENCES "User"(id),
   "createdAt" timestamp NOT NULL DEFAULT now(),
   "updatedAt" timestamp NOT NULL DEFAULT now(),
-  "deletedAt" timestamp
+  "deletedAt" timestamp,
+
+  CONSTRAINT chk_employee_identifier_required
+    CHECK ("employeeId" IS NOT NULL OR nik IS NOT NULL)
 );
 CREATE INDEX idx_employee_deleted ON "Employee"("deletedAt");
 
