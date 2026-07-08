@@ -10,8 +10,8 @@ Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/
 
 | Variable | Required | Keterangan |
 |---|:---:|---|
-| `DATABASE_URL` | Yes | Supabase pooled connection string untuk runtime. |
-| `DIRECT_URL` | Yes | Supabase direct connection untuk Prisma migrate. |
+| `DATABASE_URL` | Yes | Supabase pooled connection string untuk runtime dan Prisma 7 config (`prisma.config.ts`). |
+| `DIRECT_URL` | Yes | Supabase direct connection untuk SQL migration/manual migration. Belum dipakai langsung oleh Prisma config pada baseline ini. |
 
 ## Storage
 
