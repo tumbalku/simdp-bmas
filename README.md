@@ -44,3 +44,4 @@ npm run prisma:validate
 - `prisma.config.ts` — konfigurasi Prisma 7 untuk lokasi schema/migrations dan `DATABASE_URL`.
 - `DESIGN.md` — design tokens dan aturan visual SIMDP.
 - `context/` — dokumentasi keputusan, arsitektur, standar kode, dan progress project.
+- `AGENTS.md` — aturan kerja untuk Antigravity dan agent coding lain di SIMDP.

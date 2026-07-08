@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Added
+- Menambahkan `SIMDP-OPS-001`: root `AGENTS.md` untuk Antigravity/agent coding dan dokumentasi `context/architecture/agent-orchestration.md` untuk workflow mes + Antigravity + reviewer personas.
 - Menambahkan `SIMDP-DB-002`: validasi environment variable dengan Zod di `src/lib/env.ts`, Prisma Client singleton di `src/lib/prisma.ts`, dependency `zod`, `pg`, dan `@prisma/adapter-pg`, serta contoh `.env.example` yang siap development.
 - Menambahkan Prisma ORM untuk `SIMDP-DB-001`, termasuk `prisma/schema.prisma`, `prisma.config.ts`, script Prisma, dan model yang disinkronkan dari `dms_pegawai_schema.sql`.
 - Setup Tremor Charts dengan pola Tremor Raw untuk `SIMDP-SETUP-002`, termasuk dependency `recharts`, `tailwind-variants`, `@remixicon/react`, `@tailwindcss/forms`, shadcn `Card`, komponen chart reusable di `src/components/charts/`, utility `src/lib/chartUtils.ts`, wrapper domain di modul `statistics`, dan preview dashboard statistik dengan data contoh.

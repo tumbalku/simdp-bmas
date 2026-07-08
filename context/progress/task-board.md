@@ -6,10 +6,11 @@ Belum ada.
 
 ## In Progress
 
-- [ ] SIMDP-DB-002: Setup Prisma Client singleton dan env validation.
+- [ ] SIMDP-OPS-001: Dokumentasikan workflow mes + Antigravity orchestration.
 
 ## Done
 
+- [x] SIMDP-DB-002: Setup Prisma Client singleton dan env validation (selesai: 2026-07-08)
 - [x] SIMDP-DB-001: Sinkronkan Prisma schema dengan `dms_pegawai_schema.sql` (selesai: 2026-07-08)
 - [x] SIMDP-SETUP-002: Setup Tremor Charts untuk dashboard statistics (selesai: 2026-07-08)
 - [x] SIMDP-SETUP-001: Scaffold Next.js 15 + TypeScript + Tailwind + shadcn/ui (selesai: 2026-07-08)

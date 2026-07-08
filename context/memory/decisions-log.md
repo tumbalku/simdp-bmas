@@ -78,3 +78,9 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Alasan: model data mengikuti kondisi nyata pegawai RSUD tanpa mengorbankan identitas login unik.
 - Dampak ke modul: employee, auth, document filename generation, database schema.
 - Referensi: §8.1, §9.1, §16.1 PRD.
+
+## 2026-07-09 — SIMDP agent orchestration baseline
+
+- Keputusan: SIMDP memakai Hermes/mes sebagai orchestrator dan senior reviewer, Antigravity sebagai developer agent, dan `agent-skills` personas sebagai reviewer/test/security/performance lenses.
+- User tetap menjadi final GitHub approver/merger.
+- Root `AGENTS.md` menjadi instruksi operasional untuk Antigravity dan agent coding lain: wajib membaca context relevan, menjaga scope, tidak melakukan drive-by work, dan tidak melakukan tindakan high-risk tanpa approval.
