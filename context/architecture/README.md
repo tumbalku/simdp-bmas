@@ -7,6 +7,7 @@ Folder ini menjelaskan keputusan arsitektur dan boundary modul SIMDP.
 - `system-overview.md` — gambaran sistem tingkat tinggi.
 - `module-boundaries.md` — aturan boundary antar modul.
 - `patterns.md` — pola implementasi yang wajib diikuti.
+- `agent-orchestration.md` — workflow Hermes/mes + Antigravity + reviewer personas.
 
 ## ADR
 
