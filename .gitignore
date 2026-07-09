@@ -97,3 +97,4 @@ Thumbs.db
 
 # Local-only UI preview sandbox
 src/app/preview/
+src/app/component-preview/
