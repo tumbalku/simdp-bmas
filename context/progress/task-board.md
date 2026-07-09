@@ -16,6 +16,8 @@ Belum ada.
 
 ## Done
 
+- [x] [#42](https://github.com/tumbalku/simdp-bmas/issues/42) SIMDP-UI-001: Install Taste Skill for Antigravity UI work (selesai: 2026-07-09)
+
 - [x] [#40](https://github.com/tumbalku/simdp-bmas/issues/40) SIMDP-UI-000: Prepare shadcn component library and local preview sandbox (selesai: 2026-07-09)
 
 - [x] [#31](https://github.com/tumbalku/simdp-bmas/issues/31) SIMDP-TEST-001: Setup Vitest unit test infrastructure (selesai: 2026-07-09)
