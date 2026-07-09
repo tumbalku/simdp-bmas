@@ -12,6 +12,33 @@
 - Komponen client tidak boleh `fetch` langsung; harus lewat `hooks.ts` → `api.ts`.
 - Semua request body/query/form-data wajib divalidasi Zod sebelum service call.
 
+## Docs-first Workflow
+
+Sebelum implementasi API, setiap kelompok endpoint wajib punya kontrak tertulis yang disetujui. Kontrak API minimal harus menjawab:
+
+1. path dan HTTP method;
+2. role minimum dan ownership rule;
+3. request params/query/body/form-data;
+4. response sukses;
+5. response error utama;
+6. side effect database/storage/notifikasi;
+7. audit event yang wajib dicatat;
+8. Zod schema yang perlu dibuat;
+9. service boundary yang akan dipanggil;
+10. verification command saat implementasi.
+
+Urutan dokumentasi API mengikuti backlog `SIMDP-API-DOCS-*` di `context/progress/task-board.md`. Implementasi `SIMDP-API-*` baru boleh dimulai setelah kontrak terkait direview.
+
+Standar dokumentasi API v1 berada di:
+
+- [`context/technical/api/README.md`](api/README.md) — index, API surface untuk frontend, status matrix, dan checklist review kontrak.
+- [`context/technical/api/conventions.md`](api/conventions.md) — response envelope, error shape, pagination/filter, date format, auth cookie, RBAC/ownership notation, audit, upload, dan frontend API wrapper conventions.
+- [`context/technical/api/auth.md`](api/auth.md) — Kontrak detail untuk login, logout, refresh, reset, dan revoke sesi.
+- [`context/technical/api/employee-master-data.md`](api/employee-master-data.md) — Kontrak detail untuk profile, employee CRUD, career history, dan master data.
+- [`context/technical/api/documents.md`](api/documents.md) — Kontrak detail untuk jenis dokumen, target rules, upload, download, soft delete, dan restore.
+- [`context/technical/api/verification-notification.md`](api/verification-notification.md) — Kontrak detail untuk verification queue, approve/reject, history, dan notifikasi.
+- [`context/technical/api/system.md`](api/system.md) — Kontrak detail untuk system settings, security log, statistics, dan cron check-expiry.
+
 ## Route Handlers
 
 | Endpoint | Method | Fungsi | Role |
