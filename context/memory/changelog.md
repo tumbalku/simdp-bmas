@@ -5,6 +5,9 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Added
+- Menambahkan `SIMDP-API-DOCS-007`: Review kontrak API lengkap SIMDP v1 terhadap RBAC, audit log, validasi Zod, module boundaries, dan Prisma schema, serta menyusun rencana pemecahan menjadi 12 issue implementasi detail di `context/technical/api/review-implementation-split.md` dan GitHub issue #15-#26.
+- Menambahkan `SIMDP-API-DOCS-002` hingga `SIMDP-API-DOCS-006`: kontrak API lengkap untuk modul Auth, Employee & Master Data, Document Type & Record, Verification & Notification, serta System Settings, Security Log, Statistics, dan Cron expiry reminders.
+- Menambahkan `SIMDP-API-DOCS-001`: standar dokumentasi API v1 di `context/technical/api/README.md` dan `context/technical/api/conventions.md`, termasuk response envelope, error shape, pagination/filter, auth cookie, RBAC/ownership notation, audit, upload, dan frontend API wrapper conventions.
 - Menambahkan `SIMDP-DB-003`: baseline migration Prisma awal di `prisma/migrations/20260709000000_init/migration.sql` dari `dms_pegawai_schema.sql` beserta `prisma/migrations/migration_lock.toml` untuk menyimpan semua schema PostgreSQL mentah (tabel, enum, index, check constraint, partial unique index, function, dan trigger).
 - Menambahkan `SIMDP-OPS-001`: root `AGENTS.md` untuk Antigravity/agent coding dan dokumentasi `context/architecture/agent-orchestration.md` untuk workflow mes + Antigravity + reviewer personas.
 - Menambahkan `SIMDP-DB-002`: validasi environment variable dengan Zod di `src/lib/env.ts`, Prisma Client singleton di `src/lib/prisma.ts`, dependency `zod`, `pg`, dan `@prisma/adapter-pg`, serta contoh `.env.example` yang siap development.
