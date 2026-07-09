@@ -4,6 +4,9 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 
 ## [Unreleased]
 
+### Fixed
+- SIMDP-API-SEC-001 (#29): memperbaiki temuan critical review API dengan menutup path traversal pada local document stream, mewajibkan cron secret via `Authorization: Bearer`, menambahkan bypass middleware untuk refresh/logout, memindahkan lookup logout ke service boundary, menyimpan reset token dalam bentuk hash, menambahkan guard restore dokumen hanya untuk Admin, dan memindahkan audit log replacement upload keluar dari transaksi Prisma. Pola Zod `z.email("Format email tidak valid")` tetap dipertahankan karena sesuai Zod v4.
+
 ### Added
 - Implementasi API Foundation (#15): standard success/error response envelope, Zod validation error formatter, BigInt serialization helper, JWT authentication cookies setting/clearing, session retrieval guard, dan role-based access permission helper.
 - Implementasi Auth API (#16): login route handler dengan flex-identifier (email/NIP/NIK), refresh token rotation, logout route handler, forgot password link request, reset password token validation, change password server action, and session revocation server actions with audit log side effects.

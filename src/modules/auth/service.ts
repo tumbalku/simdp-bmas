@@ -236,8 +236,14 @@ export async function rotateSession(
   };
 }
 
-export async function logoutUser(tokenPlain: string, userId: string, actorName: string, actorRole: string): Promise<boolean> {
+export async function logoutUser(tokenPlain: string, userId: string, actorRole: string): Promise<boolean> {
   const hashedToken = hashRefreshToken(tokenPlain);
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId },
+    include: { employee: true },
+  });
+  const actorName = user?.employee?.name || user?.email || "User";
 
   const refreshTokenRecord = await prisma.refreshToken.findFirst({
     where: { token: hashedToken, userId },
@@ -283,13 +289,14 @@ export async function requestPasswordReset(email: string): Promise<string | null
 
   // Create reset token
   const resetToken = "prt_" + crypto.randomBytes(24).toString("hex");
+  const hashedResetToken = hashRefreshToken(resetToken);
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
   await prisma.passwordResetToken.create({
     data: {
       id: crypto.randomUUID(),
       userId: user.id,
-      token: resetToken,
+      token: hashedResetToken,
       expiresAt,
     },
   });
@@ -307,8 +314,9 @@ export async function requestPasswordReset(email: string): Promise<string | null
 }
 
 export async function resetPasswordWithToken(token: string, newPassword: string): Promise<boolean> {
+  const hashedResetToken = hashRefreshToken(token);
   const resetTokenRecord = await prisma.passwordResetToken.findFirst({
-    where: { token, usedAt: null },
+    where: { token: hashedResetToken, usedAt: null },
     include: {
       user: {
         include: { employee: true },

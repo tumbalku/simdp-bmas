@@ -12,6 +12,7 @@ Belum ada.
 
 ## Done
 
+- [x] [#29](https://github.com/tumbalku/simdp-bmas/issues/29) SIMDP-API-SEC-001: Perbaiki critical API security findings dari review sementara tanpa mengubah pola `z.email("Format email tidak valid")` (selesai: 2026-07-09)
 - [x] [#15](https://github.com/tumbalku/simdp-bmas/issues/15) SIMDP-API-001: Implementasi API foundation (selesai: 2026-07-09)
 - [x] [#16](https://github.com/tumbalku/simdp-bmas/issues/16) SIMDP-API-002: Implementasi Auth API (selesai: 2026-07-09)
 - [x] [#17](https://github.com/tumbalku/simdp-bmas/issues/17) SIMDP-API-003a: Implementasi Employee Profile & Career History API (selesai: 2026-07-09)

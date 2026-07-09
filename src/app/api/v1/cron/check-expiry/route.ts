@@ -6,16 +6,13 @@ import { processExpiredDocumentsAndReminders } from "@/modules/document/service"
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const querySecret = searchParams.get("secret");
-
     const authHeader = request.headers.get("authorization");
     let headerSecret = null;
     if (authHeader && authHeader.startsWith("Bearer ")) {
       headerSecret = authHeader.substring(7);
     }
 
-    const secret = querySecret || headerSecret;
+    const secret = headerSecret;
 
     if (!secret || secret !== env.CRON_SECRET) {
       return errorResponse(

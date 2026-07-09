@@ -366,6 +366,7 @@ export async function uploadDocumentRecord(
 
   // 7. Write record to DB
   const docId = crypto.randomUUID();
+  const replacedDocumentIds: string[] = [];
 
   const record = await prisma.$transaction(async (tx) => {
     // If allowMultiple is false, replace active document of same type
@@ -380,17 +381,7 @@ export async function uploadDocumentRecord(
           data: { isCurrent: false, status: "REPLACED" },
         });
 
-        for (const doc of activeDocs) {
-          await logActivity({
-            actorId: session.userId,
-            actorName: employee.name,
-            actorRole: session.role,
-            eventType: "DOCUMENT_DELETED",
-            resource: `DocumentRecord:${doc.id}`,
-            status: "SUCCESS",
-            metadata: { reason: "replaced_by_new_upload" },
-          });
-        }
+        replacedDocumentIds.push(...activeDocs.map((doc) => doc.id));
       }
     }
 
@@ -408,7 +399,7 @@ export async function uploadDocumentRecord(
         fileSize: BigInt(buffer.length),
         mimeType: data.file.type || null,
         fileHash,
-        storageProvider: docType.maxSizeMb > 0 ? "local" : "local", // Fallback to local
+        storageProvider: "local",
         documentNumber: data.documentNumber || null,
         issueDate: data.issueDate ? new Date(data.issueDate) : null,
         expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
@@ -447,6 +438,18 @@ export async function uploadDocumentRecord(
 
     return docRec;
   });
+
+  for (const replacedDocumentId of replacedDocumentIds) {
+    await logActivity({
+      actorId: session.userId,
+      actorName: employee.name,
+      actorRole: session.role,
+      eventType: "DOCUMENT_DELETED",
+      resource: `DocumentRecord:${replacedDocumentId}`,
+      status: "SUCCESS",
+      metadata: { reason: "replaced_by_new_upload" },
+    });
+  }
 
   await logActivity({
     actorId: session.userId,
@@ -507,6 +510,29 @@ export async function generateDownloadUrl(documentId: string, session: TokenPayl
   return downloadUrl;
 }
 
+export async function getLocalStreamDocument(filePath: string, session: TokenPayload) {
+  const doc = await prisma.documentRecord.findFirst({
+    where: {
+      filePath: `uploads/${filePath}`,
+      deletedAt: null,
+    },
+    include: {
+      owner: true,
+    },
+  });
+
+  if (!doc) throw new Error("Dokumen tidak ditemukan atau terhapus");
+
+  if (session.role === "EMPLOYEE" && doc.owner.userId !== session.userId) {
+    throw new Error("OWNERSHIP_REQUIRED");
+  }
+
+  return {
+    fileName: doc.fileName,
+    mimeType: doc.mimeType,
+  };
+}
+
 export async function softDeleteDocument(documentId: string, session: TokenPayload) {
   const doc = await prisma.documentRecord.findUnique({
     where: { id: documentId, deletedAt: null },
@@ -549,6 +575,10 @@ export async function softDeleteDocument(documentId: string, session: TokenPaylo
 }
 
 export async function restoreDocument(documentId: string, session: TokenPayload) {
+  if (session.role !== "ADMIN") {
+    throw new Error("FORBIDDEN");
+  }
+
   const doc = await prisma.documentRecord.findUnique({
     where: { id: documentId },
     include: {
