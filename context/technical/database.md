@@ -101,9 +101,11 @@ WHERE "isCurrent" = true AND "allowMultipleSnapshot" = false;
 Makna: satu pegawai hanya punya satu dokumen current untuk DocumentType non-multiple.
 
 
-## Prisma Schema
+## Prisma Schema & Migration Baseline
 
 `prisma/schema.prisma` dibuat dari `dms_pegawai_schema.sql` sebagai baseline ORM. Prisma 7 memakai `prisma.config.ts` untuk membaca `DATABASE_URL`; schema file hanya menyimpan provider PostgreSQL dan model/enum.
+
+Migration baseline awal berada di `prisma/migrations/20260709000000_init/migration.sql` yang menyimpan seluruh schema SQL mentah (tabel, enum, index, check constraint, partial unique index, function, dan trigger) untuk menjaga konsistensi database. Folder migration juga menyimpan `prisma/migrations/migration_lock.toml` dengan provider `postgresql` agar Prisma Migrate mengunci provider database yang benar.
 
 Validasi lokal:
 
