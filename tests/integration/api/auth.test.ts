@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST as loginPost } from "@/app/api/v1/auth/login/route";
 import { POST as refreshPost } from "@/app/api/v1/auth/refresh/route";
+import { POST as logoutPost } from "@/app/api/v1/auth/logout/route";
+import { POST as forgotPost } from "@/app/api/v1/auth/forgot-password/route";
+import { POST as resetPost } from "@/app/api/v1/auth/reset-password/route";
 import { NextRequest } from "next/server";
 import { mockPrisma, mockCookieStore } from "../../../tests/setup";
+import { signAccessToken } from "@/lib/auth";
 import bcryptjs from "bcryptjs";
 
 describe("Auth Integration API", () => {
@@ -111,6 +115,195 @@ describe("Auth Integration API", () => {
       const body = await res.json();
       expect(body.ok).toBe(true);
       expect(mockCookieStore.set).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("POST /api/v1/auth/logout", () => {
+    it("should return 401 if unauthenticated", async () => {
+      mockCookieStore.get.mockReturnValue(undefined);
+
+      const req = new NextRequest("http://localhost/api/v1/auth/logout", {
+        method: "POST",
+      });
+      const res = await logoutPost(req);
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.error.code).toBe("UNAUTHENTICATED");
+    });
+
+    it("should succeed and clear cookies and call logoutUser if authenticated with refresh cookie", async () => {
+      const accessToken = await signAccessToken({ userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" });
+      mockCookieStore.get.mockImplementation((name) => {
+        if (name === "access_token") return { value: accessToken };
+        if (name === "refresh_token") return { value: "valid-refresh-token" };
+        return undefined;
+      });
+
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: "user-1",
+        email: "test@example.com",
+        employee: { name: "Test" },
+      });
+      mockPrisma.refreshToken.findFirst.mockResolvedValue({
+        id: "token-record-1",
+        userId: "user-1",
+      });
+
+      const req = new NextRequest("http://localhost/api/v1/auth/logout", {
+        method: "POST",
+        headers: {
+          Cookie: "refresh_token=valid-refresh-token",
+        },
+      });
+      const res = await logoutPost(req);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(mockCookieStore.set).toHaveBeenCalled();
+      expect(mockPrisma.refreshToken.update).toHaveBeenCalled();
+    });
+
+    it("should still succeed and clear cookies if authenticated without refresh cookie", async () => {
+      const accessToken = await signAccessToken({ userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" });
+      mockCookieStore.get.mockImplementation((name) => {
+        if (name === "access_token") return { value: accessToken };
+        return undefined;
+      });
+
+      const req = new NextRequest("http://localhost/api/v1/auth/logout", {
+        method: "POST",
+      });
+      const res = await logoutPost(req);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(mockCookieStore.set).toHaveBeenCalled();
+      expect(mockPrisma.refreshToken.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("POST /api/v1/auth/forgot-password", () => {
+    it("should return validation error for invalid email format", async () => {
+      const req = new NextRequest("http://localhost/api/v1/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: "not-an-email" }),
+      });
+      const res = await forgotPost(req);
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.details?.[0].message).toBe("Format email tidak valid");
+    });
+
+    it("should return 200 generic message without leaking account existence", async () => {
+      // Mock user not found
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+
+      const req = new NextRequest("http://localhost/api/v1/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: "doesnotexist@example.com" }),
+      });
+      const res = await forgotPost(req);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
+      expect(body.data.message).toContain("Instruksi reset password telah dikirim");
+
+      // Mock user found
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: "user-1",
+        email: "exists@example.com",
+        role: "EMPLOYEE",
+      });
+      mockPrisma.passwordResetToken.create.mockResolvedValue({ id: "token-1" });
+
+      const req2 = new NextRequest("http://localhost/api/v1/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: "exists@example.com" }),
+      });
+      const res2 = await forgotPost(req2);
+
+      expect(res2.status).toBe(200);
+      const body2 = await res2.json();
+      expect(body2.ok).toBe(true);
+      expect(body2.data.message).toContain("Instruksi reset password telah dikirim");
+    });
+  });
+
+  describe("POST /api/v1/auth/reset-password", () => {
+    it("should return validation error for mismatched confirmation", async () => {
+      const req = new NextRequest("http://localhost/api/v1/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({
+          token: "some-token",
+          password: "password123",
+          confirmPassword: "password124",
+        }),
+      });
+      const res = await resetPost(req);
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      expect(body.error.details?.[0].path).toBe("confirmPassword");
+      expect(body.error.details?.[0].message).toBe("Konfirmasi password tidak cocok");
+    });
+
+    it("should return 400 BAD_REQUEST for invalid/expired token", async () => {
+      // Mock findFirst to return null (token not found/used)
+      mockPrisma.passwordResetToken.findFirst.mockResolvedValue(null);
+
+      const req = new NextRequest("http://localhost/api/v1/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({
+          token: "invalid-token",
+          password: "password123",
+          confirmPassword: "password123",
+        }),
+      });
+      const res = await resetPost(req);
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error.code).toBe("BAD_REQUEST");
+      expect(body.error.message).toContain("Token reset tidak valid");
+    });
+
+    it("should return 200 for valid token reset", async () => {
+      const resetTokenRecord = {
+        id: "reset-record-1",
+        userId: "user-1",
+        expiresAt: new Date(Date.now() + 100000),
+        user: {
+          id: "user-1",
+          email: "test@example.com",
+          role: "EMPLOYEE",
+          employee: { name: "Test" },
+        },
+      };
+      mockPrisma.passwordResetToken.findFirst.mockResolvedValue(resetTokenRecord);
+      mockPrisma.passwordResetToken.update.mockResolvedValue({});
+      mockPrisma.user.update.mockResolvedValue({});
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({});
+
+      const req = new NextRequest("http://localhost/api/v1/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({
+          token: "valid-token",
+          password: "password123",
+          confirmPassword: "password123",
+        }),
+      });
+      const res = await resetPost(req);
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.ok).toBe(true);
     });
   });
 });

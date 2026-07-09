@@ -22,6 +22,7 @@ Belum ada.
 - [x] [#34](https://github.com/tumbalku/simdp-bmas/issues/34) SIMDP-TEST-004: Unit tests for document module (selesai: 2026-07-09)
 - [x] [#35](https://github.com/tumbalku/simdp-bmas/issues/35) SIMDP-TEST-005: Unit tests for employee, verification, notification, settings, security, statistics modules (selesai: 2026-07-09)
 - [x] [#36](https://github.com/tumbalku/simdp-bmas/issues/36) SIMDP-TEST-006: API route and integration test baseline (selesai: 2026-07-09)
+- [x] [#38](https://github.com/tumbalku/simdp-bmas/issues/38) SIMDP-TEST-007: Address API route and test suite review gaps (selesai: 2026-07-09)
 
 - [x] [#29](https://github.com/tumbalku/simdp-bmas/issues/29) SIMDP-API-SEC-001: Perbaiki critical API security findings dari review sementara tanpa mengubah pola `z.email("Format email tidak valid")` (selesai: 2026-07-09)
 - [x] [#15](https://github.com/tumbalku/simdp-bmas/issues/15) SIMDP-API-001: Implementasi API foundation (selesai: 2026-07-09)

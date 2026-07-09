@@ -55,6 +55,38 @@ describe("Document Module Service", () => {
         })
       );
     });
+
+    it("should update document type", async () => {
+      mockPrisma.documentType.findUnique.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      mockPrisma.documentType.update.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc Updated" });
+
+      const data = {
+        code: "PDF",
+        name: "PDF Doc Updated",
+        archiveCategory: "PERSONAL",
+        allowedFormats: "pdf",
+        maxSizeMb: "5",
+        professionGroupIds: ["prof-1"],
+      };
+
+      const result = await handleDocumentTypeCrud("UPDATE", "type-1", data, "admin-1", "Admin User", "ADMIN");
+      expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc Updated" });
+      expect(mockPrisma.documentType.update).toHaveBeenCalled();
+    });
+
+    it("should delete document type", async () => {
+      mockPrisma.documentType.findUnique.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      mockPrisma.documentType.update.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+
+      const result = await handleDocumentTypeCrud("DELETE", "type-1", undefined, "admin-1", "Admin User", "ADMIN");
+      expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      expect(mockPrisma.documentType.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "type-1" },
+          data: expect.objectContaining({ deletedAt: expect.any(Date) }),
+        })
+      );
+    });
   });
 
   describe("uploadDocumentRecord", () => {
@@ -166,6 +198,34 @@ describe("Document Module Service", () => {
 
       const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
       await expect(generateDownloadUrl("doc-1", session)).rejects.toThrow("OWNERSHIP_REQUIRED");
+    });
+
+    it("should allow ADMIN to generate download URL for document owned by another employee", async () => {
+      const doc = {
+        id: "doc-1",
+        filePath: "uploads/PDF/PDF-1-empId-2.pdf",
+        owner: { userId: "user-2", name: "Other Employee" },
+      };
+      mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+      mockPrisma.securityLog.create.mockResolvedValue({});
+
+      const session = { userId: "admin-1", role: "ADMIN", employeeId: null };
+      const url = await generateDownloadUrl("doc-1", session);
+      expect(url).toBeDefined();
+    });
+
+    it("should allow STAFF to generate download URL for document owned by another employee", async () => {
+      const doc = {
+        id: "doc-1",
+        filePath: "uploads/PDF/PDF-1-empId-2.pdf",
+        owner: { userId: "user-2", name: "Other Employee" },
+      };
+      mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+      mockPrisma.securityLog.create.mockResolvedValue({});
+
+      const session = { userId: "staff-1", role: "STAFF", employeeId: "emp-2" };
+      const url = await generateDownloadUrl("doc-1", session);
+      expect(url).toBeDefined();
     });
   });
 

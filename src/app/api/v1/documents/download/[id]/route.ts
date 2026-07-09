@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
 import { generateDownloadUrl } from "@/modules/document/service";
+import { AppError } from "@/lib/errors";
 
 export async function GET(
   request: NextRequest,
@@ -15,16 +15,17 @@ export async function GET(
     const url = await generateDownloadUrl(id, session);
 
     return successResponse({ url });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Document download route error:", error);
-    if (error.message === "UNAUTHENTICATED") {
-      return errorResponse("UNAUTHENTICATED", "User belum login", undefined, 401);
+    if (error instanceof AppError) {
+      const message = error.message === "OWNERSHIP_REQUIRED" ? "Anda tidak memiliki akses ke dokumen ini." : error.message;
+      return errorResponse(error.code, message, error.details, error.status);
     }
-    if (error.message === "OWNERSHIP_REQUIRED") {
-      return errorResponse("OWNERSHIP_REQUIRED", "Anda tidak memiliki akses ke dokumen ini.", undefined, 403);
-    }
-    if (error.message.includes("tidak ditemukan")) {
-      return errorResponse("NOT_FOUND", "Dokumen tidak ditemukan atau terhapus.", undefined, 404);
+    if (error instanceof Error) {
+      if (error.message === "UNAUTHENTICATED") {
+        return errorResponse("UNAUTHENTICATED", "User belum login", undefined, 401);
+      }
+      return errorResponse("INTERNAL_ERROR", error.message, undefined, 500);
     }
     return errorResponse("INTERNAL_ERROR", "Terjadi kesalahan internal", undefined, 500);
   }

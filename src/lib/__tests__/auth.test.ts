@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { SignJWT } from "jose";
 import {
   signAccessToken,
   verifyAccessToken,
@@ -28,6 +29,18 @@ describe("auth library helpers", () => {
 
     it("should return null for invalid tokens", async () => {
       const verified = await verifyAccessToken("invalid-token-string");
+      expect(verified).toBeNull();
+    });
+
+    it("should return null for expired token", async () => {
+      const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+      const token = await new SignJWT({ userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("-1s") // expired
+        .sign(JWT_SECRET);
+
+      const verified = await verifyAccessToken(token);
       expect(verified).toBeNull();
     });
   });
@@ -136,6 +149,18 @@ describe("auth library helpers", () => {
 
       const session = await requireAuth("STAFF");
       expect(session.userId).toBe("user-1");
+    });
+
+    it("should throw UNAUTHENTICATED in requireAuth when token is expired", async () => {
+      const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+      const token = await new SignJWT({ userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("-1s") // expired
+        .sign(JWT_SECRET);
+      mockCookieStore.get.mockReturnValue({ value: token });
+
+      await expect(requireAuth()).rejects.toThrow("UNAUTHENTICATED");
     });
   });
 });
