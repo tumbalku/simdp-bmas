@@ -2,6 +2,10 @@
 
 ## Backlog
 
+### Test Coverage & TDD Roadmap
+
+(Semua rencana kerja test coverage selesai)
+
 ### API Implementation Queue
 
 (Semua antrean implementasi v1 selesai)
@@ -11,6 +15,13 @@
 Belum ada.
 
 ## Done
+
+- [x] [#31](https://github.com/tumbalku/simdp-bmas/issues/31) SIMDP-TEST-001: Setup Vitest unit test infrastructure (selesai: 2026-07-09)
+- [x] [#32](https://github.com/tumbalku/simdp-bmas/issues/32) SIMDP-TEST-002: Unit tests for lib helpers (selesai: 2026-07-09)
+- [x] [#33](https://github.com/tumbalku/simdp-bmas/issues/33) SIMDP-TEST-003: Unit tests for auth module (selesai: 2026-07-09)
+- [x] [#34](https://github.com/tumbalku/simdp-bmas/issues/34) SIMDP-TEST-004: Unit tests for document module (selesai: 2026-07-09)
+- [x] [#35](https://github.com/tumbalku/simdp-bmas/issues/35) SIMDP-TEST-005: Unit tests for employee, verification, notification, settings, security, statistics modules (selesai: 2026-07-09)
+- [x] [#36](https://github.com/tumbalku/simdp-bmas/issues/36) SIMDP-TEST-006: API route and integration test baseline (selesai: 2026-07-09)
 
 - [x] [#29](https://github.com/tumbalku/simdp-bmas/issues/29) SIMDP-API-SEC-001: Perbaiki critical API security findings dari review sementara tanpa mengubah pola `z.email("Format email tidak valid")` (selesai: 2026-07-09)
 - [x] [#15](https://github.com/tumbalku/simdp-bmas/issues/15) SIMDP-API-001: Implementasi API foundation (selesai: 2026-07-09)

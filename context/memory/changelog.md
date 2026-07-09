@@ -8,6 +8,12 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-API-SEC-001 (#29): memperbaiki temuan critical review API dengan menutup path traversal pada local document stream, mewajibkan cron secret via `Authorization: Bearer`, menambahkan bypass middleware untuk refresh/logout, memindahkan lookup logout ke service boundary, menyimpan reset token dalam bentuk hash, menambahkan guard restore dokumen hanya untuk Admin, dan memindahkan audit log replacement upload keluar dari transaksi Prisma. Pola Zod `z.email("Format email tidak valid")` tetap dipertahankan karena sesuai Zod v4.
 
 ### Added
+- Setup Vitest testing infrastructure (#31 / SIMDP-TEST-001) with path alias support, node environment, and mocked Prisma/cookie store.
+- Unit tests for lib helpers (#32 / SIMDP-TEST-002) covering success/error envelopes, BigInt serialization, auth helpers, and local storage provider.
+- Unit tests for auth module (#33 / SIMDP-TEST-003) covering login identifiers, password comparison, token rotation, password resets, and session revoking.
+- Unit tests for document module (#34 / SIMDP-TEST-004) covering upload size, PDF/PNG/JPEG magic bytes, download ownership guards, and cron expiry reminder logic using fake timers.
+- Unit tests for employee, verification, notification, settings, security, and statistics modules (#35 / SIMDP-TEST-005) covering service boundaries, queue pagination, note lengths, settings seeding, and aggregation math.
+- API route and integration test baseline (#36 / SIMDP-TEST-006) covering login validation formats, token rotation cookies, cron Authorization Bearer security, and download path traversal rejection.
 - Implementasi API Foundation (#15): standard success/error response envelope, Zod validation error formatter, BigInt serialization helper, JWT authentication cookies setting/clearing, session retrieval guard, dan role-based access permission helper.
 - Implementasi Auth API (#16): login route handler dengan flex-identifier (email/NIP/NIK), refresh token rotation, logout route handler, forgot password link request, reset password token validation, change password server action, and session revocation server actions with audit log side effects.
 - Implementasi Employee & Career History API (#17): getCurrentProfile dan updateProfileAction server actions dengan row-level ownership checks, dan addCareerHistoryAction untuk mutasi pegawai dengan sinkronisasi ke data profil saat ini.
@@ -53,4 +59,4 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Belum ada.
 
 ### Known Issues
-- Script `npm test` belum tersedia karena testing framework belum dipasang pada backlog setup awal.
+- Belum ada.
