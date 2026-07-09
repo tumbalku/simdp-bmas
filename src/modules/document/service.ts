@@ -5,6 +5,7 @@ import path from "path";
 import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
+import { AppError } from "@/lib/errors";
 
 export async function handleDocumentTypeCrud(
   operation: "CREATE" | "UPDATE" | "DELETE" | "RESTORE",
@@ -282,7 +283,7 @@ function validateFileFormat(buffer: Buffer, allowedFormatsStr: string): string {
   }
 
   if (!detectedExt) {
-    throw new Error("Format file tidak dikenal atau tidak didukung");
+    throw new AppError("UNSUPPORTED_MEDIA_TYPE", "Format file tidak dikenal atau tidak didukung", 415);
   }
 
   const isAllowed =
@@ -291,7 +292,7 @@ function validateFileFormat(buffer: Buffer, allowedFormatsStr: string): string {
     (detectedExt === "jpeg" && allowed.includes("jpg"));
 
   if (!isAllowed) {
-    throw new Error(`Format file .${detectedExt} tidak diizinkan. Yang diizinkan: ${allowedFormatsStr}`);
+    throw new AppError("UNSUPPORTED_MEDIA_TYPE", `Format file .${detectedExt} tidak diizinkan. Yang diizinkan: ${allowedFormatsStr}`, 415);
   }
 
   return detectedExt;
@@ -314,24 +315,24 @@ export async function uploadDocumentRecord(
     where: { id: data.documentTypeId, deletedAt: null },
   });
 
-  if (!docType) throw new Error("Jenis dokumen tidak ditemukan atau tidak aktif");
+  if (!docType) throw new AppError("VALIDATION_ERROR", "Jenis dokumen tidak ditemukan atau tidak aktif", 400);
 
   // 2. Fetch current employee
   const employee = await prisma.employee.findUnique({
     where: { userId: session.userId, deletedAt: null },
   });
 
-  if (!employee) throw new Error("Data pegawai tidak ditemukan");
+  if (!employee) throw new AppError("VALIDATION_ERROR", "Data pegawai tidak ditemukan", 400);
 
   // 3. Validate conditional fields
   if (docType.requiresDocumentNumber && !data.documentNumber) {
-    throw new Error("Nomor dokumen wajib diisi untuk jenis dokumen ini.");
+    throw new AppError("VALIDATION_ERROR", "Nomor dokumen wajib diisi untuk jenis dokumen ini.", 400);
   }
   if (docType.requiresIssueDate && !data.issueDate) {
-    throw new Error("Tanggal terbit wajib diisi untuk jenis dokumen ini.");
+    throw new AppError("VALIDATION_ERROR", "Tanggal terbit wajib diisi untuk jenis dokumen ini.", 400);
   }
   if (docType.requiresExpiryDate && !data.expiryDate) {
-    throw new Error("Tanggal kedaluwarsa wajib diisi untuk jenis dokumen ini.");
+    throw new AppError("VALIDATION_ERROR", "Tanggal kedaluwarsa wajib diisi untuk jenis dokumen ini.", 400);
   }
 
   // 4. File Buffer & Content check
@@ -341,7 +342,7 @@ export async function uploadDocumentRecord(
   // Validate size
   const sizeMb = buffer.length / (1024 * 1024);
   if (sizeMb > docType.maxSizeMb) {
-    throw new Error(`Ukuran file melebihi batas maksimal ${docType.maxSizeMb} MB.`);
+    throw new AppError("PAYLOAD_TOO_LARGE", `Ukuran file melebihi batas maksimal ${docType.maxSizeMb} MB.`, 413);
   }
 
   // Validate magic bytes
@@ -478,7 +479,7 @@ export async function generateDownloadUrl(documentId: string, session: TokenPayl
     },
   });
 
-  if (!doc) throw new Error("Dokumen tidak ditemukan atau terhapus");
+  if (!doc) throw new AppError("NOT_FOUND", "Dokumen tidak ditemukan atau terhapus", 404);
 
   // Enforce ownership for non-staff
   if (session.role === "EMPLOYEE") {
@@ -492,7 +493,7 @@ export async function generateDownloadUrl(documentId: string, session: TokenPayl
         status: "FAILED",
         metadata: { reason: "OWNERSHIP_REQUIRED" },
       });
-      throw new Error("OWNERSHIP_REQUIRED");
+      throw new AppError("OWNERSHIP_REQUIRED", "OWNERSHIP_REQUIRED", 403);
     }
   }
 

@@ -6,7 +6,7 @@ import { setAuthCookies } from "@/lib/auth";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Identifier wajib diisi"),
-  password: z.string().min(6, "Password minimal 6 karakter"),
+  password: z.string().min(8, "Password minimal 8 karakter"),
 });
 
 export async function POST(request: NextRequest) {

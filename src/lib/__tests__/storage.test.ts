@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "fs/promises";
+import path from "path";
 import { getStorageProvider } from "@/lib/storage";
 import { env } from "@/lib/env";
 
@@ -24,12 +25,12 @@ describe("storage provider helpers", () => {
       const provider = getStorageProvider();
 
       const buffer = Buffer.from("hello world");
-      const path = "docs/file.pdf";
-      const result = await provider.upload(path, buffer);
+      const pathArg = "docs/file.pdf";
+      const result = await provider.upload(pathArg, buffer);
 
       expect(result).toBe("uploads/docs/file.pdf");
-      expect(fs.mkdir).toHaveBeenCalledWith(expect.stringContaining("uploads\\docs"), { recursive: true });
-      expect(fs.writeFile).toHaveBeenCalledWith(expect.stringContaining("uploads\\docs\\file.pdf"), buffer);
+      expect(fs.mkdir).toHaveBeenCalledWith(expect.stringContaining(path.join("uploads", "docs")), { recursive: true });
+      expect(fs.writeFile).toHaveBeenCalledWith(expect.stringContaining(path.join("uploads", "docs", "file.pdf")), buffer);
 
       env.STORAGE_PROVIDER = origProvider;
     });
@@ -54,7 +55,7 @@ describe("storage provider helpers", () => {
       const provider = getStorageProvider();
 
       await provider.delete("uploads/docs/file.pdf");
-      expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining("uploads\\docs\\file.pdf"));
+      expect(fs.unlink).toHaveBeenCalledWith(expect.stringContaining(path.join("uploads", "docs", "file.pdf")));
 
       env.STORAGE_PROVIDER = origProvider;
     });
