@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { logoutUser } from "@/modules/auth/service";
 import { clearAuthCookies, getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,17 +12,8 @@ export async function POST(request: NextRequest) {
 
     const refreshToken = request.cookies.get("refresh_token")?.value;
 
-    // Fetch user detail for actor name
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
-
-    const actorName = user?.employee?.name || user?.email || "User";
-    const actorRole = session.role;
-
     if (refreshToken) {
-      await logoutUser(refreshToken, session.userId, actorName, actorRole);
+      await logoutUser(refreshToken, session.userId, session.role);
     }
 
     await clearAuthCookies();

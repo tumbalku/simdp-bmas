@@ -4,7 +4,7 @@ import { successResponse, validationErrorResponse, errorResponse } from "@/lib/a
 import { requestPasswordReset } from "@/modules/auth/service";
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Format email tidak valid"),
+  email: z.email("Format email tidak valid"),
 });
 
 export async function POST(request: NextRequest) {
