@@ -1,0 +1,240 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  handleDocumentTypeCrud,
+  uploadDocumentRecord,
+  generateDownloadUrl,
+  restoreDocument,
+  processExpiredDocumentsAndReminders,
+} from "../service";
+import { mockPrisma } from "../../../../tests/setup";
+import { storage } from "@/lib/storage";
+
+// Mock storage
+vi.mock("@/lib/storage", () => ({
+  storage: {
+    upload: vi.fn().mockResolvedValue("uploads/PDF/PDF-1-user-1.pdf"),
+    getTemporaryUrl: vi.fn().mockResolvedValue("/api/v1/documents/download/stream?file=PDF-1-user-1.pdf"),
+    delete: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+describe("Document Module Service", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("handleDocumentTypeCrud", () => {
+    it("should create document type", async () => {
+      const data = {
+        code: "PDF",
+        name: "PDF Doc",
+        archiveCategory: "PERSONAL",
+        allowedFormats: "pdf",
+        maxSizeMb: "5",
+        professionGroupIds: ["prof-1"],
+      };
+
+      mockPrisma.documentType.create.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      mockPrisma.documentTypeProfessionGroup.createMany.mockResolvedValue({ count: 1 });
+
+      const result = await handleDocumentTypeCrud("CREATE", undefined, data, "admin-1", "Admin User", "ADMIN");
+      expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      expect(mockPrisma.documentType.create).toHaveBeenCalled();
+    });
+
+    it("should restore document type", async () => {
+      mockPrisma.documentType.findUnique.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      mockPrisma.documentType.update.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+
+      const result = await handleDocumentTypeCrud("RESTORE", "type-1", undefined, "admin-1", "Admin User", "ADMIN");
+      expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      expect(mockPrisma.documentType.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "type-1" },
+          data: { deletedAt: null },
+        })
+      );
+    });
+  });
+
+  describe("uploadDocumentRecord", () => {
+    it("should validate file size and format (magic bytes) and save document record", async () => {
+      const docType = {
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+        maxSizeMb: 5,
+        allowedFormats: "pdf",
+        requiresDocumentNumber: false,
+        requiresIssueDate: false,
+        requiresExpiryDate: false,
+      };
+
+      const employee = {
+        id: "emp-1",
+        userId: "user-1",
+        employeeId: "empId-1",
+        name: "John Doe",
+      };
+
+      mockPrisma.documentType.findUnique.mockResolvedValue(docType);
+      mockPrisma.employee.findUnique.mockResolvedValue(employee);
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+      mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }]);
+      mockPrisma.documentRecord.create.mockResolvedValue({
+        id: "doc-1",
+        status: "PENDING",
+        fileName: "PDF-1-empId-1.pdf",
+        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+      });
+
+      // Valid PDF magic bytes: %PDF (25 50 44 46)
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0x00])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+
+      const result = await uploadDocumentRecord(
+        {
+          documentTypeId: "type-1",
+          file: mockFile,
+        },
+        session
+      );
+
+      expect(result).toBeDefined();
+      expect(storage.upload).toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.create).toHaveBeenCalled();
+    });
+
+    it("should throw error for invalid magic bytes", async () => {
+      const docType = {
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+        maxSizeMb: 5,
+        allowedFormats: "pdf",
+      };
+
+      const employee = { id: "emp-1", userId: "user-1", name: "John" };
+
+      mockPrisma.documentType.findUnique.mockResolvedValue(docType);
+      mockPrisma.employee.findUnique.mockResolvedValue(employee);
+
+      // Plain text instead of PDF magic bytes
+      const mockFile = new File([new Uint8Array([1, 2, 3, 4, 5])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+
+      await expect(
+        uploadDocumentRecord(
+          {
+            documentTypeId: "type-1",
+            file: mockFile,
+          },
+          session
+        )
+      ).rejects.toThrow("Format file tidak dikenal atau tidak didukung");
+    });
+  });
+
+  describe("generateDownloadUrl & ownership check", () => {
+    it("should allow owner to download document", async () => {
+      const doc = {
+        id: "doc-1",
+        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+        owner: { userId: "user-1", name: "John Doe" },
+      };
+      mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      const url = await generateDownloadUrl("doc-1", session);
+      expect(url).toBeDefined();
+    });
+
+    it("should reject non-owner EMPLOYEE from downloading document", async () => {
+      const doc = {
+        id: "doc-1",
+        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+        owner: { userId: "user-2", name: "John Doe" },
+      };
+      mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      await expect(generateDownloadUrl("doc-1", session)).rejects.toThrow("OWNERSHIP_REQUIRED");
+    });
+  });
+
+  describe("restoreDocument", () => {
+    it("should allow ADMIN to restore document", async () => {
+      const doc = { id: "doc-1", owner: { name: "John" } };
+      mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+
+      const session = { userId: "admin-1", role: "ADMIN", employeeId: null };
+      const success = await restoreDocument("doc-1", session);
+      expect(success).toBe(true);
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "doc-1" },
+          data: { deletedAt: null, isCurrent: true },
+        })
+      );
+    });
+
+    it("should reject non-ADMIN from restoring document", async () => {
+      const session = { userId: "staff-1", role: "STAFF", employeeId: null };
+      await expect(restoreDocument("doc-1", session)).rejects.toThrow("FORBIDDEN");
+    });
+  });
+
+  describe("processExpiredDocumentsAndReminders with fake timers", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("should transition matching documents to expired and trigger reminders", async () => {
+      // Freeze date at 2026-07-09 UTC
+      const frozenDate = new Date("2026-07-09T00:00:00Z");
+      vi.setSystemTime(frozenDate);
+
+      mockPrisma.documentRecord.findMany.mockResolvedValueOnce([
+        { id: "doc-expired", ownerId: "emp-1", documentType: { code: "DOC" } },
+      ]);
+      mockPrisma.systemSetting.findMany.mockResolvedValue([
+        { key: "reminder_days_h30", value: "30" },
+        { key: "reminder_days_h7", value: "7" },
+        { key: "reminder_days_h1", value: "1" },
+      ]);
+
+      const h30Date = new Date("2026-08-08T00:00:00Z"); // +30 days
+      mockPrisma.documentRecord.findMany.mockResolvedValueOnce([
+        {
+          id: "doc-remind-h30",
+          expiryDate: h30Date,
+          owner: { userId: "user-1" },
+          documentType: { name: "Ijazah" },
+          reminderH30SentAt: null,
+        },
+      ]);
+
+      const result = await processExpiredDocumentsAndReminders();
+      expect(result.expiredCount).toBe(1);
+      expect(result.remindersSent.H30).toBe(1);
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "doc-expired" },
+          data: { status: "EXPIRED" },
+        })
+      );
+      expect(mockPrisma.notification.create).toHaveBeenCalled();
+    });
+  });
+});
