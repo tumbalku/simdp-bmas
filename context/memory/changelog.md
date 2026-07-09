@@ -5,6 +5,21 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Added
+- Implementasi API Foundation (#15): standard success/error response envelope, Zod validation error formatter, BigInt serialization helper, JWT authentication cookies setting/clearing, session retrieval guard, dan role-based access permission helper.
+- Implementasi Auth API (#16): login route handler dengan flex-identifier (email/NIP/NIK), refresh token rotation, logout route handler, forgot password link request, reset password token validation, change password server action, and session revocation server actions with audit log side effects.
+- Implementasi Employee & Career History API (#17): getCurrentProfile dan updateProfileAction server actions dengan row-level ownership checks, dan addCareerHistoryAction untuk mutasi pegawai dengan sinkronisasi ke data profil saat ini.
+- Implementasi Admin Employee & CSV Import (#18): crudEmployeeAction (Create, Update, Soft Delete, Restore) untuk admin kepegawaian dan importEmployeesAction untuk bulk import pegawai dari CSV file via stream.
+- Implementasi Master Data HR API (#19): crudMasterDataAction untuk EmploymentStatus, EmployeeGroup, ProfessionGroup, EmployeePosition, EmployeeRank, dan Workplace dengan unique constraint handling dan conflict mapping.
+- Implementasi Document Type Administration API (#20): crudDocumentTypeAction untuk mengelola master jenis dokumen beserta target rules profesi, status kepegawaian, golongan, pangkat, dan unit kerja.
+- Implementasi Document Records & Upload API (#21): Route handler `/api/v1/documents/upload` menggunakan multipart form data, Zod validation, file magic bytes content format validation (PDF/PNG/JPEG), SHA-256 hash calculation, storage provider, and DB transaction triggers.
+- Implementasi Document Download & Lifecycle API (#22): Route handler `/api/v1/documents/download/[id]` untuk download URL temporer, `/api/v1/documents/download/stream` untuk streaming file lokal dengan checks, dan soft delete/restore actions.
+- Implementasi Document Verification Workflow API (#23): getVerificationQueue untuk Staff kepegawaian, verifyDocumentAction (Approve/Reject dengan catatan minimal 5 karakter), dan getVerificationHistory modal/tab.
+- Implementasi In-App Notifications API (#24): getNotifications listing, getUnreadNotificationCount badge count, markNotificationReadAction, dan markAllNotificationsReadAction.
+- Implementasi System Settings & Security Audit Log API (#25): getSystemSettings (dengan default seeding) dan updateSystemSettingAction untuk sistem konfigurasi, serta getSecurityLog pagination & filtering untuk Admin audit trail.
+- Implementasi Dashboard Statistics & Expiry Cron API (#26): getStatistics dashboard ComplianceRate aggregation, dan GET `/api/v1/cron/check-expiry` route handler yang aman dan idempotent untuk status transition dan H-30/H-7/H-1 reminders.
+- Implementasi Local Storage Provider di `src/lib/storage/index.ts` untuk support upload, delete, dan download streaming.
+- Global middleware `src/middleware.ts` untuk route guarding UI (dashboard/admin) dan context headers injection.
+
 - Menambahkan `SIMDP-API-DOCS-007`: Review kontrak API lengkap SIMDP v1 terhadap RBAC, audit log, validasi Zod, module boundaries, dan Prisma schema, serta menyusun rencana pemecahan menjadi 12 issue implementasi detail di `context/technical/api/review-implementation-split.md` dan GitHub issue #15-#26.
 - Menambahkan `SIMDP-API-DOCS-002` hingga `SIMDP-API-DOCS-006`: kontrak API lengkap untuk modul Auth, Employee & Master Data, Document Type & Record, Verification & Notification, serta System Settings, Security Log, Statistics, dan Cron expiry reminders.
 - Menambahkan `SIMDP-API-DOCS-001`: standar dokumentasi API v1 di `context/technical/api/README.md` dan `context/technical/api/conventions.md`, termasuk response envelope, error shape, pagination/filter, auth cookie, RBAC/ownership notation, audit, upload, dan frontend API wrapper conventions.
