@@ -94,3 +94,6 @@ Thumbs.db
 
 # Local-only personal/project-owner notes
 *.local.md
+
+# Local-only UI preview sandbox
+src/app/preview/

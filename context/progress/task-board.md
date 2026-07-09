@@ -16,6 +16,8 @@ Belum ada.
 
 ## Done
 
+- [x] [#40](https://github.com/tumbalku/simdp-bmas/issues/40) SIMDP-UI-000: Prepare shadcn component library and local preview sandbox (selesai: 2026-07-09)
+
 - [x] [#31](https://github.com/tumbalku/simdp-bmas/issues/31) SIMDP-TEST-001: Setup Vitest unit test infrastructure (selesai: 2026-07-09)
 - [x] [#32](https://github.com/tumbalku/simdp-bmas/issues/32) SIMDP-TEST-002: Unit tests for lib helpers (selesai: 2026-07-09)
 - [x] [#33](https://github.com/tumbalku/simdp-bmas/issues/33) SIMDP-TEST-003: Unit tests for auth module (selesai: 2026-07-09)
