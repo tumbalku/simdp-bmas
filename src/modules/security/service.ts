@@ -1,0 +1,106 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
+
+export type SecurityLogStatus = "SUCCESS" | "FAILED";
+
+export type LogActivityInput = {
+  actorId?: string | null;
+  actorName: string;
+  actorRole: string;
+  eventType: string;
+  resource: string;
+  ipAddress?: string | null;
+  status: SecurityLogStatus;
+  metadata?: Record<string, any>;
+};
+
+export async function logActivity(input: LogActivityInput): Promise<void> {
+  try {
+    await prisma.securityLog.create({
+      data: {
+        id: crypto.randomUUID(),
+        actorId: input.actorId || null,
+        actorName: input.actorName,
+        actorRole: input.actorRole,
+        eventType: input.eventType,
+        resource: input.resource,
+        ipAddress: input.ipAddress || null,
+        status: input.status,
+        metadata: input.metadata ?? undefined,
+      },
+    });
+  } catch (error) {
+    console.error("Gagal mencatat log aktivitas keamanan:", error);
+  }
+}
+
+export async function getSecurityLogs(filter: {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  eventType?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const page = filter.page || 1;
+  const pageSize = filter.pageSize || 25;
+
+  const where: any = {};
+
+  if (filter.eventType) {
+    where.eventType = filter.eventType;
+  }
+
+  if (filter.status) {
+    where.status = filter.status;
+  }
+
+  if (filter.dateFrom || filter.dateTo) {
+    where.timestamp = {};
+    if (filter.dateFrom) {
+      where.timestamp.gte = new Date(filter.dateFrom);
+    }
+    if (filter.dateTo) {
+      const toDate = new Date(filter.dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      where.timestamp.lte = toDate;
+    }
+  }
+
+  if (filter.search) {
+    where.OR = [
+      { actorName: { contains: filter.search, mode: "insensitive" } },
+      { eventType: { contains: filter.search, mode: "insensitive" } },
+      { resource: { contains: filter.search, mode: "insensitive" } },
+    ];
+  }
+
+  const [items, totalItems] = await prisma.$transaction([
+    prisma.securityLog.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: { timestamp: "desc" },
+    }),
+    prisma.securityLog.count({ where }),
+  ]);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  return {
+    data: items,
+    meta: {
+      pagination: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    },
+  };
+}
+
