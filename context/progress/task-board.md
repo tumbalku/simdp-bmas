@@ -6,9 +6,12 @@ Belum ada.
 
 ## In Progress
 
-- [ ] SIMDP-OPS-001: Dokumentasikan workflow mes + Antigravity orchestration.
+Belum ada.
 
 ## Done
+
+- [x] SIMDP-DB-003: create initial Prisma migration baseline under prisma/migrations using the SQL from dms_pegawai_schema.sql (selesai: 2026-07-09)
+- [x] SIMDP-OPS-001: Dokumentasikan workflow mes + Antigravity orchestration (selesai: 2026-07-09)
 
 - [x] SIMDP-DB-002: Setup Prisma Client singleton dan env validation (selesai: 2026-07-08)
 - [x] SIMDP-DB-001: Sinkronkan Prisma schema dengan `dms_pegawai_schema.sql` (selesai: 2026-07-08)

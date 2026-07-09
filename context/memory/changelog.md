@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Added
+- Menambahkan `SIMDP-DB-003`: baseline migration Prisma awal di `prisma/migrations/20260709000000_init/migration.sql` dari `dms_pegawai_schema.sql` beserta `prisma/migrations/migration_lock.toml` untuk menyimpan semua schema PostgreSQL mentah (tabel, enum, index, check constraint, partial unique index, function, dan trigger).
 - Menambahkan `SIMDP-OPS-001`: root `AGENTS.md` untuk Antigravity/agent coding dan dokumentasi `context/architecture/agent-orchestration.md` untuk workflow mes + Antigravity + reviewer personas.
 - Menambahkan `SIMDP-DB-002`: validasi environment variable dengan Zod di `src/lib/env.ts`, Prisma Client singleton di `src/lib/prisma.ts`, dependency `zod`, `pg`, dan `@prisma/adapter-pg`, serta contoh `.env.example` yang siap development.
 - Menambahkan Prisma ORM untuk `SIMDP-DB-001`, termasuk `prisma/schema.prisma`, `prisma.config.ts`, script Prisma, dan model yang disinkronkan dari `dms_pegawai_schema.sql`.
