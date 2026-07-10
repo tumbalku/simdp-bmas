@@ -14,8 +14,9 @@ type DocumentStatusChartProps = {
 
 export function DocumentStatusChart({ data }: DocumentStatusChartProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_160px] md:items-center">
+    <div className="grid min-h-0 w-full content-start gap-3">
       <DonutChart
+        className="h-44"
         data={data}
         index="status"
         category="total"
@@ -23,7 +24,7 @@ export function DocumentStatusChart({ data }: DocumentStatusChartProps) {
         label="dokumen"
       />
 
-      <ul className="space-y-2 text-sm">
+      <ul className="space-y-1.5 text-sm">
         {data.map((item, index) => (
           <li key={item.status} className="flex items-center justify-between gap-3">
             <span className="flex items-center gap-2 text-muted-foreground">

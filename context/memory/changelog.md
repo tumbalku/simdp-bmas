@@ -4,6 +4,10 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 
 ## [Unreleased]
 
+### Added
+- SIMDP-UI-006 (#50): Implementasi dashboard feature UI pages untuk role Admin/Staff dan Employee, termasuk kartu metrik reusable, DonutChart status dokumen dengan label ringkas (Pending, Approved, Rejected, Expired), tren upload/verifikasi, ringkasan kategori arsip, dashboard pegawai pribadi, dan seed demo yang lebih kaya agar tampilan dashboard dapat direview dengan data realistis.
+- SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
+
 ### Fixed
 - SIMDP-TEST-007 (#38): Addressing API route and test suite review gaps. This includes fixing Windows-only path separator assertions in `storage.test.ts`, standardizing login password minimum length to 8 characters, introducing standard `AppError` typed class to handle file upload/download service-level errors cleanly in route handlers, removing `eslint-disable @typescript-eslint/no-explicit-any` comments across route handlers, adding timing-safe comparisons to the cron secret authorization header, and adding complete integration/unit tests for auth logout/forgot-password/reset-password, document upload/download, and cross-employee admin/staff access.
 - SIMDP-API-SEC-001 (#29): memperbaiki temuan critical review API dengan menutup path traversal pada local document stream, mewajibkan cron secret via `Authorization: Bearer`, menambahkan bypass middleware untuk refresh/logout, memindahkan lookup logout ke service boundary, menyimpan reset token dalam bentuk hash, menambahkan guard restore dokumen hanya untuk Admin, dan memindahkan audit log replacement upload keluar dari transaksi Prisma. Pola Zod `z.email("Format email tidak valid")` tetap dipertahankan karena sesuai Zod v4.

@@ -17,7 +17,9 @@ export default async function DashboardLayout({
   const role = session.role as UserRole;
 
   return (
-    <SidebarProvider>
+    <SidebarProvider
+      style={{ "--sidebar-width": "13rem" } as React.CSSProperties}
+    >
       <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
         {/* Top Navbar */}
         <Navbar />
