@@ -2,10 +2,18 @@
 "use server";
 
 import { z } from "zod";
-import { requireAuth, getSession, clearAuthCookies } from "@/lib/auth";
+import { requireAuth, getSession, clearAuthCookies, setAuthCookies } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { changePassword, revokeSession, revokeAllSessions, logoutUser } from "@/modules/auth/service";
-import { cookies } from "next/headers";
+import {
+  changePassword,
+  revokeSession,
+  revokeAllSessions,
+  logoutUser,
+  loginUser,
+  requestPasswordReset,
+  resetPasswordWithToken,
+} from "@/modules/auth/service";
+import { cookies, headers } from "next/headers";
 
 /* -------------------------------------------------------------------------- */
 /*  Schemas                                                                     */
@@ -60,51 +68,31 @@ export async function loginAction(data: unknown) {
   }
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/v1/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.data),
-      cache: "no-store",
-    });
+    const headersList = await headers();
+    const ipAddress = headersList.get("x-forwarded-for") || null;
+    const userAgent = headersList.get("user-agent") || null;
 
-    const json = await res.json();
+    const { identifier, password } = parsed.data;
+    const result = await loginUser(identifier, password, ipAddress, userAgent);
 
-    if (!res.ok) {
+    if (!result) {
       return {
         ok: false as const,
         error: {
-          code: json?.error?.code ?? "AUTH_ERROR",
-          message: json?.error?.message ?? "Login gagal. Periksa kembali identitas dan password Anda.",
+          code: "UNAUTHENTICATED",
+          message: "Identitas atau password salah.",
         },
       };
     }
 
-    // Forward Set-Cookie dari API ke browser melalui Server Action
-    const rawCookies = res.headers.get("set-cookie");
-    if (rawCookies) {
-      const cookieStore = await cookies();
-      // Parse dan set setiap cookie secara individual
-      for (const raw of rawCookies.split(/,(?=[^ ])/)) {
-        const [nameVal, ...attrs] = raw.trim().split(";").map((s) => s.trim());
-        const eqIdx = nameVal.indexOf("=");
-        const name = nameVal.slice(0, eqIdx);
-        const value = nameVal.slice(eqIdx + 1);
-        const attrMap: Record<string, string | boolean> = {};
-        for (const attr of attrs) {
-          const [k, v] = attr.split("=");
-          attrMap[k.trim().toLowerCase()] = v?.trim() ?? true;
-        }
-        cookieStore.set(name, value, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: attrMap["path"] as string ?? "/",
-          ...(attrMap["max-age"] ? { maxAge: Number(attrMap["max-age"]) } : {}),
-        });
-      }
-    }
+    await setAuthCookies(
+      result.user.id,
+      result.user.role,
+      result.user.employeeId,
+      result.refreshTokenPlain
+    );
 
-    return { ok: true as const, data: json.data };
+    return { ok: true as const, data: { user: result.user } };
   } catch (error: any) {
     console.error("loginAction error:", error);
     return {
@@ -132,26 +120,20 @@ export async function forgotPasswordAction(data: unknown) {
   }
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/v1/auth/forgot-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(parsed.data),
-      cache: "no-store",
-    });
+    const { email } = parsed.data;
+    const success = await requestPasswordReset(email);
 
-    const json = await res.json();
-
-    if (!res.ok) {
+    if (!success) {
       return {
         ok: false as const,
         error: {
-          code: json?.error?.code ?? "REQUEST_ERROR",
-          message: json?.error?.message ?? "Permintaan gagal. Coba beberapa saat lagi.",
+          code: "REQUEST_ERROR",
+          message: "Email tidak ditemukan atau tidak aktif.",
         },
       };
     }
 
-    return { ok: true as const, data: json.data };
+    return { ok: true as const, data: { success: true } };
   } catch (error: any) {
     console.error("forgotPasswordAction error:", error);
     return {
@@ -180,26 +162,19 @@ export async function resetPasswordAction(data: unknown) {
 
   try {
     const { token, newPassword } = parsed.data;
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/v1/auth/reset-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, newPassword }),
-      cache: "no-store",
-    });
+    const success = await resetPasswordWithToken(token, newPassword);
 
-    const json = await res.json();
-
-    if (!res.ok) {
+    if (!success) {
       return {
         ok: false as const,
         error: {
-          code: json?.error?.code ?? "RESET_ERROR",
-          message: json?.error?.message ?? "Reset password gagal. Token mungkin sudah kadaluarsa.",
+          code: "RESET_ERROR",
+          message: "Reset password gagal. Token mungkin sudah kadaluarsa atau tidak valid.",
         },
       };
     }
 
-    return { ok: true as const, data: json.data };
+    return { ok: true as const, data: { success: true } };
   } catch (error: any) {
     console.error("resetPasswordAction error:", error);
     return {
