@@ -2,7 +2,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { getDashboardStats } from "@/modules/statistics/service";
+import { getDashboardStats, getEmployeeStats } from "@/modules/statistics/service";
 
 export async function getStatistics(filter: { workplaceId?: string }) {
   try {
@@ -22,6 +22,25 @@ export async function getStatistics(filter: { workplaceId?: string }) {
             : error.message === "FORBIDDEN"
             ? "FORBIDDEN"
             : "INTERNAL_ERROR",
+        message: error.message,
+      },
+    };
+  }
+}
+
+export async function getEmployeeStatistics() {
+  try {
+    const session = await requireAuth();
+
+    const result = await getEmployeeStats(session.userId);
+
+    return { ok: true as const, data: result };
+  } catch (error: any) {
+    console.error("getEmployeeStatistics Action error:", error);
+    return {
+      ok: false as const,
+      error: {
+        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
         message: error.message,
       },
     };

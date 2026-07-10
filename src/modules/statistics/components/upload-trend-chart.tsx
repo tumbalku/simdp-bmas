@@ -15,7 +15,7 @@ type UploadTrendChartProps = {
 export function UploadTrendChart({ data }: UploadTrendChartProps) {
   return (
     <AreaChart
-      className="h-72"
+      className="h-full min-h-56"
       data={data}
       index="month"
       categories={["Uploaded", "Verified"]}

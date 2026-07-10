@@ -120,3 +120,89 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
     documentsByCategory,
   };
 }
+
+export async function getEmployeeStats(userId: string) {
+  // Get employee profile
+  const user = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    include: { employee: true },
+  });
+
+  if (!user || !user.employee) {
+    return {
+      totalSubmitted: 0,
+      approvedCount: 0,
+      pendingCount: 0,
+      rejectedCount: 0,
+      expiringCount: 0,
+      recentUploads: [],
+    };
+  }
+
+  const employeeId = user.employee.id;
+
+  // Count by status type-safely
+  const pendingCount = await prisma.documentRecord.count({
+    where: { ownerId: employeeId, status: "PENDING", deletedAt: null },
+  });
+  const approvedCount = await prisma.documentRecord.count({
+    where: { ownerId: employeeId, status: "APPROVED", deletedAt: null },
+  });
+  const rejectedCount = await prisma.documentRecord.count({
+    where: { ownerId: employeeId, status: "REJECTED", deletedAt: null },
+  });
+  const expiredCount = await prisma.documentRecord.count({
+    where: { ownerId: employeeId, status: "EXPIRED", deletedAt: null },
+  });
+
+  const totalSubmitted = await prisma.documentRecord.count({
+    where: { ownerId: employeeId, deletedAt: null },
+  });
+
+  // Expiring in 30 days
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  const expiringCount = await prisma.documentRecord.count({
+    where: {
+      ownerId: employeeId,
+      deletedAt: null,
+      status: "APPROVED",
+      expiryDate: {
+        gt: new Date(),
+        lte: thirtyDaysFromNow,
+      },
+    },
+  });
+
+  // Recent uploads
+  const recentUploads = await prisma.documentRecord.findMany({
+    where: { ownerId: employeeId, deletedAt: null },
+    orderBy: { uploadedAt: "desc" },
+    take: 5,
+    include: {
+      documentType: {
+        select: {
+          name: true,
+          archiveCategory: true,
+        },
+      },
+    },
+  });
+
+  return {
+    totalSubmitted,
+    approvedCount,
+    pendingCount,
+    rejectedCount,
+    expiredCount,
+    expiringCount,
+    recentUploads: recentUploads.map((d) => ({
+      id: d.id,
+      documentName: d.documentType?.name || "Dokumen",
+      category: d.documentType?.archiveCategory || "PERSONAL",
+      status: d.status,
+      uploadedAt: d.uploadedAt.toISOString(),
+      expiryDate: d.expiryDate ? d.expiryDate.toISOString() : null,
+    })),
+  };
+}
