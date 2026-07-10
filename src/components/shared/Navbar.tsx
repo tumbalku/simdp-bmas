@@ -168,7 +168,7 @@ function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: b
     try {
       const res = await logoutAction()
       if (res.ok) {
-        window.location.href = "/login"
+        window.location.href = "/"
       }
     } catch (err) {
       console.error("Logout error in Navbar:", err)
