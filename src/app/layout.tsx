@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "SIMDP RSUD Bahteramas",
-  description: "Sistem Informasi Manajemen Dokumen Pegawai RSUD Bahteramas",
+  description: "Sistem Information Manajemen Dokumen Pegawai RSUD Bahteramas",
 };
 
 export default function RootLayout({
@@ -23,9 +19,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body className={`${inter.variable} ${geistMono.variable}`}>
-        {children}
+    <html lang="id" className={`${geist.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

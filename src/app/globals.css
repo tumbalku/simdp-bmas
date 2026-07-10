@@ -8,9 +8,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-inter);
+  --font-sans: var(--font-geist);
+  --font-mono: var(--font-geist);
+  --font-heading: var(--font-geist);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -103,47 +103,89 @@
 }
 
 .dark {
-  --background: #020617;
-  --foreground: #f8fafc;
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
-  --popover: #0f172a;
-  --popover-foreground: #f8fafc;
-  --primary: #2dd4bf;
-  --primary-foreground: #042f2e;
-  --secondary: #1e293b;
-  --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #134e4a;
-  --accent-foreground: #ccfbf1;
-  --destructive: #f87171;
-  --destructive-foreground: #450a0a;
-  --border: #1e293b;
-  --input: #334155;
-  --ring: #2dd4bf;
-  --success: #22c55e;
-  --success-foreground: #052e16;
-  --warning: #f59e0b;
-  --warning-foreground: #451a03;
-  --info: #38bdf8;
-  --info-foreground: #082f49;
-  --neutral: #94a3b8;
-  --neutral-foreground: #0f172a;
-  --chart-1: #2dd4bf;
-  --chart-2: #38bdf8;
-  --chart-3: #22c55e;
-  --chart-4: #f59e0b;
-  --chart-5: #94a3b8;
-  --sidebar: #0f172a;
-  --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #2dd4bf;
-  --sidebar-primary-foreground: #042f2e;
-  --sidebar-accent: #1e293b;
-  --sidebar-accent-foreground: #ccfbf1;
-  --sidebar-border: #1e293b;
-  --sidebar-ring: #2dd4bf;
+    --background: #0a0a0a;
+    --foreground: #f5f5f5;
+    --card: #181818;
+    --card-foreground: #f5f5f5;
+    --popover: #1e1e1e;
+    --popover-foreground: #f5f5f5;
+    --primary: #1ed760;
+    --primary-foreground: #0a2e14;
+    --secondary: #242424;
+    --secondary-foreground: #f5f5f5;
+    --muted: #1a1a1a;
+    --muted-foreground: #a7a7a7;
+    --accent: #1a3324;
+    --accent-foreground: #9ef0ba;
+    --destructive: #f15e5e;
+    --destructive-foreground: #3a0c0c;
+    --border: #2a2a2a;
+    --input: #2f2f2f;
+    --ring: #1ed760;
+    --success: #3ecf7e;
+    --success-foreground: #062713;
+    --warning: #e8b64d;
+    --warning-foreground: #3a2607;
+    --info: #4ba3e3;
+    --info-foreground: #0c2338;
+    --neutral: #a7a7a7;
+    --neutral-foreground: #181818;
+    --chart-1: #1ed760;
+    --chart-2: #4ba3e3;
+    --chart-3: #e8b64d;
+    --chart-4: #b47ee8;
+    --chart-5: #a7a7a7;
+    --sidebar: #000000;
+    --sidebar-foreground: #f5f5f5;
+    --sidebar-primary: #1ed760;
+    --sidebar-primary-foreground: #0a2e14;
+    --sidebar-accent: #242424;
+    --sidebar-accent-foreground: #9ef0ba;
+    --sidebar-border: #2a2a2a;
+    --sidebar-ring: #1ed760;
 }
+/*.dark {*/
+/*  --background: #020617;*/
+/*  --foreground: #f8fafc;*/
+/*  --card: #0f172a;*/
+/*  --card-foreground: #f8fafc;*/
+/*  --popover: #0f172a;*/
+/*  --popover-foreground: #f8fafc;*/
+/*  --primary: #2dd4bf;*/
+/*  --primary-foreground: #042f2e;*/
+/*  --secondary: #1e293b;*/
+/*  --secondary-foreground: #f8fafc;*/
+/*  --muted: #1e293b;*/
+/*  --muted-foreground: #94a3b8;*/
+/*  --accent: #134e4a;*/
+/*  --accent-foreground: #ccfbf1;*/
+/*  --destructive: #f87171;*/
+/*  --destructive-foreground: #450a0a;*/
+/*  --border: #1e293b;*/
+/*  --input: #334155;*/
+/*  --ring: #2dd4bf;*/
+/*  --success: #22c55e;*/
+/*  --success-foreground: #052e16;*/
+/*  --warning: #f59e0b;*/
+/*  --warning-foreground: #451a03;*/
+/*  --info: #38bdf8;*/
+/*  --info-foreground: #082f49;*/
+/*  --neutral: #94a3b8;*/
+/*  --neutral-foreground: #0f172a;*/
+/*  --chart-1: #2dd4bf;*/
+/*  --chart-2: #38bdf8;*/
+/*  --chart-3: #22c55e;*/
+/*  --chart-4: #f59e0b;*/
+/*  --chart-5: #94a3b8;*/
+/*  --sidebar: #0f172a;*/
+/*  --sidebar-foreground: #f8fafc;*/
+/*  --sidebar-primary: #2dd4bf;*/
+/*  --sidebar-primary-foreground: #042f2e;*/
+/*  --sidebar-accent: #1e293b;*/
+/*  --sidebar-accent-foreground: #ccfbf1;*/
+/*  --sidebar-border: #1e293b;*/
+/*  --sidebar-ring: #2dd4bf;*/
+/*}*/
 
 @layer base {
   * {

@@ -22,6 +22,8 @@ Belum ada.
 
 ## Done
 
+- [x] SIMDP-UI-002: Build responsive Navbar component under components/shared (selesai: 2026-07-09)
+
 - [x] [#42](https://github.com/tumbalku/simdp-bmas/issues/42) SIMDP-UI-001: Install Taste Skill for Antigravity UI work (selesai: 2026-07-09)
 
 - [x] [#40](https://github.com/tumbalku/simdp-bmas/issues/40) SIMDP-UI-000: Prepare shadcn component library and local preview sandbox (selesai: 2026-07-09)
