@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as pg from "pg";
-import * as bcryptjs from "bcryptjs";
+import * as argon2 from "argon2";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -24,7 +24,7 @@ async function main() {
   await prisma.employee.deleteMany({});
   await prisma.user.deleteMany({});
 
-  const passwordHash = await bcryptjs.hash("password123", 10);
+  const passwordHash = await argon2.hash("password123");
 
   // 1. Seed Admin
   const adminUser = await prisma.user.create({
