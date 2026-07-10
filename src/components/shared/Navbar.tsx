@@ -12,7 +12,6 @@ import {
   Settings,
   Menu,
   X,
-  ChevronDown,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -27,9 +26,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logoutAction, getSessionProfileAction } from "@/modules/auth/actions"
-import { navSections, getActiveSection, isSectionActive, type NavItem, type NavSection } from "@/lib/nav-items"
+import { getNavItemsByRole, type NavItem, type UserRole } from "@/lib/nav-items"
+
 /* -------------------------------------------------------------------------- */
-/*  Types & constants                                                         */
+/*  Types & constants                                                           */
 /* -------------------------------------------------------------------------- */
 
 type Profile = {
@@ -47,6 +47,12 @@ const ROLE_BADGE_STYLES: Record<string, string> = {
 const DEFAULT_ROLE_BADGE =
   "bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400 border border-slate-500/20"
 
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: "Admin",
+  STAFF: "Staff",
+  EMPLOYEE: "Pegawai",
+}
+
 function getRoleBadgeStyle(role: string) {
   return ROLE_BADGE_STYLES[role] ?? DEFAULT_ROLE_BADGE
 }
@@ -57,7 +63,7 @@ function getInitials(name: string) {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Data hook                                                                  */
+/*  Data hook                                                                   */
 /* -------------------------------------------------------------------------- */
 
 function useProfile() {
@@ -81,16 +87,14 @@ function useProfile() {
     }
 
     loadProfile()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   return { profile, loading }
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Logo                                                                       */
+/*  Logo                                                                        */
 /* -------------------------------------------------------------------------- */
 
 function LogoIcon() {
@@ -115,7 +119,7 @@ function LogoIcon() {
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2 select-none group">
+    <Link href="/dashboard" className="flex items-center gap-2 select-none group">
       <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary/20">
         <LogoIcon />
       </div>
@@ -130,7 +134,7 @@ function Logo() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Theme toggle                                                               */
+/*  Theme toggle                                                                */
 /* -------------------------------------------------------------------------- */
 
 function ThemeToggle() {
@@ -148,16 +152,16 @@ function ThemeToggle() {
       aria-label="Toggle Theme"
     >
       {mounted && resolvedTheme === "dark" ? (
-        <Sun className="size-4.5 text-amber-500 transition-all" />
+        <Sun className="size-4 text-amber-500 transition-all" />
       ) : (
-        <Moon className="size-4.5 text-slate-700 dark:text-slate-300 transition-all" />
+        <Moon className="size-4 text-slate-700 dark:text-slate-300 transition-all" />
       )}
     </Button>
   )
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Profile menu                                                              */
+/*  Profile menu                                                               */
 /* -------------------------------------------------------------------------- */
 
 function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: boolean }) {
@@ -174,7 +178,7 @@ function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: b
 
   if (loading) {
     return (
-      <div className="flex h-9 w-24 items-center justify-center">
+      <div className="flex h-9 w-9 items-center justify-center">
         <div className="size-8 rounded-full bg-muted animate-pulse" />
       </div>
     )
@@ -213,7 +217,7 @@ function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: b
                   getRoleBadgeStyle(profile.role)
                 )}
               >
-                {profile.role}
+                {ROLE_LABEL[profile.role] ?? profile.role}
               </span>
             </div>
             <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
@@ -239,133 +243,55 @@ function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: b
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Desktop nav                                                               */
+/*  Mobile nav                                                                  */
 /* -------------------------------------------------------------------------- */
-
-function DesktopNav({ pathname }: { pathname: string }) {
-  const activeSection = getActiveSection(pathname)
-
-  return (
-    <nav className="hidden md:flex items-center gap-6">
-      {navSections.map((section) => (
-        <Link
-          key={section.id}
-          href={section.basePath}
-          className={cn(
-            "text-sm font-medium transition-colors hover:text-primary",
-            activeSection?.id === section.id ? "text-primary font-semibold" : "text-muted-foreground"
-          )}
-        >
-          {section.label}
-        </Link>
-
-      ))}
-    </nav>
-  )
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Mobile nav                                                                 */
-/* -------------------------------------------------------------------------- */
-
-function MobileNavGroup({
-                          section,
-                          pathname,
-                          onNavigate,
-                        }: {
-  section: NavSection
-  pathname: string
-  onNavigate: () => void
-}) {
-  const [open, setOpen] = useState(false)
-  const active = isSectionActive(section, pathname)
-
-  useEffect(() => {
-    if (active) setOpen(true)
-  }, [active])
-
-  // Section tanpa items → tampil sebagai link biasa, bukan collapsible group
-  if (!section.items || section.items.length === 0) {
-    return (
-      <Link
-        href={section.basePath}
-        onClick={onNavigate}
-        className={cn(
-          "text-sm font-medium py-2 px-3 rounded-lg transition-colors hover:bg-accent hover:text-primary",
-          active ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground"
-        )}
-      >
-        {section.label}
-      </Link>
-    )
-  }
-
-  return (
-    <div className="flex flex-col">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "flex items-center justify-between text-sm font-medium py-2 px-3 rounded-lg transition-colors hover:bg-accent hover:text-primary",
-          active ? "text-primary font-semibold" : "text-muted-foreground"
-        )}
-        aria-expanded={open}
-      >
-        {section.label}
-        <ChevronDown className={cn("size-4 transition-transform duration-200", open && "rotate-180")} />
-      </button>
-
-      {open && (
-        <div className="mt-1 ml-3 flex flex-col gap-0.5 border-l border-border pl-3">
-          {section.items.map((item) => (
-            <MobileNavLink key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function MobileNavLink({
-                         item,
-                         pathname,
-                         onNavigate,
-                       }: {
+  item,
+  pathname,
+  onNavigate,
+}: {
   item: NavItem
   pathname: string
   onNavigate: () => void
 }) {
   const Icon = item.icon
-  const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+  const isActive =
+    item.href === "/dashboard"
+      ? pathname === "/dashboard"
+      : pathname === item.href || pathname.startsWith(item.href + "/")
 
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "flex items-center justify-between text-sm py-1.5 px-3 rounded-md transition-colors hover:bg-accent hover:text-primary",
+        "flex items-center gap-3 text-sm py-2 px-3 rounded-lg transition-colors hover:bg-accent hover:text-primary",
         isActive ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground"
       )}
     >
-      <span className="flex items-center gap-2">
-        <Icon className="size-4" />
-        {item.label}
-      </span>
-      {item.badge ? (
-        <span className="text-[10px] rounded-full bg-primary/10 text-primary font-medium px-1.5 py-0.5">
-          {item.badge}
-        </span>
-      ) : null}
+      <Icon className="size-4" />
+      {item.label}
     </Link>
   )
 }
 
-function MobileMenuPanel({ pathname, onNavigate }: { pathname: string; onNavigate: () => void }) {
+function MobileMenuPanel({
+  pathname,
+  role,
+  onNavigate,
+}: {
+  pathname: string
+  role: UserRole | null
+  onNavigate: () => void
+}) {
+  const items = role ? getNavItemsByRole(role) : []
+
   return (
     <div className="absolute top-14 left-0 w-full bg-card border-b border-border p-3 flex flex-col gap-1 md:hidden animate-in slide-in-from-top-5 duration-200 shadow-lg z-50">
       <nav className="flex flex-col gap-1">
-        {navSections.map((section) => (
-          <MobileNavGroup key={section.id} section={section} pathname={pathname} onNavigate={onNavigate} />
+        {items.map((item) => (
+          <MobileNavLink key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />
         ))}
       </nav>
     </div>
@@ -387,7 +313,7 @@ function MobileMenuToggle({ open, onToggle }: { open: boolean; onToggle: () => v
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Navbar                                                                    */
+/*  Navbar                                                                      */
 /* -------------------------------------------------------------------------- */
 
 export default function Navbar() {
@@ -395,16 +321,14 @@ export default function Navbar() {
   const { profile, loading } = useProfile()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Close the mobile menu whenever the route changes
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [pathname])
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-card/95 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-card/95 backdrop-blur-md">
       <div className="flex h-14 items-center justify-between px-4 md:px-6">
-          <Logo />
-          <DesktopNav pathname={pathname} />
+        <Logo />
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -414,7 +338,11 @@ export default function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <MobileMenuPanel pathname={pathname} onNavigate={() => setMobileMenuOpen(false)} />
+        <MobileMenuPanel
+          pathname={pathname}
+          role={(profile?.role as UserRole) ?? null}
+          onNavigate={() => setMobileMenuOpen(false)}
+        />
       )}
     </header>
   )

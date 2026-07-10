@@ -1,58 +1,99 @@
-import { FileText, Home, ShieldCheck, UsersRound, LucideIcon } from "lucide-react"
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  ShieldCheck,
+  Bell,
+  Settings,
+  ClipboardCheck,
+  type LucideIcon,
+} from "lucide-react";
+
+/* -------------------------------------------------------------------------- */
+/*  Types                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export type UserRole = "ADMIN" | "STAFF" | "EMPLOYEE";
 
 export type NavItem = {
-  label: string
-  href: string
-  icon: LucideIcon
-  badge?: string | null
-}
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: string | null;
+  /** Jika undefined → semua role boleh akses */
+  roles?: UserRole[];
+};
 
 export type NavSection = {
-  id: string
-  label: string
-  basePath: string
-  items?: NavItem[]   // ← opsional sekarang. Kosong/undefined = tidak ada sidebar
-}
+  id: string;
+  label: string;
+  items: NavItem[];
+};
 
-export const navSections: NavSection[] = [
+/* -------------------------------------------------------------------------- */
+/*  Nav config per role                                                         */
+/* -------------------------------------------------------------------------- */
+
+const ALL_ROLES: UserRole[] = ["ADMIN", "STAFF", "EMPLOYEE"];
+const ADMIN_STAFF: UserRole[] = ["ADMIN", "STAFF"];
+const ADMIN_ONLY: UserRole[] = ["ADMIN"];
+
+export const navItems: NavItem[] = [
   {
-    id: "home",
-    label: "Home",
-    basePath: "/",
-  },
-  {
-    id: "dashboard",
     label: "Dashboard",
-    basePath: "/dashboard",
-    items: [
-      { label: "Dashboard", icon: Home, href: "/dashboard", badge: null },
-      { label: "Dokumen", icon: FileText, href: "/documents", badge: "12" },
-    ],
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    roles: ALL_ROLES,
   },
   {
-    id: "settings",
-    label: "Admin Setting",
-    basePath: "/settings",
-    items: [
-      { label: "Dashboard", icon: Home, href: "/dashboard", badge: null },
-      { label: "Dokumen", icon: FileText, href: "/documents", badge: "12" },
-    ],
+    label: "Dokumen",
+    href: "/documents",
+    icon: FileText,
+    roles: ALL_ROLES,
   },
   {
-    id: "preview",
-    label: "Preview",
-    basePath: "/component-preview",
+    label: "Verifikasi",
+    href: "/verification",
+    icon: ClipboardCheck,
+    roles: ADMIN_STAFF,
   },
-]
+  {
+    label: "Notifikasi",
+    href: "/notifications",
+    icon: Bell,
+    roles: ALL_ROLES,
+  },
+  {
+    label: "Pegawai",
+    href: "/employees",
+    icon: Users,
+    roles: ADMIN_ONLY,
+  },
+  {
+    label: "Master Data",
+    href: "/master-data",
+    icon: LayoutDashboard,
+    roles: ADMIN_ONLY,
+  },
+  {
+    label: "Keamanan",
+    href: "/security-log",
+    icon: ShieldCheck,
+    roles: ADMIN_ONLY,
+  },
+  {
+    label: "Pengaturan",
+    href: "/settings",
+    icon: Settings,
+    roles: ADMIN_ONLY,
+  },
+];
 
+/* -------------------------------------------------------------------------- */
+/*  Helpers                                                                     */
+/* -------------------------------------------------------------------------- */
 
-export function isSectionActive(section: NavSection, pathname: string): boolean {
-  const matchesBasePath =
-    section.basePath === "/" ? pathname === "/" : pathname.startsWith(section.basePath)
-
-  return matchesBasePath || (section.items ?? []).some((i) => pathname.startsWith(i.href))
-}
-
-export function getActiveSection(pathname: string): NavSection | undefined {
-  return navSections.find((section) => isSectionActive(section, pathname))
+/** Filter nav items berdasarkan role user yang sedang login */
+export function getNavItemsByRole(role: UserRole): NavItem[] {
+  return navItems.filter((item) => !item.roles || item.roles.includes(role));
 }
