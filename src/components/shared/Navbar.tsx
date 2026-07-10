@@ -21,7 +21,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -169,7 +168,7 @@ function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: b
     try {
       const res = await logoutAction()
       if (res.ok) {
-        window.location.href = "/login"
+        window.location.href = "/"
       }
     } catch (err) {
       console.error("Logout error in Navbar:", err)
@@ -207,7 +206,7 @@ function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: b
         }
       />
       <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl">
-        <DropdownMenuLabel className="font-normal p-2">
+        <div className="px-3 py-2 text-xs font-normal">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground truncate max-w-[120px]">{profile.name}</p>
@@ -222,7 +221,7 @@ function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: b
             </div>
             <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
           </div>
-        </DropdownMenuLabel>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href={profile.employeeId ? `/employees/${profile.employeeId}` : "/dashboard"} />}>
           <UserIcon className="size-4 mr-2 text-muted-foreground" />
