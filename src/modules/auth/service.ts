@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import bcryptjs from "bcryptjs";
+import * as argon2 from "argon2";
 import crypto from "crypto";
 import { generateRefreshToken, hashRefreshToken } from "@/lib/auth";
 import { logActivity } from "@/modules/security/service";
@@ -80,7 +80,7 @@ export async function loginUser(
   }
 
   // Verify password
-  const isPasswordMatch = await bcryptjs.compare(password, user.passwordHash);
+  const isPasswordMatch = await argon2.verify(user.passwordHash, password);
   if (!isPasswordMatch) {
     await logActivity({
       actorId: user.id,
@@ -329,7 +329,7 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
   }
 
   const user = resetTokenRecord.user;
-  const passwordHash = await bcryptjs.hash(newPassword, 10);
+  const passwordHash = await argon2.hash(newPassword);
 
   // Update user password and mark token as used
   await prisma.$transaction([
@@ -373,10 +373,10 @@ export async function changePassword(
 
   if (!user) return false;
 
-  const isPasswordMatch = await bcryptjs.compare(oldPassword, user.passwordHash);
+  const isPasswordMatch = await argon2.verify(user.passwordHash, oldPassword);
   if (!isPasswordMatch) return false;
 
-  const passwordHash = await bcryptjs.hash(newPassword, 10);
+  const passwordHash = await argon2.hash(newPassword);
 
   await prisma.user.update({
     where: { id: userId },

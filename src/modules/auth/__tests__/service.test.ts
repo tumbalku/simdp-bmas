@@ -7,7 +7,7 @@ import {
   resetPasswordWithToken,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
-import bcryptjs from "bcryptjs";
+import * as argon2 from "argon2";
 
 describe("Auth Module Service", () => {
   beforeEach(() => {
@@ -42,7 +42,7 @@ describe("Auth Module Service", () => {
     });
 
     it("should return null if password compare fails", async () => {
-      const passwordHash = await bcryptjs.hash("correct-password", 10);
+      const passwordHash = await argon2.hash("correct-password");
       const user = {
         id: "user-1",
         email: "test@example.com",
@@ -60,7 +60,7 @@ describe("Auth Module Service", () => {
     });
 
     it("should successfully log in, revoke old tokens, and generate new ones", async () => {
-      const passwordHash = await bcryptjs.hash("correct-password", 10);
+      const passwordHash = await argon2.hash("correct-password");
       const user = {
         id: "user-1",
         email: "test@example.com",

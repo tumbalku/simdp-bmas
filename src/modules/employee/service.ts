@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
-import bcryptjs from "bcryptjs";
+import * as argon2 from "argon2";
 import crypto from "crypto";
 import { logActivity } from "@/modules/security/service";
 
@@ -105,7 +105,7 @@ export async function handleEmployeeCrud(
     const employeeId = crypto.randomUUID();
     // Do not create accounts with a shared default password. Admin-created
     // users should activate access through the password reset flow.
-    const passwordHash = await bcryptjs.hash(crypto.randomBytes(24).toString("base64url"), 10);
+    const passwordHash = await argon2.hash(crypto.randomBytes(24).toString("base64url"));
 
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({

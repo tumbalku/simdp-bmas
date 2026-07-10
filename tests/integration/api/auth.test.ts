@@ -7,7 +7,7 @@ import { POST as resetPost } from "@/app/api/v1/auth/reset-password/route";
 import { NextRequest } from "next/server";
 import { mockPrisma, mockCookieStore } from "../../../tests/setup";
 import { signAccessToken } from "@/lib/auth";
-import bcryptjs from "bcryptjs";
+import * as argon2 from "argon2";
 
 describe("Auth Integration API", () => {
   beforeEach(() => {
@@ -43,7 +43,7 @@ describe("Auth Integration API", () => {
     });
 
     it("should return 200 and set cookies for successful login", async () => {
-      const passwordHash = await bcryptjs.hash("correct-password", 10);
+      const passwordHash = await argon2.hash("correct-password");
       const user = {
         id: "user-1",
         email: "test@example.com",
