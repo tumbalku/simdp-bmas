@@ -2,9 +2,10 @@
 "use server";
 
 import { z } from "zod";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, getSession, clearAuthCookies } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { changePassword, revokeSession, revokeAllSessions } from "@/modules/auth/service";
+import { changePassword, revokeSession, revokeAllSessions, logoutUser } from "@/modules/auth/service";
+import { cookies } from "next/headers";
 
 const changePasswordSchema = z
   .object({
@@ -154,5 +155,58 @@ export async function revokeAllSessionsAction() {
         message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
+  }
+}
+
+export async function logoutAction() {
+  try {
+    const session = await getSession();
+    if (session) {
+      const cookieStore = await cookies();
+      const refreshToken = cookieStore.get("refresh_token")?.value;
+      if (refreshToken) {
+        await logoutUser(refreshToken, session.userId, session.role);
+      }
+    }
+    await clearAuthCookies();
+    return { ok: true as const, data: { success: true } };
+  } catch (error: any) {
+    console.error("logoutAction error:", error);
+    return {
+      ok: false as const,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "Terjadi kesalahan internal",
+      },
+    };
+  }
+}
+
+export async function getSessionProfileAction() {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "User belum login" } };
+    }
+    const user = await prisma.user.findFirst({
+      where: { id: session.userId },
+      include: { employee: true },
+    });
+    if (!user) {
+      return { ok: false as const, error: { code: "NOT_FOUND", message: "User tidak ditemukan" } };
+    }
+    return {
+      ok: true as const,
+      data: {
+        name: user.employee?.name || "User",
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.employee?.avatarUrl || null,
+        employeeId: user.employee?.employeeId || null,
+      },
+    };
+  } catch (error) {
+    console.error("getSessionProfileAction error:", error);
+    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan internal" } };
   }
 }
