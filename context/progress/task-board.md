@@ -4,7 +4,6 @@
 
 ### UI Implementation Queue
 
-- [ ] [#48](https://github.com/tumbalku/simdp-bmas/issues/48) SIMDP-UI-004: Scaffold public auth route templates
 - [ ] [#49](https://github.com/tumbalku/simdp-bmas/issues/49) SIMDP-UI-005: Fase 1 implement Auth UI and dashboard shell
 - [ ] [#50](https://github.com/tumbalku/simdp-bmas/issues/50) SIMDP-UI-006: Fase 2 implement dashboard feature UI pages
 
@@ -21,6 +20,8 @@
 Belum ada.
 
 ## Done
+
+- [x] [#48](https://github.com/tumbalku/simdp-bmas/issues/48) SIMDP-UI-004: Scaffold public auth route templates (selesai: 2026-07-10)
 
 - [x] SIMDP-UI-002: Build responsive Navbar component under components/shared (selesai: 2026-07-09)
 
