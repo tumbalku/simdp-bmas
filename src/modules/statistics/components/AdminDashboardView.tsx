@@ -31,6 +31,11 @@ type AdminDashboardStats = {
     CERTIFICATION: number;
     LEGAL: number;
   };
+  uploadTrend: Array<{
+    month: string;
+    Uploaded: number;
+    Verified: number;
+  }>;
 };
 
 type AdminDashboardViewProps = {
@@ -38,15 +43,7 @@ type AdminDashboardViewProps = {
 };
 
 export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
-  // Hardcoded trend data for dashboard presentation (real trend requires historical aggregation)
-  const uploadTrendData = [
-    { month: "Jan", Uploaded: 35, Verified: 28 },
-    { month: "Feb", Uploaded: 48, Verified: 42 },
-    { month: "Mar", Uploaded: 58, Verified: 49 },
-    { month: "Apr", Uploaded: 71, Verified: 65 },
-    { month: "Mei", Uploaded: 84, Verified: 78 },
-    { month: "Jun", Uploaded: 96, Verified: stats.documentsByStatus.APPROVED },
-  ];
+  const uploadTrendData = stats.uploadTrend;
 
   const documentStatusData = [
     { status: "Pending", total: stats.documentsByStatus.PENDING },

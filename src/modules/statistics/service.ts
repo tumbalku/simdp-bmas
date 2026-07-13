@@ -76,7 +76,7 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
     }
   });
 
-  // 4. Count documents by category
+  // 4. Count documents by category & fetch upload dates for trend
   const docsList = await prisma.documentRecord.findMany({
     where: {
       deletedAt: null,
@@ -90,6 +90,7 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
           },
     },
     select: {
+      uploadedAt: true,
       documentType: {
         select: {
           archiveCategory: true,
@@ -112,12 +113,70 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
     }
   });
 
+  // 5. Aggregate Upload & Verification Trend (last 6 months)
+  const now = new Date();
+  const startOfPeriod = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+  const verifiedDocs = await prisma.verificationHistory.findMany({
+    where: {
+      status: "APPROVED",
+      reviewedAt: {
+        gte: startOfPeriod,
+      },
+      documentRecord: {
+        deletedAt: null,
+        owner: filter.workplaceId
+          ? {
+              workplaceId: filter.workplaceId,
+              deletedAt: null,
+            }
+          : {
+              deletedAt: null,
+            },
+      },
+    },
+    select: {
+      reviewedAt: true,
+    },
+  });
+
+  const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+  const uploadTrend: Array<{ month: string; Uploaded: number; Verified: number }> = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const monthIndex = d.getMonth();
+    const monthName = MONTH_NAMES[monthIndex];
+
+    const uploadedInMonth = docsList.filter((doc) => {
+      const docDate = doc.uploadedAt;
+      return (
+        docDate &&
+        docDate.getFullYear() === year &&
+        docDate.getMonth() === monthIndex
+      );
+    }).length;
+
+    const verifiedInMonth = verifiedDocs.filter((vh) => {
+      const vhDate = vh.reviewedAt;
+      return vhDate.getFullYear() === year && vhDate.getMonth() === monthIndex;
+    }).length;
+
+    uploadTrend.push({
+      month: monthName,
+      Uploaded: uploadedInMonth,
+      Verified: verifiedInMonth,
+    });
+  }
+
   return {
     totalEmployees: employees.length,
     compliantEmployeesCount,
     complianceRate,
     documentsByStatus,
     documentsByCategory,
+    uploadTrend,
   };
 }
 
