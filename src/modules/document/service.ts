@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import path from "path";
 import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { bigIntToNumber } from "@/lib/utils";
+import { mapDocumentRecord, mapDocumentType, mapDocumentDetail } from "./mappers";
+import * as repo from "./repository";
 
 type DocumentListFilter = {
   status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
@@ -15,45 +15,9 @@ type DocumentListFilter = {
   limit?: number;
 };
 
-function mapDocumentRecord(record: any) {
-  return {
-    id: record.id,
-    title: record.title || record.documentType?.name || "Dokumen",
-    status: record.status,
-    uploadedAt: record.uploadedAt?.toISOString?.() ?? record.uploadedAt,
-    expiryDate: record.expiryDate ? record.expiryDate.toISOString?.() ?? record.expiryDate : null,
-    fileName: record.fileName,
-    fileSize: bigIntToNumber(record.fileSize),
-    documentTypeId: record.documentType?.id ?? record.documentTypeId,
-    documentTypeName: record.documentType?.name || "Jenis dokumen",
-    archiveCategory: record.documentType?.archiveCategory || "PERSONAL",
-    ownerId: record.owner?.id ?? record.ownerId,
-    ownerName: record.owner?.name || "Pegawai",
-    ownerEmployeeId: record.owner?.employeeId || null,
-    ownerNik: record.owner?.nik || null,
-  };
-}
-
 export async function getAvailableDocumentTypes() {
-  const types = await prisma.documentType.findMany({
-    where: { deletedAt: null },
-    orderBy: [{ isMandatory: "desc" }, { name: "asc" }],
-  });
-
-  return types.map((type) => ({
-    id: type.id,
-    code: type.code,
-    name: type.name,
-    description: type.description,
-    archiveCategory: type.archiveCategory,
-    isMandatory: type.isMandatory,
-    allowMultiple: type.allowMultiple,
-    requiresExpiryDate: type.requiresExpiryDate,
-    requiresIssueDate: type.requiresIssueDate,
-    requiresDocumentNumber: type.requiresDocumentNumber,
-    allowedFormats: type.allowedFormats,
-    maxSizeMb: type.maxSizeMb,
-  }));
+  const types = await repo.findManyAvailableDocumentTypes();
+  return types.map(mapDocumentType);
 }
 
 export async function getDocumentRecordsForSession(session: TokenPayload, filter: DocumentListFilter = {}) {
@@ -73,24 +37,12 @@ export async function getDocumentRecordsForSession(session: TokenPayload, filter
   }
 
   if (session.role === "EMPLOYEE") {
-    const employee = await prisma.employee.findFirst({
-      where: { userId: session.userId, deletedAt: null },
-      select: { id: true, userId: true },
-    });
-
+    const employee = await repo.findEmployeeByUserId(session.userId);
     if (!employee) return [];
     where.ownerId = employee.id;
   }
 
-  const records = await prisma.documentRecord.findMany({
-    where,
-    include: {
-      documentType: { select: { id: true, name: true, archiveCategory: true } },
-      owner: { select: { id: true, name: true, employeeId: true, nik: true } },
-    },
-    orderBy: { uploadedAt: "desc" },
-  });
-
+  const records = await repo.findDocumentRecords(where);
   return records.map(mapDocumentRecord);
 }
 
@@ -116,19 +68,7 @@ export async function getDocumentRecordsWithPagination(
     ];
   }
 
-  const [records, total] = await Promise.all([
-    prisma.documentRecord.findMany({
-      where,
-      include: {
-        documentType: { select: { id: true, name: true, archiveCategory: true } },
-        owner: { select: { id: true, name: true, employeeId: true, nik: true } },
-      },
-      orderBy: { uploadedAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.documentRecord.count({ where }),
-  ]);
+  const [records, total] = await repo.findDocumentRecordsWithPagination(where, skip, limit);
 
   return {
     data: records.map(mapDocumentRecord),
@@ -142,36 +82,14 @@ export async function getDocumentRecordsWithPagination(
 }
 
 export async function getDocumentRecordDetailForSession(documentId: string, session: TokenPayload) {
-  const record = await prisma.documentRecord.findUnique({
-    where: { id: documentId, deletedAt: null },
-    include: {
-      documentType: { select: { id: true, name: true, archiveCategory: true, code: true, description: true } },
-      owner: { select: { id: true, userId: true, name: true, employeeId: true, nik: true } },
-      verificationHistories: {
-        orderBy: { reviewedAt: "desc" },
-        include: { reviewedBy: { select: { email: true, employee: { select: { name: true } } } } },
-      },
-    },
-  });
+  const record = await repo.findDocumentRecordDetailById(documentId);
 
   if (!record) throw new AppError("NOT_FOUND", "Dokumen tidak ditemukan", 404);
   if (session.role === "EMPLOYEE" && record.owner.userId !== session.userId) {
     throw new AppError("OWNERSHIP_REQUIRED", "OWNERSHIP_REQUIRED", 403);
   }
 
-  return {
-    ...mapDocumentRecord(record),
-    documentNumber: record.documentNumber,
-    issueDate: record.issueDate ? record.issueDate.toISOString?.() ?? record.issueDate : null,
-    mimeType: record.mimeType,
-    verificationHistories: record.verificationHistories.map((item: any) => ({
-      id: item.id,
-      status: item.status,
-      reviewNote: item.reviewNote,
-      reviewedAt: item.reviewedAt?.toISOString?.() ?? item.reviewedAt,
-      reviewerName: item.reviewedBy?.employee?.name || item.reviewedBy?.email || "Sistem",
-    })),
-  };
+  return mapDocumentDetail(record);
 }
 
 export async function handleDocumentTypeCrud(
@@ -194,75 +112,31 @@ export async function handleDocumentTypeCrud(
     }
 
     const typeId = crypto.randomUUID();
+    const insertData = {
+      id: typeId,
+      code: data.code,
+      name: data.name,
+      description: data.description || null,
+      archiveCategory: data.archiveCategory,
+      isMandatory: data.isMandatory ?? false,
+      allowMultiple: data.allowMultiple ?? false,
+      requiresExpiryDate: data.requiresExpiryDate ?? false,
+      requiresIssueDate: data.requiresIssueDate ?? false,
+      requiresDocumentNumber: data.requiresDocumentNumber ?? false,
+      allowedFormats: data.allowedFormats,
+      maxSizeMb: parseFloat(data.maxSizeMb),
+      createdBy: systemActor.actorId,
+    };
 
-    const result = await prisma.$transaction(async (tx) => {
-      const docType = await tx.documentType.create({
-        data: {
-          id: typeId,
-          code: data.code,
-          name: data.name,
-          description: data.description || null,
-          archiveCategory: data.archiveCategory,
-          isMandatory: data.isMandatory ?? false,
-          allowMultiple: data.allowMultiple ?? false,
-          requiresExpiryDate: data.requiresExpiryDate ?? false,
-          requiresIssueDate: data.requiresIssueDate ?? false,
-          requiresDocumentNumber: data.requiresDocumentNumber ?? false,
-          allowedFormats: data.allowedFormats,
-          maxSizeMb: parseFloat(data.maxSizeMb),
-          createdBy: systemActor.actorId,
-        },
-      });
+    const relationIds = {
+      professionGroupIds: data.professionGroupIds,
+      employmentStatusIds: data.employmentStatusIds,
+      employeeGroupIds: data.employeeGroupIds,
+      employeeRankIds: data.employeeRankIds,
+      workplaceIds: data.workplaceIds,
+    };
 
-      // Target relations
-      if (data.professionGroupIds?.length) {
-        await tx.documentTypeProfessionGroup.createMany({
-          data: data.professionGroupIds.map((pgId: string) => ({
-            id: crypto.randomUUID(),
-            documentTypeId: typeId,
-            professionGroupId: pgId,
-          })),
-        });
-      }
-      if (data.employmentStatusIds?.length) {
-        await tx.documentTypeEmploymentStatus.createMany({
-          data: data.employmentStatusIds.map((esId: string) => ({
-            id: crypto.randomUUID(),
-            documentTypeId: typeId,
-            employmentStatusId: esId,
-          })),
-        });
-      }
-      if (data.employeeGroupIds?.length) {
-        await tx.documentTypeEmployeeGroup.createMany({
-          data: data.employeeGroupIds.map((egId: string) => ({
-            id: crypto.randomUUID(),
-            documentTypeId: typeId,
-            employeeGroupId: egId,
-          })),
-        });
-      }
-      if (data.employeeRankIds?.length) {
-        await tx.documentTypeEmployeeRank.createMany({
-          data: data.employeeRankIds.map((erId: string) => ({
-            id: crypto.randomUUID(),
-            documentTypeId: typeId,
-            employeeRankId: erId,
-          })),
-        });
-      }
-      if (data.workplaceIds?.length) {
-        await tx.documentTypeWorkplace.createMany({
-          data: data.workplaceIds.map((wpId: string) => ({
-            id: crypto.randomUUID(),
-            documentTypeId: typeId,
-            workplaceId: wpId,
-          })),
-        });
-      }
-
-      return docType;
-    });
+    const result = await repo.createDocumentTypeWithRelations(typeId, insertData, relationIds);
 
     await logActivity({
       ...systemActor,
@@ -278,100 +152,34 @@ export async function handleDocumentTypeCrud(
   if (operation === "UPDATE") {
     if (!id) throw new Error("ID jenis dokumen wajib diisi");
 
-    const docType = await prisma.documentType.findUnique({
-      where: { id },
-    });
-
+    const docType = await repo.findDocumentTypeById(id);
     if (!docType) throw new Error("Jenis dokumen tidak ditemukan");
 
-    const result = await prisma.$transaction(async (tx) => {
-      const updated = await tx.documentType.update({
-        where: { id },
-        data: {
-          code: data.code ?? undefined,
-          name: data.name ?? undefined,
-          description: data.description !== undefined ? data.description : undefined,
-          archiveCategory: data.archiveCategory ?? undefined,
-          isMandatory: data.isMandatory ?? undefined,
-          allowMultiple: data.allowMultiple ?? undefined,
-          requiresExpiryDate: data.requiresExpiryDate ?? undefined,
-          requiresIssueDate: data.requiresIssueDate ?? undefined,
-          requiresDocumentNumber: data.requiresDocumentNumber ?? undefined,
-          allowedFormats: data.allowedFormats ?? undefined,
-          maxSizeMb: data.maxSizeMb ? parseFloat(data.maxSizeMb) : undefined,
-          updatedBy: systemActor.actorId,
-          updatedAt: new Date(),
-        },
-      });
+    const updateData = {
+      code: data.code ?? undefined,
+      name: data.name ?? undefined,
+      description: data.description !== undefined ? data.description : undefined,
+      archiveCategory: data.archiveCategory ?? undefined,
+      isMandatory: data.isMandatory ?? undefined,
+      allowMultiple: data.allowMultiple ?? undefined,
+      requiresExpiryDate: data.requiresExpiryDate ?? undefined,
+      requiresIssueDate: data.requiresIssueDate ?? undefined,
+      requiresDocumentNumber: data.requiresDocumentNumber ?? undefined,
+      allowedFormats: data.allowedFormats ?? undefined,
+      maxSizeMb: data.maxSizeMb ? parseFloat(data.maxSizeMb) : undefined,
+      updatedBy: systemActor.actorId,
+      updatedAt: new Date(),
+    };
 
-      // Re-sync relations if provided
-      if (data.professionGroupIds !== undefined) {
-        await tx.documentTypeProfessionGroup.deleteMany({ where: { documentTypeId: id } });
-        if (data.professionGroupIds.length) {
-          await tx.documentTypeProfessionGroup.createMany({
-            data: data.professionGroupIds.map((pgId: string) => ({
-              id: crypto.randomUUID(),
-              documentTypeId: id,
-              professionGroupId: pgId,
-            })),
-          });
-        }
-      }
+    const relationIds = {
+      professionGroupIds: data.professionGroupIds,
+      employmentStatusIds: data.employmentStatusIds,
+      employeeGroupIds: data.employeeGroupIds,
+      employeeRankIds: data.employeeRankIds,
+      workplaceIds: data.workplaceIds,
+    };
 
-      if (data.employmentStatusIds !== undefined) {
-        await tx.documentTypeEmploymentStatus.deleteMany({ where: { documentTypeId: id } });
-        if (data.employmentStatusIds.length) {
-          await tx.documentTypeEmploymentStatus.createMany({
-            data: data.employmentStatusIds.map((esId: string) => ({
-              id: crypto.randomUUID(),
-              documentTypeId: id,
-              employmentStatusId: esId,
-            })),
-          });
-        }
-      }
-
-      if (data.employeeGroupIds !== undefined) {
-        await tx.documentTypeEmployeeGroup.deleteMany({ where: { documentTypeId: id } });
-        if (data.employeeGroupIds.length) {
-          await tx.documentTypeEmployeeGroup.createMany({
-            data: data.employeeGroupIds.map((egId: string) => ({
-              id: crypto.randomUUID(),
-              documentTypeId: id,
-              employeeGroupId: egId,
-            })),
-          });
-        }
-      }
-
-      if (data.employeeRankIds !== undefined) {
-        await tx.documentTypeEmployeeRank.deleteMany({ where: { documentTypeId: id } });
-        if (data.employeeRankIds.length) {
-          await tx.documentTypeEmployeeRank.createMany({
-            data: data.employeeRankIds.map((erId: string) => ({
-              id: crypto.randomUUID(),
-              documentTypeId: id,
-              employeeRankId: erId,
-            })),
-          });
-        }
-      }
-
-      if (data.workplaceIds !== undefined) {
-        await tx.documentTypeWorkplace.deleteMany({ where: { documentTypeId: id } });
-        if (data.workplaceIds.length) {
-          await tx.documentTypeWorkplace.createMany({
-            data: data.workplaceIds.map((wpId: string) => ({
-              id: crypto.randomUUID(),
-              documentTypeId: id,
-              workplaceId: wpId,
-            })),
-          });
-        }
-      }
-
-      return updated;
-    });
+    const result = await repo.updateDocumentTypeWithRelations(id, updateData, relationIds);
 
     await logActivity({
       ...systemActor,
@@ -387,16 +195,10 @@ export async function handleDocumentTypeCrud(
   if (operation === "DELETE") {
     if (!id) throw new Error("ID jenis dokumen wajib diisi");
 
-    const docType = await prisma.documentType.findUnique({
-      where: { id },
-    });
-
+    const docType = await repo.findDocumentTypeById(id);
     if (!docType) throw new Error("Jenis dokumen tidak ditemukan");
 
-    await prisma.documentType.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+    await repo.softDeleteDocumentType(id);
 
     await logActivity({
       ...systemActor,
@@ -411,16 +213,10 @@ export async function handleDocumentTypeCrud(
   if (operation === "RESTORE") {
     if (!id) throw new Error("ID jenis dokumen wajib diisi");
 
-    const docType = await prisma.documentType.findUnique({
-      where: { id },
-    });
-
+    const docType = await repo.findDocumentTypeById(id);
     if (!docType) throw new Error("Jenis dokumen tidak ditemukan");
 
-    await prisma.documentType.update({
-      where: { id },
-      data: { deletedAt: null },
-    });
+    await repo.restoreDocumentType(id);
 
     await logActivity({
       ...systemActor,
@@ -478,17 +274,13 @@ export async function uploadDocumentRecord(
   ipAddress?: string | null
 ) {
   // 1. Fetch document type rules
-  const docType = await prisma.documentType.findUnique({
-    where: { id: data.documentTypeId, deletedAt: null },
-  });
-
-  if (!docType) throw new AppError("VALIDATION_ERROR", "Jenis dokumen tidak ditemukan atau tidak aktif", 400);
+  const docType = await repo.findDocumentTypeById(data.documentTypeId);
+  if (!docType || docType.deletedAt) {
+    throw new AppError("VALIDATION_ERROR", "Jenis dokumen tidak ditemukan atau tidak aktif", 400);
+  }
 
   // 2. Fetch current employee
-  const employee = await prisma.employee.findUnique({
-    where: { userId: session.userId, deletedAt: null },
-  });
-
+  const employee = await repo.findEmployeeByUserIdUnique(session.userId);
   if (!employee) throw new AppError("VALIDATION_ERROR", "Data pegawai tidak ditemukan", 400);
 
   // 3. Validate conditional fields
@@ -519,9 +311,7 @@ export async function uploadDocumentRecord(
   const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
   // 5. Sequence count for unique name
-  const existingCount = await prisma.documentRecord.count({
-    where: { ownerId: employee.id, documentTypeId: docType.id },
-  });
+  const existingCount = await repo.countDocumentRecords(employee.id, docType.id);
   const sequence = existingCount + 1;
 
   // File path format: {KODE-DOKUMEN}/{KODE-DOKUMEN}-{URUTAN}-{IDENTIFIER}.{ext}
@@ -534,77 +324,25 @@ export async function uploadDocumentRecord(
 
   // 7. Write record to DB
   const docId = crypto.randomUUID();
-  const replacedDocumentIds: string[] = [];
 
-  const record = await prisma.$transaction(async (tx) => {
-    // If allowMultiple is false, replace active document of same type
-    if (!docType.allowMultiple) {
-      const activeDocs = await tx.documentRecord.findMany({
-        where: { ownerId: employee.id, documentTypeId: docType.id, isCurrent: true, deletedAt: null },
-      });
-
-      if (activeDocs.length > 0) {
-        await tx.documentRecord.updateMany({
-          where: { ownerId: employee.id, documentTypeId: docType.id, isCurrent: true },
-          data: { isCurrent: false, status: "REPLACED" },
-        });
-
-        replacedDocumentIds.push(...activeDocs.map((doc) => doc.id));
-      }
-    }
-
-    const docRec = await tx.documentRecord.create({
-      data: {
-        id: docId,
-        ownerId: employee.id,
-        documentTypeId: docType.id,
-        title: data.title || docType.name,
-        status: "PENDING",
-        isCurrent: true,
-        allowMultipleSnapshot: docType.allowMultiple,
-        fileName,
-        filePath: savedPath,
-        fileSize: BigInt(buffer.length),
-        mimeType: data.file.type || null,
-        fileHash,
-        storageProvider: "local",
-        documentNumber: data.documentNumber || null,
-        issueDate: data.issueDate ? new Date(data.issueDate) : null,
-        expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-        createdBy: session.userId,
-      },
-    });
-
-    // Create VerificationHistory pending baseline
-    await tx.verificationHistory.create({
-      data: {
-        id: crypto.randomUUID(),
-        documentRecordId: docId,
-        status: "PENDING",
-        reviewNote: "Sistem: Menunggu verifikasi dokumen baru.",
-      },
-    });
-
-    // Create Notification for admin/staff
-    // Find all users with STAFF/ADMIN roles to notify
-    const adminsAndStaff = await tx.user.findMany({
-      where: { role: { in: ["ADMIN", "STAFF"] }, isActive: true, deletedAt: null },
-      select: { id: true },
-    });
-
-    await tx.notification.createMany({
-      data: adminsAndStaff.map((u) => ({
-        id: crypto.randomUUID(),
-        userId: u.id,
-        type: "VERIFICATION_REQUIRED",
-        title: "Dokumen Baru Perlu Verifikasi",
-        message: `Pegawai ${employee.name} telah mengunggah dokumen baru: ${docType.name}`,
-        relatedEntityType: "DocumentRecord",
-        relatedEntityId: docId,
-      })),
-    });
-
-    return docRec;
+  const { record, replacedDocumentIds } = await repo.createUploadedDocumentTransaction({
+    docId,
+    ownerId: employee.id,
+    documentTypeId: docType.id,
+    title: data.title || docType.name,
+    fileName,
+    filePath: savedPath,
+    fileSize: BigInt(buffer.length),
+    mimeType: data.file.type || null,
+    fileHash,
+    storageProvider: "local",
+    documentNumber: data.documentNumber || null,
+    issueDate: data.issueDate ? new Date(data.issueDate) : null,
+    expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+    createdBy: session.userId,
+    allowMultiple: docType.allowMultiple,
+    documentTypeName: docType.name,
+    ownerName: employee.name,
   });
 
   for (const replacedDocumentId of replacedDocumentIds) {
@@ -639,12 +377,7 @@ export async function uploadDocumentRecord(
 }
 
 export async function generateDownloadUrl(documentId: string, session: TokenPayload) {
-  const doc = await prisma.documentRecord.findUnique({
-    where: { id: documentId, deletedAt: null },
-    include: {
-      owner: true,
-    },
-  });
+  const doc = await repo.findDocumentRecordWithOwner(documentId);
 
   if (!doc) throw new AppError("NOT_FOUND", "Dokumen tidak ditemukan atau terhapus", 404);
 
@@ -679,15 +412,7 @@ export async function generateDownloadUrl(documentId: string, session: TokenPayl
 }
 
 export async function getLocalStreamDocument(filePath: string, session: TokenPayload) {
-  const doc = await prisma.documentRecord.findFirst({
-    where: {
-      filePath: `uploads/${filePath}`,
-      deletedAt: null,
-    },
-    include: {
-      owner: true,
-    },
-  });
+  const doc = await repo.findDocumentRecordByFilePath(`uploads/${filePath}`);
 
   if (!doc) throw new Error("Dokumen tidak ditemukan atau terhapus");
 
@@ -702,12 +427,7 @@ export async function getLocalStreamDocument(filePath: string, session: TokenPay
 }
 
 export async function softDeleteDocument(documentId: string, session: TokenPayload) {
-  const doc = await prisma.documentRecord.findUnique({
-    where: { id: documentId, deletedAt: null },
-    include: {
-      owner: true,
-    },
-  });
+  const doc = await repo.findDocumentRecordWithOwner(documentId);
 
   if (!doc) throw new Error("Dokumen tidak ditemukan");
 
@@ -722,13 +442,7 @@ export async function softDeleteDocument(documentId: string, session: TokenPaylo
     }
   }
 
-  await prisma.documentRecord.update({
-    where: { id: documentId },
-    data: {
-      deletedAt: new Date(),
-      isCurrent: false,
-    },
-  });
+  await repo.softDeleteDocumentRecord(documentId);
 
   await logActivity({
     actorId: session.userId,
@@ -747,22 +461,11 @@ export async function restoreDocument(documentId: string, session: TokenPayload)
     throw new Error("FORBIDDEN");
   }
 
-  const doc = await prisma.documentRecord.findUnique({
-    where: { id: documentId },
-    include: {
-      owner: true,
-    },
-  });
+  const doc = await repo.findDocumentRecordWithDeletedWithOwner(documentId);
 
   if (!doc) throw new Error("Dokumen tidak ditemukan");
 
-  await prisma.documentRecord.update({
-    where: { id: documentId },
-    data: {
-      deletedAt: null,
-      isCurrent: true,
-    },
-  });
+  await repo.restoreDocumentRecord(documentId);
 
   await logActivity({
     actorId: session.userId,
@@ -780,21 +483,11 @@ export async function processExpiredDocumentsAndReminders() {
   const now = new Date();
 
   // 1. Expired Transition: APPROVED documents whose expiryDate <= now
-  const expiredDocs = await prisma.documentRecord.findMany({
-    where: {
-      status: "APPROVED",
-      deletedAt: null,
-      expiryDate: { lte: now },
-    },
-    include: { owner: true, documentType: true },
-  });
+  const expiredDocs = await repo.findExpiredApprovedDocuments(now);
 
   let expiredCount = 0;
   for (const doc of expiredDocs) {
-    await prisma.documentRecord.update({
-      where: { id: doc.id },
-      data: { status: "EXPIRED" },
-    });
+    await repo.updateDocumentStatus(doc.id, "EXPIRED");
 
     await logActivity({
       actorName: "System",
@@ -810,7 +503,7 @@ export async function processExpiredDocumentsAndReminders() {
 
   // 2. Idempotent Reminders
   // Load configurations
-  const settings = await prisma.systemSetting.findMany();
+  const settings = await repo.findSystemSettings();
   const getSettingVal = (key: string, fallback: number) => {
     const s = settings.find((x) => x.key === key);
     return s ? parseInt(s.value, 10) : fallback;
@@ -833,22 +526,7 @@ export async function processExpiredDocumentsAndReminders() {
   const h1Date = getMidnightUTC(reminderDaysH1);
 
   // Find all APPROVED docs with expiryDate matching target dates and flags are null
-  const docsToRemind = await prisma.documentRecord.findMany({
-    where: {
-      status: "APPROVED",
-      deletedAt: null,
-      expiryDate: { not: null },
-      OR: [
-        { expiryDate: h30Date, reminderH30SentAt: null },
-        { expiryDate: h7Date, reminderH7SentAt: null },
-        { expiryDate: h1Date, reminderH1SentAt: null },
-      ],
-    },
-    include: {
-      owner: true,
-      documentType: true,
-    },
-  });
+  const docsToRemind = await repo.findDocumentsToRemind(h30Date, h7Date, h1Date);
 
   const remindersSent = {
     H30: 0,
@@ -863,67 +541,43 @@ export async function processExpiredDocumentsAndReminders() {
     const docTime = doc.expiryDate.getTime();
 
     if (docTime === h30Date.getTime() && !doc.reminderH30SentAt) {
-      await prisma.$transaction([
-        prisma.notification.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: doc.owner.userId,
-            type: "EXPIRY_REMINDER",
-            title: "Peringatan Kedaluwarsa Dokumen (H-30)",
-            message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
-              doc.expiryDate
-            )}).`,
-            relatedEntityType: "DocumentRecord",
-            relatedEntityId: doc.id,
-          },
-        }),
-        prisma.documentRecord.update({
-          where: { id: doc.id },
-          data: { reminderH30SentAt: new Date() },
-        }),
-      ]);
+      await repo.createNotificationAndUpdateReminder({
+        notificationId: crypto.randomUUID(),
+        userId: doc.owner.userId,
+        title: "Peringatan Kedaluwarsa Dokumen (H-30)",
+        message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
+          doc.expiryDate
+        )}).`,
+        relatedEntityId: doc.id,
+        documentRecordId: doc.id,
+        reminderField: "reminderH30SentAt",
+      });
       remindersSent.H30++;
     } else if (docTime === h7Date.getTime() && !doc.reminderH7SentAt) {
-      await prisma.$transaction([
-        prisma.notification.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: doc.owner.userId,
-            type: "EXPIRY_REMINDER",
-            title: "Peringatan Kedaluwarsa Dokumen (H-7)",
-            message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
-              doc.expiryDate
-            )}).`,
-            relatedEntityType: "DocumentRecord",
-            relatedEntityId: doc.id,
-          },
-        }),
-        prisma.documentRecord.update({
-          where: { id: doc.id },
-          data: { reminderH7SentAt: new Date() },
-        }),
-      ]);
+      await repo.createNotificationAndUpdateReminder({
+        notificationId: crypto.randomUUID(),
+        userId: doc.owner.userId,
+        title: "Peringatan Kedaluwarsa Dokumen (H-7)",
+        message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
+          doc.expiryDate
+        )}).`,
+        relatedEntityId: doc.id,
+        documentRecordId: doc.id,
+        reminderField: "reminderH7SentAt",
+      });
       remindersSent.H7++;
     } else if (docTime === h1Date.getTime() && !doc.reminderH1SentAt) {
-      await prisma.$transaction([
-        prisma.notification.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId: doc.owner.userId,
-            type: "EXPIRY_REMINDER",
-            title: "Peringatan Kedaluwarsa Dokumen (H-1)",
-            message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
-              doc.expiryDate
-            )}).`,
-            relatedEntityType: "DocumentRecord",
-            relatedEntityId: doc.id,
-          },
-        }),
-        prisma.documentRecord.update({
-          where: { id: doc.id },
-          data: { reminderH1SentAt: new Date() },
-        }),
-      ]);
+      await repo.createNotificationAndUpdateReminder({
+        notificationId: crypto.randomUUID(),
+        userId: doc.owner.userId,
+        title: "Peringatan Kedaluwarsa Dokumen (H-1)",
+        message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
+          doc.expiryDate
+        )}).`,
+        relatedEntityId: doc.id,
+        documentRecordId: doc.id,
+        reminderField: "reminderH1SentAt",
+      });
       remindersSent.H1++;
     }
   }
@@ -942,4 +596,3 @@ export async function processExpiredDocumentsAndReminders() {
     remindersSent,
   };
 }
-
