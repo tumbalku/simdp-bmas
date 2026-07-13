@@ -19,8 +19,6 @@ import { id as defaultDictionary } from "@/i18n/dictionaries/id";
 /*  Types                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export type { UserRole };
-
 export type NavItem = {
   label: string;
   href: string;

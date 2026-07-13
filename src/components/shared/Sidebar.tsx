@@ -18,7 +18,8 @@ import {
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { getNavItemsByRole, type UserRole, type NavItem } from "@/lib/nav-items";
+import type { UserRole } from "@/constants/roles";
+import { getNavItemsByRole, type NavItem } from "@/lib/nav-items";
 import { ROUTES } from "@/constants/routes";
 import { id as defaultDictionary } from "@/i18n/dictionaries/id";
 
