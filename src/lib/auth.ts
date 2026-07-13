@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import { env } from "@/lib/env";
+import type { UserRole } from "@/constants/roles";
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
@@ -73,9 +74,7 @@ export const ROLE_LEVELS = {
   EMPLOYEE: 1,
   STAFF: 2,
   ADMIN: 3,
-} as const;
-
-export type UserRole = keyof typeof ROLE_LEVELS;
+} as const satisfies Record<UserRole, number>;
 
 export function hasRolePermission(userRole: string, requiredRole: string): boolean {
   const userLevel = ROLE_LEVELS[userRole as UserRole] || 0;
