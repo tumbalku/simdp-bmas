@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthCardShell } from "./AuthCardShell";
 import { forgotPasswordAction } from "@/modules/auth/actions";
+import { id as defaultDictionary } from "@/i18n/dictionaries/id";
+
+const forgotPasswordCopy = defaultDictionary.auth.forgotPassword;
 
 export function ForgotPasswordPage() {
   const [isPending, startTransition] = useTransition();
@@ -33,9 +36,9 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthCardShell
-      eyebrow="Reset akses"
-      title="Lupa password?"
-      description="Masukkan email akun SIMDP. Jika terdaftar, instruksi pemulihan akan dikirimkan."
+      eyebrow={forgotPasswordCopy.eyebrow}
+      title={forgotPasswordCopy.title}
+      description={forgotPasswordCopy.description}
       icon={<Mail className="size-5" aria-hidden="true" />}
       footer={
         <Button
@@ -45,7 +48,7 @@ export function ForgotPasswordPage() {
           className="h-auto p-0"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Kembali ke login
+          {forgotPasswordCopy.backToLogin}
         </Button>
       }
     >
@@ -53,7 +56,7 @@ export function ForgotPasswordPage() {
         <Alert className="border-success/30 bg-success/10 text-success py-3">
           <CheckCircle2 className="size-4" />
           <AlertDescription className="text-success">
-            Instruksi reset password telah dikirim ke email Anda. Periksa kotak masuk atau folder spam.
+            {forgotPasswordCopy.successMessage}
           </AlertDescription>
         </Alert>
       ) : (
@@ -66,12 +69,12 @@ export function ForgotPasswordPage() {
           ) : null}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email terdaftar</Label>
+            <Label htmlFor="email">{forgotPasswordCopy.emailLabel}</Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder="nama@rsud.go.id"
+              placeholder={forgotPasswordCopy.emailPlaceholder}
               className="h-10"
               disabled={isPending}
               required
@@ -83,10 +86,10 @@ export function ForgotPasswordPage() {
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Mengirim...
+                {forgotPasswordCopy.sending}
               </>
             ) : (
-              "Kirim"
+              forgotPasswordCopy.submit
             )}
           </Button>
         </form>

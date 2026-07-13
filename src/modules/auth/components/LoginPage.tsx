@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthCardShell } from "./AuthCardShell";
 import { loginAction } from "@/modules/auth/actions";
+import { id as defaultDictionary } from "@/i18n/dictionaries/id";
+
+const loginCopy = defaultDictionary.auth.login;
 
 export function LoginPage() {
   const router = useRouter();
@@ -37,20 +40,20 @@ export function LoginPage() {
 
   return (
     <AuthCardShell
-      eyebrow="Masuk SIMDP"
-      title="Masuk ke akun Anda"
-      description="Gunakan NIP, NIK, atau email yang terdaftar untuk mengakses dokumen pegawai."
+      eyebrow={loginCopy.eyebrow}
+      title={loginCopy.title}
+      description={loginCopy.description}
       icon={<LockKeyhole className="size-5" aria-hidden="true" />}
       footer={
         <>
-          <span>Belum bisa masuk?</span>
+          <span>{loginCopy.helpText}</span>
           <Button
             render={<Link href="/forgot-password" />}
             nativeButton={false}
             variant="link"
             className="h-auto p-0"
           >
-            Ajukan reset password
+            {loginCopy.resetPassword}
           </Button>
         </>
       }
@@ -64,12 +67,12 @@ export function LoginPage() {
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="identifier">NIP / NIK / Email</Label>
+          <Label htmlFor="identifier">{loginCopy.identifierLabel}</Label>
           <Input
             id="identifier"
             name="identifier"
             type="text"
-            placeholder="Contoh: 198501012010011001 atau nama@rsud.go.id"
+            placeholder={loginCopy.identifierPlaceholder}
             className="h-10"
             disabled={isPending}
             required
@@ -78,12 +81,12 @@ export function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{loginCopy.passwordLabel}</Label>
           <Input
             id="password"
             name="password"
             type="password"
-            placeholder="Masukkan password akun SIMDP"
+            placeholder={loginCopy.passwordPlaceholder}
             className="h-10"
             disabled={isPending}
             required
@@ -95,10 +98,10 @@ export function LoginPage() {
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Memproses...
+              {loginCopy.processing}
             </>
           ) : (
-            "Masuk"
+            loginCopy.submit
           )}
         </Button>
       </form>
