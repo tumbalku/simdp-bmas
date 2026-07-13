@@ -1,9 +1,9 @@
 export const DOCUMENT_STATUS_LABELS = {
   PENDING: "Pending",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  EXPIRED: "Expired",
-  REPLACED: "Replaced",
+  APPROVED: "Disetujui",
+  REJECTED: "Ditolak",
+  EXPIRED: "Kedaluwarsa",
+  REPLACED: "Diganti",
 } as const;
 
 export const DOCUMENT_STATUS_VARIANTS = {

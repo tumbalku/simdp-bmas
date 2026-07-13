@@ -6,6 +6,7 @@ import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
+import { bigIntToNumber } from "@/lib/utils";
 
 type DocumentListFilter = {
   status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
@@ -13,12 +14,6 @@ type DocumentListFilter = {
   page?: number;
   limit?: number;
 };
-
-function toNumber(value: bigint | number | null | undefined) {
-  if (typeof value === "bigint") return Number(value);
-  if (typeof value === "number") return value;
-  return null;
-}
 
 function mapDocumentRecord(record: any) {
   return {
@@ -28,7 +23,7 @@ function mapDocumentRecord(record: any) {
     uploadedAt: record.uploadedAt?.toISOString?.() ?? record.uploadedAt,
     expiryDate: record.expiryDate ? record.expiryDate.toISOString?.() ?? record.expiryDate : null,
     fileName: record.fileName,
-    fileSize: toNumber(record.fileSize),
+    fileSize: bigIntToNumber(record.fileSize),
     documentTypeId: record.documentType?.id ?? record.documentTypeId,
     documentTypeName: record.documentType?.name || "Jenis dokumen",
     archiveCategory: record.documentType?.archiveCategory || "PERSONAL",

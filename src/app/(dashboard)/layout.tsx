@@ -4,7 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import Navbar from "@/components/shared/Navbar";
 import { SideBar } from "@/components/shared/Sidebar";
 import { getSession } from "@/lib/auth";
-import type { UserRole } from "@/lib/nav-items";
+import type { UserRole } from "@/constants/roles";
 
 export default async function DashboardLayout({
   children,
