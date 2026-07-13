@@ -37,7 +37,7 @@ import {
 } from "@/modules/notification/actions"
 import type { UserRole } from "@/constants/roles"
 import { getNavItemsByRole, type NavItem } from "@/lib/nav-items"
-import { APP, DATE_FORMATS, DATE_LOCALE, PAGINATION, ROLE_LABELS, ROUTES, routeTo } from "@/constants"
+import { APP, DATE_FORMATS, DATE_LOCALE, PAGINATION, ROLE_LABELS, ROUTES, getRoleBadgeStyle, routeTo } from "@/constants"
 
 /* -------------------------------------------------------------------------- */
 /*  Types & constants                                                           */
@@ -60,17 +60,6 @@ type NotificationItem = {
   relatedEntityType: string | null
   relatedEntityId: string | null
   createdAt: string
-}
-
-const ROLE_BADGE_STYLES: Record<string, string> = {
-  ADMIN: "bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-500/20",
-  STAFF: "bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400 border border-sky-500/20",
-}
-const DEFAULT_ROLE_BADGE =
-  "bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400 border border-slate-500/20"
-
-function getRoleBadgeStyle(role: string) {
-  return ROLE_BADGE_STYLES[role] ?? DEFAULT_ROLE_BADGE
 }
 
 function getInitials(name: string) {
