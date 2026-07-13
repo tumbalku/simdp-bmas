@@ -1,36 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/lib/prisma";
 import * as argon2 from "argon2";
 import crypto from "crypto";
 import { logActivity } from "@/modules/security/service";
+import * as repository from "./repository";
+import { mapEmployeeSummary, mapEmployeeDetail } from "./mappers";
 
 type EmployeeDirectoryFilter = {
   search?: string;
   page?: number;
   limit?: number;
 };
-
-function toIsoDate(value: Date | string | null | undefined) {
-  if (!value) return null;
-  return value instanceof Date ? value.toISOString() : value;
-}
-
-function mapEmployeeSummary(employee: any) {
-  return {
-    id: employee.id,
-    employeeId: employee.employeeId,
-    nik: employee.nik,
-    name: employee.name,
-    gender: employee.gender,
-    phone: employee.phone,
-    email: employee.user?.email || null,
-    role: employee.user?.role || "EMPLOYEE",
-    isActive: employee.user?.isActive ?? true,
-    employmentStatus: employee.employmentStatus?.name || null,
-    workplace: employee.workplace?.name || null,
-    documentCount: employee._count?.documentRecords ?? employee.documentRecords?.length ?? 0,
-  };
-}
 
 export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {}) {
   const where: any = { deletedAt: null };
@@ -43,17 +22,7 @@ export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {})
     ];
   }
 
-  const employees = await prisma.employee.findMany({
-    where,
-    include: {
-      user: { select: { email: true, role: true, isActive: true } },
-      employmentStatus: { select: { name: true } },
-      workplace: { select: { name: true } },
-      _count: { select: { documentRecords: true } },
-    },
-    orderBy: { name: "asc" },
-  });
-
+  const employees = await repository.findEmployees(where);
   return employees.map(mapEmployeeSummary);
 }
 
@@ -75,19 +44,8 @@ export async function getEmployeeDirectoryWithPagination(
   }
 
   const [employees, total] = await Promise.all([
-    prisma.employee.findMany({
-      where,
-      include: {
-        user: { select: { email: true, role: true, isActive: true } },
-        employmentStatus: { select: { name: true } },
-        workplace: { select: { name: true } },
-        _count: { select: { documentRecords: true } },
-      },
-      orderBy: { name: "asc" },
-      skip,
-      take: limit,
-    }),
-    prisma.employee.count({ where }),
+    repository.findEmployeesWithPagination(where, skip, limit),
+    repository.countEmployees(where),
   ]);
 
   return {
@@ -102,91 +60,18 @@ export async function getEmployeeDirectoryWithPagination(
 }
 
 export async function getEmployeeDetail(id: string) {
-  const employee = await prisma.employee.findUnique({
-    where: { id, deletedAt: null },
-    include: {
-      user: { select: { email: true, role: true, isActive: true } },
-      employmentStatus: { select: { name: true } },
-      employeeGroup: { select: { name: true } },
-      employeePosition: { select: { name: true } },
-      employeeRank: { select: { name: true } },
-      workplace: { select: { name: true } },
-      careerHistories: {
-        orderBy: { effectiveDate: "desc" },
-        include: {
-          employmentStatus: { select: { name: true } },
-          employeeGroup: { select: { name: true } },
-          employeePosition: { select: { name: true } },
-          employeeRank: { select: { name: true } },
-          workplace: { select: { name: true } },
-        },
-      },
-      documentRecords: {
-        where: { deletedAt: null },
-        orderBy: { uploadedAt: "desc" },
-        include: { documentType: { select: { name: true, archiveCategory: true } } },
-      },
-    },
-  });
-
+  const employee = await repository.findEmployeeDetailById(id);
   if (!employee) return null;
-
-  return {
-    ...mapEmployeeSummary(employee),
-    birthDate: toIsoDate(employee.birthDate),
-    birthPlace: employee.birthPlace,
-    academicDegree: employee.academicDegree,
-    lastEducation: employee.lastEducation,
-    religion: employee.religion,
-    maritalStatus: employee.maritalStatus,
-    address: employee.address,
-    joinDate: toIsoDate(employee.joinDate),
-    employeeGroup: employee.employeeGroup?.name || null,
-    employeePosition: employee.employeePosition?.name || null,
-    employeeRank: employee.employeeRank?.name || null,
-    careerHistories: employee.careerHistories.map((item: any) => ({
-      id: item.id,
-      effectiveDate: toIsoDate(item.effectiveDate),
-      endDate: toIsoDate(item.endDate),
-      note: item.note,
-      employmentStatus: item.employmentStatus?.name || null,
-      employeeGroup: item.employeeGroup?.name || null,
-      employeePosition: item.employeePosition?.name || null,
-      employeeRank: item.employeeRank?.name || null,
-      workplace: item.workplace?.name || null,
-    })),
-    documents: employee.documentRecords.map((doc: any) => ({
-      id: doc.id,
-      title: doc.title || doc.documentType?.name || "Dokumen",
-      status: doc.status,
-      uploadedAt: toIsoDate(doc.uploadedAt),
-      expiryDate: toIsoDate(doc.expiryDate),
-      documentTypeName: doc.documentType?.name || "Dokumen",
-      archiveCategory: doc.documentType?.archiveCategory || "PERSONAL",
-    })),
-  };
+  return mapEmployeeDetail(employee);
 }
 
 export async function getCurrentProfile(userId: string) {
-  const employee = await prisma.employee.findFirst({
-    where: { userId, deletedAt: null },
-    include: {
-      employmentStatus: true,
-      employeeGroup: true,
-      employeePosition: true,
-      employeeRank: true,
-      workplace: true,
-    },
-  });
-
+  const employee = await repository.findEmployeeByUserId(userId);
   return employee;
 }
 
 export async function getActorDisplayName(userId: string, fallback: string = "User"): Promise<string> {
-  const user = await prisma.user.findFirst({
-    where: { id: userId },
-    include: { employee: true },
-  });
+  const user = await repository.findUserWithEmployeeById(userId);
   return user?.employee?.name || user?.email || fallback;
 }
 
@@ -203,10 +88,7 @@ export async function updateProfile(
   actorName: string,
   actorRole: string
 ) {
-  const employee = await prisma.employee.findFirst({
-    where: { userId, deletedAt: null },
-  });
-
+  const employee = await repository.findEmployeeSimpleByUserId(userId);
   if (!employee) return false;
 
   const updateData: any = {
@@ -218,10 +100,7 @@ export async function updateProfile(
     maritalStatus: data.maritalStatus ?? undefined,
   };
 
-  await prisma.employee.update({
-    where: { id: employee.id },
-    data: updateData,
-  });
+  await repository.updateEmployee(employee.id, updateData);
 
   await logActivity({
     actorId: userId,
@@ -260,15 +139,15 @@ export async function handleEmployeeCrud(
 
     // Check duplicate
     if (data.email) {
-      const exist = await prisma.user.findFirst({ where: { email: data.email } });
+      const exist = await repository.findUserByEmail(data.email);
       if (exist) throw new Error("Email sudah terdaftar");
     }
     if (data.employeeId) {
-      const exist = await prisma.employee.findFirst({ where: { employeeId: data.employeeId } });
+      const exist = await repository.findEmployeeByEmployeeId(data.employeeId);
       if (exist) throw new Error("NIP sudah terdaftar");
     }
     if (data.nik) {
-      const exist = await prisma.employee.findFirst({ where: { nik: data.nik } });
+      const exist = await repository.findEmployeeByNik(data.nik);
       if (exist) throw new Error("NIK sudah terdaftar");
     }
 
@@ -278,47 +157,40 @@ export async function handleEmployeeCrud(
     // users should activate access through the password reset flow.
     const passwordHash = await argon2.hash(crypto.randomBytes(24).toString("base64url"));
 
-    const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          id: userId,
-          email: data.email,
-          passwordHash,
-          role: data.role || "EMPLOYEE",
-          isActive: true,
-        },
-      });
-
-      const employee = await tx.employee.create({
-        data: {
-          id: employeeId,
-          userId: userId,
-          employeeId: data.employeeId || null,
-          nik: data.nik || null,
-          name: data.name,
-          gender: data.gender || null,
-          birthPlace: data.birthPlace || null,
-          birthDate: data.birthDate ? new Date(data.birthDate) : null,
-          academicDegree: data.academicDegree || null,
-          lastEducation: data.lastEducation || null,
-          religion: data.religion || null,
-          maritalStatus: data.maritalStatus || null,
-          phone: data.phone || null,
-          address: data.address || null,
-          joinDate: data.joinDate ? new Date(data.joinDate) : null,
-          hasTmt: data.hasTmt ?? false,
-          tmtStartDate: data.tmtStartDate ? new Date(data.tmtStartDate) : null,
-          tmtEndDate: data.tmtEndDate ? new Date(data.tmtEndDate) : null,
-          employmentStatusId: data.employmentStatusId || null,
-          employeeGroupId: data.employeeGroupId || null,
-          employeePositionId: data.employeePositionId || null,
-          employeeRankId: data.employeeRankId || null,
-          workplaceId: data.workplaceId || null,
-          createdBy: systemActor.actorId,
-        },
-      });
-
-      return { user, employee };
+    const result = await repository.createEmployeeWithUserTransaction({
+      user: {
+        id: userId,
+        email: data.email,
+        passwordHash,
+        role: data.role || "EMPLOYEE",
+        isActive: true,
+      },
+      employee: {
+        id: employeeId,
+        userId: userId,
+        employeeId: data.employeeId || null,
+        nik: data.nik || null,
+        name: data.name,
+        gender: data.gender || null,
+        birthPlace: data.birthPlace || null,
+        birthDate: data.birthDate ? new Date(data.birthDate) : null,
+        academicDegree: data.academicDegree || null,
+        lastEducation: data.lastEducation || null,
+        religion: data.religion || null,
+        maritalStatus: data.maritalStatus || null,
+        phone: data.phone || null,
+        address: data.address || null,
+        joinDate: data.joinDate ? new Date(data.joinDate) : null,
+        hasTmt: data.hasTmt ?? false,
+        tmtStartDate: data.tmtStartDate ? new Date(data.tmtStartDate) : null,
+        tmtEndDate: data.tmtEndDate ? new Date(data.tmtEndDate) : null,
+        employmentStatusId: data.employmentStatusId || null,
+        employeeGroupId: data.employeeGroupId || null,
+        employeePositionId: data.employeePositionId || null,
+        employeeRankId: data.employeeRankId || null,
+        workplaceId: data.workplaceId || null,
+        createdBy: systemActor.actorId,
+      },
     });
 
     await logActivity({
@@ -335,67 +207,54 @@ export async function handleEmployeeCrud(
   if (operation === "UPDATE") {
     if (!id) throw new Error("ID pegawai wajib diisi");
 
-    const employee = await prisma.employee.findUnique({
-      where: { id },
-      include: { user: true },
-    });
-
+    const employee = await repository.findEmployeeWithUserById(id);
     if (!employee) throw new Error("Pegawai tidak ditemukan");
 
     // Check duplicate if values changed
     if (data.email && data.email !== employee.user.email) {
-      const exist = await prisma.user.findFirst({ where: { email: data.email } });
+      const exist = await repository.findUserByEmail(data.email);
       if (exist) throw new Error("Email sudah terdaftar");
     }
     if (data.employeeId && data.employeeId !== employee.employeeId) {
-      const exist = await prisma.employee.findFirst({ where: { employeeId: data.employeeId } });
+      const exist = await repository.findEmployeeByEmployeeId(data.employeeId);
       if (exist) throw new Error("NIP sudah terdaftar");
     }
     if (data.nik && data.nik !== employee.nik) {
-      const exist = await prisma.employee.findFirst({ where: { nik: data.nik } });
+      const exist = await repository.findEmployeeByNik(data.nik);
       if (exist) throw new Error("NIK sudah terdaftar");
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      if (data.email || data.role !== undefined) {
-        await tx.user.update({
-          where: { id: employee.userId },
-          data: {
-            email: data.email ?? undefined,
-            role: data.role ?? undefined,
-          },
-        });
-      }
-
-      const updated = await tx.employee.update({
-        where: { id },
-        data: {
-          employeeId: data.employeeId !== undefined ? data.employeeId : undefined,
-          nik: data.nik !== undefined ? data.nik : undefined,
-          name: data.name ?? undefined,
-          gender: data.gender !== undefined ? data.gender : undefined,
-          birthPlace: data.birthPlace !== undefined ? data.birthPlace : undefined,
-          birthDate: data.birthDate !== undefined ? (data.birthDate ? new Date(data.birthDate) : null) : undefined,
-          academicDegree: data.academicDegree !== undefined ? data.academicDegree : undefined,
-          lastEducation: data.lastEducation !== undefined ? data.lastEducation : undefined,
-          religion: data.religion !== undefined ? data.religion : undefined,
-          maritalStatus: data.maritalStatus !== undefined ? data.maritalStatus : undefined,
-          phone: data.phone !== undefined ? data.phone : undefined,
-          address: data.address !== undefined ? data.address : undefined,
-          joinDate: data.joinDate !== undefined ? (data.joinDate ? new Date(data.joinDate) : null) : undefined,
-          hasTmt: data.hasTmt !== undefined ? data.hasTmt : undefined,
-          tmtStartDate: data.tmtStartDate !== undefined ? (data.tmtStartDate ? new Date(data.tmtStartDate) : null) : undefined,
-          tmtEndDate: data.tmtEndDate !== undefined ? (data.tmtEndDate ? new Date(data.tmtEndDate) : null) : undefined,
-          employmentStatusId: data.employmentStatusId !== undefined ? data.employmentStatusId : undefined,
-          employeeGroupId: data.employeeGroupId !== undefined ? data.employeeGroupId : undefined,
-          employeePositionId: data.employeePositionId !== undefined ? data.employeePositionId : undefined,
-          employeeRankId: data.employeeRankId !== undefined ? data.employeeRankId : undefined,
-          workplaceId: data.workplaceId !== undefined ? data.workplaceId : undefined,
-          updatedBy: systemActor.actorId,
-        },
-      });
-
-      return updated;
+    const result = await repository.updateEmployeeWithUserTransaction({
+      id,
+      userId: employee.userId,
+      user: data.email || data.role !== undefined ? {
+        email: data.email ?? undefined,
+        role: data.role ?? undefined,
+      } : undefined,
+      employee: {
+        employeeId: data.employeeId !== undefined ? data.employeeId : undefined,
+        nik: data.nik !== undefined ? data.nik : undefined,
+        name: data.name ?? undefined,
+        gender: data.gender !== undefined ? data.gender : undefined,
+        birthPlace: data.birthPlace !== undefined ? data.birthPlace : undefined,
+        birthDate: data.birthDate !== undefined ? (data.birthDate ? new Date(data.birthDate) : null) : undefined,
+        academicDegree: data.academicDegree !== undefined ? data.academicDegree : undefined,
+        lastEducation: data.lastEducation !== undefined ? data.lastEducation : undefined,
+        religion: data.religion !== undefined ? data.religion : undefined,
+        maritalStatus: data.maritalStatus !== undefined ? data.maritalStatus : undefined,
+        phone: data.phone !== undefined ? data.phone : undefined,
+        address: data.address !== undefined ? data.address : undefined,
+        joinDate: data.joinDate !== undefined ? (data.joinDate ? new Date(data.joinDate) : null) : undefined,
+        hasTmt: data.hasTmt !== undefined ? data.hasTmt : undefined,
+        tmtStartDate: data.tmtStartDate !== undefined ? (data.tmtStartDate ? new Date(data.tmtStartDate) : null) : undefined,
+        tmtEndDate: data.tmtEndDate !== undefined ? (data.tmtEndDate ? new Date(data.tmtEndDate) : null) : undefined,
+        employmentStatusId: data.employmentStatusId !== undefined ? data.employmentStatusId : undefined,
+        employeeGroupId: data.employeeGroupId !== undefined ? data.employeeGroupId : undefined,
+        employeePositionId: data.employeePositionId !== undefined ? data.employeePositionId : undefined,
+        employeeRankId: data.employeeRankId !== undefined ? data.employeeRankId : undefined,
+        workplaceId: data.workplaceId !== undefined ? data.workplaceId : undefined,
+        updatedBy: systemActor.actorId,
+      },
     });
 
     await logActivity({
@@ -412,22 +271,10 @@ export async function handleEmployeeCrud(
   if (operation === "DELETE") {
     if (!id) throw new Error("ID pegawai wajib diisi");
 
-    const employee = await prisma.employee.findUnique({
-      where: { id },
-    });
-
+    const employee = await repository.findEmployeeById(id);
     if (!employee) throw new Error("Pegawai tidak ditemukan");
 
-    await prisma.$transaction([
-      prisma.employee.update({
-        where: { id },
-        data: { deletedAt: new Date() },
-      }),
-      prisma.user.update({
-        where: { id: employee.userId },
-        data: { deletedAt: new Date() },
-      }),
-    ]);
+    await repository.softDeleteEmployeeAndUser(id, employee.userId);
 
     await logActivity({
       ...systemActor,
@@ -442,22 +289,10 @@ export async function handleEmployeeCrud(
   if (operation === "RESTORE") {
     if (!id) throw new Error("ID pegawai wajib diisi");
 
-    const employee = await prisma.employee.findUnique({
-      where: { id },
-    });
-
+    const employee = await repository.findEmployeeById(id);
     if (!employee) throw new Error("Pegawai tidak ditemukan");
 
-    await prisma.$transaction([
-      prisma.employee.update({
-        where: { id },
-        data: { deletedAt: null },
-      }),
-      prisma.user.update({
-        where: { id: employee.userId },
-        data: { deletedAt: null },
-      }),
-    ]);
+    await repository.restoreEmployeeAndUser(id, employee.userId);
 
     await logActivity({
       ...systemActor,
@@ -488,43 +323,26 @@ export async function addCareerHistory(data: {
   const historyId = crypto.randomUUID();
   const effectiveDate = new Date(data.effectiveDate);
 
-  const result = await prisma.$transaction(async (tx) => {
-    // 1. Create history record
-    const history = await tx.employeeCareerHistory.create({
-      data: {
-        id: historyId,
-        employeeId: data.employeeId,
-        employmentStatusId: data.employmentStatusId || null,
-        employeeGroupId: data.employeeGroupId || null,
-        employeePositionId: data.employeePositionId || null,
-        employeeRankId: data.employeeRankId || null,
-        workplaceId: data.workplaceId || null,
-        effectiveDate,
-        note: data.note || null,
-        createdBy: data.createdBy || null,
-      },
-    });
-
-    // 2. Check if this is the newest effectiveDate to update current assignment
-    const newestHistory = await tx.employeeCareerHistory.findFirst({
-      where: { employeeId: data.employeeId },
-      orderBy: { effectiveDate: "desc" },
-    });
-
-    if (newestHistory && newestHistory.id === historyId) {
-      await tx.employee.update({
-        where: { id: data.employeeId },
-        data: {
-          employmentStatusId: data.employmentStatusId || null,
-          employeeGroupId: data.employeeGroupId || null,
-          employeePositionId: data.employeePositionId || null,
-          employeeRankId: data.employeeRankId || null,
-          workplaceId: data.workplaceId || null,
-        },
-      });
-    }
-
-    return history;
+  const result = await repository.createCareerHistoryAndUpdateCurrent({
+    history: {
+      id: historyId,
+      employeeId: data.employeeId,
+      employmentStatusId: data.employmentStatusId || null,
+      employeeGroupId: data.employeeGroupId || null,
+      employeePositionId: data.employeePositionId || null,
+      employeeRankId: data.employeeRankId || null,
+      workplaceId: data.workplaceId || null,
+      effectiveDate,
+      note: data.note || null,
+      createdBy: data.createdBy || null,
+    },
+    currentAssignment: {
+      employmentStatusId: data.employmentStatusId || null,
+      employeeGroupId: data.employeeGroupId || null,
+      employeePositionId: data.employeePositionId || null,
+      employeeRankId: data.employeeRankId || null,
+      workplaceId: data.workplaceId || null,
+    },
   });
 
   await logActivity({
@@ -647,9 +465,6 @@ export async function getMasterDataList(
   const limit = query.limit || 50;
   const skip = (page - 1) * limit;
   const modelName = entityType.charAt(0).toLowerCase() + entityType.slice(1);
-  const modelDelegate = (prisma as any)[modelName];
-
-  if (!modelDelegate) throw new Error(`Entity type ${entityType} tidak didukung`);
 
   const where: any = {};
   if (query.search) {
@@ -665,14 +480,14 @@ export async function getMasterDataList(
   }
 
   const [records, total] = await Promise.all([
-    modelDelegate.findMany({
+    repository.findMasterDataMany(modelName, {
       where,
       include: Object.keys(include).length > 0 ? include : undefined,
       orderBy: { name: "asc" },
       skip,
       take: limit,
     }),
-    modelDelegate.count({ where }),
+    repository.countMasterData(modelName, { where }),
   ]);
 
   return {
@@ -701,11 +516,7 @@ export async function handleMasterDataCrud(
   actorName?: string,
   actorRole?: string
 ) {
-  const modelDelegate = (prisma as any)[
-    entityType.charAt(0).toLowerCase() + entityType.slice(1)
-  ];
-
-  if (!modelDelegate) throw new Error(`Entity type ${entityType} tidak didukung`);
+  const modelName = entityType.charAt(0).toLowerCase() + entityType.slice(1);
 
   const systemActor = {
     actorId: actorId || null,
@@ -721,7 +532,7 @@ export async function handleMasterDataCrud(
       createdBy: systemActor.actorId,
     };
 
-    const record = await modelDelegate.create({ data: createData });
+    const record = await repository.createMasterData(modelName, createData);
 
     await logActivity({
       ...systemActor,
@@ -743,10 +554,7 @@ export async function handleMasterDataCrud(
       updatedAt: new Date(),
     };
 
-    const record = await modelDelegate.update({
-      where: { id },
-      data: updateData,
-    });
+    const record = await repository.updateMasterData(modelName, id, updateData);
 
     await logActivity({
       ...systemActor,
@@ -765,9 +573,7 @@ export async function handleMasterDataCrud(
     // First check if records are still referenced. Since this is hard delete, prisma will throw foreign key constraint errors natively.
     // We catch it and throw a user friendly error.
     try {
-      const record = await modelDelegate.delete({
-        where: { id },
-      });
+      const record = await repository.deleteMasterData(modelName, id);
 
       await logActivity({
         ...systemActor,
