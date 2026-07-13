@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { env } from "@/lib/env";
 import type { UserRole } from "@/constants/roles";
+import { AppError } from "./errors";
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
@@ -92,10 +93,10 @@ export async function getSession(): Promise<TokenPayload | null> {
 export async function requireAuth(minRole?: string): Promise<TokenPayload> {
   const session = await getSession();
   if (!session) {
-    throw new Error("UNAUTHENTICATED");
+    throw new AppError("UNAUTHENTICATED", "UNAUTHENTICATED", 401);
   }
   if (minRole && !hasRolePermission(session.role, minRole)) {
-    throw new Error("FORBIDDEN");
+    throw new AppError("FORBIDDEN", "FORBIDDEN", 403);
   }
   return session;
 }

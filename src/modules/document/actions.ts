@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { handleActionError } from "@/lib/errors";
+import { getActorDisplayName } from "@/modules/employee/service";
 import {
   handleDocumentTypeCrud,
   softDeleteDocument,
@@ -15,50 +15,17 @@ import {
   uploadDocumentRecord,
   getDocumentRecordsWithPagination,
 } from "@/modules/document/service";
-
-const crudDocumentTypeSchema = z.object({
-  operation: z.enum(["CREATE", "UPDATE", "DELETE", "RESTORE"]),
-  id: z.string().optional(),
-  data: z
-    .object({
-      code: z.string().min(2).max(10).optional(),
-      name: z.string().min(1).optional(),
-      description: z.string().optional().nullable(),
-      archiveCategory: z.enum(["PERSONAL", "EDUCATION", "EMPLOYMENT", "CERTIFICATION", "LEGAL"]).optional(),
-      isMandatory: z.boolean().optional(),
-      allowMultiple: z.boolean().optional(),
-      requiresExpiryDate: z.boolean().optional(),
-      requiresIssueDate: z.boolean().optional(),
-      requiresDocumentNumber: z.boolean().optional(),
-      allowedFormats: z.string().min(1).optional(),
-      maxSizeMb: z.number().positive().optional(),
-      professionGroupIds: z.array(z.string()).optional(),
-      employmentStatusIds: z.array(z.string()).optional(),
-      employeeGroupIds: z.array(z.string()).optional(),
-      employeeRankIds: z.array(z.string()).optional(),
-      workplaceIds: z.array(z.string()).optional(),
-    })
-    .optional(),
-});
-
-const uploadDocumentSchema = z.object({
-  documentTypeId: z.string().min(1, "Jenis dokumen wajib dipilih"),
-  title: z.string().optional(),
-  documentNumber: z.string().optional(),
-  issueDate: z.string().optional(),
-  expiryDate: z.string().optional(),
-});
+import {
+  crudDocumentTypeSchema,
+  uploadDocumentSchema,
+  documentRecordsQuerySchema,
+  documentRecordsWithPaginationQuerySchema,
+} from "./schema";
 
 export async function getDocumentRecordsAction(filter?: unknown) {
   try {
     const session = await requireAuth();
-    const parsed = z
-      .object({
-        status: z.enum(["PENDING", "APPROVED", "REJECTED", "EXPIRED", "REPLACED"]).optional(),
-        search: z.string().optional(),
-      })
-      .optional()
-      .safeParse(filter);
+    const parsed = documentRecordsQuerySchema.optional().safeParse(filter);
 
     if (!parsed.success) {
       return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
@@ -68,22 +35,14 @@ export async function getDocumentRecordsAction(filter?: unknown) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getDocumentRecordsAction error:", error);
-    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: error.message } };
+    return handleActionError(error);
   }
 }
 
 export async function getDocumentRecordsWithPaginationAction(filter?: unknown) {
   try {
     await requireAuth("ADMIN");
-    const parsed = z
-      .object({
-        status: z.enum(["PENDING", "APPROVED", "REJECTED", "EXPIRED", "REPLACED"]).optional(),
-        search: z.string().optional(),
-        page: z.number().int().positive().optional(),
-        limit: z.number().int().positive().max(100).optional(),
-      })
-      .optional()
-      .safeParse(filter);
+    const parsed = documentRecordsWithPaginationQuerySchema.optional().safeParse(filter);
 
     if (!parsed.success) {
       return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
@@ -93,7 +52,7 @@ export async function getDocumentRecordsWithPaginationAction(filter?: unknown) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getDocumentRecordsWithPaginationAction error:", error);
-    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: error.message } };
+    return handleActionError(error);
   }
 }
 
@@ -104,7 +63,7 @@ export async function getDocumentRecordDetailAction(id: string) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getDocumentRecordDetailAction error:", error);
-    return { ok: false as const, error: { code: error.code || "INTERNAL_ERROR", message: error.message } };
+    return handleActionError(error);
   }
 }
 
@@ -115,7 +74,7 @@ export async function getDocumentTypeOptionsAction() {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getDocumentTypeOptionsAction error:", error);
-    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: error.message } };
+    return handleActionError(error);
   }
 }
 
@@ -144,7 +103,7 @@ export async function uploadDocumentAction(formData: FormData) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("uploadDocumentAction error:", error);
-    return { ok: false as const, error: { code: error.code || "INTERNAL_ERROR", message: error.message || "Gagal mengunggah dokumen." } };
+    return handleActionError(error, { defaultMessage: "Gagal mengunggah dokumen." });
   }
 }
 
@@ -164,11 +123,7 @@ export async function crudDocumentTypeAction(operation: string, id?: string, dat
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
-    const actorName = user?.employee?.name || user?.email || "Admin";
+    const actorName = await getActorDisplayName(session.userId, "Admin");
 
     const result = await handleDocumentTypeCrud(
       parsed.data.operation,
@@ -182,18 +137,7 @@ export async function crudDocumentTypeAction(operation: string, id?: string, dat
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("crudDocumentTypeAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "FORBIDDEN"
-            ? "FORBIDDEN"
-            : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
 
@@ -206,20 +150,7 @@ export async function softDeleteDocumentAction(id: string) {
     return { ok: true as const, data: { success } };
   } catch (error: any) {
     console.error("softDeleteDocumentAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "OWNERSHIP_REQUIRED"
-            ? "FORBIDDEN"
-            : error.message.includes("APPROVED")
-            ? "BUSINESS_RULE_VIOLATION"
-            : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED" });
   }
 }
 
@@ -232,17 +163,6 @@ export async function restoreDocumentAction(id: string) {
     return { ok: true as const, data: { success } };
   } catch (error: any) {
     console.error("restoreDocumentAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "FORBIDDEN"
-            ? "FORBIDDEN"
-            : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }

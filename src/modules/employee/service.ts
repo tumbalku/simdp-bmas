@@ -182,6 +182,14 @@ export async function getCurrentProfile(userId: string) {
   return employee;
 }
 
+export async function getActorDisplayName(userId: string, fallback: string = "User"): Promise<string> {
+  const user = await prisma.user.findFirst({
+    where: { id: userId },
+    include: { employee: true },
+  });
+  return user?.employee?.name || user?.email || fallback;
+}
+
 export async function updateProfile(
   userId: string,
   data: {
