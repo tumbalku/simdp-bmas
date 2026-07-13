@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
 import { PAGINATION } from "@/constants/pagination";
+import { bigIntToNumber } from "@/lib/utils";
 
 export async function getVerificationQueue(filter: {
   page?: number;
@@ -226,12 +227,6 @@ export async function getVerificationDocumentDetail(documentId: string, session:
     throw new Error("FORBIDDEN");
   }
 
-  function toNumber(value: bigint | number | null | undefined) {
-    if (typeof value === "bigint") return Number(value);
-    if (typeof value === "number") return value;
-    return null;
-  }
-
   return {
     id: record.id,
     title: record.title || record.documentType?.name || "Dokumen",
@@ -241,7 +236,7 @@ export async function getVerificationDocumentDetail(documentId: string, session:
     issueDate: record.issueDate ? record.issueDate.toISOString() : null,
     documentNumber: record.documentNumber,
     fileName: record.fileName,
-    fileSize: toNumber(record.fileSize),
+    fileSize: bigIntToNumber(record.fileSize),
     mimeType: record.mimeType,
     documentTypeName: record.documentType?.name || "Jenis dokumen",
     archiveCategory: record.documentType?.archiveCategory || "PERSONAL",
