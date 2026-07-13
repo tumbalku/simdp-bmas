@@ -36,7 +36,7 @@ import {
   markNotificationReadAction,
 } from "@/modules/notification/actions"
 import type { UserRole } from "@/constants/roles"
-import { getNavItemsByRole, type NavItem } from "@/lib/nav-items"
+import { getNavItemsByRole, type NavItem } from "@/config/nav"
 import { APP, DATE_FORMATS, DATE_LOCALE, PAGINATION, ROLE_LABELS, ROUTES, getRoleBadgeStyle, routeTo } from "@/constants"
 
 /* -------------------------------------------------------------------------- */
