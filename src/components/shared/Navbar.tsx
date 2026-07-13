@@ -7,72 +7,29 @@ import { useTheme } from "next-themes"
 import {
   Sun,
   Moon,
-  LogOut,
-  User as UserIcon,
-  Settings,
   Menu,
   X,
   ChevronDown,
-  Bell,
-  CheckCheck,
-  FileText,
-  Inbox,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { logoutAction, getSessionProfileAction } from "@/modules/auth/actions"
-import {
-  getNotifications,
-  markAllNotificationsReadAction,
-  markNotificationReadAction,
-} from "@/modules/notification/actions"
+import { getSessionProfileAction } from "@/modules/auth/actions"
 import type { UserRole } from "@/constants/roles"
 import { getNavItemsByRole, type NavItem } from "@/config/nav"
-import { APP, DATE_FORMATS, DATE_LOCALE, PAGINATION, ROLE_LABELS, ROUTES, getRoleBadgeStyle, routeTo } from "@/constants"
-
-/* -------------------------------------------------------------------------- */
-/*  Types & constants                                                           */
-/* -------------------------------------------------------------------------- */
-
-type Profile = {
-  name: string
-  email: string
-  role: string
-  avatarUrl: string | null
-  employeeId: string | null
-}
-
-type NotificationItem = {
-  id: string
-  type: string
-  title: string
-  message: string | null
-  isRead: boolean
-  relatedEntityType: string | null
-  relatedEntityId: string | null
-  createdAt: string
-}
-
-function getInitials(name: string) {
-  if (!name) return "U"
-  return name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-}
+import { APP, ROUTES } from "@/constants"
+import { NotificationPanel } from "@/components/shared/navbar/NotificationPanel"
+import {
+  UserProfileMenu,
+  type NavbarProfile,
+} from "@/components/shared/navbar/UserProfileMenu"
 
 /* -------------------------------------------------------------------------- */
 /*  Data hook                                                                   */
 /* -------------------------------------------------------------------------- */
 
 function useProfile() {
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const [profile, setProfile] = useState<NavbarProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -96,44 +53,6 @@ function useProfile() {
   }, [])
 
   return { profile, loading }
-}
-
-function useNotifications(enabled: boolean) {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [loading, setLoading] = useState(enabled)
-
-  useEffect(() => {
-    if (!enabled) {
-      setLoading(false)
-      return
-    }
-
-    let cancelled = false
-    setLoading(true)
-
-    async function loadNotifications() {
-      try {
-        const res = await getNotifications({
-          page: PAGINATION.defaultPage,
-          pageSize: PAGINATION.navbarNotificationLimit,
-        })
-        if (!cancelled && res.ok) {
-          setNotifications(res.data)
-          setUnreadCount(res.meta.unreadCount)
-        }
-      } catch (err) {
-        console.error("Failed to load notifications in Navbar:", err)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadNotifications()
-    return () => { cancelled = true }
-  }, [enabled])
-
-  return { notifications, unreadCount, setNotifications, setUnreadCount, loading }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -200,252 +119,6 @@ function ThemeToggle() {
         <Moon className="size-4 text-slate-700 dark:text-slate-300 transition-all" />
       )}
     </Button>
-  )
-}
-
-
-/* -------------------------------------------------------------------------- */
-/*  Notification menu                                                           */
-/* -------------------------------------------------------------------------- */
-
-function NotificationMenu({ enabled }: { enabled: boolean }) {
-  const {
-    notifications,
-    unreadCount,
-    setNotifications,
-    setUnreadCount,
-    loading,
-  } = useNotifications(enabled)
-
-  if (!enabled) return null
-
-  const handleMarkAllRead = async () => {
-    const res = await markAllNotificationsReadAction()
-    if (!res.ok) return
-    setNotifications((items) => items.map((item) => ({ ...item, isRead: true })))
-    setUnreadCount(0)
-  }
-
-  const handleMarkRead = async (id: string) => {
-    const res = await markNotificationReadAction(id)
-    if (!res.ok) return
-    setNotifications((items) =>
-      items.map((item) => (item.id === id ? { ...item, isRead: true } : item))
-    )
-    setUnreadCount((count) => Math.max(0, count - 1))
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <button
-            className="relative flex size-9 items-center justify-center rounded-lg outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label="Buka notifikasi"
-          >
-            <Bell className="size-4 text-slate-700 dark:text-slate-300" />
-            {unreadCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground shadow-sm">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            ) : null}
-          </button>
-        }
-      />
-      <DropdownMenuContent align="end" className="mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-xl p-0">
-        <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Notifikasi</p>
-            <p className="text-xs text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} belum dibaca` : "Semua sudah dibaca"}
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleMarkAllRead}
-            disabled={unreadCount === 0}
-            className="h-8 px-2 text-xs"
-          >
-            <CheckCheck className="size-3.5" />
-            Tandai semua
-          </Button>
-        </div>
-
-        <div className="max-h-96 overflow-y-auto p-2">
-          {loading ? (
-            <div className="space-y-2 p-2">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="h-16 animate-pulse rounded-lg bg-muted" />
-              ))}
-            </div>
-          ) : notifications.length > 0 ? (
-            notifications.map((notification) => (
-              <NotificationRow
-                key={notification.id}
-                notification={notification}
-                onMarkRead={handleMarkRead}
-              />
-            ))
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
-              <Inbox className="size-8 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Belum ada notifikasi</p>
-                <p className="text-xs text-muted-foreground">Aktivitas penting akan muncul di sini.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-function NotificationRow({
-  notification,
-  onMarkRead,
-}: {
-  notification: NotificationItem
-  onMarkRead: (id: string) => void
-}) {
-  const href = getNotificationHref(notification)
-  const content = (
-    <div className={cn(
-      "flex gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-accent",
-      !notification.isRead && "bg-primary/5"
-    )}>
-      <div className={cn(
-        "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
-        notification.isRead ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
-      )}>
-        <FileText className="size-4" />
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex items-start justify-between gap-2">
-          <p className="line-clamp-1 text-sm font-medium text-foreground">{notification.title}</p>
-          {!notification.isRead ? <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" /> : null}
-        </div>
-        {notification.message ? (
-          <p className="line-clamp-2 text-xs text-muted-foreground">{notification.message}</p>
-        ) : null}
-        <p className="text-[11px] text-muted-foreground">{formatNotificationDate(notification.createdAt)}</p>
-      </div>
-    </div>
-  )
-
-  if (href) {
-    return (
-      <Link href={href} onClick={() => !notification.isRead && onMarkRead(notification.id)}>
-        {content}
-      </Link>
-    )
-  }
-
-  return (
-    <button
-      type="button"
-      className="w-full text-left"
-      onClick={() => !notification.isRead && onMarkRead(notification.id)}
-    >
-      {content}
-    </button>
-  )
-}
-
-function getNotificationHref(notification: NotificationItem) {
-  const type = notification.relatedEntityType?.toUpperCase()
-  if (!notification.relatedEntityId) return null
-  if (type === "DOCUMENT" || type === "DOCUMENT_RECORD") {
-    return routeTo.documentDetail(notification.relatedEntityId)
-  }
-  return null
-}
-
-function formatNotificationDate(value: string) {
-  return new Intl.DateTimeFormat(DATE_LOCALE, DATE_FORMATS.dateTime).format(new Date(value))
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Profile menu                                                               */
-/* -------------------------------------------------------------------------- */
-
-function ProfileMenu({ profile, loading }: { profile: Profile | null; loading: boolean }) {
-  const handleLogout = async () => {
-    try {
-      const res = await logoutAction()
-      if (res.ok) {
-        window.location.href = "/"
-      }
-    } catch (err) {
-      console.error("Logout error in Navbar:", err)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex h-9 w-9 items-center justify-center">
-        <div className="size-8 rounded-full bg-muted animate-pulse" />
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return (
-      <Button render={<Link href={ROUTES.login} />} nativeButton={false} size="sm" variant="default" className="rounded-lg h-8 px-4">
-        Masuk
-      </Button>
-    )
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <button className="flex items-center justify-center rounded-full transition-transform hover:scale-105 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-            <Avatar size="default">
-              {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.name} />}
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">
-                {getInitials(profile.name)}
-              </AvatarFallback>
-            </Avatar>
-          </button>
-        }
-      />
-      <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl">
-        <div className="px-3 py-2 text-xs font-normal">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-foreground truncate max-w-[120px]">{profile.name}</p>
-              <span
-                className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-full font-medium leading-none select-none uppercase",
-                  getRoleBadgeStyle(profile.role)
-                )}
-              >
-                {ROLE_LABELS[profile.role as keyof typeof ROLE_LABELS] ?? profile.role}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
-          </div>
-        </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href={ROUTES.profile} />}>
-          <UserIcon className="size-4 mr-2 text-muted-foreground" />
-          Profil Saya
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={ROUTES.settings} />}>
-          <Settings className="size-4 mr-2 text-muted-foreground" />
-          Pengaturan
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} variant="destructive" className="flex items-center cursor-pointer">
-          <LogOut className="size-4 mr-2" />
-          Keluar
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }
 
@@ -616,8 +289,8 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <NotificationMenu enabled={Boolean(profile)} />
-          <ProfileMenu profile={profile} loading={loading} />
+          <NotificationPanel enabled={Boolean(profile)} />
+          <UserProfileMenu profile={profile} loading={loading} />
           <MobileMenuToggle open={mobileMenuOpen} onToggle={() => setMobileMenuOpen((v) => !v)} />
         </div>
       </div>
