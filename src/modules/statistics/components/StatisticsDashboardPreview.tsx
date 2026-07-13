@@ -6,8 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { DocumentStatusChart } from "./document-status-chart";
-import { UploadTrendChart } from "./upload-trend-chart";
+import { DocumentStatusChart } from "./DocumentStatusChart";
+import { UploadTrendChart } from "./UploadTrendChart";
 
 const uploadTrendData = [
   { month: "Jan", Uploaded: 42, Verified: 35 },

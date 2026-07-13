@@ -10,8 +10,8 @@ import {
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Users, FileText, ShieldCheck, FileClock } from "lucide-react";
-import { DocumentStatusChart } from "./document-status-chart";
-import { UploadTrendChart } from "./upload-trend-chart";
+import { DocumentStatusChart } from "./DocumentStatusChart";
+import { UploadTrendChart } from "./UploadTrendChart";
 
 type AdminDashboardStats = {
   totalEmployees: number;

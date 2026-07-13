@@ -1,7 +1,7 @@
 import { ArrowRight, FileCheck2, ShieldCheck, UsersRound } from "lucide-react";
 
 import {Button, buttonVariants} from "@/components/ui/button";
-import { StatisticsDashboardPreview } from "@/modules/statistics/components/statistics-dashboard-preview";
+import { StatisticsDashboardPreview } from "@/modules/statistics/components/StatisticsDashboardPreview";
 import Navbar from "@/components/shared/Navbar";
 import Link from "next/link";
 
