@@ -10,7 +10,11 @@ import {
   handleEmployeeCrud,
   addCareerHistory,
   importFromCsv,
+  getMasterDataList,
   handleMasterDataCrud,
+  getEmployeeDirectory,
+  getEmployeeDetail,
+  getEmployeeDirectoryWithPagination,
 } from "@/modules/employee/service";
 
 const updateProfileSchema = z.object({
@@ -64,6 +68,61 @@ const addCareerHistorySchema = z.object({
   effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD"),
   note: z.string().optional().nullable(),
 });
+
+export async function getEmployeeDirectoryAction(filter?: unknown) {
+  try {
+    await requireAuth("ADMIN");
+    const parsed = z.object({ search: z.string().optional() }).optional().safeParse(filter);
+    if (!parsed.success) {
+      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
+    }
+
+    const data = await getEmployeeDirectory(parsed.data || {});
+    return { ok: true as const, data };
+  } catch (error: any) {
+    console.error("getEmployeeDirectoryAction error:", error);
+    return { ok: false as const, error: { code: error.message === "FORBIDDEN" ? "FORBIDDEN" : "INTERNAL_ERROR", message: error.message } };
+  }
+}
+
+export async function getEmployeeDirectoryWithPaginationAction(filter?: unknown) {
+  try {
+    await requireAuth("ADMIN");
+    const parsed = z
+      .object({
+        search: z.string().optional(),
+        page: z.number().int().positive().optional(),
+        limit: z.number().int().positive().max(100).optional(),
+      })
+      .optional()
+      .safeParse(filter);
+
+    if (!parsed.success) {
+      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
+    }
+
+    const data = await getEmployeeDirectoryWithPagination(parsed.data || {});
+    return { ok: true as const, data };
+  } catch (error: any) {
+    console.error("getEmployeeDirectoryWithPaginationAction error:", error);
+    return { ok: false as const, error: { code: error.message === "FORBIDDEN" ? "FORBIDDEN" : "INTERNAL_ERROR", message: error.message } };
+  }
+}
+
+export async function getEmployeeDetailAction(id: string) {
+  try {
+    await requireAuth("ADMIN");
+    const data = await getEmployeeDetail(id);
+    if (!data) {
+      return { ok: false as const, error: { code: "NOT_FOUND", message: "Pegawai tidak ditemukan." } };
+    }
+
+    return { ok: true as const, data };
+  } catch (error: any) {
+    console.error("getEmployeeDetailAction error:", error);
+    return { ok: false as const, error: { code: error.message === "FORBIDDEN" ? "FORBIDDEN" : "INTERNAL_ERROR", message: error.message } };
+  }
+}
 
 export async function getCurrentProfile() {
   try {
@@ -291,6 +350,77 @@ export async function importEmployeesAction(formData: FormData) {
             : error.message === "FORBIDDEN"
             ? "FORBIDDEN"
             : "INTERNAL_ERROR",
+        message: error.message,
+      },
+    };
+  }
+}
+
+export async function getMasterDataListAction(
+  entityType: string,
+  query?: unknown
+) {
+  try {
+    const session = await requireAuth();
+
+    // STAFF can read, but only ADMIN can write
+    if (session.role !== "ADMIN" && session.role !== "STAFF") {
+      return {
+        ok: false as const,
+        error: { code: "FORBIDDEN", message: "Akses ditolak." },
+      };
+    }
+
+    const allowedEntities = [
+      "EmploymentStatus",
+      "EmployeeGroup",
+      "ProfessionGroup",
+      "EmployeePosition",
+      "EmployeeRank",
+      "Workplace",
+    ];
+    if (!allowedEntities.includes(entityType)) {
+      return {
+        ok: false as const,
+        error: { code: "BAD_REQUEST", message: "Entity tidak didukung." },
+      };
+    }
+
+    const parsed = z
+      .object({
+        search: z.string().optional(),
+        page: z.number().int().positive().optional(),
+        limit: z.number().int().positive().max(1000).optional(),
+      })
+      .optional()
+      .safeParse(query);
+
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Query tidak valid.",
+        },
+      };
+    }
+
+    const result = await getMasterDataList(
+      entityType as Parameters<typeof getMasterDataList>[0],
+      parsed.data || {}
+    );
+    return { ok: true as const, data: result };
+  } catch (error: any) {
+    console.error("getMasterDataListAction error:", error);
+    return {
+      ok: false as const,
+      error: {
+        code:
+          error.message === "UNAUTHENTICATED"
+            ? "UNAUTHENTICATED"
+            : error.message === "FORBIDDEN"
+              ? "FORBIDDEN"
+              : "INTERNAL_ERROR",
         message: error.message,
       },
     };

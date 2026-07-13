@@ -27,8 +27,8 @@
 | `/dashboard` | Admin, Staff, Employee | Role-specific overview | Admin/Staff melihat statistik; Employee melihat status dokumen pribadi. |
 | `/documents` | Admin, Staff, Employee | Document list/table | Employee hanya dokumen sendiri. Admin/Staff bisa melihat dokumen sesuai izin. |
 | `/documents/[id]` | Admin, Staff, Employee sesuai ownership/role | Document detail | Tampilkan preview/download, status, audit ringkas, dan riwayat verifikasi. |
-| `/employees` | Admin | Employee data table | CRUD pegawai, search/filter, soft delete/restore. |
-| `/employees/[id]` | Admin, Staff terbatas | Employee profile | Staff read-only sesuai scope. Admin bisa edit. |
+| `/master-data/employees` | Admin | Employee data table | CRUD pegawai, search/filter, soft delete/restore. |
+| `/master-data/employees/[id]` | Admin | Employee profile | Admin bisa melihat detail pegawai dari area master data. |
 | `/verification` | Admin, Staff | Verification queue | Fokus pada dokumen `PENDING`, aksi approve/reject wajib jelas. |
 | `/notifications` | Admin, Staff, Employee | Notification list | Bedakan unread/read dan tipe reminder. |
 | `/settings` | Admin | System settings forms | Ubah setting seperti reminder days dan max upload. Semua aksi sensitif diaudit. |

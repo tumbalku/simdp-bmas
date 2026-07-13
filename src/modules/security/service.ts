@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { PAGINATION } from "@/constants/pagination";
 
 export type SecurityLogStatus = "SUCCESS" | "FAILED";
 
@@ -44,8 +45,8 @@ export async function getSecurityLogs(filter: {
   dateFrom?: string;
   dateTo?: string;
 }) {
-  const page = filter.page || 1;
-  const pageSize = filter.pageSize || 25;
+  const page = filter.page || PAGINATION.defaultPage;
+  const pageSize = filter.pageSize || PAGINATION.defaultSecurityLogPageSize;
 
   const where: any = {};
 

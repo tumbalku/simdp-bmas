@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MetricCard } from "@/components/shared/MetricCard";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   Card,
   CardContent,
@@ -9,15 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   FileText,
-  FileCheck,
-  FileClock,
-  FileWarning,
   Plus,
   ArrowRight,
-  ShieldAlert,
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,11 +27,6 @@ type RecentUpload = {
 };
 
 type EmployeeDashboardStats = {
-  totalSubmitted: number;
-  approvedCount: number;
-  pendingCount: number;
-  rejectedCount: number;
-  expiringCount: number;
   recentUploads: RecentUpload[];
 };
 
@@ -84,82 +74,26 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
     });
   };
 
-  const employeeMetricCards = [
-    {
-      title: "Total Berkas",
-      value: stats.totalSubmitted,
-      description: "Telah diunggah",
-      icon: FileText,
-      iconClassName: "bg-blue-500/10 text-blue-500",
-    },
-    {
-      title: "Disetujui",
-      value: stats.approvedCount,
-      description: "Valid & patuh",
-      icon: FileCheck,
-      iconClassName: "bg-emerald-500/10 text-emerald-500",
-      valueClassName: "text-emerald-600 dark:text-emerald-400",
-    },
-    {
-      title: "Review Staff",
-      value: stats.pendingCount,
-      description: "Menunggu verifikasi",
-      icon: FileClock,
-      iconClassName: "bg-amber-500/10 text-amber-500",
-      valueClassName: "text-amber-600 dark:text-amber-400",
-    },
-    {
-      title: "Berkas Ditolak",
-      value: stats.rejectedCount,
-      description: "Perlu diunggah ulang",
-      icon: FileWarning,
-      iconClassName: "bg-rose-500/10 text-rose-500",
-      valueClassName: "text-rose-600 dark:text-rose-400",
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Header and Quick Actions */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Beranda Pegawai</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Lihat status berkas digital dan kelengkapan dokumen kepegawaian Anda.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button render={<Link href="/documents" />} nativeButton={false} variant="outline" size="sm" className="rounded-lg h-9">
-            Lihat Dokumen
-            <ArrowRight className="size-4 ml-1.5" />
-          </Button>
-          <Button render={<Link href="/documents?upload=true" />} nativeButton={false} size="sm" className="rounded-lg h-9">
-            <Plus className="size-4 mr-1.5" />
-            Unggah Berkas
-          </Button>
-        </div>
-      </div>
-
-      {/* Expiry Warning Box (If any file is expiring soon) */}
-      {stats.expiringCount > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-rose-500/20 bg-rose-500/5 p-4 text-rose-800 dark:text-rose-300">
-          <ShieldAlert className="size-5 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <h5 className="font-semibold text-sm">Peringatan Masa Berlaku Berkas</h5>
-            <p className="text-xs leading-relaxed text-rose-700/90 dark:text-rose-300/90">
-              Ada {stats.expiringCount} berkas Anda yang akan habis masa berlakunya dalam waktu kurang dari 30 hari. 
-              Segera unggah berkas terbaru untuk menjaga kepatuhan data dokumen.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Metrics Cards */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        {employeeMetricCards.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
-        ))}
-      </div>
+      <PageHeader
+        title="Beranda Pegawai"
+        description="Lihat status berkas digital dan kelengkapan dokumen kepegawaian Anda."
+        actions={[
+          {
+            label: "Lihat Dokumen",
+            href: "/documents",
+            icon: ArrowRight,
+            iconPosition: "end",
+            variant: "outline",
+          },
+          {
+            label: "Unggah Berkas",
+            href: "/documents?upload=true",
+            icon: Plus,
+          },
+        ]}
+      />
 
       {/* Recent Uploads Section */}
       <Card className="shadow-sm border-muted-foreground/10 bg-card">

@@ -1,7 +1,26 @@
-function Page() {
+import { redirect } from "next/navigation";
+import { requireAuth } from "@/lib/auth";
+import { getDocumentRecordsAction, getDocumentTypeOptionsAction } from "@/modules/document/actions";
+import { DocumentsPageView } from "@/modules/document/components/DocumentsPageView";
+
+export const dynamic = "force-dynamic";
+
+export default async function Page() {
+  const session = await requireAuth();
+  const [documentsResult, documentTypesResult] = await Promise.all([
+    getDocumentRecordsAction(),
+    getDocumentTypeOptionsAction(),
+  ]);
+
+  if (!documentsResult.ok || !documentTypesResult.ok) {
+    redirect("/login");
+  }
+
   return (
-    <div>Page Documents</div>
+    <DocumentsPageView
+      documents={documentsResult.data}
+      documentTypes={documentTypesResult.data}
+      canUpload={session.role === "EMPLOYEE"}
+    />
   );
 }
-
-export default Page;

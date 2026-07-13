@@ -4,6 +4,169 @@ import * as argon2 from "argon2";
 import crypto from "crypto";
 import { logActivity } from "@/modules/security/service";
 
+type EmployeeDirectoryFilter = {
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
+function toIsoDate(value: Date | string | null | undefined) {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function mapEmployeeSummary(employee: any) {
+  return {
+    id: employee.id,
+    employeeId: employee.employeeId,
+    nik: employee.nik,
+    name: employee.name,
+    gender: employee.gender,
+    phone: employee.phone,
+    email: employee.user?.email || null,
+    role: employee.user?.role || "EMPLOYEE",
+    isActive: employee.user?.isActive ?? true,
+    employmentStatus: employee.employmentStatus?.name || null,
+    workplace: employee.workplace?.name || null,
+    documentCount: employee._count?.documentRecords ?? employee.documentRecords?.length ?? 0,
+  };
+}
+
+export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {}) {
+  const where: any = { deletedAt: null };
+  if (filter.search) {
+    where.OR = [
+      { name: { contains: filter.search, mode: "insensitive" } },
+      { employeeId: { contains: filter.search, mode: "insensitive" } },
+      { nik: { contains: filter.search, mode: "insensitive" } },
+      { user: { email: { contains: filter.search, mode: "insensitive" } } },
+    ];
+  }
+
+  const employees = await prisma.employee.findMany({
+    where,
+    include: {
+      user: { select: { email: true, role: true, isActive: true } },
+      employmentStatus: { select: { name: true } },
+      workplace: { select: { name: true } },
+      _count: { select: { documentRecords: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return employees.map(mapEmployeeSummary);
+}
+
+export async function getEmployeeDirectoryWithPagination(
+  filter: EmployeeDirectoryFilter = {}
+) {
+  const page = filter.page || 1;
+  const limit = filter.limit || 20;
+  const skip = (page - 1) * limit;
+
+  const where: any = { deletedAt: null };
+  if (filter.search) {
+    where.OR = [
+      { name: { contains: filter.search, mode: "insensitive" } },
+      { employeeId: { contains: filter.search, mode: "insensitive" } },
+      { nik: { contains: filter.search, mode: "insensitive" } },
+      { user: { email: { contains: filter.search, mode: "insensitive" } } },
+    ];
+  }
+
+  const [employees, total] = await Promise.all([
+    prisma.employee.findMany({
+      where,
+      include: {
+        user: { select: { email: true, role: true, isActive: true } },
+        employmentStatus: { select: { name: true } },
+        workplace: { select: { name: true } },
+        _count: { select: { documentRecords: true } },
+      },
+      orderBy: { name: "asc" },
+      skip,
+      take: limit,
+    }),
+    prisma.employee.count({ where }),
+  ]);
+
+  return {
+    data: employees.map(mapEmployeeSummary),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
+export async function getEmployeeDetail(id: string) {
+  const employee = await prisma.employee.findUnique({
+    where: { id, deletedAt: null },
+    include: {
+      user: { select: { email: true, role: true, isActive: true } },
+      employmentStatus: { select: { name: true } },
+      employeeGroup: { select: { name: true } },
+      employeePosition: { select: { name: true } },
+      employeeRank: { select: { name: true } },
+      workplace: { select: { name: true } },
+      careerHistories: {
+        orderBy: { effectiveDate: "desc" },
+        include: {
+          employmentStatus: { select: { name: true } },
+          employeeGroup: { select: { name: true } },
+          employeePosition: { select: { name: true } },
+          employeeRank: { select: { name: true } },
+          workplace: { select: { name: true } },
+        },
+      },
+      documentRecords: {
+        where: { deletedAt: null },
+        orderBy: { uploadedAt: "desc" },
+        include: { documentType: { select: { name: true, archiveCategory: true } } },
+      },
+    },
+  });
+
+  if (!employee) return null;
+
+  return {
+    ...mapEmployeeSummary(employee),
+    birthDate: toIsoDate(employee.birthDate),
+    birthPlace: employee.birthPlace,
+    academicDegree: employee.academicDegree,
+    lastEducation: employee.lastEducation,
+    religion: employee.religion,
+    maritalStatus: employee.maritalStatus,
+    address: employee.address,
+    joinDate: toIsoDate(employee.joinDate),
+    employeeGroup: employee.employeeGroup?.name || null,
+    employeePosition: employee.employeePosition?.name || null,
+    employeeRank: employee.employeeRank?.name || null,
+    careerHistories: employee.careerHistories.map((item: any) => ({
+      id: item.id,
+      effectiveDate: toIsoDate(item.effectiveDate),
+      endDate: toIsoDate(item.endDate),
+      note: item.note,
+      employmentStatus: item.employmentStatus?.name || null,
+      employeeGroup: item.employeeGroup?.name || null,
+      employeePosition: item.employeePosition?.name || null,
+      employeeRank: item.employeeRank?.name || null,
+      workplace: item.workplace?.name || null,
+    })),
+    documents: employee.documentRecords.map((doc: any) => ({
+      id: doc.id,
+      title: doc.title || doc.documentType?.name || "Dokumen",
+      status: doc.status,
+      uploadedAt: toIsoDate(doc.uploadedAt),
+      expiryDate: toIsoDate(doc.expiryDate),
+      documentTypeName: doc.documentType?.name || "Dokumen",
+      archiveCategory: doc.documentType?.archiveCategory || "PERSONAL",
+    })),
+  };
+}
+
 export async function getCurrentProfile(userId: string) {
   const employee = await prisma.employee.findFirst({
     where: { userId, deletedAt: null },
@@ -456,6 +619,63 @@ export async function importFromCsv(
   });
 
   return { importedCount, failedCount, errors };
+}
+
+export async function getMasterDataList(
+  entityType:
+    | "EmploymentStatus"
+    | "EmployeeGroup"
+    | "ProfessionGroup"
+    | "EmployeePosition"
+    | "EmployeeRank"
+    | "Workplace",
+  query: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  } = {}
+) {
+  const page = query.page || 1;
+  const limit = query.limit || 50;
+  const skip = (page - 1) * limit;
+  const modelName = entityType.charAt(0).toLowerCase() + entityType.slice(1);
+  const modelDelegate = (prisma as any)[modelName];
+
+  if (!modelDelegate) throw new Error(`Entity type ${entityType} tidak didukung`);
+
+  const where: any = {};
+  if (query.search) {
+    where.OR = [{ name: { contains: query.search, mode: "insensitive" } }];
+  }
+
+  const include: any = {};
+  if (entityType === "EmployeeGroup") {
+    include.employmentStatus = { select: { id: true, name: true } };
+  }
+  if (entityType === "EmployeePosition") {
+    include.professionGroup = { select: { id: true, name: true } };
+  }
+
+  const [records, total] = await Promise.all([
+    modelDelegate.findMany({
+      where,
+      include: Object.keys(include).length > 0 ? include : undefined,
+      orderBy: { name: "asc" },
+      skip,
+      take: limit,
+    }),
+    modelDelegate.count({ where }),
+  ]);
+
+  return {
+    data: records,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
 export async function handleMasterDataCrud(

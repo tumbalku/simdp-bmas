@@ -1,0 +1,733 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import {
+  Award,
+  BriefcaseBusiness,
+  Building2,
+  ChevronRight,
+  FolderTree,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import { crudMasterDataAction } from "@/modules/employee/actions";
+import {
+  EMPLOYEE_CATEGORY_COPY,
+  EMPLOYEE_CATEGORY_TYPE_CONFIG,
+  EMPLOYEE_CATEGORY_TYPE_OPTIONS,
+  type EmployeeCategoryType,
+  type EmployeeCategoryTypeConfig,
+} from "@/modules/employee/constants";
+
+export type CategoryMasterData = {
+  id: string;
+  name: string;
+  parentId?: string | null;
+};
+
+type CategoryType = EmployeeCategoryType;
+
+type CategoriesData = {
+  employmentStatuses: CategoryMasterData[];
+  employeeGroups: CategoryMasterData[];
+  professionGroups: CategoryMasterData[];
+  employeePositions: CategoryMasterData[];
+  employeeRanks: CategoryMasterData[];
+  workplaces: CategoryMasterData[];
+};
+
+type EditingItem = {
+  id: string;
+  name: string;
+  type: CategoryType;
+  parentId?: string | null;
+};
+
+type DeleteTarget = {
+  id: string;
+  name: string;
+  type: CategoryType;
+};
+
+type HierarchyItem = CategoryMasterData & {
+  children: CategoryMasterData[];
+};
+
+type HierarchyCardProps = {
+  title: string;
+  icon: typeof FolderTree;
+  iconClassName: string;
+  dotClassName: string;
+  countLabel: string;
+  emptyText: string;
+  emptyChildText: string;
+  items: HierarchyItem[];
+  parentType: CategoryType;
+  childType: CategoryType;
+  onEdit: (item: EditingItem) => void;
+  onDelete: (item: DeleteTarget) => void;
+};
+
+type FlatCategoryCardProps = {
+  title: string;
+  icon: typeof Award;
+  iconClassName: string;
+  countLabel: string;
+  emptyText: string;
+  items: CategoryMasterData[];
+  type: CategoryType;
+  onEdit: (item: EditingItem) => void;
+  onDelete: (item: DeleteTarget) => void;
+};
+
+type MasterDataCategoriesViewProps = {
+  initialData: CategoriesData;
+};
+
+const TYPE_CONFIG: Record<CategoryType, EmployeeCategoryTypeConfig> = EMPLOYEE_CATEGORY_TYPE_CONFIG;
+const TYPE_OPTIONS = EMPLOYEE_CATEGORY_TYPE_OPTIONS;
+const COPY = EMPLOYEE_CATEGORY_COPY;
+
+function getTypeItems(data: CategoriesData, type: CategoryType) {
+  switch (type) {
+    case "STATUS":
+      return data.employmentStatuses;
+    case "GROUP":
+      return data.employeeGroups;
+    case "PROFESSION":
+      return data.professionGroups;
+    case "POSITION":
+      return data.employeePositions;
+    case "RANK":
+      return data.employeeRanks;
+    case "WORKPLACE":
+      return data.workplaces;
+  }
+}
+
+function getParentOptions(data: CategoriesData, type: CategoryType) {
+  const parentType = TYPE_CONFIG[type].parentType;
+  return parentType ? getTypeItems(data, parentType) : [];
+}
+
+function setTypeItems(
+  data: CategoriesData,
+  type: CategoryType,
+  updater: (items: CategoryMasterData[]) => CategoryMasterData[]
+): CategoriesData {
+  switch (type) {
+    case "STATUS":
+      return { ...data, employmentStatuses: updater(data.employmentStatuses) };
+    case "GROUP":
+      return { ...data, employeeGroups: updater(data.employeeGroups) };
+    case "PROFESSION":
+      return { ...data, professionGroups: updater(data.professionGroups) };
+    case "POSITION":
+      return { ...data, employeePositions: updater(data.employeePositions) };
+    case "RANK":
+      return { ...data, employeeRanks: updater(data.employeeRanks) };
+    case "WORKPLACE":
+      return { ...data, workplaces: updater(data.workplaces) };
+  }
+}
+
+function buildHierarchy(
+  parents: CategoryMasterData[],
+  children: CategoryMasterData[]
+): HierarchyItem[] {
+  return parents.map((parent) => ({
+    ...parent,
+    children: children.filter((child) => child.parentId === parent.id),
+  }));
+}
+
+function CategoryCardHeader({
+  title,
+  icon: Icon,
+  iconClassName,
+  countLabel,
+}: {
+  title: string;
+  icon: typeof FolderTree;
+  iconClassName: string;
+  countLabel: string;
+}) {
+  return (
+    <CardHeader className="border-b">
+      <div className="flex items-start justify-between">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted">
+            <Icon className={cn("size-4", iconClassName)} />
+          </div>
+          <div className="min-w-0">
+            <CardTitle className="truncate text-sm font-semibold">
+              {title}
+            </CardTitle>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {countLabel}
+            </p>
+          </div>
+        </div>
+      </div>
+    </CardHeader>
+  );
+}
+
+function HierarchyCard({
+  title,
+  icon,
+  iconClassName,
+  dotClassName,
+  countLabel,
+  emptyText,
+  emptyChildText,
+  items,
+  parentType,
+  childType,
+  onEdit,
+  onDelete,
+}: HierarchyCardProps) {
+  return (
+    <Card className="flex h-full min-h-[22rem] flex-col overflow-hidden border-muted-foreground/10 shadow-sm">
+      <CategoryCardHeader
+        title={title}
+        icon={icon}
+        iconClassName={iconClassName}
+        countLabel={countLabel}
+      />
+      <CardContent className="min-h-0 flex-1 p-0">
+        {items.length === 0 ? (
+          <div className="m-3 flex h-[calc(100%-1.5rem)] min-h-[16rem] items-center justify-center rounded-lg border border-dashed bg-muted/20 p-5 text-center text-sm text-muted-foreground">
+            {emptyText}
+          </div>
+        ) : (
+          <div className="scrollbar-soft h-full divide-y overflow-y-auto">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="group/parent-row px-3 py-2"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={cn("size-2 shrink-0 rounded-full", dotClassName)}
+                    />
+                    <span className="truncate text-[13px] font-medium">
+                      {item.name}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5 xl:opacity-0 xl:transition-opacity xl:group-hover/parent-row:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() =>
+                        onEdit({
+                          id: item.id,
+                          name: item.name,
+                          type: parentType,
+                        })
+                      }
+                      title="Edit"
+                    >
+                      <Pencil className="size-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() =>
+                        onDelete({
+                          id: item.id,
+                          name: item.name,
+                          type: parentType,
+                        })
+                      }
+                      title="Hapus"
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-1.5 space-y-0.5 border-l pl-2.5">
+                  {item.children.length > 0 ? (
+                    item.children.map((child) => (
+                      <div
+                        key={child.id}
+                        className="group/child-row flex items-center justify-between gap-2 rounded-md px-1.5 py-0.5 text-xs hover:bg-muted/60"
+                      >
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <ChevronRight className="size-3 shrink-0 text-muted-foreground" />
+                          <span className="truncate text-[12px] text-muted-foreground">
+                            {child.name}
+                          </span>
+                        </span>
+                        <div className="flex shrink-0 items-center gap-0.5 xl:opacity-0 xl:transition-opacity xl:group-hover/child-row:opacity-100">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() =>
+                              onEdit({
+                                id: child.id,
+                                name: child.name,
+                                type: childType,
+                                parentId: item.id,
+                              })
+                            }
+                            title="Edit"
+                          >
+                            <Pencil className="size-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() =>
+                              onDelete({
+                                id: child.id,
+                                name: child.name,
+                                type: childType,
+                              })
+                            }
+                            title="Hapus"
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="px-1 py-1 text-[11px] text-muted-foreground">
+                      {emptyChildText}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FlatCategoryCard({
+  title,
+  icon,
+  iconClassName,
+  countLabel,
+  emptyText,
+  items,
+  type,
+  onEdit,
+  onDelete,
+}: FlatCategoryCardProps) {
+  return (
+    <Card className="flex h-full min-h-[16rem] flex-col overflow-hidden border-muted-foreground/10 shadow-sm">
+      <CategoryCardHeader
+        title={title}
+        icon={icon}
+        iconClassName={iconClassName}
+        countLabel={countLabel}
+      />
+      <CardContent className="min-h-0 flex-1 p-0">
+        {items.length === 0 ? (
+          <div className="m-3 flex h-[calc(100%-1.5rem)] min-h-[10rem] items-center justify-center rounded-lg border border-dashed bg-muted/20 p-5 text-center text-sm text-muted-foreground">
+            {emptyText}
+          </div>
+        ) : (
+          <div className="scrollbar-soft h-full divide-y overflow-y-auto">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="group/flat-row flex items-center justify-between gap-3 px-3 py-2 hover:bg-muted/50"
+              >
+                <span className="truncate text-[13px] font-medium">
+                  {item.name}
+                </span>
+                <div className="flex shrink-0 items-center gap-0.5 xl:opacity-0 xl:transition-opacity xl:group-hover/flat-row:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() =>
+                      onEdit({ id: item.id, name: item.name, type })
+                    }
+                    title="Edit"
+                  >
+                    <Pencil className="size-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() =>
+                      onDelete({ id: item.id, name: item.name, type })
+                    }
+                    title="Hapus"
+                  >
+                    <Trash2 className="size-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function MasterDataCategoriesView({
+  initialData,
+}: MasterDataCategoriesViewProps) {
+  const router = useRouter();
+  const [data, setData] = useState(initialData);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"create" | "edit">("create");
+  const [selectedType, setSelectedType] = useState<CategoryType>("STATUS");
+  const [name, setName] = useState("");
+  const [parentId, setParentId] = useState("");
+  const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const employmentHierarchy = useMemo(
+    () => buildHierarchy(data.employmentStatuses, data.employeeGroups),
+    [data.employmentStatuses, data.employeeGroups]
+  );
+  const professionHierarchy = useMemo(
+    () => buildHierarchy(data.professionGroups, data.employeePositions),
+    [data.professionGroups, data.employeePositions]
+  );
+
+  const selectedConfig = TYPE_CONFIG[selectedType];
+  const parentOptions = getParentOptions(data, selectedType);
+  const requiresParent = Boolean(selectedConfig.parentField);
+
+  const openCreate = (type: CategoryType = "STATUS", initialParentId = "") => {
+    setDialogMode("create");
+    setEditingItem(null);
+    setSelectedType(type);
+    setName("");
+    setParentId(initialParentId);
+    setDialogOpen(true);
+  };
+
+  const openEdit = (item: EditingItem) => {
+    setDialogMode("edit");
+    setEditingItem(item);
+    setSelectedType(item.type);
+    setName(item.name);
+    setParentId(item.parentId ?? "");
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      toast.error(`${selectedConfig.fieldLabel} wajib diisi.`);
+      return;
+    }
+
+    if (requiresParent && !parentId) {
+      toast.error(`${selectedConfig.parentLabel} wajib dipilih.`);
+      return;
+    }
+
+    const payload: Record<string, string> = { name: name.trim() };
+    if (selectedConfig.parentField) {
+      payload[selectedConfig.parentField] = parentId;
+    }
+
+    startTransition(async () => {
+      const result = await crudMasterDataAction(
+        selectedConfig.entity,
+        dialogMode === "create" ? "CREATE" : "UPDATE",
+        dialogMode === "edit" ? editingItem?.id : undefined,
+        payload
+      );
+
+      if (!result.ok) {
+        toast.error(result.error.message);
+        return;
+      }
+
+      const savedItem: CategoryMasterData = {
+        id: result.data.id,
+        name: result.data.name,
+        parentId: requiresParent ? parentId : null,
+      };
+
+      setData((current) =>
+        setTypeItems(current, selectedType, (items) => {
+          if (dialogMode === "edit") {
+            return items
+              .map((item) => (item.id === savedItem.id ? savedItem : item))
+              .sort((a, b) => a.name.localeCompare(b.name));
+          }
+
+          return [...items, savedItem].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          );
+        })
+      );
+
+      toast.success(
+        dialogMode === "create"
+          ? COPY.saveCreateSuccess
+          : COPY.saveUpdateSuccess
+      );
+      setDialogOpen(false);
+      router.refresh();
+    });
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+
+    startTransition(async () => {
+      const config = TYPE_CONFIG[deleteTarget.type];
+      const result = await crudMasterDataAction(
+        config.entity,
+        "DELETE",
+        deleteTarget.id
+      );
+
+      if (!result.ok) {
+        toast.error(result.error.message);
+        return;
+      }
+
+      setData((current) =>
+        setTypeItems(current, deleteTarget.type, (items) =>
+          items.filter((item) => item.id !== deleteTarget.id)
+        )
+      );
+      toast.success(`Data "${deleteTarget.name}" berhasil dihapus.`);
+      setDeleteTarget(null);
+      router.refresh();
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={COPY.pageTitle}
+        description={COPY.pageDescription}
+        trailing={
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <Button size="lg" onClick={() => openCreate("STATUS")}>
+              <Plus className="size-4" />
+              {COPY.addMaster}
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:min-h-screen xl:grid-cols-4">
+        <HierarchyCard
+          title={COPY.statusAndGroup}
+          icon={FolderTree}
+          iconClassName="text-amber-600"
+          dotClassName="bg-amber-500"
+          countLabel={`${data.employmentStatuses.length} status induk - ${data.employeeGroups.length} kelompok`}
+          emptyText={COPY.emptyEmploymentStatus}
+          emptyChildText={COPY.emptyEmployeeGroup}
+          items={employmentHierarchy}
+          parentType="STATUS"
+          childType="GROUP"
+          onEdit={openEdit}
+          onDelete={setDeleteTarget}
+        />
+
+        <HierarchyCard
+          title={COPY.professionAndPosition}
+          icon={BriefcaseBusiness}
+          iconClassName="text-blue-600"
+          dotClassName="bg-blue-500"
+          countLabel={`${data.professionGroups.length} rumpun profesi - ${data.employeePositions.length} jabatan`}
+          emptyText={COPY.emptyProfessionGroup}
+          emptyChildText={COPY.emptyEmployeePosition}
+          items={professionHierarchy}
+          parentType="PROFESSION"
+          childType="POSITION"
+          onEdit={openEdit}
+          onDelete={setDeleteTarget}
+        />
+
+        <FlatCategoryCard
+          title={COPY.rankAndGrade}
+          icon={Award}
+          iconClassName="text-orange-600"
+          countLabel={`${data.employeeRanks.length} pangkat`}
+          emptyText={COPY.emptyRank}
+          items={data.employeeRanks}
+          type="RANK"
+          onEdit={openEdit}
+          onDelete={setDeleteTarget}
+        />
+
+        <FlatCategoryCard
+          title={COPY.workplace}
+          icon={Building2}
+          iconClassName="text-emerald-600"
+          countLabel={`${data.workplaces.length} tempat kerja`}
+          emptyText={COPY.emptyWorkplace}
+          items={data.workplaces}
+          type="WORKPLACE"
+          onEdit={openEdit}
+          onDelete={setDeleteTarget}
+        />
+      </div>
+
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {dialogMode === "create" ? "Tambah" : "Edit"}{" "}
+              {selectedConfig.label}
+            </DialogTitle>
+            <DialogDescription>
+              {dialogMode === "create"
+                ? COPY.createDescription
+                : COPY.editDescription}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="category-type">{COPY.typeLabel}</Label>
+              <Select
+                value={selectedType}
+                disabled={dialogMode === "edit"}
+                onValueChange={(value) => {
+                  setSelectedType(value as CategoryType);
+                  setParentId("");
+                }}
+              >
+                <SelectTrigger id="category-type" className="h-9 w-full">
+                  <SelectValue placeholder={COPY.typePlaceholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {requiresParent ? (
+              <div className="space-y-2">
+                <Label htmlFor="category-parent">
+                  {selectedConfig.parentLabel}
+                </Label>
+                <Select
+                  value={parentId}
+                  onValueChange={(value) => setParentId(value ?? "")}
+                >
+                  <SelectTrigger id="category-parent" className="h-9 w-full">
+                    <SelectValue placeholder={`Pilih ${selectedConfig.parentLabel?.toLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {parentOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="category-name">{selectedConfig.fieldLabel}</Label>
+              <Input
+                id="category-name"
+                className="h-9"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder={`Masukkan ${selectedConfig.fieldLabel.toLowerCase()}`}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={isPending}
+            >
+              Batal
+            </Button>
+            <Button onClick={handleSave} disabled={isPending}>
+              {isPending ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Data</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus{" "}
+              <strong>{deleteTarget?.name}</strong>? Tindakan ini tidak dapat
+              dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isPending}
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isPending ? "Menghapus..." : "Ya, Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
