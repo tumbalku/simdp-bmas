@@ -1,15 +1,11 @@
-export const VERIFICATION_STATUS_LABELS = {
-  PENDING: "Pending",
-  APPROVED: "Disetujui",
-  REJECTED: "Ditolak",
-  EXPIRED: "Kedaluwarsa",
-  REPLACED: "Diganti",
-} as const;
+import { DOCUMENT_STATUS_LABELS, type DocumentStatus } from "@/modules/document/constants";
+
+export const VERIFICATION_STATUS_LABELS = DOCUMENT_STATUS_LABELS;
 
 export const VERIFICATION_DECISIONS = {
   approve: "APPROVED",
   reject: "REJECTED",
 } as const;
 
-export type VerificationStatus = keyof typeof VERIFICATION_STATUS_LABELS;
+export type VerificationStatus = DocumentStatus;
 export type VerificationDecision = (typeof VERIFICATION_DECISIONS)[keyof typeof VERIFICATION_DECISIONS];
