@@ -33,10 +33,19 @@ describe("Statistics Module Service", () => {
         { status: "PENDING", _count: { _all: 2 } },
       ]);
 
+      const today = new Date();
+      const twoMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 15);
+
       // Mock docs list for categories count
       mockPrisma.documentRecord.findMany.mockResolvedValue([
-        { documentType: { archiveCategory: "PERSONAL" } },
-        { documentType: { archiveCategory: "EDUCATION" } },
+        { uploadedAt: today, documentType: { archiveCategory: "PERSONAL" } },
+        { uploadedAt: twoMonthsAgo, documentType: { archiveCategory: "EDUCATION" } },
+      ]);
+
+      // Mock verification history for trend
+      mockPrisma.verificationHistory.findMany.mockResolvedValue([
+        { reviewedAt: today },
+        { reviewedAt: twoMonthsAgo },
       ]);
 
       const stats = await getDashboardStats({});
@@ -49,6 +58,14 @@ describe("Statistics Module Service", () => {
       expect(stats.documentsByCategory.PERSONAL).toBe(1);
       expect(stats.documentsByCategory.EDUCATION).toBe(1);
       expect(stats.documentsByCategory.LEGAL).toBe(0);
+
+      expect(stats.uploadTrend).toHaveLength(6);
+      expect(stats.uploadTrend[5].Uploaded).toBe(1);
+      expect(stats.uploadTrend[5].Verified).toBe(1);
+      expect(stats.uploadTrend[3].Uploaded).toBe(1);
+      expect(stats.uploadTrend[3].Verified).toBe(1);
+      expect(stats.uploadTrend[4].Uploaded).toBe(0);
+      expect(stats.uploadTrend[4].Verified).toBe(0);
     });
   });
 });

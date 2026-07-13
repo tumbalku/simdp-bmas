@@ -1,6 +1,6 @@
 import { ArrowRight, FileCheck2, ShieldCheck, UsersRound } from "lucide-react";
 
-import {Button, buttonVariants} from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { StatisticsDashboardPreview } from "@/modules/statistics/components/StatisticsDashboardPreview";
 import Navbar from "@/components/shared/Navbar";
 import Link from "next/link";
@@ -47,17 +47,18 @@ export default function Home() {
               </p>
             </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button size="lg">
-              Mulai setup modul
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Button>
-            <Link href={"/component-preview"} className={buttonVariants({variant: "outline", size: "lg"})}>
-
-              Component Preview
-            </Link>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button size="lg">
+                Mulai setup modul
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Button>
+              {process.env.NODE_ENV !== "production" && (
+                <Link href="/component-preview" className={buttonVariants({ variant: "outline", size: "lg" })}>
+                  Component Preview
+                </Link>
+              )}
+            </div>
           </div>
-        </div>
 
           <div className="grid gap-4 md:grid-cols-3">
             {features.map((feature) => {
