@@ -8,6 +8,7 @@ import {
   getVerificationQueue as getQueueService,
   verifyDocument,
   getVerificationHistory as getHistoryService,
+  getVerificationDocumentDetail,
 } from "@/modules/verification/service";
 
 const verifyDocumentSchema = z
@@ -125,6 +126,32 @@ export async function getVerificationHistory(documentId: string) {
             ? "UNAUTHENTICATED"
             : error.message === "OWNERSHIP_REQUIRED"
             ? "FORBIDDEN"
+            : "INTERNAL_ERROR",
+        message: error.message,
+      },
+    };
+  }
+}
+
+export async function getVerificationDocumentDetailAction(documentId: string) {
+  try {
+    const session = await requireAuth("STAFF");
+
+    const result = await getVerificationDocumentDetail(documentId, session);
+
+    return { ok: true as const, data: result };
+  } catch (error: any) {
+    console.error("getVerificationDocumentDetailAction error:", error);
+    return {
+      ok: false as const,
+      error: {
+        code:
+          error.message === "UNAUTHENTICATED"
+            ? "UNAUTHENTICATED"
+            : error.message === "FORBIDDEN"
+            ? "FORBIDDEN"
+            : error.message === "Dokumen tidak ditemukan"
+            ? "NOT_FOUND"
             : "INTERNAL_ERROR",
         message: error.message,
       },

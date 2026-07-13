@@ -1,10 +1,65 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getCurrentProfile, updateProfile, handleEmployeeCrud } from "../service";
+import { getCurrentProfile, updateProfile, handleEmployeeCrud, getEmployeeDirectory, getEmployeeDetail } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
 describe("Employee Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("employee directory queries", () => {
+    it("should list active employees with identity and organization summaries", async () => {
+      mockPrisma.employee.findMany.mockResolvedValue([
+        {
+          id: "emp-1",
+          employeeId: "1990",
+          nik: "7471",
+          name: "John Doe",
+          gender: "Laki-laki",
+          phone: "0812",
+          user: { email: "john@example.com", role: "EMPLOYEE", isActive: true },
+          employmentStatus: { name: "PNS" },
+          workplace: { name: "UGD" },
+          _count: { documentRecords: 3 },
+        },
+      ]);
+
+      const result = await getEmployeeDirectory();
+
+      expect(mockPrisma.employee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { deletedAt: null } })
+      );
+      expect(result).toEqual([
+        expect.objectContaining({ id: "emp-1", email: "john@example.com", documentCount: 3 }),
+      ]);
+    });
+
+    it("should fetch employee detail with career history and documents", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "emp-1",
+        employeeId: "1990",
+        nik: "7471",
+        name: "John Doe",
+        gender: "Laki-laki",
+        birthDate: new Date("1990-01-01T00:00:00.000Z"),
+        joinDate: new Date("2020-01-01T00:00:00.000Z"),
+        user: { email: "john@example.com", role: "EMPLOYEE", isActive: true },
+        employmentStatus: { name: "PNS" },
+        employeeGroup: null,
+        employeePosition: null,
+        employeeRank: null,
+        workplace: { name: "UGD" },
+        careerHistories: [],
+        documentRecords: [
+          { id: "doc-1", title: "KTP", status: "APPROVED", uploadedAt: new Date("2026-01-01T00:00:00.000Z"), documentType: { name: "KTP", archiveCategory: "PERSONAL" } },
+        ],
+      });
+
+      const result = await getEmployeeDetail("emp-1");
+
+      expect(result).toEqual(expect.objectContaining({ id: "emp-1", email: "john@example.com" }));
+      expect(result?.documents[0]).toEqual(expect.objectContaining({ id: "doc-1", documentTypeName: "KTP" }));
+    });
   });
 
   describe("getCurrentProfile", () => {

@@ -66,8 +66,8 @@ src/app/
 │   ├── dashboard/page.tsx
 │   ├── documents/page.tsx
 │   ├── documents/[id]/page.tsx
-│   ├── employees/page.tsx
-│   ├── employees/[id]/page.tsx
+│   ├── master-data/employees/page.tsx
+│   ├── master-data/employees/[id]/page.tsx
 │   ├── verification/page.tsx
 │   ├── notifications/page.tsx
 │   ├── settings/page.tsx

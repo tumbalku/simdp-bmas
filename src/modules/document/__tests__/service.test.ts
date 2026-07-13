@@ -5,6 +5,9 @@ import {
   generateDownloadUrl,
   restoreDocument,
   processExpiredDocumentsAndReminders,
+  getDocumentRecordsForSession,
+  getDocumentRecordDetailForSession,
+  getAvailableDocumentTypes,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 import { storage } from "@/lib/storage";
@@ -21,6 +24,73 @@ vi.mock("@/lib/storage", () => ({
 describe("Document Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("document list and detail queries", () => {
+    it("should list only owned documents for employee sessions", async () => {
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1" });
+      mockPrisma.documentRecord.findMany.mockResolvedValue([
+        {
+          id: "doc-1",
+          title: "KTP",
+          status: "APPROVED",
+          uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
+          expiryDate: null,
+          fileName: "ktp.pdf",
+          fileSize: BigInt(1024),
+          documentType: { id: "type-1", name: "KTP", archiveCategory: "PERSONAL" },
+          owner: { id: "emp-1", name: "John Doe", employeeId: "1990", nik: "7471" },
+        },
+      ]);
+
+      const result = await getDocumentRecordsForSession(session);
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ ownerId: "emp-1", deletedAt: null }),
+        })
+      );
+      expect(result).toEqual([
+        expect.objectContaining({ id: "doc-1", ownerName: "John Doe", fileSize: 1024 }),
+      ]);
+    });
+
+    it("should fetch document detail with ownership guard", async () => {
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-1",
+        title: "KTP",
+        status: "APPROVED",
+        uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
+        expiryDate: null,
+        fileName: "ktp.pdf",
+        fileSize: BigInt(1024),
+        documentNumber: null,
+        issueDate: null,
+        mimeType: "application/pdf",
+        owner: { id: "emp-1", userId: "user-1", name: "John Doe", employeeId: "1990", nik: "7471" },
+        documentType: { id: "type-1", name: "KTP", archiveCategory: "PERSONAL" },
+        verificationHistories: [],
+      });
+
+      const result = await getDocumentRecordDetailForSession("doc-1", session);
+
+      expect(result).toEqual(expect.objectContaining({ id: "doc-1", ownerName: "John Doe" }));
+    });
+
+    it("should list active document types for upload options", async () => {
+      mockPrisma.documentType.findMany.mockResolvedValue([
+        { id: "type-1", code: "KTP", name: "KTP", archiveCategory: "PERSONAL", isMandatory: true, allowMultiple: false, requiresExpiryDate: false, requiresIssueDate: false, requiresDocumentNumber: false, allowedFormats: "pdf,jpg,png", maxSizeMb: 2 },
+      ]);
+
+      const result = await getAvailableDocumentTypes();
+
+      expect(mockPrisma.documentType.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { deletedAt: null } })
+      );
+      expect(result[0]).toEqual(expect.objectContaining({ id: "type-1", name: "KTP" }));
+    });
   });
 
   describe("handleDocumentTypeCrud", () => {

@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Added
+- SIMDP-ROADMAP-001 (#60): Menambahkan implementasi awal Core Employee & Document untuk review visual, meliputi service/action listing dokumen berbasis ownership, opsi DocumentType untuk upload, halaman `/documents` dengan ringkasan dan form upload Employee, halaman detail dokumen dengan tombol unduh berbasis URL temporer, direktori `/master-data/employees`, detail pegawai, serta test service baru untuk query dokumen dan pegawai.
 - SIMDP-UI-006 (#50): Implementasi dashboard feature UI pages untuk role Admin/Staff dan Employee, termasuk kartu metrik reusable, DonutChart status dokumen dengan label ringkas (Pending, Approved, Rejected, Expired), tren upload/verifikasi, ringkasan kategori arsip, dashboard pegawai pribadi, dan seed demo yang lebih kaya agar tampilan dashboard dapat direview dengan data realistis.
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 

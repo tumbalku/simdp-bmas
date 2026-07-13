@@ -200,3 +200,45 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+@layer utilities {
+  .scrollbar-soft {
+    scrollbar-color: color-mix(in srgb, var(--primary) 42%, transparent) transparent;
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-soft::-webkit-scrollbar {
+    height: 0.625rem;
+    width: 0.625rem;
+  }
+
+  .scrollbar-soft::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-soft::-webkit-scrollbar-thumb {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--primary) 52%, transparent),
+        color-mix(in srgb, var(--primary) 28%, var(--muted))
+      );
+    border: 0.1875rem solid transparent;
+    border-radius: 9999px;
+    background-clip: padding-box;
+  }
+
+  .scrollbar-soft::-webkit-scrollbar-thumb:hover {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--primary) 70%, transparent),
+        color-mix(in srgb, var(--primary) 42%, var(--muted))
+      );
+    background-clip: padding-box;
+  }
+
+  .scrollbar-soft::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}

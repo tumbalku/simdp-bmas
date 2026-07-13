@@ -18,19 +18,18 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider
+      className="fixed inset-0 h-dvh !min-h-0 overflow-hidden"
       style={{ "--sidebar-width": "13rem" } as React.CSSProperties}
     >
-      <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
         {/* Top Navbar */}
         <Navbar />
 
         {/* Sidebar + Main Content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           <SideBar role={role} />
-          <main className="flex-1 overflow-y-auto bg-muted/20 p-4 md:p-6">
-            <div className="mx-auto w-full">
-              {children}
-            </div>
+          <main className="scrollbar-soft min-w-0 flex-1 overflow-y-auto bg-muted/20 p-4 md:p-6">
+            {children}
           </main>
         </div>
       </div>

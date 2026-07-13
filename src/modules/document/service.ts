@@ -7,6 +7,178 @@ import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 
+type DocumentListFilter = {
+  status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
+function toNumber(value: bigint | number | null | undefined) {
+  if (typeof value === "bigint") return Number(value);
+  if (typeof value === "number") return value;
+  return null;
+}
+
+function mapDocumentRecord(record: any) {
+  return {
+    id: record.id,
+    title: record.title || record.documentType?.name || "Dokumen",
+    status: record.status,
+    uploadedAt: record.uploadedAt?.toISOString?.() ?? record.uploadedAt,
+    expiryDate: record.expiryDate ? record.expiryDate.toISOString?.() ?? record.expiryDate : null,
+    fileName: record.fileName,
+    fileSize: toNumber(record.fileSize),
+    documentTypeId: record.documentType?.id ?? record.documentTypeId,
+    documentTypeName: record.documentType?.name || "Jenis dokumen",
+    archiveCategory: record.documentType?.archiveCategory || "PERSONAL",
+    ownerId: record.owner?.id ?? record.ownerId,
+    ownerName: record.owner?.name || "Pegawai",
+    ownerEmployeeId: record.owner?.employeeId || null,
+    ownerNik: record.owner?.nik || null,
+  };
+}
+
+export async function getAvailableDocumentTypes() {
+  const types = await prisma.documentType.findMany({
+    where: { deletedAt: null },
+    orderBy: [{ isMandatory: "desc" }, { name: "asc" }],
+  });
+
+  return types.map((type) => ({
+    id: type.id,
+    code: type.code,
+    name: type.name,
+    description: type.description,
+    archiveCategory: type.archiveCategory,
+    isMandatory: type.isMandatory,
+    allowMultiple: type.allowMultiple,
+    requiresExpiryDate: type.requiresExpiryDate,
+    requiresIssueDate: type.requiresIssueDate,
+    requiresDocumentNumber: type.requiresDocumentNumber,
+    allowedFormats: type.allowedFormats,
+    maxSizeMb: type.maxSizeMb,
+  }));
+}
+
+export async function getDocumentRecordsForSession(session: TokenPayload, filter: DocumentListFilter = {}) {
+  const where: any = { deletedAt: null };
+
+  if (filter.status) {
+    where.status = filter.status;
+  }
+
+  if (filter.search) {
+    where.OR = [
+      { title: { contains: filter.search, mode: "insensitive" } },
+      { fileName: { contains: filter.search, mode: "insensitive" } },
+      { documentType: { name: { contains: filter.search, mode: "insensitive" } } },
+      { owner: { name: { contains: filter.search, mode: "insensitive" } } },
+    ];
+  }
+
+  if (session.role === "EMPLOYEE") {
+    const employee = await prisma.employee.findFirst({
+      where: { userId: session.userId, deletedAt: null },
+      select: { id: true, userId: true },
+    });
+
+    if (!employee) return [];
+    where.ownerId = employee.id;
+  }
+
+  const records = await prisma.documentRecord.findMany({
+    where,
+    include: {
+      documentType: { select: { id: true, name: true, archiveCategory: true } },
+      owner: { select: { id: true, name: true, employeeId: true, nik: true } },
+    },
+    orderBy: { uploadedAt: "desc" },
+  });
+
+  return records.map(mapDocumentRecord);
+}
+
+export async function getDocumentRecordsWithPagination(
+  filter: DocumentListFilter & { page?: number; limit?: number } = {}
+) {
+  const page = filter.page || 1;
+  const limit = filter.limit || 20;
+  const skip = (page - 1) * limit;
+
+  const where: any = { deletedAt: null };
+
+  if (filter.status) {
+    where.status = filter.status;
+  }
+
+  if (filter.search) {
+    where.OR = [
+      { title: { contains: filter.search, mode: "insensitive" } },
+      { fileName: { contains: filter.search, mode: "insensitive" } },
+      { documentType: { name: { contains: filter.search, mode: "insensitive" } } },
+      { owner: { name: { contains: filter.search, mode: "insensitive" } } },
+    ];
+  }
+
+  const [records, total] = await Promise.all([
+    prisma.documentRecord.findMany({
+      where,
+      include: {
+        documentType: { select: { id: true, name: true, archiveCategory: true } },
+        owner: { select: { id: true, name: true, employeeId: true, nik: true } },
+      },
+      orderBy: { uploadedAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.documentRecord.count({ where }),
+  ]);
+
+  return {
+    data: records.map(mapDocumentRecord),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
+export async function getDocumentRecordDetailForSession(documentId: string, session: TokenPayload) {
+  const record = await prisma.documentRecord.findUnique({
+    where: { id: documentId, deletedAt: null },
+    include: {
+      documentType: { select: { id: true, name: true, archiveCategory: true, code: true, description: true } },
+      owner: { select: { id: true, userId: true, name: true, employeeId: true, nik: true } },
+      verificationHistories: {
+        orderBy: { reviewedAt: "desc" },
+        include: { reviewedBy: { select: { email: true, employee: { select: { name: true } } } } },
+      },
+    },
+  });
+
+  if (!record) throw new AppError("NOT_FOUND", "Dokumen tidak ditemukan", 404);
+  if (session.role === "EMPLOYEE" && record.owner.userId !== session.userId) {
+    throw new AppError("OWNERSHIP_REQUIRED", "OWNERSHIP_REQUIRED", 403);
+  }
+
+  return {
+    ...mapDocumentRecord(record),
+    documentNumber: record.documentNumber,
+    issueDate: record.issueDate ? record.issueDate.toISOString?.() ?? record.issueDate : null,
+    mimeType: record.mimeType,
+    verificationHistories: record.verificationHistories.map((item: any) => ({
+      id: item.id,
+      status: item.status,
+      reviewNote: item.reviewNote,
+      reviewedAt: item.reviewedAt?.toISOString?.() ?? item.reviewedAt,
+      reviewerName: item.reviewedBy?.employee?.name || item.reviewedBy?.email || "Sistem",
+    })),
+  };
+}
+
 export async function handleDocumentTypeCrud(
   operation: "CREATE" | "UPDATE" | "DELETE" | "RESTORE",
   id?: string,

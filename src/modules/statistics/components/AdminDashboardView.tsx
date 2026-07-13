@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MetricCard } from "@/components/shared/MetricCard";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { Users, FileText, ShieldCheck, FileClock } from "lucide-react";
 import { DocumentStatusChart } from "./document-status-chart";
 import { UploadTrendChart } from "./upload-trend-chart";
@@ -104,12 +105,10 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Ringkasan Sistem</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Pantau status kepatuhan dokumen, statistik verifikasi, dan arsip pegawai RSUD Bahteramas.
-        </p>
-      </div>
+      <PageHeader
+        title="Ringkasan Sistem"
+        description="Pantau status kepatuhan dokumen, statistik verifikasi, dan arsip pegawai RSUD Bahteramas."
+      />
 
       {/* Metric Cards Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
+import { PAGINATION } from "@/constants/pagination";
 
 export async function getVerificationQueue(filter: {
   page?: number;
@@ -11,8 +12,8 @@ export async function getVerificationQueue(filter: {
   documentTypeId?: string;
   workplaceId?: string;
 }) {
-  const page = filter.page || 1;
-  const pageSize = filter.pageSize || 15;
+  const page = filter.page || PAGINATION.defaultPage;
+  const pageSize = filter.pageSize || PAGINATION.defaultPageSize;
 
   const where: any = {
     status: "PENDING",
@@ -59,6 +60,8 @@ export async function getVerificationQueue(filter: {
     owner: {
       id: doc.owner.id,
       name: doc.owner.name,
+      employeeId: doc.owner.employeeId || null,
+      nik: doc.owner.nik || null,
       workplace: doc.owner.workplace?.name || null,
     },
     documentType: {
@@ -197,4 +200,61 @@ export async function getVerificationHistory(documentId: string, session: TokenP
         }
       : { name: "System" },
   }));
+}
+
+export async function getVerificationDocumentDetail(documentId: string, session: TokenPayload) {
+  const record = await prisma.documentRecord.findUnique({
+    where: { id: documentId, deletedAt: null },
+    include: {
+      documentType: {
+        select: { id: true, name: true, archiveCategory: true, code: true, description: true },
+      },
+      owner: {
+        include: { workplace: true },
+      },
+      verificationHistories: {
+        orderBy: { reviewedAt: "desc" },
+        include: { reviewedBy: { select: { email: true, employee: { select: { name: true } } } } },
+      },
+    },
+  });
+
+  if (!record) throw new Error("Dokumen tidak ditemukan");
+
+  // Staff+ can view any; Employee only their own (but this route is STAFF+ only)
+  if (session.role === "EMPLOYEE" && record.owner.userId !== session.userId) {
+    throw new Error("FORBIDDEN");
+  }
+
+  function toNumber(value: bigint | number | null | undefined) {
+    if (typeof value === "bigint") return Number(value);
+    if (typeof value === "number") return value;
+    return null;
+  }
+
+  return {
+    id: record.id,
+    title: record.title || record.documentType?.name || "Dokumen",
+    status: record.status,
+    uploadedAt: record.uploadedAt.toISOString(),
+    expiryDate: record.expiryDate ? record.expiryDate.toISOString() : null,
+    issueDate: record.issueDate ? record.issueDate.toISOString() : null,
+    documentNumber: record.documentNumber,
+    fileName: record.fileName,
+    fileSize: toNumber(record.fileSize),
+    mimeType: record.mimeType,
+    documentTypeName: record.documentType?.name || "Jenis dokumen",
+    archiveCategory: record.documentType?.archiveCategory || "PERSONAL",
+    ownerName: record.owner?.name || "Pegawai",
+    ownerEmployeeId: record.owner?.employeeId || null,
+    ownerNik: record.owner?.nik || null,
+    ownerWorkplace: record.owner?.workplace?.name || null,
+    verificationHistories: record.verificationHistories.map((vh) => ({
+      id: vh.id,
+      status: vh.status,
+      reviewNote: vh.reviewNote,
+      reviewedAt: vh.reviewedAt.toISOString(),
+      reviewerName: vh.reviewedBy?.employee?.name || vh.reviewedBy?.email || "Sistem",
+    })),
+  };
 }
