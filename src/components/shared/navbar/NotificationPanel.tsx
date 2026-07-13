@@ -11,10 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { DATE_FORMATS, DATE_LOCALE, routeTo } from "@/constants"
+import { id as defaultDictionary } from "@/i18n/dictionaries/id"
 import {
   useNavbarNotifications,
   type NavbarNotification,
 } from "@/modules/notification/hooks"
+
+const notificationCopy = defaultDictionary.navbar.notifications
 
 interface NotificationPanelProps {
   enabled: boolean
@@ -37,7 +40,7 @@ export function NotificationPanel({ enabled }: NotificationPanelProps) {
         render={
           <button
             className="relative flex size-9 items-center justify-center rounded-lg outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label="Buka notifikasi"
+            aria-label={notificationCopy.open}
           >
             <Bell className="size-4 text-slate-700 dark:text-slate-300" />
             {unreadCount > 0 ? (
@@ -51,9 +54,9 @@ export function NotificationPanel({ enabled }: NotificationPanelProps) {
       <DropdownMenuContent align="end" className="mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-xl p-0">
         <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
           <div>
-            <p className="text-sm font-semibold text-foreground">Notifikasi</p>
+            <p className="text-sm font-semibold text-foreground">{notificationCopy.title}</p>
             <p className="text-xs text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} belum dibaca` : "Semua sudah dibaca"}
+              {unreadCount > 0 ? notificationCopy.unread(unreadCount) : notificationCopy.allRead}
             </p>
           </div>
           <Button
@@ -65,7 +68,7 @@ export function NotificationPanel({ enabled }: NotificationPanelProps) {
             className="h-8 px-2 text-xs"
           >
             <CheckCheck className="size-3.5" />
-            Tandai semua
+            {notificationCopy.markAll}
           </Button>
         </div>
 
@@ -88,8 +91,8 @@ export function NotificationPanel({ enabled }: NotificationPanelProps) {
             <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
               <Inbox className="size-8 text-muted-foreground" />
               <div>
-                <p className="text-sm font-medium">Belum ada notifikasi</p>
-                <p className="text-xs text-muted-foreground">Aktivitas penting akan muncul di sini.</p>
+                <p className="text-sm font-medium">{notificationCopy.emptyTitle}</p>
+                <p className="text-xs text-muted-foreground">{notificationCopy.emptyDescription}</p>
               </div>
             </div>
           )}

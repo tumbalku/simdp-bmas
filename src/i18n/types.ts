@@ -15,6 +15,64 @@ export type Dictionary = {
     settings: string;
     menu: string;
   };
+  navbar: {
+    notifications: {
+      open: string;
+      title: string;
+      unread: (count: number) => string;
+      allRead: string;
+      markAll: string;
+      emptyTitle: string;
+      emptyDescription: string;
+    };
+    profile: {
+      login: string;
+      profile: string;
+      settings: string;
+      logout: string;
+    };
+  };
+  auth: {
+    login: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      helpText: string;
+      resetPassword: string;
+      identifierLabel: string;
+      identifierPlaceholder: string;
+      passwordLabel: string;
+      passwordPlaceholder: string;
+      processing: string;
+      submit: string;
+    };
+    forgotPassword: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      backToLogin: string;
+      successMessage: string;
+      emailLabel: string;
+      emailPlaceholder: string;
+      sending: string;
+      submit: string;
+    };
+    resetPassword: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      backToLogin: string;
+      tokenLabel: string;
+      tokenPlaceholder: string;
+      tokenHelp: string;
+      newPasswordLabel: string;
+      newPasswordPlaceholder: string;
+      confirmPasswordLabel: string;
+      confirmPasswordPlaceholder: string;
+      saving: string;
+      submit: string;
+    };
+  };
   masterData: {
     categories: {
       pageTitle: string;

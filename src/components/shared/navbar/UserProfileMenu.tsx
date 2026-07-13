@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { logoutAction } from "@/modules/auth/actions"
 import { ROLE_LABELS, ROUTES, getRoleBadgeStyle } from "@/constants"
+import { id as defaultDictionary } from "@/i18n/dictionaries/id"
+
+const profileCopy = defaultDictionary.navbar.profile
 
 export type NavbarProfile = {
   name: string
@@ -52,7 +55,7 @@ export function UserProfileMenu({ profile, loading }: UserProfileMenuProps) {
   if (!profile) {
     return (
       <Button render={<Link href={ROUTES.login} />} nativeButton={false} size="sm" variant="default" className="rounded-lg h-8 px-4">
-        Masuk
+        {profileCopy.login}
       </Button>
     )
   }
@@ -91,16 +94,16 @@ export function UserProfileMenu({ profile, loading }: UserProfileMenuProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href={ROUTES.profile} />}>
           <UserIcon className="size-4 mr-2 text-muted-foreground" />
-          Profil Saya
+          {profileCopy.profile}
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href={ROUTES.settings} />}>
           <Settings className="size-4 mr-2 text-muted-foreground" />
-          Pengaturan
+          {profileCopy.settings}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} variant="destructive" className="flex items-center cursor-pointer">
           <LogOut className="size-4 mr-2" />
-          Keluar
+          {profileCopy.logout}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

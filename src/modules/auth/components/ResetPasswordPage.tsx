@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthCardShell } from "./AuthCardShell";
 import { resetPasswordAction } from "@/modules/auth/actions";
+import { id as defaultDictionary } from "@/i18n/dictionaries/id";
+
+const resetPasswordCopy = defaultDictionary.auth.resetPassword;
 
 export function ResetPasswordPage() {
   const router = useRouter();
@@ -40,9 +43,9 @@ export function ResetPasswordPage() {
 
   return (
     <AuthCardShell
-      eyebrow="Password baru"
-      title="Buat password baru"
-      description="Siapkan password baru minimal 8 karakter untuk mengamankan akun SIMDP Anda."
+      eyebrow={resetPasswordCopy.eyebrow}
+      title={resetPasswordCopy.title}
+      description={resetPasswordCopy.description}
       icon={<KeyRound className="size-5" aria-hidden="true" />}
       footer={
         <Button
@@ -52,7 +55,7 @@ export function ResetPasswordPage() {
           className="h-auto p-0"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Kembali ke login
+          {resetPasswordCopy.backToLogin}
         </Button>
       }
     >
@@ -65,29 +68,29 @@ export function ResetPasswordPage() {
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="token">Token reset</Label>
+          <Label htmlFor="token">{resetPasswordCopy.tokenLabel}</Label>
           <Input
             id="token"
             name="token"
             type="text"
-            placeholder="Token dari tautan email reset password"
+            placeholder={resetPasswordCopy.tokenPlaceholder}
             defaultValue={tokenFromUrl}
             className="h-10"
             disabled={isPending}
             required
           />
           <p className="text-xs text-muted-foreground">
-            Token diisi otomatis jika Anda membuka tautan dari email.
+            {resetPasswordCopy.tokenHelp}
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="newPassword">Password baru</Label>
+          <Label htmlFor="newPassword">{resetPasswordCopy.newPasswordLabel}</Label>
           <Input
             id="newPassword"
             name="newPassword"
             type="password"
-            placeholder="Minimal 8 karakter"
+            placeholder={resetPasswordCopy.newPasswordPlaceholder}
             className="h-10"
             disabled={isPending}
             required
@@ -96,12 +99,12 @@ export function ResetPasswordPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Konfirmasi password baru</Label>
+          <Label htmlFor="confirmPassword">{resetPasswordCopy.confirmPasswordLabel}</Label>
           <Input
             id="confirmPassword"
             name="confirmPassword"
             type="password"
-            placeholder="Ulangi password baru"
+            placeholder={resetPasswordCopy.confirmPasswordPlaceholder}
             className="h-10"
             disabled={isPending}
             required
@@ -113,10 +116,10 @@ export function ResetPasswordPage() {
           {isPending ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Menyimpan...
+              {resetPasswordCopy.saving}
             </>
           ) : (
-            "Simpan"
+            resetPasswordCopy.submit
           )}
         </Button>
       </form>
