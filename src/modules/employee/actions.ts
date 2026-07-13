@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
-import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { handleActionError } from "@/lib/errors";
 import {
   getCurrentProfile as getProfileService,
   updateProfile,
@@ -15,64 +14,21 @@ import {
   getEmployeeDirectory,
   getEmployeeDetail,
   getEmployeeDirectoryWithPagination,
+  getActorDisplayName,
 } from "@/modules/employee/service";
-
-const updateProfileSchema = z.object({
-  phone: z.string().regex(/^[0-9+\-\s]*$/, "Format telepon tidak valid").optional().nullable(),
-  address: z.string().max(255, "Alamat terlalu panjang").optional().nullable(),
-  birthPlace: z.string().optional().nullable(),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD").optional().nullable(),
-  religion: z.string().optional().nullable(),
-  maritalStatus: z.string().optional().nullable(),
-});
-
-const crudEmployeeSchema = z.object({
-  operation: z.enum(["CREATE", "UPDATE", "DELETE", "RESTORE"]),
-  id: z.string().optional(),
-  data: z
-    .object({
-      email: z.string().email("Format email tidak valid").optional(),
-      role: z.enum(["ADMIN", "STAFF", "EMPLOYEE"]).optional(),
-      employeeId: z.string().optional().nullable(),
-      nik: z.string().optional().nullable(),
-      name: z.string().optional(),
-      gender: z.string().optional().nullable(),
-      birthPlace: z.string().optional().nullable(),
-      birthDate: z.string().optional().nullable(),
-      academicDegree: z.string().optional().nullable(),
-      lastEducation: z.string().optional().nullable(),
-      religion: z.string().optional().nullable(),
-      maritalStatus: z.string().optional().nullable(),
-      phone: z.string().optional().nullable(),
-      address: z.string().optional().nullable(),
-      joinDate: z.string().optional().nullable(),
-      hasTmt: z.boolean().optional(),
-      tmtStartDate: z.string().optional().nullable(),
-      tmtEndDate: z.string().optional().nullable(),
-      employmentStatusId: z.string().optional().nullable(),
-      employeeGroupId: z.string().optional().nullable(),
-      employeePositionId: z.string().optional().nullable(),
-      employeeRankId: z.string().optional().nullable(),
-      workplaceId: z.string().optional().nullable(),
-    })
-    .optional(),
-});
-
-const addCareerHistorySchema = z.object({
-  employeeId: z.string().min(1, "ID pegawai wajib diisi"),
-  employmentStatusId: z.string().optional().nullable(),
-  employeeGroupId: z.string().optional().nullable(),
-  employeePositionId: z.string().optional().nullable(),
-  employeeRankId: z.string().optional().nullable(),
-  workplaceId: z.string().optional().nullable(),
-  effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD"),
-  note: z.string().optional().nullable(),
-});
+import {
+  updateProfileSchema,
+  crudEmployeeSchema,
+  addCareerHistorySchema,
+  employeeDirectorySchema,
+  employeeDirectoryWithPaginationSchema,
+  masterDataListQuerySchema,
+} from "./schema";
 
 export async function getEmployeeDirectoryAction(filter?: unknown) {
   try {
     await requireAuth("ADMIN");
-    const parsed = z.object({ search: z.string().optional() }).optional().safeParse(filter);
+    const parsed = employeeDirectorySchema.optional().safeParse(filter);
     if (!parsed.success) {
       return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
     }
@@ -81,21 +37,14 @@ export async function getEmployeeDirectoryAction(filter?: unknown) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getEmployeeDirectoryAction error:", error);
-    return { ok: false as const, error: { code: error.message === "FORBIDDEN" ? "FORBIDDEN" : "INTERNAL_ERROR", message: error.message } };
+    return handleActionError(error);
   }
 }
 
 export async function getEmployeeDirectoryWithPaginationAction(filter?: unknown) {
   try {
     await requireAuth("ADMIN");
-    const parsed = z
-      .object({
-        search: z.string().optional(),
-        page: z.number().int().positive().optional(),
-        limit: z.number().int().positive().max(100).optional(),
-      })
-      .optional()
-      .safeParse(filter);
+    const parsed = employeeDirectoryWithPaginationSchema.optional().safeParse(filter);
 
     if (!parsed.success) {
       return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
@@ -105,7 +54,7 @@ export async function getEmployeeDirectoryWithPaginationAction(filter?: unknown)
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getEmployeeDirectoryWithPaginationAction error:", error);
-    return { ok: false as const, error: { code: error.message === "FORBIDDEN" ? "FORBIDDEN" : "INTERNAL_ERROR", message: error.message } };
+    return handleActionError(error);
   }
 }
 
@@ -120,7 +69,7 @@ export async function getEmployeeDetailAction(id: string) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getEmployeeDetailAction error:", error);
-    return { ok: false as const, error: { code: error.message === "FORBIDDEN" ? "FORBIDDEN" : "INTERNAL_ERROR", message: error.message } };
+    return handleActionError(error);
   }
 }
 
@@ -145,13 +94,7 @@ export async function getCurrentProfile() {
     return { ok: true as const, data: profile };
   } catch (error: any) {
     console.error("getCurrentProfile error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
-      },
-    };
+    return handleActionError(error, { defaultMessage: "Terjadi kesalahan internal" });
   }
 }
 
@@ -172,11 +115,7 @@ export async function updateProfileAction(data: unknown) {
     }
 
     // Resolve actor name
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
-    const actorName = user?.employee?.name || user?.email || "User";
+    const actorName = await getActorDisplayName(session.userId, "User");
 
     const cleanData = Object.fromEntries(
       Object.entries(parsed.data).map(([k, v]) => [k, v === null ? undefined : v])
@@ -197,13 +136,7 @@ export async function updateProfileAction(data: unknown) {
     return { ok: true as const, data: { success: true } };
   } catch (error: any) {
     console.error("updateProfileAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
-      },
-    };
+    return handleActionError(error, { defaultMessage: "Terjadi kesalahan internal" });
   }
 }
 
@@ -223,11 +156,7 @@ export async function crudEmployeeAction(operation: string, id?: string, data?: 
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
-    const actorName = user?.employee?.name || user?.email || "Admin";
+    const actorName = await getActorDisplayName(session.userId, "Admin");
 
     const result = await handleEmployeeCrud(
       parsed.data.operation,
@@ -241,20 +170,7 @@ export async function crudEmployeeAction(operation: string, id?: string, data?: 
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("crudEmployeeAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "FORBIDDEN"
-            ? "FORBIDDEN"
-            : error.message.includes("sudah terdaftar")
-            ? "CONFLICT"
-            : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
 
@@ -274,11 +190,7 @@ export async function addCareerHistoryAction(data: unknown) {
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
-    const actorName = user?.employee?.name || user?.email || "Admin";
+    const actorName = await getActorDisplayName(session.userId, "Admin");
 
     const cleanData = {
       ...parsed.data,
@@ -298,18 +210,7 @@ export async function addCareerHistoryAction(data: unknown) {
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("addCareerHistoryAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "FORBIDDEN"
-            ? "FORBIDDEN"
-            : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
 
@@ -330,29 +231,14 @@ export async function importEmployeesAction(formData: FormData) {
 
     const csvText = await file.text();
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
-    const actorName = user?.employee?.name || user?.email || "Admin";
+    const actorName = await getActorDisplayName(session.userId, "Admin");
 
     const result = await importFromCsv(csvText, session.userId, actorName, session.role);
 
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("importEmployeesAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "FORBIDDEN"
-            ? "FORBIDDEN"
-            : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
 
@@ -386,14 +272,7 @@ export async function getMasterDataListAction(
       };
     }
 
-    const parsed = z
-      .object({
-        search: z.string().optional(),
-        page: z.number().int().positive().optional(),
-        limit: z.number().int().positive().max(1000).optional(),
-      })
-      .optional()
-      .safeParse(query);
+    const parsed = masterDataListQuerySchema.optional().safeParse(query);
 
     if (!parsed.success) {
       return {
@@ -412,18 +291,7 @@ export async function getMasterDataListAction(
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("getMasterDataListAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "FORBIDDEN"
-              ? "FORBIDDEN"
-              : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
 
@@ -479,11 +347,7 @@ export async function crudMasterDataAction(
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
-    const actorName = user?.employee?.name || user?.email || "User";
+    const actorName = await getActorDisplayName(session.userId, "User");
 
     const result = await handleMasterDataCrud(
       entityType as any,
@@ -498,19 +362,6 @@ export async function crudMasterDataAction(
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("crudMasterDataAction error:", error);
-    return {
-      ok: false as const,
-      error: {
-        code:
-          error.message === "UNAUTHENTICATED"
-            ? "UNAUTHENTICATED"
-            : error.message === "FORBIDDEN"
-            ? "FORBIDDEN"
-            : error.message.includes("masih digunakan")
-            ? "CONFLICT"
-            : "INTERNAL_ERROR",
-        message: error.message,
-      },
-    };
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
