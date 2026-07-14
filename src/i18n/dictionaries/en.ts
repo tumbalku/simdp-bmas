@@ -9,6 +9,7 @@ export const en = {
     dashboard: "Dashboard",
     documents: "Documents",
     verification: "Verification",
+    statistics: "Statistics",
     masterData: "Master Data",
     masterDataDocuments: "Documents",
     masterDataEmployees: "Employees",

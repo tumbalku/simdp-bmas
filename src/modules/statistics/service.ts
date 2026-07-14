@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
+import { getStatisticsChartsData as getStatsChartsRepo } from "./repository";
 
 export async function getDashboardStats(filter: { workplaceId?: string }) {
   // 1. Fetch active employees matching filter
@@ -195,10 +196,12 @@ export async function getEmployeeStats(userId: string) {
       rejectedCount: 0,
       expiringCount: 0,
       recentUploads: [],
+      expiringDocuments: [],
     };
   }
 
   const employeeId = user.employee.id;
+  const now = new Date();
 
   // Count by status type-safely
   const pendingCount = await prisma.documentRecord.count({
@@ -221,14 +224,22 @@ export async function getEmployeeStats(userId: string) {
   // Expiring in 30 days
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-  const expiringCount = await prisma.documentRecord.count({
+  const expiringDocuments = await prisma.documentRecord.findMany({
     where: {
       ownerId: employeeId,
       deletedAt: null,
       status: "APPROVED",
       expiryDate: {
-        gt: new Date(),
+        gt: now,
         lte: thirtyDaysFromNow,
+      },
+    },
+    orderBy: { expiryDate: "asc" },
+    include: {
+      documentType: {
+        select: {
+          name: true,
+        },
       },
     },
   });
@@ -254,7 +265,7 @@ export async function getEmployeeStats(userId: string) {
     pendingCount,
     rejectedCount,
     expiredCount,
-    expiringCount,
+    expiringCount: expiringDocuments.length,
     recentUploads: recentUploads.map((d) => ({
       id: d.id,
       documentName: d.documentType?.name || "Dokumen",
@@ -263,5 +274,15 @@ export async function getEmployeeStats(userId: string) {
       uploadedAt: d.uploadedAt.toISOString(),
       expiryDate: d.expiryDate ? d.expiryDate.toISOString() : null,
     })),
+    expiringDocuments: expiringDocuments.map((d) => ({
+      id: d.id,
+      documentName: d.documentType?.name || "Dokumen",
+      expiryDate: d.expiryDate!.toISOString(),
+      daysRemaining: Math.ceil((d.expiryDate!.getTime() - now.getTime()) / 86_400_000),
+    })),
   };
+}
+
+export async function getStatisticsChartsData() {
+  return getStatsChartsRepo();
 }

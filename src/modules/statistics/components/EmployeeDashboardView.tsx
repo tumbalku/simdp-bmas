@@ -1,7 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  FileWarning,
+  ShieldCheck,
+} from "lucide-react";
+
+import { MetricCard } from "@/components/shared/MetricCard";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -10,148 +21,238 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  FileText,
-  Plus,
-  ArrowRight,
-  ChevronRight,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { DATE_FORMATS, DATE_LOCALE, routeTo } from "@/constants";
+import {
+  DOCUMENT_STATUS_LABELS,
+  DOCUMENT_STATUS_VARIANTS,
+  type DocumentStatus,
+} from "@/modules/document/constants";
 import { cn } from "@/lib/utils";
 
 type RecentUpload = {
   id: string;
   documentName: string;
   category: string;
-  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
+  status: DocumentStatus;
   uploadedAt: string;
   expiryDate: string | null;
 };
 
+type ExpiringDocument = {
+  id: string;
+  documentName: string;
+  expiryDate: string;
+  daysRemaining: number;
+};
+
 type EmployeeDashboardStats = {
+  totalSubmitted: number;
+  approvedCount: number;
+  pendingCount: number;
+  rejectedCount: number;
   recentUploads: RecentUpload[];
+  expiringDocuments: ExpiringDocument[];
 };
 
 type EmployeeDashboardViewProps = {
   stats: EmployeeDashboardStats;
 };
 
-const CATEGORY_LABEL: Record<string, string> = {
-  PERSONAL: "Pribadi",
-  EDUCATION: "Pendidikan",
-  EMPLOYMENT: "Kepegawaian",
-  CERTIFICATION: "Sertifikasi",
-  LEGAL: "Hukum",
-};
+function formatDate(value: string | null) {
+  if (!value) return "-";
 
-const STATUS_BADGE: Record<string, { label: string; style: string }> = {
-  PENDING: {
-    label: "Menunggu Review",
-    style: "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-500/20",
-  },
-  APPROVED: {
-    label: "Disetujui",
-    style: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-500/20",
-  },
-  REJECTED: {
-    label: "Ditolak",
-    style: "bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-500/20",
-  },
-  EXPIRED: {
-    label: "Kedaluwarsa",
-    style: "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400 border border-red-500/20",
-  },
-  REPLACED: {
-    label: "Digantikan",
-    style: "bg-slate-500/10 text-slate-600 dark:bg-slate-500/20 dark:text-slate-400 border border-slate-500/20",
-  },
-};
+  return new Intl.DateTimeFormat(DATE_LOCALE, DATE_FORMATS.date).format(
+    new Date(value),
+  );
+}
+
+function DocumentStatusBadge({ status }: { status: DocumentStatus }) {
+  return (
+    <Badge variant={DOCUMENT_STATUS_VARIANTS[status]} className="whitespace-nowrap">
+      {DOCUMENT_STATUS_LABELS[status]}
+    </Badge>
+  );
+}
+
+function EmptyRecentDocuments() {
+  return (
+    <div className="flex min-h-[220px] flex-col items-center justify-center px-4 py-10 text-center">
+      <div className="mb-3 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <FileText className="size-6" />
+      </div>
+      <h3 className="text-sm font-semibold text-foreground">Belum ada dokumen</h3>
+      <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+        Dokumen yang baru Anda unggah akan muncul di sini agar mudah dipantau.
+      </p>
+    </div>
+  );
+}
+
+function ExpiryWarningCard({ documents }: { documents: ExpiringDocument[] }) {
+  return (
+    <Card className="border-muted-foreground/10 bg-card shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-sm font-semibold">Peringatan kedaluwarsa</CardTitle>
+        <CardDescription className="text-xs">
+          Dokumen aktif yang akan habis masa berlaku dalam 30 hari.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {documents.length === 0 ? (
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+              <div>
+                <p className="font-semibold">
+                  Tidak ada dokumen yang akan kedaluwarsa dalam 30 hari.
+                </p>
+                <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                  Semua dokumen bermasa berlaku masih aman saat ini.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {documents.map((document) => {
+              const urgent = document.daysRemaining < 14;
+
+              return (
+                <Link
+                  key={document.id}
+                  href={routeTo.documentDetail(document.id)}
+                  className={cn(
+                    "block rounded-xl border p-3 transition-colors hover:bg-muted/50",
+                    urgent
+                      ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                      : "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{document.documentName}</p>
+                      <p className="mt-1 text-xs opacity-85">
+                        Kedaluwarsa {formatDate(document.expiryDate)} · sisa {document.daysRemaining} hari
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  const metricCards = [
+    {
+      title: "Total Dokumen",
+      value: stats.totalSubmitted,
+      description: "Seluruh berkas yang pernah diunggah",
+      icon: FileText,
+      iconClassName: "bg-blue-500/10 text-blue-500",
+    },
+    {
+      title: "Menunggu Verifikasi",
+      value: stats.pendingCount,
+      description: "Sedang antre diperiksa Staf HRD",
+      icon: Clock3,
+      iconClassName: "bg-amber-500/10 text-amber-500",
+      valueClassName: "text-amber-600 dark:text-amber-400",
+    },
+    {
+      title: "Disetujui",
+      value: stats.approvedCount,
+      description: "Berkas sah dan aktif",
+      icon: ShieldCheck,
+      iconClassName: "bg-emerald-500/10 text-emerald-500",
+      valueClassName: "text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      title: "Ditolak",
+      value: stats.rejectedCount,
+      description: "Perlu diperbaiki dan diunggah ulang",
+      icon: FileWarning,
+      iconClassName: "bg-rose-500/10 text-rose-500",
+      valueClassName: "text-rose-600 dark:text-rose-400",
+    },
+  ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Beranda Pegawai"
-        description="Lihat status berkas digital dan kelengkapan dokumen kepegawaian Anda."
-        actions={[
-          {
-            label: "Lihat Dokumen",
-            href: "/documents",
-            icon: ArrowRight,
-            iconPosition: "end",
-            variant: "outline",
-          },
-          {
-            label: "Unggah Berkas",
-            href: "/documents?upload=true",
-            icon: Plus,
-          },
-        ]}
+        title="Dashboard"
+        description="Ringkasan pribadi kondisi dokumen kepegawaian Anda."
       />
 
-      {/* Recent Uploads Section */}
-      <Card className="shadow-sm border-muted-foreground/10 bg-card">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold">Riwayat Berkas Terakhir</CardTitle>
-          <CardDescription className="text-xs">Daftar 5 berkas terakhir yang Anda unggah beserta status verifikasinya.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          {stats.recentUploads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground mb-3">
-                <FileText className="size-6" />
-              </div>
-              <h5 className="font-semibold text-sm text-foreground">Belum ada berkas</h5>
-              <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
-                Anda belum pernah mengunggah berkas kepegawaian apapun ke sistem SIMDP.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-muted-foreground/10">
-              {stats.recentUploads.map((doc) => {
-                const status = STATUS_BADGE[doc.status] || { label: doc.status, style: "bg-muted" };
-                return (
-                  <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-muted/10 transition-colors">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex size-9 items-center justify-center rounded-lg bg-primary/5 text-primary border border-primary/10 shrink-0">
-                        <FileText className="size-4.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate max-w-[200px] sm:max-w-[400px]">
-                          {doc.documentName}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[10px] text-muted-foreground font-medium">
-                            {CATEGORY_LABEL[doc.category] || doc.category}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">•</span>
-                          <span className="text-[10px] text-muted-foreground font-medium">
-                            Diunggah: {formatDate(doc.uploadedAt)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium leading-none", status.style)}>
-                        {status.label}
-                      </span>
-                      <Link href={`/documents/${doc.id}`} className="p-1.5 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground">
-                        <ChevronRight className="size-4" />
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {metricCards.map((metric) => (
+          <MetricCard key={metric.title} {...metric} />
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="border-muted-foreground/10 bg-card shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Dokumen terbaru</CardTitle>
+            <CardDescription className="text-xs">
+              5 berkas terakhir yang Anda kirim beserta status verifikasinya.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {stats.recentUploads.length === 0 ? (
+              <EmptyRecentDocuments />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="pl-4">Nama dokumen</TableHead>
+                    <TableHead>Tanggal pengiriman</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stats.recentUploads.map((document) => (
+                    <TableRow key={document.id} className="cursor-pointer">
+                      <TableCell className="pl-4">
+                        <Link
+                          href={routeTo.documentDetail(document.id)}
+                          className="block font-medium text-foreground hover:text-primary"
+                        >
+                          {document.documentName}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <Link href={routeTo.documentDetail(document.id)} className="block">
+                          {formatDate(document.uploadedAt)}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link href={routeTo.documentDetail(document.id)} className="block">
+                          <DocumentStatusBadge status={document.status} />
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <ExpiryWarningCard documents={stats.expiringDocuments} />
+      </div>
     </div>
   );
 }

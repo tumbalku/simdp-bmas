@@ -9,6 +9,7 @@ export const id = {
     dashboard: "Dashboard",
     documents: "Dokumen",
     verification: "Verifikasi",
+    statistics: "Statistik",
     masterData: "Master Data",
     masterDataDocuments: "Dokumen",
     masterDataEmployees: "Pegawai",

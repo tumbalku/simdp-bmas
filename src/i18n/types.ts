@@ -7,6 +7,7 @@ export type Dictionary = {
     dashboard: string;
     documents: string;
     verification: string;
+    statistics: string;
     masterData: string;
     masterDataDocuments: string;
     masterDataEmployees: string;
