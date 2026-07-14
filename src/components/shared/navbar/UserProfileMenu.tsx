@@ -20,6 +20,7 @@ import { id as defaultDictionary } from "@/i18n/dictionaries/id"
 const profileCopy = defaultDictionary.navbar.profile
 
 export type NavbarProfile = {
+  userId?: string
   name: string
   email: string
   role: string

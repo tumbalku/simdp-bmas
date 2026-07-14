@@ -8,6 +8,7 @@ import {
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@/modules/notification/actions"
+import { getPusherClient } from "@/lib/notifications/client/pusher-client"
 
 export type NavbarNotification = {
   id: string
@@ -20,7 +21,7 @@ export type NavbarNotification = {
   createdAt: string
 }
 
-export function useNavbarNotifications(enabled: boolean) {
+export function useNavbarNotifications(enabled: boolean, userId?: string) {
   const [notifications, setNotifications] = useState<NavbarNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(enabled)
@@ -57,6 +58,31 @@ export function useNavbarNotifications(enabled: boolean) {
       cancelled = true
     }
   }, [enabled])
+
+  // Realtime subscription via Pusher
+  useEffect(() => {
+    if (!enabled || !userId) return
+
+    const pusher = getPusherClient()
+    if (!pusher) return
+
+    const channelName = `private-user-${userId}`
+    const channel = pusher.subscribe(channelName)
+
+    channel.bind("notification:new", (newNotif: NavbarNotification) => {
+      setNotifications((prev) => {
+        // Avoid duplicate items
+        if (prev.some((item) => item.id === newNotif.id)) return prev
+        return [newNotif, ...prev].slice(0, PAGINATION.navbarNotificationLimit)
+      })
+      setUnreadCount((c) => c + 1)
+    })
+
+    return () => {
+      channel.unbind("notification:new")
+      pusher.unsubscribe(channelName)
+    }
+  }, [enabled, userId])
 
   const markAllRead = async () => {
     const res = await markAllNotificationsReadAction()

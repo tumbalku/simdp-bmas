@@ -2,6 +2,29 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { verifyDocument, getVerificationQueue } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
+vi.mock("@/modules/notification/service", () => ({
+  createNotification: vi.fn().mockImplementation(async (input: {
+    userId: string;
+    type: string;
+    title: string;
+    message?: string | null;
+    relatedEntityType?: string | null;
+    relatedEntityId?: string | null;
+  }) => {
+    return mockPrisma.notification.create({
+      data: {
+        id: "mock-uuid",
+        userId: input.userId,
+        type: input.type,
+        title: input.title,
+        message: input.message,
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+      }
+    });
+  }),
+}));
+
 describe("Verification Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -21,16 +21,17 @@ const notificationCopy = defaultDictionary.navbar.notifications
 
 interface NotificationPanelProps {
   enabled: boolean
+  userId?: string
 }
 
-export function NotificationPanel({ enabled }: NotificationPanelProps) {
+export function NotificationPanel({ enabled, userId }: NotificationPanelProps) {
   const {
     notifications,
     unreadCount,
     loading,
     markAllRead,
     markRead,
-  } = useNavbarNotifications(enabled)
+  } = useNavbarNotifications(enabled, userId)
 
   if (!enabled) return null
 

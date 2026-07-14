@@ -366,6 +366,7 @@ export async function getSessionProfileAction() {
     return {
       ok: true as const,
       data: {
+        userId: user.id,
         name: user.employee?.name || "User",
         email: user.email,
         role: user.role,

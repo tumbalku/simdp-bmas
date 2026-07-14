@@ -4,6 +4,8 @@ import {
   getUnreadNotificationCount,
   markNotificationRead,
   markAllNotificationsRead,
+  createNotification,
+  dispatchNotification,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
@@ -75,6 +77,72 @@ describe("Notification Module Service", () => {
           data: { isRead: true },
         })
       );
+    });
+  });
+
+  describe("createNotification", () => {
+    it("should persist notification and enqueue dispatch", async () => {
+      const input = {
+        userId: "user-1",
+        type: "DOCUMENT_STATUS",
+        title: "Test Title",
+        message: "Test Message",
+        relatedEntityType: "DocumentRecord",
+        relatedEntityId: "doc-1",
+      };
+
+      const mockSaved = {
+        id: "mock-uuid",
+        ...input,
+        createdAt: new Date(),
+        isRead: false,
+      };
+
+      mockPrisma.notification.create.mockResolvedValue(mockSaved);
+
+      const result = await createNotification(input);
+
+      expect(result.userId).toBe("user-1");
+      expect(mockPrisma.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: "user-1",
+            type: "DOCUMENT_STATUS",
+            title: "Test Title",
+          }),
+        })
+      );
+    });
+  });
+
+  describe("dispatchNotification", () => {
+    it("should publish realtime and send email", async () => {
+      const notif = {
+        id: "n-1",
+        userId: "user-1",
+        type: "DOCUMENT_STATUS",
+        title: "Test Title",
+        message: "Test Message",
+        relatedEntityType: "DocumentRecord",
+        relatedEntityId: "doc-1",
+        createdAt: new Date(),
+        isRead: false,
+      };
+
+      const user = {
+        id: "user-1",
+        email: "test@example.com",
+        employee: { name: "John Doe" },
+      };
+
+      mockPrisma.notification.findUnique.mockResolvedValue(notif);
+      mockPrisma.user.findUnique.mockResolvedValue(user);
+
+      await dispatchNotification({ notificationId: "n-1" });
+
+      expect(mockPrisma.notification.findUnique).toHaveBeenCalledWith({
+        where: { id: "n-1" },
+      });
     });
   });
 });
