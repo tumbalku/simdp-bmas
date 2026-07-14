@@ -289,7 +289,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <NotificationPanel enabled={Boolean(profile)} />
+          <NotificationPanel enabled={Boolean(profile)} userId={profile?.userId} />
           <UserProfileMenu profile={profile} loading={loading} />
           <MobileMenuToggle open={mobileMenuOpen} onToggle={() => setMobileMenuOpen((v) => !v)} />
         </div>

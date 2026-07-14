@@ -40,7 +40,26 @@ Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/
 | Variable | Required | Keterangan |
 |---|:---:|---|
 | `RESEND_API_KEY` | Jika Resend | API key email. |
+| `EMAIL_FROM` | Jika Resend | Email pengirim. Default: `onboarding@resend.dev`. |
 | `NEXT_PUBLIC_APP_URL` | Yes | URL aplikasi untuk link email. Public, boleh prefix `NEXT_PUBLIC_`. |
+
+## Realtime / Pusher
+
+| Variable | Required | Keterangan |
+|---|:---:|---|
+| `PUSHER_APP_ID` | Jika Pusher | App ID Pusher server. |
+| `PUSHER_KEY` | Jika Pusher | Key Pusher server. |
+| `PUSHER_SECRET` | Jika Pusher | Secret Pusher server. |
+| `PUSHER_CLUSTER` | Jika Pusher | Cluster Pusher server. |
+| `NEXT_PUBLIC_PUSHER_KEY` | Jika Pusher | Key Pusher client. |
+| `NEXT_PUBLIC_PUSHER_CLUSTER` | Jika Pusher | Cluster Pusher client. |
+
+## Background Job / Inngest
+
+| Variable | Required | Keterangan |
+|---|:---:|---|
+| `INNGEST_EVENT_KEY` | Jika Inngest | Event key untuk mengirim event ke Inngest Cloud. |
+| `INNGEST_SIGNING_KEY` | Jika Inngest | Signing key untuk memverifikasi request dari Inngest. |
 
 ## Contoh Development
 

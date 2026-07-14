@@ -2,7 +2,6 @@
 
 ## Backlog
 
-- [ ] [#61](https://github.com/tumbalku/simdp-bmas/issues/61) SIMDP-ROADMAP-002: Fase 2 — Verification & Notification
 - [ ] [#62](https://github.com/tumbalku/simdp-bmas/issues/62) SIMDP-ROADMAP-003: Fase 3 — Admin & Master Data
 - [ ] [#63](https://github.com/tumbalku/simdp-bmas/issues/63) SIMDP-ROADMAP-004: Fase 4 — Statistik & Dashboard
 - [ ] [#64](https://github.com/tumbalku/simdp-bmas/issues/64) SIMDP-ROADMAP-005: Fase 5 — Security & Hardening
@@ -26,6 +25,7 @@
 
 ## Done
 
+- [x] [#61](https://github.com/tumbalku/simdp-bmas/issues/61) SIMDP-ROADMAP-002: Fase 2 — Verification & Notification (selesai: 2026-07-14)
 - [x] [#50](https://github.com/tumbalku/simdp-bmas/issues/50) SIMDP-UI-006: Fase 2 implement dashboard feature UI pages (selesai: 2026-07-10)
 - [x] [#49](https://github.com/tumbalku/simdp-bmas/issues/49) SIMDP-UI-005: Fase 1 implement Auth UI and dashboard shell (selesai: 2026-07-10)
 - [x] [#48](https://github.com/tumbalku/simdp-bmas/issues/48) SIMDP-UI-004: Scaffold public auth route templates (selesai: 2026-07-10)

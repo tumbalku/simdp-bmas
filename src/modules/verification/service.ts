@@ -131,22 +131,20 @@ export async function verifyDocument(
       },
     });
 
-    // 3. Send notification to the document owner
-    await tx.notification.create({
-      data: {
-        id: crypto.randomUUID(),
-        userId: doc.owner.userId,
-        type: "DOCUMENT_STATUS",
-        title: decision === "APPROVED" ? "Dokumen Disetujui" : "Dokumen Ditolak",
-        message: `Dokumen ${doc.documentType.name} Anda telah ${
-          decision === "APPROVED" ? "disetujui" : "ditolak"
-        }.${note ? ` Catatan: ${note}` : ""}`,
-        relatedEntityType: "DocumentRecord",
-        relatedEntityId: id,
-      },
-    });
-
     return updatedDoc;
+  });
+
+  // 3. Send notification to the document owner via the notification service boundary
+  const { createNotification } = await import("@/modules/notification/service");
+  await createNotification({
+    userId: doc.owner.userId,
+    type: "DOCUMENT_STATUS",
+    title: decision === "APPROVED" ? "Dokumen Disetujui" : "Dokumen Ditolak",
+    message: `Dokumen ${doc.documentType.name} Anda telah ${
+      decision === "APPROVED" ? "disetujui" : "ditolak"
+    }.${note ? ` Catatan: ${note}` : ""}`,
+    relatedEntityType: "DocumentRecord",
+    relatedEntityId: id,
   });
 
   await logActivity({

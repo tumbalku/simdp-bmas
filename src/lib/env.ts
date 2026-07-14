@@ -42,6 +42,15 @@ const envSchema = z
     CRON_SECRET: z.string().min(1, "CRON_SECRET wajib diisi"),
 
     RESEND_API_KEY: optionalString,
+    EMAIL_FROM: optionalString,
+    PUSHER_APP_ID: optionalString,
+    PUSHER_KEY: optionalString,
+    PUSHER_SECRET: optionalString,
+    PUSHER_CLUSTER: optionalString,
+    NEXT_PUBLIC_PUSHER_KEY: optionalString,
+    NEXT_PUBLIC_PUSHER_CLUSTER: optionalString,
+    INNGEST_EVENT_KEY: optionalString,
+    INNGEST_SIGNING_KEY: optionalString,
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   })
   .superRefine((env, context) => {

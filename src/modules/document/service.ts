@@ -540,9 +540,12 @@ export async function processExpiredDocumentsAndReminders() {
     if (!doc.expiryDate) continue;
     const docTime = doc.expiryDate.getTime();
 
+    const { enqueueNotificationDispatch } = await import("@/modules/notification/service");
+
     if (docTime === h30Date.getTime() && !doc.reminderH30SentAt) {
+      const notificationId = crypto.randomUUID();
       await repo.createNotificationAndUpdateReminder({
-        notificationId: crypto.randomUUID(),
+        notificationId,
         userId: doc.owner.userId,
         title: "Peringatan Kedaluwarsa Dokumen (H-30)",
         message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
@@ -552,10 +555,14 @@ export async function processExpiredDocumentsAndReminders() {
         documentRecordId: doc.id,
         reminderField: "reminderH30SentAt",
       });
+      await enqueueNotificationDispatch({ notificationId, userId: doc.owner.userId }).catch((err) => {
+        console.error("Failed to enqueue expiry reminder notification H30:", err);
+      });
       remindersSent.H30++;
     } else if (docTime === h7Date.getTime() && !doc.reminderH7SentAt) {
+      const notificationId = crypto.randomUUID();
       await repo.createNotificationAndUpdateReminder({
-        notificationId: crypto.randomUUID(),
+        notificationId,
         userId: doc.owner.userId,
         title: "Peringatan Kedaluwarsa Dokumen (H-7)",
         message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
@@ -565,10 +572,14 @@ export async function processExpiredDocumentsAndReminders() {
         documentRecordId: doc.id,
         reminderField: "reminderH7SentAt",
       });
+      await enqueueNotificationDispatch({ notificationId, userId: doc.owner.userId }).catch((err) => {
+        console.error("Failed to enqueue expiry reminder notification H7:", err);
+      });
       remindersSent.H7++;
     } else if (docTime === h1Date.getTime() && !doc.reminderH1SentAt) {
+      const notificationId = crypto.randomUUID();
       await repo.createNotificationAndUpdateReminder({
-        notificationId: crypto.randomUUID(),
+        notificationId,
         userId: doc.owner.userId,
         title: "Peringatan Kedaluwarsa Dokumen (H-1)",
         message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
@@ -577,6 +588,9 @@ export async function processExpiredDocumentsAndReminders() {
         relatedEntityId: doc.id,
         documentRecordId: doc.id,
         reminderField: "reminderH1SentAt",
+      });
+      await enqueueNotificationDispatch({ notificationId, userId: doc.owner.userId }).catch((err) => {
+        console.error("Failed to enqueue expiry reminder notification H1:", err);
       });
       remindersSent.H1++;
     }
