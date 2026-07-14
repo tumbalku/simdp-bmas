@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getStatistics, getEmployeeStatistics } from "@/modules/statistics/actions";
-import { AdminDashboardView } from "@/modules/statistics/components/AdminDashboardView";
+import { getEmployeeStatistics } from "@/modules/statistics/actions";
 import { EmployeeDashboardView } from "@/modules/statistics/components/EmployeeDashboardView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -12,25 +13,6 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const role = session.role;
-
-  if (role === "ADMIN" || role === "STAFF") {
-    const response = await getStatistics({});
-    if (!response.ok) {
-      return (
-        <Alert variant="destructive" className="my-6">
-          <AlertCircle className="size-4" />
-          <AlertTitle>Kesalahan Sistem</AlertTitle>
-          <AlertDescription>
-            Gagal mengambil data statistik dashboard. Silakan coba beberapa saat lagi.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return <AdminDashboardView stats={response.data} />;
-  }
-
-  // Role EMPLOYEE
   const response = await getEmployeeStatistics();
   if (!response.ok) {
     return (

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   FileText,
+  BarChart3,
   ShieldCheck,
   Settings,
   ClipboardCheck,
@@ -59,6 +60,12 @@ export const navItems = [
     label: navCopy.verification,
     href: ROUTES.verification,
     icon: ClipboardCheck,
+    roles: ROLE_GROUPS.adminStaff,
+  },
+  {
+    label: navCopy.statistics,
+    href: ROUTES.statistics,
+    icon: BarChart3,
     roles: ROLE_GROUPS.adminStaff,
   },
   {

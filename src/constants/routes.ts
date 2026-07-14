@@ -6,6 +6,7 @@ export const ROUTES = {
   dashboard: "/dashboard",
   documents: "/documents",
   verification: "/verification",
+  statistics: "/statistics",
   profile: "/profile",
   settings: "/settings",
   securityLog: "/security-log",
