@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FileText } from "lucide-react";
+import { FileText, Settings2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { DataTableCard } from "@/components/shared/DataTableCard";
 import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
@@ -220,6 +220,13 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
       <PageHeader
         title="Dokumen Pegawai"
         description="Pantau seluruh dokumen pegawai, status verifikasi, dan metadata berkas."
+        actions={[
+          {
+            label: "Jenis Dokumen",
+            href: ROUTES.masterDataDocumentTypes,
+            icon: Settings2,
+          },
+        ]}
       />
 
       <DocumentSearchFilter

@@ -12,6 +12,8 @@ export const ROUTES = {
   securityLog: "/security-log",
   masterData: "/master-data",
   masterDataDocuments: "/master-data/documents",
+  masterDataDocumentTypes: "/master-data/documents/types",
+  masterDataDocumentTypeAdd: "/master-data/documents/types/add",
   masterDataEmployees: "/master-data/employees",
   masterDataEmployeeAdd: "/master-data/employees/add",
   masterDataCategories: "/master-data/categories",

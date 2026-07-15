@@ -9,6 +9,25 @@ export async function findManyAvailableDocumentTypes() {
   });
 }
 
+export async function findDocumentTypesWithPagination(where: any, skip: number, limit: number) {
+  return Promise.all([
+    prisma.documentType.findMany({
+      where,
+      include: {
+        employmentStatuses: { include: { employmentStatus: { select: { name: true } } } },
+        employeeGroups: { include: { employeeGroup: { select: { name: true } } } },
+        professionGroups: { include: { professionGroup: { select: { name: true } } } },
+        employeeRanks: { include: { employeeRank: { select: { name: true } } } },
+        workplaces: { include: { workplace: { select: { name: true } } } },
+      },
+      orderBy: [{ isMandatory: "desc" }, { name: "asc" }],
+      skip,
+      take: limit,
+    }),
+    prisma.documentType.count({ where }),
+  ]);
+}
+
 export async function findEmployeeByUserId(userId: string) {
   return prisma.employee.findFirst({
     where: { userId, deletedAt: null },

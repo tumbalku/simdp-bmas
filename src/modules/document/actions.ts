@@ -15,12 +15,14 @@ import {
   getAvailableDocumentTypes,
   uploadDocumentRecord,
   getDocumentRecordsWithPagination,
+  getDocumentTypesWithPagination,
 } from "@/modules/document/service";
 import {
   crudDocumentTypeSchema,
   uploadDocumentSchema,
   documentRecordsQuerySchema,
   documentRecordsWithPaginationQuerySchema,
+  documentTypesWithPaginationQuerySchema,
 } from "./schema";
 
 export async function getDocumentRecordsAction(filter?: unknown) {
@@ -53,6 +55,23 @@ export async function getDocumentRecordsWithPaginationAction(filter?: unknown) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getDocumentRecordsWithPaginationAction error:", error);
+    return handleActionError(error);
+  }
+}
+
+export async function getDocumentTypesWithPaginationAction(filter?: unknown) {
+  try {
+    await requireAuth("ADMIN");
+    const parsed = documentTypesWithPaginationQuerySchema.optional().safeParse(filter);
+
+    if (!parsed.success) {
+      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
+    }
+
+    const data = await getDocumentTypesWithPagination(parsed.data || {});
+    return { ok: true as const, data };
+  } catch (error: any) {
+    console.error("getDocumentTypesWithPaginationAction error:", error);
     return handleActionError(error);
   }
 }
