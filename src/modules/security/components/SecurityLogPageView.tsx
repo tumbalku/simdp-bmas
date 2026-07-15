@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Activity, AlertTriangle, CheckCircle2, Filter, Search, ShieldCheck } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PaginationItems } from "@/components/shared/PaginationItems";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,9 +14,7 @@ import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
@@ -100,31 +99,6 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
     const nextPageSize = value ?? rowsPerPage;
     setRowsPerPage(nextPageSize);
     window.location.href = buildPageUrl(PAGINATION.defaultPage, nextPageSize);
-  };
-
-  const renderPaginationItems = () => {
-    const items = [];
-    const { page, totalPages } = pagination;
-
-    for (let item = 1; item <= totalPages; item += 1) {
-      if (item === 1 || item === totalPages || (item >= page - 1 && item <= page + 1)) {
-        items.push(
-          <PaginationItem key={item}>
-            <PaginationLink href={buildPageUrl(item)} isActive={item === page}>
-              {item}
-            </PaginationLink>
-          </PaginationItem>,
-        );
-      } else if (item === page - 2 || item === page + 2) {
-        items.push(
-          <PaginationItem key={item}>
-            <PaginationEllipsis />
-          </PaginationItem>,
-        );
-      }
-    }
-
-    return items;
   };
 
   return (
@@ -296,7 +270,11 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
                     aria-disabled={!pagination.hasPreviousPage}
                   />
                 </PaginationItem>
-                {renderPaginationItems()}
+                <PaginationItems
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  getHref={buildPageUrl}
+                />
                 <PaginationItem>
                   <PaginationNext
                     href={buildPageUrl(Math.min(pagination.totalPages, pagination.page + 1))}

@@ -26,22 +26,22 @@ export function MetricCard({
   valueClassName,
 }: MetricCardProps) {
   return (
-    <Card className="gap-1 border-muted-foreground/10 bg-card shadow-sm">
+    <Card size="sm" className="gap-1 border-muted-foreground/10 bg-card shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
         </CardTitle>
         <div
           className={cn(
-            "flex size-7 items-center justify-center rounded-lg",
+            "flex size-6 items-center justify-center rounded-md",
             iconClassName,
           )}
         >
-          <Icon className="size-4" />
+          <Icon className="size-3.5" />
         </div>
       </CardHeader>
       <CardContent>
-        <div className={cn("text-2xl font-bold", valueClassName)}>{value}</div>
+        <div className={cn("text-xl font-semibold", valueClassName)}>{value}</div>
         <p className="mt-1 text-[10px] font-medium text-muted-foreground">
           {description}
         </p>

@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { getDocumentRecordsWithPagination } from "@/modules/document/service";
 import { MasterDataDocumentsView } from "@/modules/document/components/MasterDataDocumentsView";
+import { PAGINATION } from "@/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,8 @@ export default async function MasterDataDocumentsPage({ searchParams }: PageProp
   await requireAuth("ADMIN");
 
   const params = await searchParams;
-  const page = params.page ? parseInt(params.page, 10) : 1;
-  const limit = params.limit ? parseInt(params.limit, 10) : 20;
+  const page = params.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;
+  const limit = params.limit ? parseInt(params.limit, 10) : PAGINATION.defaultPageSize;
   const status = params.status as "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED" | undefined;
   const search = params.search;
 

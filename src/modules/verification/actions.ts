@@ -10,6 +10,7 @@ import {
   getVerificationHistory as getHistoryService,
   getVerificationDocumentDetail,
 } from "@/modules/verification/service";
+import { generateDownloadUrl } from "@/modules/document/service";
 
 const verifyDocumentSchema = z
   .object({
@@ -142,6 +143,31 @@ export async function getVerificationDocumentDetailAction(documentId: string) {
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("getVerificationDocumentDetailAction error:", error);
+    return {
+      ok: false as const,
+      error: {
+        code:
+          error.message === "UNAUTHENTICATED"
+            ? "UNAUTHENTICATED"
+            : error.message === "FORBIDDEN"
+            ? "FORBIDDEN"
+            : error.message === "Dokumen tidak ditemukan"
+            ? "NOT_FOUND"
+            : "INTERNAL_ERROR",
+        message: error.message,
+      },
+    };
+  }
+}
+
+export async function getVerificationDocumentPreviewUrlAction(documentId: string) {
+  try {
+    const session = await requireAuth("STAFF");
+    const url = await generateDownloadUrl(documentId, session);
+
+    return { ok: true as const, data: { url } };
+  } catch (error: any) {
+    console.error("getVerificationDocumentPreviewUrlAction error:", error);
     return {
       ok: false as const,
       error: {

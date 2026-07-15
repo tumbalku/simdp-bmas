@@ -1,34 +1,33 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Clock3,
-  ShieldCheck,
   AlertTriangle,
-  User,
   Building2,
   Calendar,
+  CheckCircle2,
+  Clock3,
+  FileText,
   Hash,
-  ExternalLink,
+  ShieldCheck,
+  User,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Badge } from "@/components/ui/badge";
+import {
+  DocumentInfoCard,
+  DocumentPreviewPanel,
+  DocumentReviewLayout,
+  DocumentStatusCard,
+  DocumentVerificationHistory,
+  type ReviewInfoField,
+  type ReviewStatusConfig,
+} from "@/components/shared/document-review";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -47,14 +46,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
 import { DATE_FORMATS, DATE_LOCALE } from "@/constants";
-import { verifyDocumentAction } from "@/modules/verification/actions";
+import {
+  getVerificationDocumentPreviewUrlAction,
+  verifyDocumentAction,
+} from "@/modules/verification/actions";
 import { VERIFICATION_STATUS_LABELS } from "@/modules/verification/constants";
-
-/* -------------------------------------------------------------------------- */
-/*  Types                                                                     */
-/* -------------------------------------------------------------------------- */
 
 type DocumentDetail = {
   id: string;
@@ -86,11 +83,7 @@ type VerificationDetailViewProps = {
   document: DocumentDetail;
 };
 
-/* -------------------------------------------------------------------------- */
-/*  Helpers                                                                   */
-/* -------------------------------------------------------------------------- */
-
-const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock3 }> = {
+const statusConfig: Record<string, ReviewStatusConfig> = {
   PENDING: {
     label: VERIFICATION_STATUS_LABELS.PENDING,
     color: "text-amber-600 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950 dark:border-amber-800",
@@ -133,41 +126,112 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Terjadi kesalahan.";
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Component                                                                 */
-/* -------------------------------------------------------------------------- */
+function getOwnerFields(document: DocumentDetail): ReviewInfoField[] {
+  return [
+    { key: "ownerName", icon: User, label: "Nama", value: document.ownerName },
+    {
+      key: "ownerEmployeeId",
+      icon: Hash,
+      label: "NIP",
+      value: document.ownerEmployeeId,
+      hidden: !document.ownerEmployeeId,
+    },
+    {
+      key: "ownerNik",
+      icon: Hash,
+      label: "NIK",
+      value: document.ownerNik,
+      hidden: !document.ownerNik,
+    },
+    {
+      key: "ownerWorkplace",
+      icon: Building2,
+      label: "Unit Kerja",
+      value: document.ownerWorkplace,
+      hidden: !document.ownerWorkplace,
+    },
+  ];
+}
 
-export function VerificationDetailView({
-  document,
-}: VerificationDetailViewProps) {
+function getDocumentFields(document: DocumentDetail): ReviewInfoField[] {
+  return [
+    { key: "documentTypeName", icon: FileText, label: "Jenis Dokumen", value: document.documentTypeName },
+    { key: "archiveCategory", icon: Hash, label: "Kategori Arsip", value: document.archiveCategory },
+    { key: "fileName", icon: FileText, label: "Nama File", value: document.fileName },
+    { key: "fileSize", icon: FileText, label: "Ukuran", value: formatFileSize(document.fileSize) },
+    {
+      key: "documentNumber",
+      icon: Hash,
+      label: "Nomor Dokumen",
+      value: document.documentNumber,
+      hidden: !document.documentNumber,
+    },
+    {
+      key: "mimeType",
+      icon: FileText,
+      label: "Jenis File",
+      value: document.mimeType,
+      hidden: !document.mimeType,
+    },
+    { key: "uploadedAt", icon: Calendar, label: "Tanggal Unggah", value: formatDate(document.uploadedAt) },
+    { key: "issueDate", icon: Calendar, label: "Tanggal Terbit", value: formatDate(document.issueDate) },
+    {
+      key: "expiryDate",
+      icon: Calendar,
+      label: "Tanggal Kedaluwarsa",
+      value: formatDate(document.expiryDate),
+    },
+  ];
+}
+
+export function VerificationDetailView({ document }: VerificationDetailViewProps) {
   const router = useRouter();
   const status = statusConfig[document.status] || statusConfig.PENDING;
-  const StatusIcon = status.icon;
   const isPending = document.status === "PENDING";
 
-  /* Approve */
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
   const [approving, setApproving] = useState(false);
-
-  /* Reject */
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   const [rejectError, setRejectError] = useState("");
   const [rejecting, setRejecting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPreviewUrl() {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const payload = await getVerificationDocumentPreviewUrlAction(document.id);
+        if (!payload.ok || !payload.data?.url) {
+          throw new Error(payload.error?.message || "Gagal menyiapkan pratinjau berkas.");
+        }
+        if (!cancelled) setPreviewUrl(payload.data.url);
+      } catch (error: unknown) {
+        if (!cancelled) setPreviewError(getErrorMessage(error));
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    }
+
+    void loadPreviewUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [document.id]);
 
   const handleApprove = useCallback(async () => {
     setApproving(true);
     const toastId = toast.loading("Menyetujui dokumen...");
     try {
-      const result = await verifyDocumentAction(
-        document.id,
-        "APPROVED",
-        null
-      );
+      const result = await verifyDocumentAction(document.id, "APPROVED", null);
       if (!result.ok) {
-        toast.error(result.error?.message || "Gagal menyetujui dokumen.", {
-          id: toastId,
-        });
+        toast.error(result.error?.message || "Gagal menyetujui dokumen.", { id: toastId });
         return;
       }
       toast.success("Dokumen berhasil disetujui.", { id: toastId });
@@ -186,19 +250,14 @@ export function VerificationDetailView({
       setRejectError("Catatan penolakan wajib diisi minimal 5 karakter.");
       return;
     }
+
     setRejectError("");
     setRejecting(true);
     const toastId = toast.loading("Menolak dokumen...");
     try {
-      const result = await verifyDocumentAction(
-        document.id,
-        "REJECTED",
-        trimmed
-      );
+      const result = await verifyDocumentAction(document.id, "REJECTED", trimmed);
       if (!result.ok) {
-        toast.error(result.error?.message || "Gagal menolak dokumen.", {
-          id: toastId,
-        });
+        toast.error(result.error?.message || "Gagal menolak dokumen.", { id: toastId });
         return;
       }
       toast.success("Dokumen berhasil ditolak.", { id: toastId });
@@ -211,255 +270,87 @@ export function VerificationDetailView({
     }
   }, [document.id, rejectNote, router]);
 
+  const statusActions = isPending ? (
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+      <Button
+        variant="default"
+        size="sm"
+        className="bg-emerald-600 hover:bg-emerald-700"
+        onClick={() => setShowApproveConfirm(true)}
+        disabled={approving}
+      >
+        <CheckCircle2 className="mr-1.5 size-3.5" />
+        Setujui
+      </Button>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={() => {
+          setRejectNote("");
+          setRejectError("");
+          setShowRejectDialog(true);
+        }}
+        disabled={rejecting}
+      >
+        <XCircle className="mr-1.5 size-3.5" />
+        Tolak
+      </Button>
+    </div>
+  ) : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         backHref="/verification"
         backLabel="Kembali ke antrian"
-        eyebrow="Verifikasi dokumen"
         title={document.title || document.documentTypeName}
         description={`${document.documentTypeName} milik ${document.ownerName}`}
-        trailing={
-          <Link
-            href={`/documents/${document.id}`}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ExternalLink className="size-4" />
-            Lihat di dokumen
-          </Link>
+      />
+
+      <DocumentReviewLayout
+        preview={
+          <DocumentPreviewPanel
+            fileName={document.fileName}
+            mimeType={document.mimeType}
+            previewError={previewError}
+            previewLoading={previewLoading}
+            previewUrl={previewUrl}
+            title={document.title || document.documentTypeName}
+          />
+        }
+        sidebar={
+          <>
+            <DocumentStatusCard
+              label="Status Pemeriksaan"
+              status={status}
+              actions={statusActions}
+            />
+            <DocumentInfoCard
+              title="Pemilik Dokumen"
+              description="Informasi pegawai pengirim berkas."
+              icon={User}
+              fields={getOwnerFields(document)}
+            />
+            <DocumentInfoCard
+              title="Informasi Dokumen"
+              description="Detail metadata dan informasi file dokumen."
+              icon={FileText}
+              fields={getDocumentFields(document)}
+              columns={2}
+            />
+          </>
+        }
+        history={
+          <DocumentVerificationHistory
+            histories={document.verificationHistories}
+            statusConfig={statusConfig}
+            formatDate={formatDate}
+            emptyDescription={isPending ? "Dokumen ini menunggu verifikasi dari staf kepegawaian." : undefined}
+          />
         }
       />
 
-      {/* Status banner + quick actions */}
-      <Card
-        className={`border-l-4 ${isPending ? "border-l-amber-500" : document.status === "APPROVED" ? "border-l-emerald-500" : document.status === "REJECTED" ? "border-l-rose-500" : "border-l-slate-400"}`}
-      >
-        <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex size-10 items-center justify-center rounded-full ${status.color.split(" ").slice(0, 2).join(" ")}`}
-            >
-              <StatusIcon className="size-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">Status</p>
-              <Badge
-                variant="outline"
-                className={`mt-0.5 ${status.color}`}
-              >
-                {status.label}
-              </Badge>
-            </div>
-          </div>
-
-          {isPending && (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="default"
-                className="bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => setShowApproveConfirm(true)}
-                disabled={approving}
-              >
-                <CheckCircle2 className="mr-1.5 size-4" />
-                Setujui Dokumen
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  setRejectNote("");
-                  setRejectError("");
-                  setShowRejectDialog(true);
-                }}
-                disabled={rejecting}
-              >
-                <XCircle className="mr-1.5 size-4" />
-                Tolak Dokumen
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        {/* Document Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="size-5" />
-              Informasi Dokumen
-            </CardTitle>
-            <CardDescription>
-              Detail metadata dan informasi file dokumen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <InfoItem
-                icon={FileText}
-                label="Jenis Dokumen"
-                value={document.documentTypeName}
-              />
-              <InfoItem
-                icon={Hash}
-                label="Kategori Arsip"
-                value={document.archiveCategory}
-              />
-              <InfoItem
-                icon={FileText}
-                label="Nama File"
-                value={document.fileName}
-              />
-              <InfoItem
-                icon={FileText}
-                label="Ukuran"
-                value={formatFileSize(document.fileSize)}
-              />
-              {document.documentNumber && (
-                <InfoItem
-                  icon={Hash}
-                  label="Nomor Dokumen"
-                  value={document.documentNumber}
-                />
-              )}
-              {document.mimeType && (
-                <InfoItem
-                  icon={FileText}
-                  label="Jenis File"
-                  value={document.mimeType}
-                />
-              )}
-              <InfoItem
-                icon={Calendar}
-                label="Tanggal Unggah"
-                value={formatDate(document.uploadedAt)}
-              />
-              <InfoItem
-                icon={Calendar}
-                label="Tanggal Terbit"
-                value={formatDate(document.issueDate)}
-              />
-              <InfoItem
-                icon={Calendar}
-                label="Tanggal Kedaluwarsa"
-                value={formatDate(document.expiryDate)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Owner Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="size-5" />
-              Pemilik Dokumen
-            </CardTitle>
-            <CardDescription>
-              Informasi pegawai pemilik dokumen.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <InfoItem icon={User} label="Nama" value={document.ownerName} />
-            {document.ownerEmployeeId && (
-              <InfoItem
-                icon={Hash}
-                label="NIP"
-                value={document.ownerEmployeeId}
-              />
-            )}
-            {document.ownerNik && (
-              <InfoItem icon={Hash} label="NIK" value={document.ownerNik} />
-            )}
-            {document.ownerWorkplace && (
-              <InfoItem
-                icon={Building2}
-                label="Unit Kerja"
-                value={document.ownerWorkplace}
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Verification History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="size-5" />
-            Riwayat Verifikasi
-          </CardTitle>
-          <CardDescription>
-            Semua aktivitas verifikasi yang pernah dilakukan pada dokumen ini.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {document.verificationHistories.length === 0 ? (
-            <div className="flex min-h-[120px] items-center justify-center text-center">
-              <div className="space-y-2">
-                <Clock3 className="mx-auto size-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  Belum ada riwayat verifikasi.
-                </p>
-                {isPending && (
-                  <p className="text-xs text-muted-foreground">
-                    Dokumen ini menunggu verifikasi dari staf kepegawaian.
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {document.verificationHistories.map((history, index) => {
-                const hStatus =
-                  statusConfig[history.status] || statusConfig.PENDING;
-                const HIcon = hStatus.icon;
-                return (
-                  <div
-                    key={history.id}
-                    className="relative rounded-lg border bg-card p-4"
-                  >
-                    {index > 0 && (
-                      <div className="absolute -top-3 left-7 h-3 w-px border-l border-dashed" />
-                    )}
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`flex size-8 shrink-0 items-center justify-center rounded-full ${hStatus.color.split(" ").slice(0, 2).join(" ")}`}
-                      >
-                        <HIcon className="size-4" />
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <Badge
-                            variant="outline"
-                            className={hStatus.color}
-                          >
-                            {hStatus.label}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(history.reviewedAt)}
-                          </span>
-                        </div>
-                        <p className="text-sm">
-                          {history.reviewNote || "Tidak ada catatan."}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Reviewer: {history.reviewerName}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Approve Confirmation ── */}
-      <AlertDialog
-        open={showApproveConfirm}
-        onOpenChange={setShowApproveConfirm}
-      >
+      <AlertDialog open={showApproveConfirm} onOpenChange={setShowApproveConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Setujui Dokumen</AlertDialogTitle>
@@ -468,11 +359,8 @@ export function VerificationDetailView({
               <span className="font-medium text-foreground">
                 &ldquo;{document.title || document.documentTypeName}&rdquo;
               </span>{" "}
-              milik{" "}
-              <span className="font-medium text-foreground">
-                {document.ownerName}
-              </span>
-              . Tindakan ini tidak dapat dibatalkan.
+              milik <span className="font-medium text-foreground">{document.ownerName}</span>.
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -488,7 +376,6 @@ export function VerificationDetailView({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Reject Dialog ── */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -498,11 +385,8 @@ export function VerificationDetailView({
               <span className="font-medium text-foreground">
                 &ldquo;{document.title || document.documentTypeName}&rdquo;
               </span>{" "}
-              milik{" "}
-              <span className="font-medium text-foreground">
-                {document.ownerName}
-              </span>
-              . Berikan alasan penolakan sebagai catatan.
+              milik <span className="font-medium text-foreground">{document.ownerName}</span>.
+              Berikan alasan penolakan sebagai catatan.
             </DialogDescription>
           </DialogHeader>
 
@@ -517,9 +401,7 @@ export function VerificationDetailView({
               rows={4}
               className={rejectError ? "border-destructive" : ""}
             />
-            {rejectError && (
-              <p className="text-xs text-destructive">{rejectError}</p>
-            )}
+            {rejectError && <p className="text-xs text-destructive">{rejectError}</p>}
           </div>
 
           <DialogFooter>
@@ -532,42 +414,12 @@ export function VerificationDetailView({
             >
               Batal
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={rejecting}
-            >
+            <Button variant="destructive" onClick={handleReject} disabled={rejecting}>
               {rejecting ? "Memproses..." : "Ya, Tolak Dokumen"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Info Item Sub-component                                                   */
-/* -------------------------------------------------------------------------- */
-
-function InfoItem({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof FileText;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-xl border bg-muted/20 p-3">
-      <div className="flex items-center gap-2">
-        <Icon className="size-4 text-muted-foreground" />
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </span>
-      </div>
-      <div className="mt-1 text-sm font-medium">{value || "-"}</div>
     </div>
   );
 }

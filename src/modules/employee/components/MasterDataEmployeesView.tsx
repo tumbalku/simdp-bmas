@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Users, Search, UserPlus } from "lucide-react";
+import { PaginationItems } from "@/components/shared/PaginationItems";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,10 +23,8 @@ import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
-  PaginationEllipsis,
 } from "@/components/ui/pagination";
 
 type EmployeeSummary = {
@@ -82,31 +81,6 @@ export function MasterDataEmployeesView({ employees, pagination }: MasterDataEmp
 
   const handleResetFilter = () => {
     window.location.href = `/master-data/employees?limit=${rowsPerPage}`;
-  };
-
-  const renderPaginationItems = () => {
-    const items = [];
-    const { page, totalPages } = pagination;
-
-    for (let i = 1; i <= totalPages; i++) {
-      if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink href={buildPageUrl(i)} isActive={i === page}>
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      } else if (i === page - 2 || i === page + 2) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-    }
-
-    return items;
   };
 
   return (
@@ -264,7 +238,11 @@ export function MasterDataEmployeesView({ employees, pagination }: MasterDataEmp
                       <PaginationPrevious href={buildPageUrl(pagination.page - 1)} />
                     </PaginationItem>
                   )}
-                  {renderPaginationItems()}
+                  <PaginationItems
+                    page={pagination.page}
+                    totalPages={pagination.totalPages}
+                    getHref={buildPageUrl}
+                  />
                   {pagination.page < pagination.totalPages && (
                     <PaginationItem>
                       <PaginationNext href={buildPageUrl(pagination.page + 1)} />
