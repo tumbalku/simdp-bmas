@@ -35,27 +35,27 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-1.5", className)}>
       {backHref ? (
         <Link
           href={backHref}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-3.5" />
           {backLabel ?? "Kembali"}
         </Link>
       ) : null}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           {eyebrow ? (
-            <p className="text-sm font-medium text-primary">{eyebrow}</p>
+            <p className="text-xs font-medium text-primary">{eyebrow}</p>
           ) : null}
-          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             {title}
           </h1>
           {description ? (
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
           ) : null}
         </div>
 
@@ -71,15 +71,15 @@ export function PageHeader({
                   href={action.href}
                   className={buttonVariants({
                     variant: action.variant ?? "default",
-                    size: "lg",
+                    size: "default",
                   })}
                 >
                   {Icon && iconPosition === "start" ? (
-                    <Icon className="size-4" />
+                    <Icon className="size-3.5" />
                   ) : null}
                   {action.label}
                   {Icon && iconPosition === "end" ? (
-                    <Icon className="size-4" />
+                    <Icon className="size-3.5" />
                   ) : null}
                 </Link>
               );

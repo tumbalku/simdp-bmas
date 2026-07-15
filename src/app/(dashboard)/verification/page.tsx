@@ -1,18 +1,39 @@
-import { redirect } from "next/navigation";
-import { requireAuth } from "@/lib/auth";
-import { getVerificationQueue } from "@/modules/verification/actions";
-import { getDocumentTypeOptionsAction } from "@/modules/document/actions";
-import { VerificationQueueView } from "@/modules/verification/components/VerificationQueueView";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PAGINATION } from "@/constants";
+import { requireAuth } from "@/lib/auth";
+import { getDocumentTypeOptionsAction } from "@/modules/document/actions";
+import { getVerificationQueue } from "@/modules/verification/actions";
+import { VerificationQueueView } from "@/modules/verification/components/VerificationQueueView";
 
 export const dynamic = "force-dynamic";
 
-export default async function VerificationPage() {
-  const session = await requireAuth("STAFF");
+type PageProps = {
+  searchParams?: Promise<{
+    page?: string;
+    limit?: string;
+    search?: string;
+    documentTypeId?: string;
+  }>;
+};
+
+export default async function VerificationPage({ searchParams }: PageProps) {
+  await requireAuth("STAFF");
+
+  const params = await searchParams;
+  const page = params?.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;
+  const pageSize = params?.limit
+    ? parseInt(params.limit, 10)
+    : PAGINATION.defaultPageSize;
 
   const [queueResult, docTypesResult] = await Promise.all([
-    getVerificationQueue({ page: 1, pageSize: 15 }),
+    getVerificationQueue({
+      page,
+      pageSize,
+      search: params?.search,
+      documentTypeId: params?.documentTypeId,
+    }),
     getDocumentTypeOptionsAction(),
   ]);
 

@@ -1,9 +1,20 @@
-import type { ReactNode } from "react";
-import { FileText } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Calendar, CheckCircle2, Clock3, FileText, Hash, User, XCircle } from "lucide-react";
+
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Badge } from "@/components/ui/badge";
+import {
+  DocumentInfoCard,
+  DocumentPreviewPanel,
+  DocumentReviewLayout,
+  DocumentStatusCard,
+  DocumentVerificationHistory,
+  type ReviewInfoField,
+  type ReviewStatusConfig,
+} from "@/components/shared/document-review";
+import { getDocumentPreviewUrlAction } from "@/modules/document/actions";
 import { DownloadDocumentButton } from "@/modules/document/components/DownloadDocumentButton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type DocumentDetail = {
   id: string;
@@ -20,16 +31,57 @@ type DocumentDetail = {
   archiveCategory: string;
   ownerName: string;
   ownerEmployeeId: string | null;
-  verificationHistories: Array<{ id: string; status: string; reviewNote: string | null; reviewedAt: string | null; reviewerName: string }>;
+  verificationHistories: Array<{
+    id: string;
+    status: string;
+    reviewNote: string | null;
+    reviewedAt: string | null;
+    reviewerName: string;
+  }>;
 };
 
 type DocumentDetailViewProps = {
   document: DocumentDetail;
+  backHref?: string;
+  backLabel?: string;
+};
+
+type PreviewUrlResult = Awaited<ReturnType<typeof getDocumentPreviewUrlAction>>;
+
+const statusConfig: Record<string, ReviewStatusConfig> = {
+  PENDING: {
+    label: "Menunggu",
+    icon: Clock3,
+    color: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  APPROVED: {
+    label: "Disetujui",
+    icon: CheckCircle2,
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  },
+  REJECTED: {
+    label: "Ditolak",
+    icon: XCircle,
+    color: "bg-rose-100 text-rose-700 border-rose-200",
+  },
+  EXPIRED: {
+    label: "Kedaluwarsa",
+    icon: Clock3,
+    color: "bg-slate-100 text-slate-700 border-slate-200",
+  },
+  REPLACED: {
+    label: "Diganti",
+    icon: FileText,
+    color: "bg-slate-100 text-slate-700 border-slate-200",
+  },
 };
 
 function formatDate(value: string | null) {
   if (!value) return "-";
-  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function formatFileSize(value: number | null) {
@@ -38,68 +90,131 @@ function formatFileSize(value: number | null) {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function DocumentDetailView({ document }: DocumentDetailViewProps) {
+function getActionErrorMessage(result: PreviewUrlResult) {
+  if (result.ok) return null;
+  return result.error.message || "Gagal menyiapkan pratinjau berkas.";
+}
+
+function getOwnerFields(document: DocumentDetail): ReviewInfoField[] {
+  return [
+    { key: "ownerName", icon: User, label: "Nama", value: document.ownerName },
+    {
+      key: "ownerEmployeeId",
+      icon: Hash,
+      label: "NIP",
+      value: document.ownerEmployeeId,
+      hidden: !document.ownerEmployeeId,
+    },
+  ];
+}
+
+function getDocumentFields(document: DocumentDetail): ReviewInfoField[] {
+  return [
+    { key: "documentTypeName", icon: FileText, label: "Jenis Dokumen", value: document.documentTypeName },
+    { key: "archiveCategory", icon: Hash, label: "Kategori Arsip", value: document.archiveCategory },
+    { key: "fileName", icon: FileText, label: "Nama File", value: document.fileName },
+    { key: "fileSize", icon: FileText, label: "Ukuran", value: formatFileSize(document.fileSize) },
+    { key: "documentNumber", icon: Hash, label: "Nomor Dokumen", value: document.documentNumber || "-" },
+    { key: "mimeType", icon: FileText, label: "Jenis File", value: document.mimeType || "-" },
+    { key: "uploadedAt", icon: Calendar, label: "Tanggal Unggah", value: formatDate(document.uploadedAt) },
+    { key: "issueDate", icon: Calendar, label: "Tanggal Terbit", value: formatDate(document.issueDate) },
+    {
+      key: "expiryDate",
+      icon: Calendar,
+      label: "Tanggal Kedaluwarsa",
+      value: formatDate(document.expiryDate),
+    },
+  ];
+}
+
+export function DocumentDetailView({
+  document,
+  backHref = "/documents",
+  backLabel = "Kembali ke dokumen",
+}: DocumentDetailViewProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(true);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  const status = statusConfig[document.status] ?? {
+    label: document.status,
+    icon: FileText,
+    color: "bg-slate-100 text-slate-700 border-slate-200",
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPreviewUrl() {
+      setPreviewLoading(true);
+      setPreviewError(null);
+
+      const result = await getDocumentPreviewUrlAction(document.id);
+      if (cancelled) return;
+
+      if (result.ok) {
+        setPreviewUrl(result.data.url);
+      } else {
+        setPreviewError(getActionErrorMessage(result));
+      }
+
+      setPreviewLoading(false);
+    }
+
+    void loadPreviewUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [document.id]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
-        backHref="/documents"
-        backLabel="Kembali ke dokumen"
-        title={document.title}
+        backHref={backHref}
+        backLabel={backLabel}
+        title={document.title || document.documentTypeName}
         description={`${document.documentTypeName} milik ${document.ownerName}`}
         trailing={<DownloadDocumentButton documentId={document.id} />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><FileText className="size-5" /> Metadata dokumen</CardTitle>
-            <CardDescription>Informasi file, tanggal, dan status verifikasi.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <Info label="Status" value={<Badge>{document.status}</Badge>} />
-            <Info label="Kategori arsip" value={document.archiveCategory} />
-            <Info label="Nama file" value={document.fileName} />
-            <Info label="Ukuran" value={formatFileSize(document.fileSize)} />
-            <Info label="Nomor dokumen" value={document.documentNumber || "-"} />
-            <Info label="MIME" value={document.mimeType || "-"} />
-            <Info label="Tanggal upload" value={formatDate(document.uploadedAt)} />
-            <Info label="Tanggal terbit" value={formatDate(document.issueDate)} />
-            <Info label="Tanggal kedaluwarsa" value={formatDate(document.expiryDate)} />
-            <Info label="Pemilik" value={`${document.ownerName} · ${document.ownerEmployeeId || "NIP belum ada"}`} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Riwayat verifikasi</CardTitle>
-            <CardDescription>Jejak status terakhir dokumen.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {document.verificationHistories.map((history) => (
-              <div key={history.id} className="space-y-2 rounded-xl border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <Badge variant="outline">{history.status}</Badge>
-                  <span className="text-xs text-muted-foreground">{formatDate(history.reviewedAt)}</span>
-                </div>
-                <p className="text-sm">{history.reviewNote || "Tidak ada catatan."}</p>
-                <p className="text-xs text-muted-foreground">Reviewer: {history.reviewerName}</p>
-              </div>
-            ))}
-            {document.verificationHistories.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Belum ada riwayat verifikasi.</p>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="space-y-1 rounded-xl border bg-muted/20 p-3">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium">{value}</div>
+      <DocumentReviewLayout
+        preview={
+          <DocumentPreviewPanel
+            fileName={document.fileName}
+            mimeType={document.mimeType}
+            previewError={previewError}
+            previewLoading={previewLoading}
+            previewUrl={previewUrl}
+            title={document.title || document.documentTypeName}
+          />
+        }
+        sidebar={
+          <>
+            <DocumentStatusCard label="Status Dokumen" status={status} />
+            <DocumentInfoCard
+              title="Pemilik Dokumen"
+              description="Informasi pegawai pemilik berkas."
+              icon={User}
+              fields={getOwnerFields(document)}
+            />
+            <DocumentInfoCard
+              title="Informasi Dokumen"
+              description="Detail metadata dan informasi file dokumen."
+              icon={FileText}
+              fields={getDocumentFields(document)}
+              columns={2}
+            />
+          </>
+        }
+        history={
+          <DocumentVerificationHistory
+            histories={document.verificationHistories}
+            statusConfig={statusConfig}
+            formatDate={formatDate}
+          />
+        }
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   restoreDocument,
   getDocumentRecordsForSession,
   getDocumentRecordDetailForSession,
+  generateDownloadUrl,
   getAvailableDocumentTypes,
   uploadDocumentRecord,
   getDocumentRecordsWithPagination,
@@ -63,6 +64,18 @@ export async function getDocumentRecordDetailAction(id: string) {
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getDocumentRecordDetailAction error:", error);
+    return handleActionError(error);
+  }
+}
+
+export async function getDocumentPreviewUrlAction(id: string) {
+  try {
+    const session = await requireAuth();
+    const url = await generateDownloadUrl(id, session);
+
+    return { ok: true as const, data: { url } };
+  } catch (error: any) {
+    console.error("getDocumentPreviewUrlAction error:", error);
     return handleActionError(error);
   }
 }

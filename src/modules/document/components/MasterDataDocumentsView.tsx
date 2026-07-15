@@ -3,32 +3,27 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { FileText, Search, Filter } from "lucide-react";
+import { FileText } from "lucide-react";
+import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
+import { DataTableCard } from "@/components/shared/DataTableCard";
+import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
+import { PaginationItems } from "@/components/shared/PaginationItems";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
-  PaginationEllipsis,
 } from "@/components/ui/pagination";
-import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROUTES } from "@/constants";
+import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROUTES, routeTo } from "@/constants";
 import { DOCUMENT_STATUS_OPTIONS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document/constants";
+
+type ViewMode = "grid" | "list";
 
 type DocumentRecord = {
   id: string;
@@ -83,6 +78,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
   const [rowsPerPage, setRowsPerPage] = useState(() =>
     String(pagination.limit || PAGINATION.defaultPageSize),
   );
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const buildPageUrl = (page: number, limit = rowsPerPage) => {
     const params = new URLSearchParams();
@@ -91,6 +87,16 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
     if (search) params.set("search", search);
     if (statusFilter !== "all") params.set("status", statusFilter);
     return `${ROUTES.masterDataDocuments}?${params.toString()}`;
+  };
+
+  const buildDocumentDetailUrl = (documentId: string) => {
+    const currentParams = searchParams.toString();
+    const returnTo = currentParams
+      ? `${ROUTES.masterDataDocuments}?${currentParams}`
+      : ROUTES.masterDataDocuments;
+    const detailParams = new URLSearchParams({ returnTo });
+
+    return `${routeTo.documentDetail(documentId)}?${detailParams.toString()}`;
   };
 
   const handleFilter = () => {
@@ -104,37 +110,110 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
   };
 
   const handleResetFilter = () => {
-    window.location.href = `${ROUTES.masterDataDocuments}?limit=${rowsPerPage}`;
+    const defaultLimit = String(PAGINATION.defaultPageSize);
+    setSearch("");
+    setStatusFilter("all");
+    setRowsPerPage(defaultLimit);
+    window.location.href = `${ROUTES.masterDataDocuments}?page=${PAGINATION.defaultPage}&limit=${defaultLimit}`;
   };
 
-  const renderPaginationItems = () => {
-    const items = [];
-    const { page, totalPages } = pagination;
+  const documentColumns: DataTableColumn<DocumentRecord>[] = [
+    {
+      key: "document",
+      header: "Dokumen",
+      cell: (doc) => (
+        <>
+          <div className="font-medium">{doc.title}</div>
+          <div className="text-xs text-muted-foreground">
+            {doc.fileName} - {formatFileSize(doc.fileSize)}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: "owner",
+      header: "Pemilik",
+      cell: (doc) => (
+        <>
+          <div>{doc.ownerName}</div>
+          <div className="text-xs text-muted-foreground">
+            {doc.ownerEmployeeId || "NIP belum ada"}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: "type",
+      header: "Jenis",
+      cell: (doc) => (
+        <>
+          <div className="text-sm">{doc.documentTypeName}</div>
+          <div className="text-xs text-muted-foreground">{doc.archiveCategory}</div>
+        </>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (doc) => {
+        const config = statusConfig[doc.status] ?? statusConfig.PENDING;
+        return <Badge variant={config.variant}>{config.label}</Badge>;
+      },
+    },
+    {
+      key: "uploadedAt",
+      header: "Upload",
+      cell: (doc) => formatDate(doc.uploadedAt),
+    },
+    {
+      key: "expiryDate",
+      header: "Kedaluwarsa",
+      cell: (doc) => formatDate(doc.expiryDate),
+    },
+    {
+      key: "action",
+      header: "Aksi",
+      headClassName: "text-right",
+      cellClassName: "text-right",
+      cell: (doc) => (
+        <Link
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+          href={buildDocumentDetailUrl(doc.id)}
+        >
+          Detail
+        </Link>
+      ),
+    },
+  ];
 
-    for (let i = 1; i <= totalPages; i++) {
-      if (
-        i === 1 ||
-        i === totalPages ||
-        (i >= page - 1 && i <= page + 1)
-      ) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink href={buildPageUrl(i)} isActive={i === page}>
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      } else if (i === page - 2 || i === page + 2) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-    }
+  const paginationControls =
+    pagination.totalPages > 1 ? (
+      <Pagination className="mx-0 w-auto justify-end">
+        <PaginationContent>
+          {pagination.page > 1 && (
+            <PaginationItem>
+              <PaginationPrevious href={buildPageUrl(pagination.page - 1)} />
+            </PaginationItem>
+          )}
+          <PaginationItems
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            getHref={buildPageUrl}
+          />
+          {pagination.page < pagination.totalPages && (
+            <PaginationItem>
+              <PaginationNext href={buildPageUrl(pagination.page + 1)} />
+            </PaginationItem>
+          )}
+        </PaginationContent>
+      </Pagination>
+    ) : null;
 
-    return items;
-  };
+  const footerSummary = (
+    <p className="text-xs text-muted-foreground">
+      Menampilkan {documents.length} dari {pagination.total} dokumen.
+    </p>
+  );
 
   return (
     <div className="space-y-6">
@@ -143,187 +222,137 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
         description="Pantau seluruh dokumen pegawai, status verifikasi, dan metadata berkas."
       />
 
-      <Card className="border-muted-foreground/10 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="size-5" />
-            Filter & Pencarian
-          </CardTitle>
-          <CardDescription>
-            Cari dokumen berdasarkan nama file, pemilik, atau status.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_180px_auto] lg:items-end">
-            <div className="space-y-2">
-              <Label htmlFor="search">Cari dokumen</Label>
-              <Input
-                id="search"
-                className="h-9"
-                placeholder="Nama file, pemilik..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleFilter()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value || "all")}>
-                <SelectTrigger id="status" className="h-9 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  {DOCUMENT_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rows-per-page">Row per halaman</Label>
-              <Select value={rowsPerPage} onValueChange={handleRowsPerPageChange}>
-                <SelectTrigger id="rows-per-page" className="h-9 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGINATION.pageSizeOptions.map((option) => (
-                    <SelectItem key={option} value={String(option)}>
-                      {option} row
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-wrap gap-2 lg:justify-end">
-              <Button className="h-9" onClick={handleFilter}>
-                <Search className="mr-2 size-4" />
-                Terapkan
-              </Button>
-              <Button className="h-9" variant="outline" onClick={handleResetFilter}>
-                Reset
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <DocumentSearchFilter
+        description="Cari dokumen berdasarkan nama file, pemilik, status, atau jumlah baris per halaman."
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Nama file, pemilik..."
+        primaryFilter={{
+          value: statusFilter,
+          onValueChange: (value) => setStatusFilter(value || "all"),
+          placeholder: "Semua Status",
+          ariaLabel: "Status dokumen",
+          options: [
+            { value: "all", label: "Semua Status" },
+            ...DOCUMENT_STATUS_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            })),
+          ],
+        }}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        pageSizeOptions={PAGINATION.pageSizeOptions}
+        onApply={handleFilter}
+        onReset={handleResetFilter}
+      />
 
-      <Card className="border-muted-foreground/10 shadow-sm">
-        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="size-5" />
-              Daftar Dokumen
-            </CardTitle>
-            <CardDescription>
-              Total {pagination.total} dokumen - Halaman {pagination.page} dari {pagination.totalPages || 1}
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Tampilkan</span>
-            <Select value={rowsPerPage} onValueChange={handleRowsPerPageChange}>
-              <SelectTrigger className="h-8 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGINATION.pageSizeOptions.map((option) => (
-                  <SelectItem key={option} value={String(option)}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>row</span>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="overflow-x-auto rounded-lg border">
-            <Table className="min-w-[920px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Dokumen</TableHead>
-                  <TableHead>Pemilik</TableHead>
-                  <TableHead>Jenis</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Upload</TableHead>
-                  <TableHead>Kedaluwarsa</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {documents.map((doc) => {
-                  const config = statusConfig[doc.status] ?? statusConfig.PENDING;
-                  return (
-                    <TableRow key={doc.id}>
-                      <TableCell>
-                        <div className="font-medium">{doc.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {doc.fileName} - {formatFileSize(doc.fileSize)}
+      <ViewModeToggle value={viewMode} onValueChange={setViewMode} />
+
+      {viewMode === "list" ? (
+        <DataTableCard
+          title="Daftar Dokumen"
+          icon={<FileText className="size-5" />}
+          description="Buka tinjauan berkas untuk membaca dokumen"
+          tableMinWidthClassName="min-w-[920px]"
+          table={
+            <DataTable
+              data={documents}
+              columns={documentColumns}
+              getRowKey={(doc) => doc.id}
+              emptyMessage="Tidak ada dokumen yang sesuai filter."
+            />
+          }
+          pagination={paginationControls}
+          footerSummary={footerSummary}
+        />
+      ) : (
+        <div className="space-y-4">
+          {documents.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex min-h-[220px] items-center justify-center text-center">
+                <div className="max-w-md space-y-2">
+                  <p className="text-base font-semibold text-foreground">
+                    Tidak ada dokumen
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Tidak ada dokumen yang sesuai filter.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {documents.map((doc) => {
+                const config = statusConfig[doc.status] ?? statusConfig.PENDING;
+
+                return (
+                  <Card key={doc.id} className="border-muted-foreground/10 shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="truncate font-medium">{doc.title}</div>
+                            <div className="truncate text-xs text-muted-foreground">
+                              {doc.fileName} - {formatFileSize(doc.fileSize)}
+                            </div>
+                          </div>
+                          <Badge variant={config.variant} className="shrink-0">
+                            {config.label}
+                          </Badge>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>{doc.ownerName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {doc.ownerEmployeeId || "NIP belum ada"}
+
+                        <div className="grid gap-2 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Pemilik</p>
+                            <p className="font-medium">{doc.ownerName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {doc.ownerEmployeeId || "NIP belum ada"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Jenis</p>
+                            <p>{doc.documentTypeName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {doc.archiveCategory}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Upload</p>
+                              <p>{formatDate(doc.uploadedAt)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Kedaluwarsa</p>
+                              <p>{formatDate(doc.expiryDate)}</p>
+                            </div>
+                          </div>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">{doc.documentTypeName}</div>
-                        <div className="text-xs text-muted-foreground">{doc.archiveCategory}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={config.variant}>{config.label}</Badge>
-                      </TableCell>
-                      <TableCell>{formatDate(doc.uploadedAt)}</TableCell>
-                      <TableCell>{formatDate(doc.expiryDate)}</TableCell>
-                      <TableCell className="text-right">
-                        <Link
-                          className={buttonVariants({ variant: "outline", size: "sm" })}
-                          href={`/documents/${doc.id}`}
-                        >
-                          Detail
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {documents.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      Tidak ada dokumen yang sesuai filter.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+
+                        <div className="flex justify-end border-t pt-3">
+                          <Link
+                            className={buttonVariants({ variant: "outline", size: "sm" })}
+                            href={buildDocumentDetailUrl(doc.id)}
+                          >
+                            Detail
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-muted-foreground">
-              Menampilkan {documents.length} dari {pagination.total} dokumen.
-            </p>
-            {pagination.totalPages > 1 ? (
-              <Pagination className="sm:ml-auto sm:w-auto">
-                <PaginationContent>
-                  {pagination.page > 1 && (
-                    <PaginationItem>
-                      <PaginationPrevious href={buildPageUrl(pagination.page - 1)} />
-                    </PaginationItem>
-                  )}
-                  {renderPaginationItems()}
-                  {pagination.page < pagination.totalPages && (
-                    <PaginationItem>
-                      <PaginationNext href={buildPageUrl(pagination.page + 1)} />
-                    </PaginationItem>
-                  )}
-                </PaginationContent>
-              </Pagination>
-            ) : null}
+            {footerSummary}
+            {paginationControls && (
+              <div className="flex justify-end sm:ml-auto">{paginationControls}</div>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }

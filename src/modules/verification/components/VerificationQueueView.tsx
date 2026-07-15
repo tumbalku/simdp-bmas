@@ -1,76 +1,41 @@
 "use client";
 
-import { useState, useCallback, useTransition, useRef, useEffect } from "react";
+import { useState, useCallback, useTransition } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ClipboardCheck,
   Search,
-  Clock3,
   CheckCircle2,
-  XCircle,
-  FileText,
-  ExternalLink,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
+  FileText,
 } from "lucide-react";
-import { toast } from "sonner";
 
+import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
+import { DataTableCard } from "@/components/shared/DataTableCard";
+import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
+import { PaginationItems } from "@/components/shared/PaginationItems";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { MetricCard } from "@/components/shared/MetricCard";
+import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { buttonVariants } from "@/components/ui/button";
+
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
-
 import {
-  getVerificationQueue as getQueueAction,
-  verifyDocumentAction,
-} from "@/modules/verification/actions";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Separator } from "@/components/ui/separator";
+import { PAGINATION, ROUTES } from "@/constants";
+
+import { getVerificationQueue as getQueueAction } from "@/modules/verification/actions";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -116,6 +81,8 @@ type VerificationQueueViewProps = {
   documentTypes: DocumentTypeOption[];
 };
 
+type ViewMode = "grid" | "list";
+
 /* -------------------------------------------------------------------------- */
 /*  Helper                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -149,7 +116,9 @@ export function VerificationQueueView({
   initialPagination,
   documentTypes,
 }: VerificationQueueViewProps) {
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
 
   /* data */
   const [items, setItems] = useState<QueueItem[]>(initialData);
@@ -158,34 +127,19 @@ export function VerificationQueueView({
   );
 
   /* filter state */
-  const [search, setSearch] = useState("");
-  const [documentTypeId, setDocumentTypeId] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [documentTypeId, setDocumentTypeId] = useState(
+    () => searchParams.get("documentTypeId") ?? ""
+  );
   const [page, setPage] = useState(initialPagination.page);
-
-  /* reject dialog */
-  const [rejectDialog, setRejectDialog] = useState<{
-    open: boolean;
-    docId: string;
-    docTitle: string;
-    ownerName: string;
-  }>({ open: false, docId: "", docTitle: "", ownerName: "" });
-  const [rejectNote, setRejectNote] = useState("");
-  const [rejectError, setRejectError] = useState("");
-
-  /* approve confirm */
-  const [approveConfirm, setApproveConfirm] = useState<{
-    open: boolean;
-    docId: string;
-    docTitle: string;
-    ownerName: string;
-  }>({ open: false, docId: "", docTitle: "", ownerName: "" });
+  const [rowsPerPage, setRowsPerPage] = useState(() =>
+    searchParams.get("limit") ?? String(initialPagination.pageSize)
+  );
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   /* error */
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  /* Track initial render to skip fetch on mount */
-  const isFirstRender = useRef(true);
 
   /* ------------------------------------------------------------------------ */
   /*  Fetch data                                                              */
@@ -197,6 +151,7 @@ export function VerificationQueueView({
         page?: number;
         search?: string;
         documentTypeId?: string;
+        pageSize?: number;
       }
     ) => {
       setIsLoading(true);
@@ -207,7 +162,7 @@ export function VerificationQueueView({
           search: (overrides?.search ?? search) || undefined,
           documentTypeId:
             (overrides?.documentTypeId ?? documentTypeId) || undefined,
-          pageSize: 15,
+          pageSize: overrides?.pageSize ?? Number(rowsPerPage),
         });
         if (!result.ok) {
           setError(
@@ -223,131 +178,211 @@ export function VerificationQueueView({
         setIsLoading(false);
       }
     },
-    [page, search, documentTypeId]
+    [page, search, documentTypeId, rowsPerPage]
   );
-
-  /* Auto-fetch when filters change (skip first render) */
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    startTransition(() => {
-      fetchQueue();
-    });
-  }, [page, search, documentTypeId, fetchQueue]);
-
-  /* ------------------------------------------------------------------------ */
-  /*  Actions                                                                 */
-  /* ------------------------------------------------------------------------ */
-
-  const handleApprove = useCallback(async () => {
-    const { docId, docTitle, ownerName } = approveConfirm;
-    setApproveConfirm((prev) => ({ ...prev, open: false }));
-
-    const toastId = toast.loading(`Menyetujui dokumen "${docTitle}"...`);
-
-    try {
-      const result = await verifyDocumentAction(docId, "APPROVED", null);
-      if (!result.ok) {
-        toast.error(
-          result.error?.message || "Gagal menyetujui dokumen.",
-          { id: toastId }
-        );
-        return;
-      }
-      toast.success(
-        `Dokumen "${docTitle}" milik ${ownerName} berhasil disetujui.`,
-        { id: toastId }
-      );
-      startTransition(() => fetchQueue());
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error), { id: toastId });
-    }
-  }, [approveConfirm, fetchQueue]);
-
-  const openRejectDialog = useCallback(
-    (docId: string, docTitle: string, ownerName: string) => {
-      setRejectNote("");
-      setRejectError("");
-      setRejectDialog({ open: true, docId, docTitle, ownerName });
-    },
-    []
-  );
-
-  const handleRejectSubmit = useCallback(async () => {
-    const trimmed = rejectNote.trim();
-    if (trimmed.length < 5) {
-      setRejectError("Catatan penolakan wajib diisi minimal 5 karakter.");
-      return;
-    }
-    setRejectError("");
-
-    const { docId, docTitle, ownerName } = rejectDialog;
-    setRejectDialog((prev) => ({ ...prev, open: false }));
-
-    const toastId = toast.loading(`Menolak dokumen "${docTitle}"...`);
-
-    try {
-      const result = await verifyDocumentAction(
-        docId,
-        "REJECTED",
-        trimmed
-      );
-      if (!result.ok) {
-        toast.error(
-          result.error?.message || "Gagal menolak dokumen.",
-          { id: toastId }
-        );
-        return;
-      }
-      toast.success(
-        `Dokumen "${docTitle}" milik ${ownerName} berhasil ditolak.`,
-        { id: toastId }
-      );
-      startTransition(() => fetchQueue());
-    } catch (error: unknown) {
-      toast.error(getErrorMessage(error), { id: toastId });
-    }
-  }, [rejectNote, rejectDialog, fetchQueue]);
 
   /* ------------------------------------------------------------------------ */
   /*  Filter handlers                                                         */
   /* ------------------------------------------------------------------------ */
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearch(e.target.value);
-      setPage(1);
+  const buildPageUrl = useCallback(
+    (
+      nextPage: number,
+      limit = rowsPerPage,
+      nextSearch = search,
+      nextDocumentTypeId = documentTypeId
+    ) => {
+      const params = new URLSearchParams();
+      params.set("page", String(nextPage));
+      params.set("limit", limit);
+      if (nextSearch.trim()) params.set("search", nextSearch.trim());
+      if (nextDocumentTypeId) params.set("documentTypeId", nextDocumentTypeId);
+
+      return `${ROUTES.verification}?${params.toString()}`;
     },
-    []
+    [documentTypeId, rowsPerPage, search]
+  );
+
+  const applyFilters = useCallback(
+    ({
+      nextPage = PAGINATION.defaultPage,
+      nextSearch = search,
+      nextDocumentTypeId = documentTypeId,
+      nextRowsPerPage = rowsPerPage,
+    }: {
+      nextPage?: number;
+      nextSearch?: string;
+      nextDocumentTypeId?: string;
+      nextRowsPerPage?: string;
+    } = {}) => {
+      setPage(nextPage);
+      setSearch(nextSearch);
+      setDocumentTypeId(nextDocumentTypeId);
+      setRowsPerPage(nextRowsPerPage);
+      router.push(
+        buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextDocumentTypeId)
+      );
+      startTransition(() => {
+        fetchQueue({
+          page: nextPage,
+          search: nextSearch,
+          documentTypeId: nextDocumentTypeId,
+          pageSize: Number(nextRowsPerPage),
+        });
+      });
+    },
+    [buildPageUrl, documentTypeId, fetchQueue, router, rowsPerPage, search, startTransition]
   );
 
   const handleDocumentTypeChange = useCallback(
     (value: string | null) => {
-      setDocumentTypeId(value ?? "");
-      setPage(1);
+      setDocumentTypeId(!value || value === "all" ? "" : value);
     },
     []
   );
 
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage);
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      applyFilters({ nextPage: newPage });
+    },
+    [applyFilters]
+  );
+
+  const handleRowsPerPageChange = useCallback((value: string | null) => {
+    const nextRowsPerPage = value ?? String(PAGINATION.defaultPageSize);
+    setRowsPerPage(nextRowsPerPage);
   }, []);
 
-  /* ------------------------------------------------------------------------ */
-  /*  Derived stats                                                           */
-  /* ------------------------------------------------------------------------ */
+  const handleApplyFilters = useCallback(() => {
+    applyFilters();
+  }, [applyFilters]);
 
-  const todayCount = items.filter((item) => {
-    const d = new Date(item.uploadedAt);
-    const now = new Date();
-    return (
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear()
-    );
-  }).length;
+  const handleResetFilters = useCallback(() => {
+    applyFilters({
+      nextPage: PAGINATION.defaultPage,
+      nextSearch: "",
+      nextDocumentTypeId: "",
+      nextRowsPerPage: String(PAGINATION.defaultPageSize),
+    });
+  }, [applyFilters]);
+
+  const handlePaginationClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>, nextPage: number) => {
+      event.preventDefault();
+      handlePageChange(nextPage);
+    },
+    [handlePageChange]
+  );
+
+  const queueColumns: DataTableColumn<QueueItem>[] = [
+    {
+      key: "employee",
+      header: "Pegawai",
+      headClassName: "w-[200px]",
+      cell: (item) => (
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1.5 font-medium">
+            <span>{item.owner.name}</span>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {formatEmployeeIdentifier(item.owner.employeeId, item.owner.nik)}
+          </div>
+          {item.owner.workplace && (
+            <div className="text-xs text-muted-foreground">
+              {item.owner.workplace}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "documentType",
+      header: "Jenis Dokumen",
+      cell: (item) => (
+        <Badge variant="secondary" className="font-normal">
+          {item.documentType.name}
+        </Badge>
+      ),
+    },
+    {
+      key: "documentTitle",
+      header: "Judul / No. Dokumen",
+      headClassName: "hidden lg:table-cell",
+      cellClassName: "hidden lg:table-cell",
+      cell: (item) => (
+        <div className="space-y-0.5">
+          <div className="text-sm">{item.title || item.documentType.name}</div>
+          {item.documentNumber && (
+            <div className="text-xs text-muted-foreground">
+              No: {item.documentNumber}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "uploadedAt",
+      header: "Diunggah",
+      headClassName: "hidden sm:table-cell",
+      cellClassName: "hidden whitespace-nowrap text-sm text-muted-foreground sm:table-cell",
+      cell: (item) => formatDate(item.uploadedAt),
+    },
+    {
+      key: "action",
+      header: "Aksi",
+      headClassName: "text-right",
+      cell: (item) => (
+        <div className="flex items-center justify-end gap-2">
+          <Link
+            href={`/verification/${item.id}`}
+            className={buttonVariants({
+              variant: "default",
+              size: "sm",
+            })}
+          >
+            <Search className="mr-1 size-3.5" />
+            Tinjau Berkas
+          </Link>
+        </div>
+      ),
+    },
+  ];
+
+  const paginationFooter =
+    pagination.totalPages > 1 ? (
+      <p className="text-xs text-muted-foreground">
+        Menampilkan {items.length} dari {pagination.totalItems} dokumen.
+      </p>
+    ) : null;
+
+  const paginationControls =
+    pagination.totalPages > 1 ? (
+      <Pagination className="mx-0 w-auto justify-end">
+        <PaginationContent>
+          {pagination.page > 1 && (
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(event) => handlePaginationClick(event, pagination.page - 1)}
+              />
+            </PaginationItem>
+          )}
+          <PaginationItems
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageClick={handlePaginationClick}
+          />
+          {pagination.page < pagination.totalPages && (
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(event) => handlePaginationClick(event, pagination.page + 1)}
+              />
+            </PaginationItem>
+          )}
+        </PaginationContent>
+      </Pagination>
+    ) : null;
 
   /* ------------------------------------------------------------------------ */
   /*  Render                                                                  */
@@ -358,73 +393,35 @@ export function VerificationQueueView({
       {/* Page header */}
       <PageHeader
         title="Verifikasi Dokumen"
-        description="Periksa dan verifikasi dokumen pegawai yang menunggu persetujuan."
+        description="Tinjau berkas pegawai yang masih berstatus menunggu pemeriksaan."
       />
 
-      {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Menunggu Verifikasi"
-          value={pagination.totalItems}
-          description="Total dokumen dalam antrian"
-          icon={Clock3}
-          iconClassName="bg-amber-500/10 text-amber-500"
-          valueClassName="text-amber-600 dark:text-amber-400"
-        />
-        <MetricCard
-          title="Hari Ini"
-          value={todayCount}
-          description="Dokumen masuk hari ini"
-          icon={ClipboardCheck}
-          iconClassName="bg-blue-500/10 text-blue-500"
-        />
-        <MetricCard
-          title="Total Halaman"
-          value={pagination.totalPages}
-          description={`Halaman ${pagination.page} dari ${pagination.totalPages}`}
-          icon={FileText}
-          iconClassName="bg-purple-500/10 text-purple-500"
-        />
-      </div>
+      <DocumentSearchFilter
+        description="Cari berdasarkan nama pegawai, jenis dokumen, atau jumlah baris per halaman."
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari nama pegawai..."
+        primaryFilter={{
+          value: documentTypeId || "all",
+          onValueChange: handleDocumentTypeChange,
+          placeholder: "Semua jenis dokumen",
+          ariaLabel: "Jenis dokumen",
+          options: [
+            { value: "all", label: "Semua jenis dokumen" },
+            ...documentTypes.map((documentType) => ({
+              value: documentType.id,
+              label: documentType.name,
+            })),
+          ],
+        }}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        pageSizeOptions={PAGINATION.pageSizeOptions}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+      />
 
-      {/* Search & Filter */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Filter Pencarian</CardTitle>
-          <CardDescription>
-            Cari berdasarkan nama pegawai atau filter berdasarkan jenis dokumen.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Cari nama pegawai..."
-                value={search}
-                onChange={handleSearchChange}
-                className="pl-9"
-              />
-            </div>
-            <Select
-              value={documentTypeId || undefined}
-              onValueChange={handleDocumentTypeChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Semua jenis dokumen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua jenis dokumen</SelectItem>
-                {documentTypes.map((dt) => (
-                  <SelectItem key={dt.id} value={dt.id}>
-                    {dt.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <ViewModeToggle value={viewMode} onValueChange={setViewMode} />
 
       {/* Error state */}
       {error && (
@@ -455,356 +452,120 @@ export function VerificationQueueView({
         </Card>
       ) : items.length === 0 ? (
         /* Empty state */
-        <Card>
-          <CardContent className="flex min-h-[240px] items-center justify-center text-center">
-            <div className="space-y-3">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
-                <ClipboardCheck className="size-6 text-muted-foreground" />
+        <Card className="border-dashed">
+          <CardContent className="flex min-h-[280px] items-center justify-center text-center">
+            <div className="max-w-md space-y-3">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10">
+                {search || documentTypeId ? (
+                  <Search className="size-7 text-muted-foreground" />
+                ) : (
+                  <CheckCircle2 className="size-7 text-success" />
+                )}
               </div>
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-base font-semibold text-foreground">
                 {search || documentTypeId
-                  ? "Tidak ada dokumen yang cocok dengan filter."
-                  : "Tidak ada dokumen yang menunggu verifikasi."}
+                  ? "Tidak ada hasil"
+                  : "Semua Selesai!"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {search || documentTypeId
                   ? "Coba ubah kata kunci atau filter."
-                  : "Semua dokumen pegawai sudah diverifikasi."}
+                  : "Tidak ada dokumen yang perlu diverifikasi saat ini. Anda telah menyelesaikan semua tugas Anda."}
               </p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="hidden rounded-lg border md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px]">Pegawai</TableHead>
-                  <TableHead>Jenis Dokumen</TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    Judul / No. Dokumen
-                  </TableHead>
-                  <TableHead className="hidden sm:table-cell">
-                    Diunggah
-                  </TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          {viewMode === "list" ? (
+            <DataTableCard
+              title="Daftar Tunggu Pemeriksaan"
+              icon={<FileText className="size-5" />}
+              description="Buka tinjauan berkas untuk membaca dokumen dan mengambil keputusan verifikasi."
+              tableMinWidthClassName="min-w-[760px]"
+              table={
+                <DataTable
+                  data={items}
+                  columns={queueColumns}
+                  getRowKey={(item) => item.id}
+                  headerClassName="bg-muted/20"
+                />
+              }
+              footerSummary={paginationFooter}
+              pagination={paginationControls}
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <span>{item.owner.name}</span>
+                  <Card key={item.id} className="border-muted-foreground/10 shadow-sm">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="truncate font-medium">{item.owner.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {formatEmployeeIdentifier(
+                                item.owner.employeeId,
+                                item.owner.nik
+                              )}
+                            </div>
+                            {item.owner.workplace && (
+                              <div className="truncate text-xs text-muted-foreground">
+                                {item.owner.workplace}
+                              </div>
+                            )}
+                          </div>
+                          <Badge variant="secondary" className="shrink-0 font-normal">
+                            {item.documentType.name}
+                          </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatEmployeeIdentifier(
-                            item.owner.employeeId,
-                            item.owner.nik
+
+                        <div className="space-y-1 text-sm">
+                          <div className="font-medium">
+                            {item.title || item.documentType.name}
+                          </div>
+                          {item.documentNumber && (
+                            <div className="text-xs text-muted-foreground">
+                              No: {item.documentNumber}
+                            </div>
                           )}
-                        </div>
-                        {item.owner.workplace && (
                           <div className="text-xs text-muted-foreground">
-                            {item.owner.workplace}
+                            Diunggah {formatDate(item.uploadedAt)}
                           </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-normal">
-                        {item.documentType.name}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="space-y-0.5">
-                        <div className="text-sm">
-                          {item.title || item.documentType.name}
                         </div>
-                        {item.documentNumber && (
-                          <div className="text-xs text-muted-foreground">
-                            No: {item.documentNumber}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden whitespace-nowrap text-sm text-muted-foreground sm:table-cell">
-                      {formatDate(item.uploadedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/verification/${item.id}`}
-                          className={buttonVariants({
-                            variant: "outline",
-                            size: "sm",
-                          })}
-                        >
-                          <ExternalLink className="mr-1 size-3.5" />
-                          Detail
-                        </Link>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                            onClick={() =>
-                              setApproveConfirm({
-                                open: true,
-                                docId: item.id,
-                                docTitle:
-                                  item.title || item.documentType.name,
-                                ownerName: item.owner.name,
-                              })
-                            }
+
+                        <Separator />
+
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <Link
+                            href={`/verification/${item.id}`}
+                            className={buttonVariants({
+                              variant: "default",
+                              size: "sm",
+                            })}
                           >
-                            <CheckCircle2 className="mr-1 size-3.5" />
-                            Setuju
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() =>
-                              openRejectDialog(
-                                item.id,
-                                item.title || item.documentType.name,
-                                item.owner.name
-                              )
-                            }
-                          >
-                            <XCircle className="mr-1 size-3.5" />
-                            Tolak
-                          </Button>
+                            <Search className="mr-1 size-3.5" />
+                            Tinjau Berkas
+                          </Link>
                         </div>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile card layout */}
-          <div className="space-y-3 md:hidden">
-            {items.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    {/* Header: employee + doc type */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 space-y-0.5">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          {item.owner.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatEmployeeIdentifier(
-                            item.owner.employeeId,
-                            item.owner.nik
-                          )}
-                        </div>
-                        {item.owner.workplace && (
-                          <div className="text-xs text-muted-foreground">
-                            {item.owner.workplace}
-                          </div>
-                        )}
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="shrink-0 font-normal"
-                      >
-                        {item.documentType.name}
-                      </Badge>
-                    </div>
-
-                    {/* Document info */}
-                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                      <span>
-                        {item.title || item.documentType.name}
-                        {item.documentNumber &&
-                          ` · ${item.documentNumber}`}
-                      </span>
-                      <span>{formatDate(item.uploadedAt)}</span>
-                    </div>
-
-                    <Separator />
-
-                    {/* Actions */}
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Link
-                        href={`/verification/${item.id}`}
-                        className={buttonVariants({
-                          variant: "outline",
-                          size: "sm",
-                        })}
-                      >
-                        <ExternalLink className="mr-1 size-3.5" />
-                        Detail
-                      </Link>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700"
-                        onClick={() =>
-                          setApproveConfirm({
-                            open: true,
-                            docId: item.id,
-                            docTitle:
-                              item.title || item.documentType.name,
-                            ownerName: item.owner.name,
-                          })
-                        }
-                      >
-                        <CheckCircle2 className="mr-1 size-3.5" />
-                        Setuju
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() =>
-                          openRejectDialog(
-                            item.id,
-                            item.title || item.documentType.name,
-                            item.owner.name
-                          )
-                        }
-                      >
-                        <XCircle className="mr-1 size-3.5" />
-                        Tolak
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-sm text-muted-foreground">
-                Menampilkan halaman{" "}
-                <span className="font-medium">{pagination.page}</span> dari{" "}
-                <span className="font-medium">{pagination.totalPages}</span>{" "}
-                ({pagination.totalItems} dokumen)
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!pagination.hasPreviousPage || isLoading}
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                >
-                  <ChevronLeft className="size-4" />
-                  Sebelumnya
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!pagination.hasNextPage || isLoading}
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                >
-                  Berikutnya
-                  <ChevronRight className="size-4" />
-                </Button>
               </div>
+
+              {pagination.totalPages > 1 && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  {paginationFooter}
+                  <div className="flex justify-end sm:ml-auto">{paginationControls}</div>
+                </div>
+              )}
             </div>
           )}
         </>
       )}
 
-      {/* ── Approve Confirmation Dialog ── */}
-      <AlertDialog
-        open={approveConfirm.open}
-        onOpenChange={(open) =>
-          setApproveConfirm((prev) => ({ ...prev, open }))
-        }
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Setujui Dokumen</AlertDialogTitle>
-            <AlertDialogDescription>
-              Anda akan menyetujui dokumen{" "}
-              <span className="font-medium text-foreground">
-                &ldquo;{approveConfirm.docTitle}&rdquo;
-              </span>{" "}
-              milik{" "}
-              <span className="font-medium text-foreground">
-                {approveConfirm.ownerName}
-              </span>
-              . Tindakan ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleApprove}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              Ya, Setujui
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* ── Reject Dialog ── */}
-      <Dialog
-        open={rejectDialog.open}
-        onOpenChange={(open) =>
-          setRejectDialog((prev) => ({ ...prev, open }))
-        }
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Tolak Dokumen</DialogTitle>
-            <DialogDescription>
-              Anda akan menolak dokumen{" "}
-              <span className="font-medium text-foreground">
-                &ldquo;{rejectDialog.docTitle}&rdquo;
-              </span>{" "}
-              milik{" "}
-              <span className="font-medium text-foreground">
-                {rejectDialog.ownerName}
-              </span>
-              . Berikan alasan penolakan sebagai catatan.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <Textarea
-              placeholder="Tuliskan alasan penolakan (minimal 5 karakter)..."
-              value={rejectNote}
-              onChange={(e) => {
-                setRejectNote(e.target.value);
-                if (e.target.value.trim().length >= 5) setRejectError("");
-              }}
-              rows={4}
-              className={rejectError ? "border-destructive" : ""}
-            />
-            {rejectError && (
-              <p className="text-xs text-destructive">{rejectError}</p>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setRejectDialog((prev) => ({ ...prev, open: false }))
-              }
-            >
-              Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleRejectSubmit}
-            >
-              Ya, Tolak Dokumen
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
