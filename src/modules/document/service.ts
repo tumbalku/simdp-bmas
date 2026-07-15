@@ -5,7 +5,7 @@ import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { mapDocumentRecord, mapDocumentType, mapDocumentDetail } from "./mappers";
+import { mapDocumentRecord, mapDocumentType, mapDocumentDetail, mapDocumentTypeSummary } from "./mappers";
 import * as repo from "./repository";
 
 type DocumentListFilter = {
@@ -15,9 +15,48 @@ type DocumentListFilter = {
   limit?: number;
 };
 
+type DocumentTypeListFilter = {
+  archiveCategory?: "PERSONAL" | "EDUCATION" | "EMPLOYMENT" | "CERTIFICATION" | "LEGAL";
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
 export async function getAvailableDocumentTypes() {
   const types = await repo.findManyAvailableDocumentTypes();
   return types.map(mapDocumentType);
+}
+
+export async function getDocumentTypesWithPagination(filter: DocumentTypeListFilter = {}) {
+  const page = filter.page || 1;
+  const limit = filter.limit || 20;
+  const skip = (page - 1) * limit;
+
+  const where: any = { deletedAt: null };
+
+  if (filter.archiveCategory) {
+    where.archiveCategory = filter.archiveCategory;
+  }
+
+  if (filter.search) {
+    where.OR = [
+      { code: { contains: filter.search, mode: "insensitive" } },
+      { name: { contains: filter.search, mode: "insensitive" } },
+      { description: { contains: filter.search, mode: "insensitive" } },
+    ];
+  }
+
+  const [types, total] = await repo.findDocumentTypesWithPagination(where, skip, limit);
+
+  return {
+    data: types.map(mapDocumentTypeSummary),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
 export async function getDocumentRecordsForSession(session: TokenPayload, filter: DocumentListFilter = {}) {

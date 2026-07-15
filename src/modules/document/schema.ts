@@ -44,3 +44,10 @@ export const documentRecordsWithPaginationQuerySchema = z.object({
   page: z.number().int().positive().optional(),
   limit: z.number().int().positive().max(100).optional(),
 });
+
+export const documentTypesWithPaginationQuerySchema = z.object({
+  archiveCategory: z.enum(["PERSONAL", "EDUCATION", "EMPLOYMENT", "CERTIFICATION", "LEGAL"]).optional(),
+  search: z.string().optional(),
+  page: z.number().int().positive().optional(),
+  limit: z.number().int().positive().max(100).optional(),
+});

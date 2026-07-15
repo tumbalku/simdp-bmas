@@ -30,4 +30,21 @@ export const ARCHIVE_CATEGORY_ICON_KEYS = {
   LEGAL: "scale",
 } as const;
 
+export const ARCHIVE_CATEGORY_LABELS = {
+  PERSONAL: "Personal",
+  EDUCATION: "Pendidikan",
+  EMPLOYMENT: "Kepegawaian",
+  CERTIFICATION: "Sertifikasi",
+  LEGAL: "Legal",
+} as const;
+
+export const ARCHIVE_CATEGORY_OPTIONS = [
+  { value: "PERSONAL", label: ARCHIVE_CATEGORY_LABELS.PERSONAL },
+  { value: "EDUCATION", label: ARCHIVE_CATEGORY_LABELS.EDUCATION },
+  { value: "EMPLOYMENT", label: ARCHIVE_CATEGORY_LABELS.EMPLOYMENT },
+  { value: "CERTIFICATION", label: ARCHIVE_CATEGORY_LABELS.CERTIFICATION },
+  { value: "LEGAL", label: ARCHIVE_CATEGORY_LABELS.LEGAL },
+] as const;
+
 export type DocumentStatus = keyof typeof DOCUMENT_STATUS_LABELS;
+export type ArchiveCategory = keyof typeof ARCHIVE_CATEGORY_LABELS;

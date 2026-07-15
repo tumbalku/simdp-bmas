@@ -37,6 +37,19 @@ export function mapDocumentType(type: any) {
   };
 }
 
+export function mapDocumentTypeSummary(type: any) {
+  return {
+    ...mapDocumentType(type),
+    targetSummary: {
+      employmentStatuses: type.employmentStatuses?.map((item: any) => item.employmentStatus?.name).filter(Boolean) ?? [],
+      employeeGroups: type.employeeGroups?.map((item: any) => item.employeeGroup?.name).filter(Boolean) ?? [],
+      professionGroups: type.professionGroups?.map((item: any) => item.professionGroup?.name).filter(Boolean) ?? [],
+      employeeRanks: type.employeeRanks?.map((item: any) => item.employeeRank?.name).filter(Boolean) ?? [],
+      workplaces: type.workplaces?.map((item: any) => item.workplace?.name).filter(Boolean) ?? [],
+    },
+  };
+}
+
 export function mapDocumentDetail(record: any) {
   return {
     ...mapDocumentRecord(record),
