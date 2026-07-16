@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { FileText, Plus } from "lucide-react";
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { DataTableCard } from "@/components/shared/DataTableCard";
@@ -10,7 +12,18 @@ import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PaginationItems } from "@/components/shared/PaginationItems";
 import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -26,12 +39,15 @@ import {
   ARCHIVE_CATEGORY_OPTIONS,
   type ArchiveCategory,
 } from "@/modules/document/constants";
+import { crudDocumentTypeAction } from "@/modules/document/actions";
+import { routeTo } from "@/constants/routes";
 
 type ViewMode = "grid" | "list";
 
 type TargetSummary = {
   employmentStatuses: string[];
   employeeGroups: string[];
+  employeePositions: string[];
   professionGroups: string[];
   employeeRanks: string[];
   workplaces: string[];
@@ -94,6 +110,7 @@ function getTargetGroups(targetSummary: TargetSummary) {
     { label: "Status", values: targetSummary.employmentStatuses },
     { label: "Jenis", values: targetSummary.employeeGroups },
     { label: "Profesi", values: targetSummary.professionGroups },
+    { label: "Jabatan", values: targetSummary.employeePositions },
     { label: "Golongan", values: targetSummary.employeeRanks },
     { label: "Unit", values: targetSummary.workplaces },
   ];
@@ -141,6 +158,7 @@ function renderTargetSummary(targetSummary: TargetSummary) {
 }
 
 export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTypesPageViewProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [categoryFilter, setCategoryFilter] = useState<string>(
@@ -150,6 +168,8 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
     String(pagination.limit || PAGINATION.defaultPageSize),
   );
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [deleteTarget, setDeleteTarget] = useState<DocumentTypeItem | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   const buildPageUrl = (page: number, limit = rowsPerPage) => {
     const params = new URLSearchParams();
@@ -178,15 +198,32 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
     window.location.href = `${ROUTES.masterDataDocumentTypes}?page=${PAGINATION.defaultPage}&limit=${defaultLimit}`;
   };
 
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+
+    startDeleteTransition(async () => {
+      const result = await crudDocumentTypeAction("DELETE", deleteTarget.id);
+
+      if (!result.ok) {
+        toast.error(result.error.message || "Gagal menghapus jenis dokumen.");
+        return;
+      }
+
+      toast.success(`Jenis dokumen ${deleteTarget.name} berhasil dihapus.`);
+      setDeleteTarget(null);
+      router.refresh();
+    });
+  };
+
   const columns: DataTableColumn<DocumentTypeItem>[] = [
     {
       key: "code",
-      header: "Kode Dokumen",
+      header: "Kode",
       cell: (type) => <Badge variant="outline">{type.code}</Badge>,
     },
     {
       key: "name",
-      header: "Nama Jenis Dokumen",
+      header: "Nama",
       cell: (type) => (
         <>
           <div className="font-medium">{type.name}</div>
@@ -198,32 +235,32 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
     },
     {
       key: "archiveCategory",
-      header: "Kategori Arsip",
+      header: "Kategori",
       cell: (type) => formatArchiveCategory(type.archiveCategory),
     },
     {
       key: "formats",
-      header: "Format Ekstensi",
+      header: "Format",
       cell: (type) => renderCompactBadges(formatAllowedFormats(type.allowedFormats), "Belum diatur"),
     },
     {
       key: "maxSizeMb",
-      header: "Maks Ukuran File",
+      header: "Ukuran",
       cell: (type) => formatMaxSize(type.maxSizeMb),
     },
     {
       key: "validation",
-      header: "Validasi Tambahan",
+      header: "Validasi",
       cell: (type) => renderCompactBadges(getValidationRules(type), "Tanpa validasi tambahan"),
     },
     {
       key: "target",
-      header: "Target Pegawai",
+      header: "Target",
       cell: (type) => renderTargetSummary(type.targetSummary),
     },
     {
       key: "mandatory",
-      header: "Status Wajib",
+      header: "Wajib",
       cell: (type) => (
         <Badge variant={type.isMandatory ? "default" : "secondary"}>
           {type.isMandatory ? "Wajib" : "Opsional"}
@@ -235,7 +272,31 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
       header: "Aksi",
       headClassName: "text-right",
       cellClassName: "text-right",
-      cell: () => <span className="text-xs text-muted-foreground">-</span>,
+      cell: (type) => (
+        <div className="flex justify-end gap-1.5">
+          <Button
+            variant="outline"
+            size="xs"
+            title={`Edit ${type.name}`}
+            aria-label={`Edit ${type.name}`}
+            render={<Link href={routeTo.masterDataDocumentTypeEdit(type.id)} />}
+            nativeButton={false}
+          >
+            <Pencil className="size-3" />
+            <span className="hidden md:inline">Edit</span>
+          </Button>
+          <Button
+            variant="destructive"
+            size="xs"
+            title={`Hapus ${type.name}`}
+            aria-label={`Hapus ${type.name}`}
+            onClick={() => setDeleteTarget(type)}
+          >
+            <Trash2 className="size-3" />
+            <span className="hidden md:inline">Hapus</span>
+          </Button>
+        </div>
+      ),
     },
   ];
 
@@ -273,6 +334,8 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
       <PageHeader
         title="Kelola Jenis Dokumen"
         description="Atur konfigurasi jenis dokumen, format berkas, validasi, dan target pegawai."
+        backHref={ROUTES.masterDataDocuments}
+        backLabel="Kembali ke dokumen"
         actions={[
           {
             label: "Tambah Jenis",
@@ -398,6 +461,38 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
           </div>
         </div>
       )}
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Jenis Dokumen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan menghapus jenis dokumen{" "}
+              <span className="font-medium text-foreground">
+                &ldquo;{deleteTarget?.name}&rdquo;
+              </span>
+              . Data akan disembunyikan dari daftar aktif dan dapat memengaruhi pilihan upload dokumen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                "Ya, Hapus"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

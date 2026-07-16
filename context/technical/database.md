@@ -48,6 +48,7 @@
 | `DocumentTypeProfessionGroup` | Target by profesi | Unique `(documentTypeId, professionGroupId)`. |
 | `DocumentTypeEmploymentStatus` | Target by status | Unique `(documentTypeId, employmentStatusId)`. |
 | `DocumentTypeEmployeeGroup` | Target by group | Unique `(documentTypeId, employeeGroupId)`. |
+| `DocumentTypeEmployeePosition` | Target by jabatan | Unique `(documentTypeId, employeePositionId)`. |
 | `DocumentTypeEmployeeRank` | Target by pangkat | Unique `(documentTypeId, employeeRankId)`. |
 | `DocumentTypeWorkplace` | Target by unit | Unique `(documentTypeId, workplaceId)`. |
 | `DocumentRecord` | File dokumen pegawai | Metadata file lengkap, status, expiry reminder fields, soft delete. |

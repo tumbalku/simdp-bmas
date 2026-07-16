@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
+import { matchesDocumentTypeTarget } from "@/modules/document/target-rules";
 import { getStatisticsChartsData as getStatsChartsRepo } from "./repository";
 
 export async function getDashboardStats(filter: { workplaceId?: string }) {
@@ -10,6 +11,7 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
       workplaceId: filter.workplaceId || undefined,
     },
     include: {
+      employeePosition: { select: { professionGroupId: true } },
       documentRecords: {
         where: {
           status: "APPROVED",
@@ -30,6 +32,12 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
     },
     select: {
       id: true,
+      employmentStatuses: { select: { employmentStatusId: true } },
+      employeeGroups: { select: { employeeGroupId: true } },
+      employeePositions: { select: { employeePositionId: true } },
+      professionGroups: { select: { professionGroupId: true } },
+      employeeRanks: { select: { employeeRankId: true } },
+      workplaces: { select: { workplaceId: true } },
     },
   });
 
@@ -37,7 +45,10 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
   let compliantEmployeesCount = 0;
   for (const emp of employees) {
     const approvedTypes = new Set(emp.documentRecords.map((r) => r.documentTypeId));
-    const isCompliant = mandatoryTypes.every((t) => approvedTypes.has(t.id));
+    const applicableMandatoryTypes = mandatoryTypes.filter((type) =>
+      matchesDocumentTypeTarget(emp, type)
+    );
+    const isCompliant = applicableMandatoryTypes.every((t) => approvedTypes.has(t.id));
     if (isCompliant) compliantEmployeesCount++;
   }
 

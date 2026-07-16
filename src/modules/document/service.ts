@@ -5,8 +5,9 @@ import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { mapDocumentRecord, mapDocumentType, mapDocumentDetail, mapDocumentTypeSummary } from "./mappers";
+import { mapDocumentRecord, mapDocumentType, mapDocumentDetail, mapDocumentTypeFormInitialData, mapDocumentTypeSummary } from "./mappers";
 import * as repo from "./repository";
+import { matchesDocumentTypeTarget } from "./target-rules";
 
 type DocumentListFilter = {
   status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
@@ -22,9 +23,19 @@ type DocumentTypeListFilter = {
   limit?: number;
 };
 
-export async function getAvailableDocumentTypes() {
+export async function getAvailableDocumentTypes(session?: TokenPayload) {
   const types = await repo.findManyAvailableDocumentTypes();
-  return types.map(mapDocumentType);
+
+  if (!session || session.role !== "EMPLOYEE") {
+    return types.map(mapDocumentType);
+  }
+
+  const employee = await repo.findEmployeeTargetProfileByUserId(session.userId);
+  if (!employee) return [];
+
+  return types
+    .filter((type) => matchesDocumentTypeTarget(employee, type))
+    .map(mapDocumentType);
 }
 
 export async function getDocumentTypesWithPagination(filter: DocumentTypeListFilter = {}) {
@@ -57,6 +68,16 @@ export async function getDocumentTypesWithPagination(filter: DocumentTypeListFil
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+export async function getDocumentTypeForAdminEdit(id: string) {
+  const docType = await repo.findDocumentTypeById(id);
+
+  if (!docType || docType.deletedAt) {
+    throw new AppError("NOT_FOUND", "Jenis dokumen tidak ditemukan", 404);
+  }
+
+  return mapDocumentTypeFormInitialData(docType);
 }
 
 export async function getDocumentRecordsForSession(session: TokenPayload, filter: DocumentListFilter = {}) {
@@ -171,6 +192,7 @@ export async function handleDocumentTypeCrud(
       professionGroupIds: data.professionGroupIds,
       employmentStatusIds: data.employmentStatusIds,
       employeeGroupIds: data.employeeGroupIds,
+      employeePositionIds: data.employeePositionIds,
       employeeRankIds: data.employeeRankIds,
       workplaceIds: data.workplaceIds,
     };
@@ -214,6 +236,7 @@ export async function handleDocumentTypeCrud(
       professionGroupIds: data.professionGroupIds,
       employmentStatusIds: data.employmentStatusIds,
       employeeGroupIds: data.employeeGroupIds,
+      employeePositionIds: data.employeePositionIds,
       employeeRankIds: data.employeeRankIds,
       workplaceIds: data.workplaceIds,
     };
@@ -319,8 +342,12 @@ export async function uploadDocumentRecord(
   }
 
   // 2. Fetch current employee
-  const employee = await repo.findEmployeeByUserIdUnique(session.userId);
+  const employee = await repo.findEmployeeTargetProfileByUserId(session.userId);
   if (!employee) throw new AppError("VALIDATION_ERROR", "Data pegawai tidak ditemukan", 400);
+
+  if (!matchesDocumentTypeTarget(employee, docType)) {
+    throw new AppError("FORBIDDEN", "Jenis dokumen ini tidak berlaku untuk data kepegawaian Anda.", 403);
+  }
 
   // 3. Validate conditional fields
   if (docType.requiresDocumentNumber && !data.documentNumber) {

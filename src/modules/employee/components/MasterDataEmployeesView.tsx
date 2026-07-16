@@ -207,7 +207,7 @@ export function MasterDataEmployeesView({ employees, pagination }: MasterDataEmp
                     <TableCell>{emp.documentCount}</TableCell>
                     <TableCell className="text-right">
                       <Link
-                        className={buttonVariants({ variant: "outline", size: "sm" })}
+                        className={buttonVariants({ variant: "outline", size: "xs" })}
                         href={`/master-data/employees/${emp.id}`}
                       >
                         Detail

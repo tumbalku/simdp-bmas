@@ -311,7 +311,7 @@ export function VerificationQueueView({
       cellClassName: "hidden lg:table-cell",
       cell: (item) => (
         <div className="space-y-0.5">
-          <div className="text-sm">{item.title || item.documentType.name}</div>
+          <div>{item.title || item.documentType.name}</div>
           {item.documentNumber && (
             <div className="text-xs text-muted-foreground">
               No: {item.documentNumber}
@@ -324,7 +324,7 @@ export function VerificationQueueView({
       key: "uploadedAt",
       header: "Diunggah",
       headClassName: "hidden sm:table-cell",
-      cellClassName: "hidden whitespace-nowrap text-sm text-muted-foreground sm:table-cell",
+      cellClassName: "hidden whitespace-nowrap text-muted-foreground sm:table-cell",
       cell: (item) => formatDate(item.uploadedAt),
     },
     {
@@ -337,10 +337,10 @@ export function VerificationQueueView({
             href={`/verification/${item.id}`}
             className={buttonVariants({
               variant: "default",
-              size: "sm",
+              size: "xs",
             })}
           >
-            <Search className="mr-1 size-3.5" />
+            <Search className="size-3" />
             Tinjau Berkas
           </Link>
         </div>
@@ -542,10 +542,10 @@ export function VerificationQueueView({
                             href={`/verification/${item.id}`}
                             className={buttonVariants({
                               variant: "default",
-                              size: "sm",
+                              size: "xs",
                             })}
                           >
-                            <Search className="mr-1 size-3.5" />
+                            <Search className="size-3" />
                             Tinjau Berkas
                           </Link>
                         </div>

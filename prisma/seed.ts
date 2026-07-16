@@ -66,6 +66,7 @@ async function resetDemoData() {
   await prisma.documentTypeProfessionGroup.deleteMany({});
   await prisma.documentTypeEmploymentStatus.deleteMany({});
   await prisma.documentTypeEmployeeGroup.deleteMany({});
+  await prisma.documentTypeEmployeePosition.deleteMany({});
   await prisma.documentTypeEmployeeRank.deleteMany({});
   await prisma.documentTypeWorkplace.deleteMany({});
   await prisma.documentType.deleteMany({});
@@ -90,20 +91,16 @@ async function main() {
 
   const passwordHash = await argon2.hash(DEMO_PASSWORD);
 
-  const [pns, pppk, kontrak, honorer, internship] = await Promise.all([
-    prisma.employmentStatus.create({ data: { id: "seed_status_pns", name: "PNS" } }),
-    prisma.employmentStatus.create({ data: { id: "seed_status_pppk", name: "PPPK" } }),
-    prisma.employmentStatus.create({ data: { id: "seed_status_kontrak", name: "Kontrak BLUD" } }),
-    prisma.employmentStatus.create({ data: { id: "seed_status_honorer", name: "Honorer Daerah" } }),
-    prisma.employmentStatus.create({ data: { id: "seed_status_internship", name: "Magang / Internship" } }),
+  const [asn, nonAsn] = await Promise.all([
+    prisma.employmentStatus.create({ data: { id: "seed_status_asn", name: "ASN" } }),
+    prisma.employmentStatus.create({ data: { id: "seed_status_non_asn", name: "Non ASN" } }),
   ]);
 
-  const groups = await Promise.all([
-    prisma.employeeGroup.create({ data: { id: "seed_group_medis", name: "Tenaga Medis", employmentStatusId: pns.id } }),
-    prisma.employeeGroup.create({ data: { id: "seed_group_keperawatan", name: "Keperawatan", employmentStatusId: pppk.id } }),
-    prisma.employeeGroup.create({ data: { id: "seed_group_penunjang", name: "Penunjang Medis", employmentStatusId: kontrak.id } }),
-    prisma.employeeGroup.create({ data: { id: "seed_group_administrasi", name: "Administrasi", employmentStatusId: honorer.id } }),
-    prisma.employeeGroup.create({ data: { id: "seed_group_magang", name: "Peserta Magang", employmentStatusId: internship.id } }),
+  const [pnsGroup, pppkGroup, bludKontrakGroup, bludTetapGroup] = await Promise.all([
+    prisma.employeeGroup.create({ data: { id: "seed_group_pns", name: "PNS", employmentStatusId: asn.id } }),
+    prisma.employeeGroup.create({ data: { id: "seed_group_pppk", name: "PPPK", employmentStatusId: asn.id } }),
+    prisma.employeeGroup.create({ data: { id: "seed_group_blud_kontrak", name: "BLUD Kontrak", employmentStatusId: nonAsn.id } }),
+    prisma.employeeGroup.create({ data: { id: "seed_group_blud_tetap", name: "BLUD Tetap", employmentStatusId: nonAsn.id } }),
   ]);
 
   const professionGroups = await Promise.all([
@@ -159,7 +156,7 @@ async function main() {
   ]);
 
   await prisma.documentTypeEmploymentStatus.createMany({
-    data: documentTypes.flatMap((type) => [pns, pppk, kontrak, honorer].map((status) => ({
+    data: documentTypes.flatMap((type) => [asn, nonAsn].map((status) => ({
       id: `seed_rel_type_status_${type.id}_${status.id}`,
       documentTypeId: type.id,
       employmentStatusId: status.id,
@@ -175,16 +172,16 @@ async function main() {
   });
 
   const employeeSeeds = [
-    { id: "seed_admin", email: "admin@rsudbahteramas.test", role: Role.ADMIN, name: "dr. Arman Satria, M.Kes", employeeId: "197801012006041001", nik: "7471010101780001", gender: "Laki-laki", birthPlace: "Kendari", birthDate: dateOnly(1978, 1, 1), degree: "M.Kes", education: "S2 Kesehatan Masyarakat", status: pns, group: groups[0], position: positions[1], rank: ranks[5], workplace: workplaces[6] },
-    { id: "seed_staff_1", email: "staff@rsudbahteramas.test", role: Role.STAFF, name: "Siti Rahma, S.Sos", employeeId: "198805122010012004", nik: "7471021205880002", gender: "Perempuan", birthPlace: "Bau-Bau", birthDate: dateOnly(1988, 5, 12), degree: "S.Sos", education: "S1 Administrasi Publik", status: pns, group: groups[3], position: positions[7], rank: ranks[3], workplace: workplaces[6] },
-    { id: "seed_staff_2", email: "verifikator@rsudbahteramas.test", role: Role.STAFF, name: "Muh. Fadli, A.Md.RMIK", employeeId: "199206212019031006", nik: "7471032106920003", gender: "Laki-laki", birthPlace: "Kolaka", birthDate: dateOnly(1992, 6, 21), degree: "A.Md.RMIK", education: "D3 Rekam Medis", status: pppk, group: groups[3], position: positions[6], rank: ranks[2], workplace: workplaces[5] },
-    { id: "seed_emp_1", email: "budi.setiawan@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Budi Setiawan, A.Md.Kep", employeeId: "199503032020031003", nik: "7471040303950004", gender: "Laki-laki", birthPlace: "Kendari", birthDate: dateOnly(1995, 3, 3), degree: "A.Md.Kep", education: "D3 Keperawatan", status: kontrak, group: groups[1], position: positions[2], rank: ranks[1], workplace: workplaces[0] },
-    { id: "seed_emp_2", email: "dewi.lestari@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Dewi Lestari, S.Kep.Ns", employeeId: "199104142016042005", nik: "7471051404910005", gender: "Perempuan", birthPlace: "Unaaha", birthDate: dateOnly(1991, 4, 14), degree: "S.Kep.Ns", education: "Profesi Ners", status: pns, group: groups[1], position: positions[3], rank: ranks[4], workplace: workplaces[1] },
-    { id: "seed_emp_3", email: "fitri.handayani@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Fitri Handayani, A.Md.Keb", employeeId: "199607092021052006", nik: "7471060907960006", gender: "Perempuan", birthPlace: "Raha", birthDate: dateOnly(1996, 7, 9), degree: "A.Md.Keb", education: "D3 Kebidanan", status: pppk, group: groups[1], position: positions[4], rank: ranks[2], workplace: workplaces[2] },
-    { id: "seed_emp_4", email: "eko.prasetyo@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Eko Prasetyo, S.Farm.Apt", employeeId: "198912302015011007", nik: "7471073012890007", gender: "Laki-laki", birthPlace: "Makassar", birthDate: dateOnly(1989, 12, 30), degree: "Apt", education: "Profesi Apoteker", status: pns, group: groups[2], position: positions[5], rank: ranks[3], workplace: workplaces[4] },
-    { id: "seed_emp_5", email: "lina.marlina@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Lina Marlina, A.Md.AK", employeeId: null, nik: "7471081808980008", gender: "Perempuan", birthPlace: "Wakatobi", birthDate: dateOnly(1998, 8, 18), degree: "A.Md.AK", education: "D3 Analis Kesehatan", status: honorer, group: groups[2], position: positions[6], rank: ranks[0], workplace: workplaces[7] },
-    { id: "seed_emp_6", email: "andri.saputra@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Andri Saputra, S.Ked", employeeId: null, nik: "7471092201990009", gender: "Laki-laki", birthPlace: "Konawe", birthDate: dateOnly(1999, 1, 22), degree: "S.Ked", education: "Pendidikan Dokter", status: internship, group: groups[4], position: positions[0], rank: ranks[0], workplace: workplaces[3] },
-    { id: "seed_emp_7", email: "kartika.sari@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Kartika Sari, S.Tr.Keb", employeeId: "199305272018072010", nik: "7471102705930010", gender: "Perempuan", birthPlace: "Kendari", birthDate: dateOnly(1993, 5, 27), degree: "S.Tr.Keb", education: "D4 Kebidanan", status: pppk, group: groups[1], position: positions[4], rank: ranks[2], workplace: workplaces[2] },
+    { id: "seed_admin", email: "admin@rsudbahteramas.test", role: Role.ADMIN, name: "dr. Arman Satria, M.Kes", employeeId: "197801012006041001", nik: "7471010101780001", gender: "Laki-laki", birthPlace: "Kendari", birthDate: dateOnly(1978, 1, 1), degree: "M.Kes", education: "S2 Kesehatan Masyarakat", status: asn, group: pnsGroup, position: positions[1], rank: ranks[5], workplace: workplaces[6] },
+    { id: "seed_staff_1", email: "staff@rsudbahteramas.test", role: Role.STAFF, name: "Siti Rahma, S.Sos", employeeId: "198805122010012004", nik: "7471021205880002", gender: "Perempuan", birthPlace: "Bau-Bau", birthDate: dateOnly(1988, 5, 12), degree: "S.Sos", education: "S1 Administrasi Publik", status: asn, group: pnsGroup, position: positions[7], rank: ranks[3], workplace: workplaces[6] },
+    { id: "seed_staff_2", email: "verifikator@rsudbahteramas.test", role: Role.STAFF, name: "Muh. Fadli, A.Md.RMIK", employeeId: "199206212019031006", nik: "7471032106920003", gender: "Laki-laki", birthPlace: "Kolaka", birthDate: dateOnly(1992, 6, 21), degree: "A.Md.RMIK", education: "D3 Rekam Medis", status: asn, group: pppkGroup, position: positions[6], rank: ranks[2], workplace: workplaces[5] },
+    { id: "seed_emp_1", email: "budi.setiawan@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Budi Setiawan, A.Md.Kep", employeeId: "199503032020031003", nik: "7471040303950004", gender: "Laki-laki", birthPlace: "Kendari", birthDate: dateOnly(1995, 3, 3), degree: "A.Md.Kep", education: "D3 Keperawatan", status: nonAsn, group: bludKontrakGroup, position: positions[2], rank: ranks[1], workplace: workplaces[0] },
+    { id: "seed_emp_2", email: "dewi.lestari@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Dewi Lestari, S.Kep.Ns", employeeId: "199104142016042005", nik: "7471051404910005", gender: "Perempuan", birthPlace: "Unaaha", birthDate: dateOnly(1991, 4, 14), degree: "S.Kep.Ns", education: "Profesi Ners", status: asn, group: pnsGroup, position: positions[3], rank: ranks[4], workplace: workplaces[1] },
+    { id: "seed_emp_3", email: "fitri.handayani@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Fitri Handayani, A.Md.Keb", employeeId: "199607092021052006", nik: "7471060907960006", gender: "Perempuan", birthPlace: "Raha", birthDate: dateOnly(1996, 7, 9), degree: "A.Md.Keb", education: "D3 Kebidanan", status: asn, group: pppkGroup, position: positions[4], rank: ranks[2], workplace: workplaces[2] },
+    { id: "seed_emp_4", email: "eko.prasetyo@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Eko Prasetyo, S.Farm.Apt", employeeId: "198912302015011007", nik: "7471073012890007", gender: "Laki-laki", birthPlace: "Makassar", birthDate: dateOnly(1989, 12, 30), degree: "Apt", education: "Profesi Apoteker", status: asn, group: pnsGroup, position: positions[5], rank: ranks[3], workplace: workplaces[4] },
+    { id: "seed_emp_5", email: "lina.marlina@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Lina Marlina, A.Md.AK", employeeId: null, nik: "7471081808980008", gender: "Perempuan", birthPlace: "Wakatobi", birthDate: dateOnly(1998, 8, 18), degree: "A.Md.AK", education: "D3 Analis Kesehatan", status: nonAsn, group: bludTetapGroup, position: positions[6], rank: ranks[0], workplace: workplaces[7] },
+    { id: "seed_emp_6", email: "andri.saputra@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Andri Saputra, S.Ked", employeeId: null, nik: "7471092201990009", gender: "Laki-laki", birthPlace: "Konawe", birthDate: dateOnly(1999, 1, 22), degree: "S.Ked", education: "Pendidikan Dokter", status: nonAsn, group: bludKontrakGroup, position: positions[0], rank: ranks[0], workplace: workplaces[3] },
+    { id: "seed_emp_7", email: "kartika.sari@rsudbahteramas.test", role: Role.EMPLOYEE, name: "Kartika Sari, S.Tr.Keb", employeeId: "199305272018072010", nik: "7471102705930010", gender: "Perempuan", birthPlace: "Kendari", birthDate: dateOnly(1993, 5, 27), degree: "S.Tr.Keb", education: "D4 Kebidanan", status: asn, group: pppkGroup, position: positions[4], rank: ranks[2], workplace: workplaces[2] },
   ];
 
   const employees = [];
@@ -219,7 +216,7 @@ async function main() {
         joinDate: dateOnly(2015 + (i % 8), (i % 12) + 1, 10),
         hasTmt: item.role !== Role.ADMIN,
         tmtStartDate: dateOnly(2020 + (i % 4), (i % 12) + 1, 1),
-        tmtEndDate: item.status.id === internship.id ? daysFromNow(120) : null,
+        tmtEndDate: item.group.id === bludKontrakGroup.id ? daysFromNow(120) : null,
         employmentStatusId: item.status.id,
         employeeGroupId: item.group.id,
         employeePositionId: item.position.id,
