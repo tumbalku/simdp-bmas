@@ -294,6 +294,73 @@ describe("Employee Module Service", () => {
       ).rejects.toThrow("Pegawai tidak ditemukan");
     });
 
+    it("should update account email, role, and active status with an audit log", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+        name: "John Doe",
+        employeeId: "1990",
+        nik: "7471",
+        user: { id: "user-1", email: "old@example.com", role: "EMPLOYEE", isActive: true },
+      });
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.update.mockResolvedValue({ id: "emp-1", name: "John Doe" });
+
+      const result = await handleEmployeeCrud(
+        "UPDATE",
+        "emp-1",
+        { email: "new@example.com", role: "STAFF", isActive: false, name: "John Doe" },
+        "admin-1",
+        "Admin",
+        "ADMIN",
+      );
+
+      expect(result).toEqual({ id: "emp-1", name: "John Doe" });
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "user-1" },
+          data: { email: "new@example.com", role: "STAFF", isActive: false },
+        }),
+      );
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "EMPLOYEE_ACCOUNT_UPDATED",
+            resource: "User:user-1",
+            metadata: expect.objectContaining({
+              employeeId: "emp-1",
+              updatedFields: ["email", "role", "isActive"],
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("should prevent admin from deactivating their own account", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "emp-1",
+        userId: "admin-1",
+        name: "Admin User",
+        employeeId: "1990",
+        nik: "7471",
+        user: { id: "admin-1", email: "admin@example.com", role: "ADMIN", isActive: true },
+      });
+
+      await expect(
+        handleEmployeeCrud(
+          "UPDATE",
+          "emp-1",
+          { email: "admin@example.com", role: "ADMIN", isActive: false, name: "Admin User" },
+          "admin-1",
+          "Admin User",
+          "ADMIN",
+        ),
+      ).rejects.toThrow("Akun sendiri tidak dapat dinonaktifkan");
+
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
     it("should throw error when DELETE target employee is not found", async () => {
       mockPrisma.employee.findUnique.mockResolvedValue(null);
 

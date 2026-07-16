@@ -16,6 +16,7 @@ export const crudEmployeeSchema = z.object({
     .object({
       email: z.string().email("Format email tidak valid").optional(),
       role: z.enum(["ADMIN", "STAFF", "EMPLOYEE"]).optional(),
+      isActive: z.boolean().optional(),
       employeeId: z.string().optional().nullable(),
       nik: z.string().optional().nullable(),
       name: z.string().optional(),
