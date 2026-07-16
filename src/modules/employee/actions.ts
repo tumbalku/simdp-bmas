@@ -227,6 +227,16 @@ export async function importEmployeesAction(formData: FormData) {
       };
     }
 
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "File harus berformat CSV.",
+        },
+      };
+    }
+
     const csvText = await file.text();
 
     const actorName = await getActorDisplayName(session.userId, "Admin");

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Archive, Eye, Pencil, RotateCcw, Trash2, UserPlus, Users } from "lucide-react";
+import { Archive, Eye, FileDown, Pencil, RotateCcw, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { PaginationItems } from "@/components/shared/PaginationItems";
@@ -40,6 +40,7 @@ import {
   type EmployeeDirectoryFilterOptions,
   type EmployeeDirectoryFilterValues,
 } from "./EmployeeDirectoryFilter";
+import { EmployeeCsvImportDialog } from "./EmployeeCsvImportDialog";
 
 type ViewMode = "grid" | "list";
 
@@ -166,6 +167,19 @@ export function MasterDataEmployeesView({
     });
 
     return `/master-data/employees?${params.toString()}`;
+  };
+
+  const buildExportUrl = () => {
+    const params = new URLSearchParams();
+    if (isArchiveView) params.set("archiveView", "archived");
+
+    FILTER_KEYS.forEach((key) => {
+      const value = filters[key].trim();
+      if (value) params.set(key, value);
+    });
+
+    const query = params.toString();
+    return `/api/v1/employees/export${query ? `?${query}` : ""}`;
   };
 
   const handleValueChange = (key: keyof EmployeeDirectoryFilterValues, value: string) => {
@@ -393,13 +407,19 @@ export function MasterDataEmployeesView({
       <PageHeader
         title="Data Pegawai"
         description="Kelola direktori pegawai, akun, unit kerja, dan ringkasan dokumen."
-        actions={[
-          {
-            label: "Tambah Pegawai",
-            href: "/master-data/employees/add",
-            icon: UserPlus,
-          }
-        ]}
+        trailing={
+          <>
+            <EmployeeCsvImportDialog />
+            <Link className={buttonVariants({ variant: "outline" })} href={buildExportUrl()}>
+              <FileDown className="size-3.5" />
+              Export CSV
+            </Link>
+            <Link className={buttonVariants()} href="/master-data/employees/add">
+              <UserPlus className="size-3.5" />
+              Tambah Pegawai
+            </Link>
+          </>
+        }
       />
 
       <EmployeeDirectoryFilter

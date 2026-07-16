@@ -6,6 +6,8 @@ import {
   getEmployeeDirectory,
   getEmployeeDirectoryWithPagination,
   getEmployeeDetail,
+  exportEmployeeDirectoryCsv,
+  importFromCsv,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
@@ -150,6 +152,47 @@ describe("Employee Module Service", () => {
         where: expect.objectContaining({ deletedAt: { not: null } }),
       });
     });
+
+    it("should export filtered employees to CSV without secret fields", async () => {
+      mockPrisma.employee.findMany.mockResolvedValue([
+        {
+          name: "Siti, Aminah",
+          employeeId: "19850101",
+          nik: "7471010101010001",
+          status: "Aktif",
+          phone: "0812",
+          lastEducation: "S1",
+          user: { email: "siti@example.com", role: "EMPLOYEE", isActive: true },
+          employmentStatus: { name: "PNS" },
+          employeeGroup: { name: "PNS Daerah" },
+          employeePosition: { name: "Perawat" },
+          employeeRank: { name: "III/a" },
+          workplace: { name: "UGD" },
+        },
+      ]);
+
+      const csv = await exportEmployeeDirectoryCsv(
+        { search: "siti", archiveView: "active" },
+        { actorId: "admin-1", actorName: "Admin", actorRole: "ADMIN" },
+      );
+
+      expect(csv).toContain("Nama;NIP;NIK;Email;Role");
+      expect(csv).toContain("Siti, Aminah;19850101;7471010101010001;siti@example.com");
+      expect(csv).not.toContain("passwordHash");
+      expect(mockPrisma.employee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            OR: expect.arrayContaining([{ name: { contains: "siti", mode: "insensitive" } }]),
+          }),
+        }),
+      );
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ eventType: "EMPLOYEE_EXPORTED" }),
+        }),
+      );
+    });
   });
 
   describe("getCurrentProfile", () => {
@@ -269,6 +312,32 @@ describe("Employee Module Service", () => {
       await expect(
         handleEmployeeCrud("INVALID_OP" as never, "emp-1", undefined, "admin-1", "Admin", "ADMIN")
       ).rejects.toThrow("Operasi tidak didukung");
+    });
+  });
+
+  describe("importFromCsv", () => {
+    it("should import semicolon template rows and preserve commas in names", async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+      mockPrisma.user.create.mockResolvedValue({ id: "user-2" });
+      mockPrisma.employee.create.mockResolvedValue({ id: "emp-2", name: "Andri Saputra, S.Ked." });
+
+      const result = await importFromCsv(
+        [
+          "email;name;employeeId;nik;role;gender",
+          "andri@example.com;Andri Saputra, S.Ked.;19850101;7471010101010001;EMPLOYEE;Laki-laki",
+        ].join("\n"),
+        "admin-1",
+        "Admin",
+        "ADMIN",
+      );
+
+      expect(result).toEqual(expect.objectContaining({ importedCount: 1, failedCount: 0 }));
+      expect(mockPrisma.employee.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ name: "Andri Saputra, S.Ked." }),
+        }),
+      );
     });
   });
 });

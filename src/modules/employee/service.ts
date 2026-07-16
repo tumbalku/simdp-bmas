@@ -26,6 +26,31 @@ type EmployeeDirectoryFilter = {
   status?: string;
 };
 
+type EmployeeExportActor = {
+  actorId: string;
+  actorName: string;
+  actorRole: string;
+};
+
+const EMPLOYEE_EXPORT_HEADERS = [
+  "Nama",
+  "NIP",
+  "NIK",
+  "Email",
+  "Role",
+  "Status Pegawai",
+  "Status Akun",
+  "Status Kepegawaian",
+  "Jenis Kepegawaian",
+  "Jabatan",
+  "Golongan",
+  "Unit Kerja",
+  "Telepon",
+  "Pendidikan",
+] as const;
+
+const EMPLOYEE_EXPORT_DELIMITER = ";";
+
 function getDateAtAge(age: number) {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
@@ -111,6 +136,58 @@ export async function getEmployeeDirectoryWithPagination(
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+function escapeCsvCell(value: unknown) {
+  const text = value === null || value === undefined ? "" : String(value);
+  if (
+    text.includes('"') ||
+    text.includes(EMPLOYEE_EXPORT_DELIMITER) ||
+    text.includes("\n") ||
+    text.includes(String.fromCharCode(13))
+  ) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+export async function exportEmployeeDirectoryCsv(
+  filter: EmployeeDirectoryFilter = {},
+  actor: EmployeeExportActor
+) {
+  const where = buildEmployeeDirectoryWhere(filter);
+  const employees = await repository.findEmployeesForExport(where);
+  const rows = employees.map((employee: any) => [
+    employee.name,
+    employee.employeeId,
+    employee.nik,
+    employee.user?.email,
+    employee.user?.role || "EMPLOYEE",
+    employee.status || "Aktif",
+    employee.user?.isActive === false ? "Nonaktif" : "Aktif",
+    employee.employmentStatus?.name,
+    employee.employeeGroup?.name,
+    employee.employeePosition?.name,
+    employee.employeeRank?.name,
+    employee.workplace?.name,
+    employee.phone,
+    employee.lastEducation,
+  ]);
+
+  await logActivity({
+    ...actor,
+    eventType: "EMPLOYEE_EXPORTED",
+    resource: "EmployeeDirectory",
+    status: "SUCCESS",
+    metadata: {
+      rowCount: employees.length,
+      archiveView: filter.archiveView || "active",
+    },
+  });
+
+  return [EMPLOYEE_EXPORT_HEADERS, ...rows]
+    .map((row) => row.map(escapeCsvCell).join(EMPLOYEE_EXPORT_DELIMITER))
+    .join("\n");
 }
 
 export async function getEmployeeDetail(id: string) {
@@ -427,13 +504,47 @@ export async function importFromCsv(
   actorName: string,
   actorRole: string
 ) {
+  const parseCsvLine = (line: string, delimiter: string) => {
+    const values: string[] = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+
+      if (char === '"' && inQuotes && nextChar === '"') {
+        current += '"';
+        i++;
+        continue;
+      }
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+
+      if (char === delimiter && !inQuotes) {
+        values.push(current.trim());
+        current = "";
+        continue;
+      }
+
+      current += char;
+    }
+
+    values.push(current.trim());
+    return values;
+  };
+
   const parseCsv = (text: string) => {
-    const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+    const lines = text.split(String.fromCharCode(10)).map((line) => line.replace(String.fromCharCode(13), "")).filter((line) => line.trim().length > 0);
     if (lines.length === 0) return [];
-    const headers = lines[0].split(",").map((h) => h.trim().replace(/^["']|["']$/g, ""));
+    const delimiter = lines[0].includes(";") ? ";" : ",";
+    const headers = parseCsvLine(lines[0], delimiter).map((h) => h.replace(/^﻿/, ""));
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim().replace(/^["']|["']$/g, ""));
+      const values = parseCsvLine(lines[i], delimiter);
       const row: any = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || "";
