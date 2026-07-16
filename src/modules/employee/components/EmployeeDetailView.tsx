@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil } from "lucide-react";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +73,13 @@ export function EmployeeDetailView({ employee }: EmployeeDetailViewProps) {
         backLabel="Kembali ke data pegawai"
         title="Profil Pegawai"
         description="Detail informasi profil, status kepegawaian, dokumen, dan riwayat karier pegawai."
+        actions={[
+          {
+            label: "Edit Pegawai",
+            href: routeTo.masterDataEmployeeEdit(employee.id),
+            icon: Pencil,
+          },
+        ]}
       />
 
       {/* Profil Centered Box */}

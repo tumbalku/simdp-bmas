@@ -50,11 +50,11 @@ export async function findEmployeeDetailById(id: string, tx?: PrismaClientOrTx) 
     where: { id, deletedAt: null },
     include: {
       user: { select: { email: true, role: true, isActive: true } },
-      employmentStatus: { select: { name: true } },
-      employeeGroup: { select: { name: true } },
-      employeePosition: { select: { name: true } },
-      employeeRank: { select: { name: true } },
-      workplace: { select: { name: true } },
+      employmentStatus: { select: { id: true, name: true } },
+      employeeGroup: { select: { id: true, name: true, employmentStatusId: true } },
+      employeePosition: { select: { id: true, name: true, professionGroupId: true } },
+      employeeRank: { select: { id: true, name: true } },
+      workplace: { select: { id: true, name: true } },
       careerHistories: {
         orderBy: { effectiveDate: "desc" },
         include: {
