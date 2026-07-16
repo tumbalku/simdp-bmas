@@ -23,7 +23,10 @@ function PaginationContent({
   return (
     <ul
       data-slot="pagination-content"
-      className={cn("flex items-center gap-0.5", className)}
+      className={cn(
+        "flex items-center gap-0.5 rounded-lg border border-muted-foreground/10 bg-card p-1 shadow-sm",
+        className
+      )}
       {...props}
     />
   )
@@ -46,7 +49,7 @@ function PaginationLink({
 }: PaginationLinkProps) {
   return (
     <Button
-      variant={isActive ? "outline" : "ghost"}
+      variant={isActive ? "default" : "ghost"}
       size={size}
       className={cn(className)}
       nativeButton={false}

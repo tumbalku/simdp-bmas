@@ -2,7 +2,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { handleActionError } from "@/lib/errors";
+import { AppError, handleActionError } from "@/lib/errors";
 import {
   getCurrentProfile as getProfileService,
   updateProfile,
@@ -169,7 +169,9 @@ export async function crudEmployeeAction(operation: string, id?: string, data?: 
 
     return { ok: true as const, data: result };
   } catch (error: any) {
-    console.error("crudEmployeeAction error:", error);
+    if (!(error instanceof AppError)) {
+      console.error("crudEmployeeAction error:", error);
+    }
     return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }

@@ -11,6 +11,7 @@ export function mapEmployeeSummary(employee: any) {
     employeeId: employee.employeeId,
     nik: employee.nik,
     name: employee.name,
+    status: employee.status || "Aktif",
     gender: employee.gender,
     phone: employee.phone,
     email: employee.user?.email || null,
@@ -27,6 +28,7 @@ export function mapEmployeeDetail(employee: any) {
 
   return {
     ...mapEmployeeSummary(employee),
+    avatarUrl: employee.avatarUrl || null,
     birthDate: toIsoDate(employee.birthDate),
     birthPlace: employee.birthPlace,
     academicDegree: employee.academicDegree,
@@ -35,6 +37,8 @@ export function mapEmployeeDetail(employee: any) {
     maritalStatus: employee.maritalStatus,
     address: employee.address,
     joinDate: toIsoDate(employee.joinDate),
+    tmtStartDate: toIsoDate(employee.tmtStartDate),
+    tmtEndDate: toIsoDate(employee.tmtEndDate),
     employeeGroup: employee.employeeGroup?.name || null,
     employeePosition: employee.employeePosition?.name || null,
     employeeRank: employee.employeeRank?.name || null,

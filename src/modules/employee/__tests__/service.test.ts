@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getCurrentProfile, updateProfile, handleEmployeeCrud, getEmployeeDirectory, getEmployeeDetail } from "../service";
+import {
+  getCurrentProfile,
+  updateProfile,
+  handleEmployeeCrud,
+  getEmployeeDirectory,
+  getEmployeeDirectoryWithPagination,
+  getEmployeeDetail,
+} from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
 describe("Employee Module Service", () => {
@@ -59,6 +66,58 @@ describe("Employee Module Service", () => {
 
       expect(result).toEqual(expect.objectContaining({ id: "emp-1", email: "john@example.com" }));
       expect(result?.documents[0]).toEqual(expect.objectContaining({ id: "doc-1", documentTypeName: "KTP" }));
+    });
+
+    it("should apply advanced employee directory filters to paginated query", async () => {
+      mockPrisma.employee.findMany.mockResolvedValue([]);
+      mockPrisma.employee.count.mockResolvedValue(0);
+
+      await getEmployeeDirectoryWithPagination({
+        page: 2,
+        limit: 10,
+        search: "siti",
+        employmentStatusId: "status-1",
+        employeeGroupId: "group-1",
+        professionGroupId: "profession-1",
+        employeePositionId: "position-1",
+        employeeRankId: "rank-1",
+        workplaceId: "workplace-1",
+        maritalStatus: "Kawin",
+        lastEducation: "S1",
+        tmtStartDate: "2020-01-01",
+        tmtEndDate: "2026-12-31",
+        retirementAgeFrom: 50,
+        retirementAgeTo: 58,
+        status: "Aktif",
+      });
+
+      expect(mockPrisma.employee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            employmentStatusId: "status-1",
+            employeeGroupId: "group-1",
+            employeePosition: { professionGroupId: "profession-1" },
+            employeePositionId: "position-1",
+            employeeRankId: "rank-1",
+            workplaceId: "workplace-1",
+            maritalStatus: "Kawin",
+            lastEducation: "S1",
+            status: "Aktif",
+            tmtStartDate: { gte: new Date("2020-01-01") },
+            tmtEndDate: { lte: new Date("2026-12-31") },
+            birthDate: expect.objectContaining({
+              lte: expect.any(Date),
+              gte: expect.any(Date),
+            }),
+            OR: expect.arrayContaining([
+              { name: { contains: "siti", mode: "insensitive" } },
+            ]),
+          }),
+          skip: 10,
+          take: 10,
+        })
+      );
     });
   });
 
@@ -131,6 +190,54 @@ describe("Employee Module Service", () => {
       expect(result).toEqual({ id: "emp-1", name: "John" });
       expect(mockPrisma.employee.update).toHaveBeenCalled();
       expect(mockPrisma.user.update).toHaveBeenCalled();
+    });
+
+    it("should throw error when CREATE is called with missing email", async () => {
+      await expect(
+        handleEmployeeCrud("CREATE", undefined, { name: "Jane" }, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("Email dan Nama wajib diisi");
+    });
+
+    it("should throw error when CREATE is called with missing name", async () => {
+      await expect(
+        handleEmployeeCrud("CREATE", undefined, { email: "jane@example.com" }, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("Email dan Nama wajib diisi");
+    });
+
+    it("should throw error when UPDATE is called without ID", async () => {
+      await expect(
+        handleEmployeeCrud("UPDATE", undefined, {}, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("ID pegawai wajib diisi");
+    });
+
+    it("should throw error when UPDATE target employee is not found", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue(null);
+
+      await expect(
+        handleEmployeeCrud("UPDATE", "non-existent-id", {}, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("Pegawai tidak ditemukan");
+    });
+
+    it("should throw error when DELETE target employee is not found", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue(null);
+
+      await expect(
+        handleEmployeeCrud("DELETE", "non-existent-id", undefined, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("Pegawai tidak ditemukan");
+    });
+
+    it("should throw error when RESTORE target employee is not found", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue(null);
+
+      await expect(
+        handleEmployeeCrud("RESTORE", "non-existent-id", undefined, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("Pegawai tidak ditemukan");
+    });
+
+    it("should throw error for unsupported operation", async () => {
+      await expect(
+        handleEmployeeCrud("INVALID_OP" as never, "emp-1", undefined, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("Operasi tidak didukung");
     });
   });
 });

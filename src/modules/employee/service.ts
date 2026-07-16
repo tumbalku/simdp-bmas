@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as argon2 from "argon2";
 import crypto from "crypto";
+import { AppError } from "@/lib/errors";
 import { logActivity } from "@/modules/security/service";
 import * as repository from "./repository";
 import { mapEmployeeSummary, mapEmployeeDetail } from "./mappers";
@@ -9,10 +10,31 @@ type EmployeeDirectoryFilter = {
   search?: string;
   page?: number;
   limit?: number;
+  employmentStatusId?: string;
+  employeeGroupId?: string;
+  professionGroupId?: string;
+  employeePositionId?: string;
+  employeeRankId?: string;
+  workplaceId?: string;
+  maritalStatus?: string;
+  lastEducation?: string;
+  tmtStartDate?: string;
+  tmtEndDate?: string;
+  retirementAgeFrom?: number;
+  retirementAgeTo?: number;
+  status?: string;
 };
 
-export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {}) {
+function getDateAtAge(age: number) {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setFullYear(date.getFullYear() - age);
+  return date;
+}
+
+function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
   const where: any = { deletedAt: null };
+
   if (filter.search) {
     where.OR = [
       { name: { contains: filter.search, mode: "insensitive" } },
@@ -21,6 +43,43 @@ export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {})
       { user: { email: { contains: filter.search, mode: "insensitive" } } },
     ];
   }
+
+  if (filter.employmentStatusId) where.employmentStatusId = filter.employmentStatusId;
+  if (filter.employeeGroupId) where.employeeGroupId = filter.employeeGroupId;
+  if (filter.professionGroupId) {
+    where.employeePosition = { professionGroupId: filter.professionGroupId };
+  }
+  if (filter.employeePositionId) where.employeePositionId = filter.employeePositionId;
+  if (filter.employeeRankId) where.employeeRankId = filter.employeeRankId;
+  if (filter.workplaceId) where.workplaceId = filter.workplaceId;
+  if (filter.maritalStatus) where.maritalStatus = filter.maritalStatus;
+  if (filter.lastEducation) where.lastEducation = filter.lastEducation;
+  if (filter.status) where.status = filter.status;
+
+  if (filter.tmtStartDate) {
+    where.tmtStartDate = { ...(where.tmtStartDate || {}), gte: new Date(filter.tmtStartDate) };
+  }
+  if (filter.tmtEndDate) {
+    where.tmtEndDate = { ...(where.tmtEndDate || {}), lte: new Date(filter.tmtEndDate) };
+  }
+
+  if (filter.retirementAgeFrom !== undefined || filter.retirementAgeTo !== undefined) {
+    where.birthDate = { ...(where.birthDate || {}) };
+    if (filter.retirementAgeFrom !== undefined) {
+      where.birthDate.lte = getDateAtAge(filter.retirementAgeFrom);
+    }
+    if (filter.retirementAgeTo !== undefined) {
+      const minimumBirthDate = getDateAtAge(filter.retirementAgeTo + 1);
+      minimumBirthDate.setDate(minimumBirthDate.getDate() + 1);
+      where.birthDate.gte = minimumBirthDate;
+    }
+  }
+
+  return where;
+}
+
+export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {}) {
+  const where = buildEmployeeDirectoryWhere(filter);
 
   const employees = await repository.findEmployees(where);
   return employees.map(mapEmployeeSummary);
@@ -33,15 +92,7 @@ export async function getEmployeeDirectoryWithPagination(
   const limit = filter.limit || 20;
   const skip = (page - 1) * limit;
 
-  const where: any = { deletedAt: null };
-  if (filter.search) {
-    where.OR = [
-      { name: { contains: filter.search, mode: "insensitive" } },
-      { employeeId: { contains: filter.search, mode: "insensitive" } },
-      { nik: { contains: filter.search, mode: "insensitive" } },
-      { user: { email: { contains: filter.search, mode: "insensitive" } } },
-    ];
-  }
+  const where = buildEmployeeDirectoryWhere(filter);
 
   const [employees, total] = await Promise.all([
     repository.findEmployeesWithPagination(where, skip, limit),
@@ -131,24 +182,27 @@ export async function handleEmployeeCrud(
 
   if (operation === "CREATE") {
     if (!data.email || !data.name) {
-      throw new Error("Email dan Nama wajib diisi");
+      throw new AppError("VALIDATION_ERROR", "Email dan Nama wajib diisi", 400);
     }
     if (!data.employeeId && !data.nik) {
-      throw new Error("NIP (employeeId) atau NIK wajib diisi");
+      throw new AppError("VALIDATION_ERROR", "NIP atau NIK wajib diisi. Isi minimal salah satu identitas pegawai.", 400, [
+        { path: "employeeId", message: "Isi NIP atau NIK." },
+        { path: "nik", message: "Isi NIK atau NIP." },
+      ]);
     }
 
     // Check duplicate
     if (data.email) {
       const exist = await repository.findUserByEmail(data.email);
-      if (exist) throw new Error("Email sudah terdaftar");
+      if (exist) throw new AppError("CONFLICT", "Email sudah terdaftar. Gunakan email lain.", 409);
     }
     if (data.employeeId) {
       const exist = await repository.findEmployeeByEmployeeId(data.employeeId);
-      if (exist) throw new Error("NIP sudah terdaftar");
+      if (exist) throw new AppError("CONFLICT", "NIP sudah terdaftar. Periksa kembali NIP pegawai.", 409);
     }
     if (data.nik) {
       const exist = await repository.findEmployeeByNik(data.nik);
-      if (exist) throw new Error("NIK sudah terdaftar");
+      if (exist) throw new AppError("CONFLICT", "NIK sudah terdaftar. Periksa kembali NIK pegawai.", 409);
     }
 
     const userId = crypto.randomUUID();
@@ -171,6 +225,7 @@ export async function handleEmployeeCrud(
         employeeId: data.employeeId || null,
         nik: data.nik || null,
         name: data.name,
+        status: data.status || "Aktif",
         gender: data.gender || null,
         birthPlace: data.birthPlace || null,
         birthDate: data.birthDate ? new Date(data.birthDate) : null,
@@ -205,23 +260,23 @@ export async function handleEmployeeCrud(
   }
 
   if (operation === "UPDATE") {
-    if (!id) throw new Error("ID pegawai wajib diisi");
+    if (!id) throw new AppError("VALIDATION_ERROR", "ID pegawai wajib diisi.", 400);
 
     const employee = await repository.findEmployeeWithUserById(id);
-    if (!employee) throw new Error("Pegawai tidak ditemukan");
+    if (!employee) throw new AppError("NOT_FOUND", "Pegawai tidak ditemukan.", 404);
 
     // Check duplicate if values changed
     if (data.email && data.email !== employee.user.email) {
       const exist = await repository.findUserByEmail(data.email);
-      if (exist) throw new Error("Email sudah terdaftar");
+      if (exist) throw new AppError("CONFLICT", "Email sudah terdaftar. Gunakan email lain.", 409);
     }
     if (data.employeeId && data.employeeId !== employee.employeeId) {
       const exist = await repository.findEmployeeByEmployeeId(data.employeeId);
-      if (exist) throw new Error("NIP sudah terdaftar");
+      if (exist) throw new AppError("CONFLICT", "NIP sudah terdaftar. Periksa kembali NIP pegawai.", 409);
     }
     if (data.nik && data.nik !== employee.nik) {
       const exist = await repository.findEmployeeByNik(data.nik);
-      if (exist) throw new Error("NIK sudah terdaftar");
+      if (exist) throw new AppError("CONFLICT", "NIK sudah terdaftar. Periksa kembali NIK pegawai.", 409);
     }
 
     const result = await repository.updateEmployeeWithUserTransaction({
@@ -235,6 +290,7 @@ export async function handleEmployeeCrud(
         employeeId: data.employeeId !== undefined ? data.employeeId : undefined,
         nik: data.nik !== undefined ? data.nik : undefined,
         name: data.name ?? undefined,
+        status: data.status !== undefined ? data.status : undefined,
         gender: data.gender !== undefined ? data.gender : undefined,
         birthPlace: data.birthPlace !== undefined ? data.birthPlace : undefined,
         birthDate: data.birthDate !== undefined ? (data.birthDate ? new Date(data.birthDate) : null) : undefined,
@@ -269,10 +325,10 @@ export async function handleEmployeeCrud(
   }
 
   if (operation === "DELETE") {
-    if (!id) throw new Error("ID pegawai wajib diisi");
+    if (!id) throw new AppError("VALIDATION_ERROR", "ID pegawai wajib diisi.", 400);
 
     const employee = await repository.findEmployeeById(id);
-    if (!employee) throw new Error("Pegawai tidak ditemukan");
+    if (!employee) throw new AppError("NOT_FOUND", "Pegawai tidak ditemukan.", 404);
 
     await repository.softDeleteEmployeeAndUser(id, employee.userId);
 
@@ -287,10 +343,10 @@ export async function handleEmployeeCrud(
   }
 
   if (operation === "RESTORE") {
-    if (!id) throw new Error("ID pegawai wajib diisi");
+    if (!id) throw new AppError("VALIDATION_ERROR", "ID pegawai wajib diisi.", 400);
 
     const employee = await repository.findEmployeeById(id);
-    if (!employee) throw new Error("Pegawai tidak ditemukan");
+    if (!employee) throw new AppError("NOT_FOUND", "Pegawai tidak ditemukan.", 404);
 
     await repository.restoreEmployeeAndUser(id, employee.userId);
 
@@ -304,7 +360,7 @@ export async function handleEmployeeCrud(
     return { id, name: employee.name };
   }
 
-  throw new Error("Operasi tidak didukung");
+  throw new AppError("BAD_REQUEST", "Operasi tidak didukung.", 400);
 }
 
 export async function addCareerHistory(data: {

@@ -4,8 +4,8 @@ export type UserRole = (typeof USER_ROLES)[number];
 
 export const ROLE_LABELS = {
   ADMIN: "Admin",
-  STAFF: "Staf Kepegawaian",
-  EMPLOYEE: "Karyawan",
+  STAFF: "Staf",
+  EMPLOYEE: "Pegawai",
 } as const satisfies Record<UserRole, string>;
 
 export const ROLE_GROUPS = {

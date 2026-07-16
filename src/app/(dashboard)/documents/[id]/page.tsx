@@ -12,6 +12,16 @@ type PageProps = {
 
 function getBackNavigation(returnTo?: string) {
   if (
+    returnTo &&
+    new RegExp(`^${ROUTES.masterDataEmployees}/[^/?#]+(?:\\?.*)?$`).test(returnTo)
+  ) {
+    return {
+      backHref: returnTo,
+      backLabel: "Kembali ke detail pegawai",
+    };
+  }
+
+  if (
     returnTo === ROUTES.masterDataDocuments ||
     returnTo?.startsWith(`${ROUTES.masterDataDocuments}?`)
   ) {
