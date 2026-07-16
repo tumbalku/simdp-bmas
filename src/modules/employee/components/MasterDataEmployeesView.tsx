@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Users, UserPlus, Eye } from "lucide-react";
+import { Users, UserPlus, Eye, Pencil } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { PaginationItems } from "@/components/shared/PaginationItems";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -18,6 +18,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { PAGINATION } from "@/constants";
+import { routeTo } from "@/constants/routes";
 import {
   EmployeeDirectoryFilter,
   type EmployeeDirectoryFilterOptions,
@@ -212,16 +213,25 @@ export function MasterDataEmployeesView({
     {
       key: "action",
       header: "Aksi",
-      headClassName: "w-[100px] text-right",
+      headClassName: "w-[150px] text-right",
       cellClassName: "text-right",
       cell: (emp) => (
-        <Link
-          className={buttonVariants({ variant: "outline", size: "xs" })}
-          href={`/master-data/employees/${emp.id}`}
-        >
-          <Eye className="size-3.5" />
-          <span className="hidden md:inline">Detail</span>
-        </Link>
+        <div className="flex justify-end gap-2">
+          <Link
+            className={buttonVariants({ variant: "outline", size: "xs" })}
+            href={routeTo.masterDataEmployeeEdit(emp.id)}
+          >
+            <Pencil className="size-3.5" />
+            <span className="hidden md:inline">Edit</span>
+          </Link>
+          <Link
+            className={buttonVariants({ variant: "outline", size: "xs" })}
+            href={routeTo.masterDataEmployeeDetail(emp.id)}
+          >
+            <Eye className="size-3.5" />
+            <span className="hidden md:inline">Detail</span>
+          </Link>
+        </div>
       ),
     },
   ];

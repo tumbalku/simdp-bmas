@@ -8,6 +8,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #62: Menambahkan PR kecil pertama Admin & Master Data untuk edit flow pegawai admin, meliputi route edit, prefill form, submit update, dan tombol Edit dari list/detail pegawai.
 - Issue #112: Memisahkan pengaturan pribadi user dari pengaturan sistem admin. `/settings` menjadi halaman semua user untuk keamanan akun dan ganti password mandiri, sementara konfigurasi admin dipindahkan ke `/system-settings`.
 - SIMDP-ROADMAP-002 (#61): Implementasi sistem verifikasi & notifikasi dengan arsitektur provider-agnostic. Menambahkan realtime provider (Pusher), email provider (Resend + React Email templates), dan background job provider (Inngest). Ditambahkan fallback Noop provider yang aman ketika environment variables tidak terkonfigurasi lengkap. Integrasi alur verifikasi dokumen dan pengiriman peringatan kedaluwarsa dokumen agar melalui boundary layanan notifikasi resmi.
 - SIMDP-ROADMAP-001 (#60): Menambahkan implementasi awal Core Employee & Document untuk review visual, meliputi service/action listing dokumen berbasis ownership, opsi DocumentType untuk upload, halaman `/documents` dengan ringkasan dan form upload Employee, halaman detail dokumen dengan tombol unduh berbasis URL temporer, direktori `/master-data/employees`, detail pegawai, serta test service baru untuk query dokumen dan pegawai.

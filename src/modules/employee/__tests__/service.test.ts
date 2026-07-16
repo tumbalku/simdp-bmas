@@ -51,11 +51,16 @@ describe("Employee Module Service", () => {
         birthDate: new Date("1990-01-01T00:00:00.000Z"),
         joinDate: new Date("2020-01-01T00:00:00.000Z"),
         user: { email: "john@example.com", role: "EMPLOYEE", isActive: true },
-        employmentStatus: { name: "PNS" },
-        employeeGroup: null,
-        employeePosition: null,
-        employeeRank: null,
-        workplace: { name: "UGD" },
+        employmentStatusId: "status-1",
+        employeeGroupId: "group-1",
+        employeePositionId: "position-1",
+        employeeRankId: "rank-1",
+        workplaceId: "workplace-1",
+        employmentStatus: { id: "status-1", name: "PNS" },
+        employeeGroup: { id: "group-1", name: "PNS Daerah", employmentStatusId: "status-1" },
+        employeePosition: { id: "position-1", name: "Perawat", professionGroupId: "profession-1" },
+        employeeRank: { id: "rank-1", name: "III/a" },
+        workplace: { id: "workplace-1", name: "UGD" },
         careerHistories: [],
         documentRecords: [
           { id: "doc-1", title: "KTP", status: "APPROVED", uploadedAt: new Date("2026-01-01T00:00:00.000Z"), documentType: { name: "KTP", archiveCategory: "PERSONAL" } },
@@ -65,6 +70,16 @@ describe("Employee Module Service", () => {
       const result = await getEmployeeDetail("emp-1");
 
       expect(result).toEqual(expect.objectContaining({ id: "emp-1", email: "john@example.com" }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          employmentStatusId: "status-1",
+          employeeGroupId: "group-1",
+          professionGroupId: "profession-1",
+          employeePositionId: "position-1",
+          employeeRankId: "rank-1",
+          workplaceId: "workplace-1",
+        })
+      );
       expect(result?.documents[0]).toEqual(expect.objectContaining({ id: "doc-1", documentTypeName: "KTP" }));
     });
 

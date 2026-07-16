@@ -52,6 +52,35 @@ type Props = {
   employeePositions: (MasterDataRecord & { professionGroupId: string })[];
   employeeRanks: MasterDataRecord[];
   workplaces: MasterDataRecord[];
+  initialData?: EmployeeFormInitialData;
+};
+
+export type EmployeeFormInitialData = {
+  id: string;
+  email: string | null;
+  employeeId: string | null;
+  nik: string | null;
+  name: string;
+  gender: string | null;
+  birthPlace: string | null;
+  birthDate: string | null;
+  academicDegree: string | null;
+  lastEducation: string | null;
+  religion: string | null;
+  maritalStatus: string | null;
+  status: string | null;
+  phone: string | null;
+  address: string | null;
+  joinDate: string | null;
+  tmtStartDate: string | null;
+  tmtEndDate: string | null;
+  role: string;
+  employmentStatusId: string | null;
+  employeeGroupId: string | null;
+  professionGroupId: string | null;
+  employeePositionId: string | null;
+  employeeRankId: string | null;
+  workplaceId: string | null;
 };
 
 type ActionError = {
@@ -77,6 +106,10 @@ const ROLE_OPTIONS = [
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function toDateInputValue(value: string | null | undefined) {
+  return value ? value.slice(0, 10) : "";
+}
+
 function showFormError(title: string, messages: string[]) {
   toast.error(title, {
     description:
@@ -100,7 +133,7 @@ function getActionErrorMessages(error: ActionError) {
   }
 
   if (error.code === "FORBIDDEN") {
-    return ["Akun Anda tidak memiliki akses untuk menambah pegawai."];
+    return ["Akun Anda tidak memiliki akses untuk menyimpan data pegawai."];
   }
 
   return [error.message || "Terjadi kesalahan saat menyimpan data pegawai."];
@@ -117,38 +150,41 @@ export function MasterDataEmployeeForm({
   employeePositions,
   employeeRanks,
   workplaces,
+  initialData,
 }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const isEditMode = Boolean(initialData);
+  const employeeDetailHref = initialData ? `/master-data/employees/${initialData.id}` : "/master-data/employees";
 
   /* ---- form state ---- */
-  const [email, setEmail] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [nik, setNik] = useState("");
-  const [name, setName] = useState("");
-  const [gender, setGender] = useState("");
-  const [birthPlace, setBirthPlace] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [academicDegree, setAcademicDegree] = useState("");
-  const [lastEducation, setLastEducation] = useState("");
-  const [religion, setReligion] = useState("");
-  const [maritalStatus, setMaritalStatus] = useState("");
-  const [employeeStatus, setEmployeeStatus] = useState("Aktif");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [joinDate, setJoinDate] = useState("");
-  const [hasTmt, setHasTmt] = useState(false);
-  const [tmtStartDate, setTmtStartDate] = useState("");
-  const [tmtEndDate, setTmtEndDate] = useState("");
-  const [role, setRole] = useState("EMPLOYEE");
+  const [email, setEmail] = useState(initialData?.email ?? "");
+  const [employeeId, setEmployeeId] = useState(initialData?.employeeId ?? "");
+  const [nik, setNik] = useState(initialData?.nik ?? "");
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [gender, setGender] = useState(initialData?.gender ?? "");
+  const [birthPlace, setBirthPlace] = useState(initialData?.birthPlace ?? "");
+  const [birthDate, setBirthDate] = useState(toDateInputValue(initialData?.birthDate));
+  const [academicDegree, setAcademicDegree] = useState(initialData?.academicDegree ?? "");
+  const [lastEducation, setLastEducation] = useState(initialData?.lastEducation ?? "");
+  const [religion, setReligion] = useState(initialData?.religion ?? "");
+  const [maritalStatus, setMaritalStatus] = useState(initialData?.maritalStatus ?? "");
+  const [employeeStatus, setEmployeeStatus] = useState(initialData?.status ?? "Aktif");
+  const [phone, setPhone] = useState(initialData?.phone ?? "");
+  const [address, setAddress] = useState(initialData?.address ?? "");
+  const [joinDate, setJoinDate] = useState(toDateInputValue(initialData?.joinDate));
+  const [hasTmt, setHasTmt] = useState(Boolean(initialData?.tmtStartDate || initialData?.tmtEndDate));
+  const [tmtStartDate, setTmtStartDate] = useState(toDateInputValue(initialData?.tmtStartDate));
+  const [tmtEndDate, setTmtEndDate] = useState(toDateInputValue(initialData?.tmtEndDate));
+  const [role, setRole] = useState(initialData?.role ?? "EMPLOYEE");
 
   // Master data selects
-  const [employmentStatusId, setEmploymentStatusId] = useState("");
-  const [employeeGroupId, setEmployeeGroupId] = useState("");
-  const [professionGroupId, setProfessionGroupId] = useState("");
-  const [employeePositionId, setEmployeePositionId] = useState("");
-  const [employeeRankId, setEmployeeRankId] = useState("");
-  const [workplaceId, setWorkplaceId] = useState("");
+  const [employmentStatusId, setEmploymentStatusId] = useState(initialData?.employmentStatusId ?? "");
+  const [employeeGroupId, setEmployeeGroupId] = useState(initialData?.employeeGroupId ?? "");
+  const [professionGroupId, setProfessionGroupId] = useState(initialData?.professionGroupId ?? "");
+  const [employeePositionId, setEmployeePositionId] = useState(initialData?.employeePositionId ?? "");
+  const [employeeRankId, setEmployeeRankId] = useState(initialData?.employeeRankId ?? "");
+  const [workplaceId, setWorkplaceId] = useState(initialData?.workplaceId ?? "");
 
   /* ---- filtered options ---- */
 
@@ -252,11 +288,15 @@ export function MasterDataEmployeeForm({
     };
 
     try {
-      const result = await crudEmployeeAction("CREATE", undefined, data);
+      const result = await crudEmployeeAction(
+        isEditMode ? "UPDATE" : "CREATE",
+        initialData?.id,
+        data
+      );
 
       if (result.ok) {
-        toast.success(`Pegawai "${trimmedName}" berhasil ditambahkan.`);
-        router.push("/master-data/employees");
+        toast.success(`Pegawai "${trimmedName}" berhasil ${isEditMode ? "diperbarui" : "ditambahkan"}.`);
+        router.push(isEditMode && initialData ? `/master-data/employees/${initialData.id}` : "/master-data/employees");
       } else {
         showFormError("Gagal menyimpan pegawai", getActionErrorMessages(result.error));
       }
@@ -276,15 +316,19 @@ export function MasterDataEmployeeForm({
       <div className="space-y-6">
         <PageHeader
           eyebrow="Master Data"
-          title="Tambah Pegawai"
+          title={isEditMode ? "Edit Pegawai" : "Tambah Pegawai"}
           description={
-            <>
-              Isi data pegawai baru. Tanda{" "}
-              <span className="text-destructive">*</span> wajib diisi.
-            </>
+            isEditMode ? (
+              "Perbarui data akun, identitas, status, dan penugasan pegawai."
+            ) : (
+              <>
+                Isi data pegawai baru. Tanda{" "}
+                <span className="text-destructive">*</span> wajib diisi.
+              </>
+            )
           }
-          backHref="/master-data/employees"
-          backLabel="Kembali ke data pegawai"
+          backHref={employeeDetailHref}
+          backLabel={isEditMode ? "Kembali ke profil pegawai" : "Kembali ke data pegawai"}
         />
 
         {/* Data Akun */}
@@ -691,7 +735,7 @@ export function MasterDataEmployeeForm({
         <div className="flex justify-end gap-3">
           <Link
             className={buttonVariants({ variant: "outline" })}
-            href="/master-data/employees"
+            href={employeeDetailHref}
           >
             Batal
           </Link>
@@ -704,7 +748,7 @@ export function MasterDataEmployeeForm({
             ) : (
               <>
                 <Save className="mr-2 size-4" />
-                Simpan
+                {isEditMode ? "Simpan Perubahan" : "Simpan"}
               </>
             )}
           </Button>
