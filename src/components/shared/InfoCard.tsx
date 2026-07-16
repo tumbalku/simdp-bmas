@@ -23,7 +23,7 @@ export type InfoCardProps = {
   description?: string;
   icon: ComponentType<{ className?: string }>;
   fields: InfoCardField[];
-  columns?: 1 | 2;
+  columns?: 1 | 2 | 3 | 4;
   fieldVariant?: InfoFieldVariant;
   truncate?: boolean;
   className?: string;
@@ -42,6 +42,12 @@ export function InfoCard({
   contentClassName,
 }: InfoCardProps) {
   const visibleFields = fields.filter((field) => !field.hidden);
+  const gridClassName = {
+    1: "space-y-2",
+    2: "grid gap-2 md:grid-cols-2",
+    3: "grid gap-2 md:grid-cols-2 xl:grid-cols-3",
+    4: "grid gap-2 md:grid-cols-2 xl:grid-cols-4",
+  }[columns];
 
   return (
     <Card className={className}>
@@ -53,7 +59,7 @@ export function InfoCard({
         {description ? <CardDescription className="text-xs">{description}</CardDescription> : null}
       </CardHeader>
       <CardContent className={cn("pt-0", contentClassName)}>
-        <div className={cn(columns === 2 ? "grid gap-2 md:grid-cols-2" : "space-y-2")}>
+        <div className={cn(gridClassName)}>
           {visibleFields.map((field) => (
             <InfoField
               key={field.key}

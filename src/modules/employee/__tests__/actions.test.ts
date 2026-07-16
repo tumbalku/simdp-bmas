@@ -105,7 +105,7 @@ describe("Employee Module Actions", () => {
     expect(result).toEqual({ ok: true, data: { data: [], pagination: { total: 0 } } });
   });
 
-  it("should validate and pass cleaned profile data to the service", async () => {
+  it("should validate and pass nullable profile data to the service", async () => {
     mocks.requireAuth.mockResolvedValue({ userId: "user-1", role: "EMPLOYEE" });
     mocks.updateProfile.mockResolvedValue(true);
 
@@ -113,7 +113,7 @@ describe("Employee Module Actions", () => {
 
     expect(mocks.updateProfile).toHaveBeenCalledWith(
       "user-1",
-      { phone: "081234567890", address: undefined },
+      { phone: "081234567890", address: null },
       "Admin User",
       "EMPLOYEE"
     );
