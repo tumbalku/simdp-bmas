@@ -122,6 +122,8 @@ type MasterDataCategoriesViewProps = {
 const TYPE_CONFIG: Record<CategoryType, EmployeeCategoryTypeConfig> = EMPLOYEE_CATEGORY_TYPE_CONFIG;
 const TYPE_OPTIONS = EMPLOYEE_CATEGORY_TYPE_OPTIONS;
 const COPY = EMPLOYEE_CATEGORY_COPY;
+const CATEGORY_CARD_CLASS =
+  "flex h-[28rem] flex-col overflow-hidden border-muted-foreground/10 shadow-sm md:h-[calc(100vh-14rem)] md:min-h-[24rem] md:max-h-[36rem]";
 
 function getTypeItems(data: CategoriesData, type: CategoryType) {
   switch (type) {
@@ -223,7 +225,7 @@ function HierarchyCard({
   onDelete,
 }: HierarchyCardProps) {
   return (
-    <Card className="flex h-full min-h-[22rem] flex-col overflow-hidden border-muted-foreground/10 shadow-sm">
+    <Card className={CATEGORY_CARD_CLASS}>
       <CategoryCardHeader
         title={title}
         icon={icon}
@@ -358,7 +360,7 @@ function FlatCategoryCard({
   onDelete,
 }: FlatCategoryCardProps) {
   return (
-    <Card className="flex h-full min-h-[16rem] flex-col overflow-hidden border-muted-foreground/10 shadow-sm">
+    <Card className={CATEGORY_CARD_CLASS}>
       <CategoryCardHeader
         title={title}
         icon={icon}
@@ -558,7 +560,7 @@ export function MasterDataCategoriesView({
         }
       />
 
-      <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:min-h-screen xl:grid-cols-4">
+      <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <HierarchyCard
           title={COPY.statusAndGroup}
           icon={FolderTree}
