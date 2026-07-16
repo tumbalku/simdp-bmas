@@ -370,6 +370,7 @@ export async function getSessionProfileAction() {
         name: user.employee?.name || "User",
         email: user.email,
         role: user.role,
+        isActive: user.isActive,
         avatarUrl: user.employee?.avatarUrl || null,
         employeeId: user.employee?.employeeId || null,
       },

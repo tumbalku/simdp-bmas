@@ -117,11 +117,7 @@ export async function updateProfileAction(data: unknown) {
     // Resolve actor name
     const actorName = await getActorDisplayName(session.userId, "User");
 
-    const cleanData = Object.fromEntries(
-      Object.entries(parsed.data).map(([k, v]) => [k, v === null ? undefined : v])
-    );
-
-    const success = await updateProfile(session.userId, cleanData, actorName, session.role);
+    const success = await updateProfile(session.userId, parsed.data, actorName, session.role);
 
     if (!success) {
       return {

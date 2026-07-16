@@ -129,12 +129,12 @@ export async function getActorDisplayName(userId: string, fallback: string = "Us
 export async function updateProfile(
   userId: string,
   data: {
-    phone?: string;
-    address?: string;
-    birthPlace?: string;
-    birthDate?: string;
-    religion?: string;
-    maritalStatus?: string;
+    phone?: string | null;
+    address?: string | null;
+    birthPlace?: string | null;
+    birthDate?: string | null;
+    religion?: string | null;
+    maritalStatus?: string | null;
   },
   actorName: string,
   actorRole: string
@@ -142,14 +142,18 @@ export async function updateProfile(
   const employee = await repository.findEmployeeSimpleByUserId(userId);
   if (!employee) return false;
 
-  const updateData: any = {
-    phone: data.phone ?? undefined,
-    address: data.address ?? undefined,
-    birthPlace: data.birthPlace ?? undefined,
-    birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
-    religion: data.religion ?? undefined,
-    maritalStatus: data.maritalStatus ?? undefined,
-  };
+  const updateData = Object.fromEntries(
+    Object.entries({
+      phone: data.phone,
+      address: data.address,
+      birthPlace: data.birthPlace,
+      birthDate: data.birthDate === undefined ? undefined : data.birthDate ? new Date(data.birthDate) : null,
+      religion: data.religion,
+      maritalStatus: data.maritalStatus,
+    }).filter(([, value]) => value !== undefined)
+  );
+
+  if (Object.keys(updateData).length === 0) return true;
 
   await repository.updateEmployee(employee.id, updateData);
 
