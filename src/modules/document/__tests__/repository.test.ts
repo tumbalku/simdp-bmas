@@ -29,6 +29,14 @@ describe("Document Module Repository", () => {
 
       expect(mockPrisma.documentType.findMany).toHaveBeenCalledWith({
         where: { deletedAt: null },
+        include: {
+          employmentStatuses: true,
+          employeeGroups: true,
+          employeePositions: true,
+          professionGroups: true,
+          employeeRanks: true,
+          workplaces: true,
+        },
         orderBy: [{ isMandatory: "desc" }, { name: "asc" }],
       });
       expect(result).toEqual([{ id: "type-1", code: "KTP", name: "Kartu Tanda Penduduk" }]);
@@ -41,6 +49,14 @@ describe("Document Module Repository", () => {
 
       expect(mockPrisma.documentType.findUnique).toHaveBeenCalledWith({
         where: { id: "type-1" },
+        include: {
+          employmentStatuses: true,
+          employeeGroups: true,
+          employeePositions: true,
+          professionGroups: true,
+          employeeRanks: true,
+          workplaces: true,
+        },
       });
       expect(result).toEqual({ id: "type-1", code: "KTP" });
     });
@@ -51,7 +67,7 @@ describe("Document Module Repository", () => {
       const result = await createDocumentTypeWithRelations(
         "type-1",
         { id: "type-1", name: "STR" },
-        { professionGroupIds: ["prof-1"], workplaceIds: ["work-1"] }
+        { professionGroupIds: ["prof-1"], employeePositionIds: ["pos-1"], workplaceIds: ["work-1"] }
       );
 
       expect(mockPrisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
@@ -61,6 +77,9 @@ describe("Document Module Repository", () => {
       });
       expect(mockPrisma.documentTypeWorkplace.createMany).toHaveBeenCalledWith({
         data: [expect.objectContaining({ documentTypeId: "type-1", workplaceId: "work-1" })],
+      });
+      expect(mockPrisma.documentTypeEmployeePosition.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ documentTypeId: "type-1", employeePositionId: "pos-1" })],
       });
       expect(result).toEqual({ id: "type-1" });
     });

@@ -22,6 +22,7 @@ export const ROUTES = {
 export const routeTo = {
   documentDetail: (id: string) => `${ROUTES.documents}/${id}`,
   verificationDetail: (id: string) => `${ROUTES.verification}/${id}`,
+  masterDataDocumentTypeEdit: (id: string) => `${ROUTES.masterDataDocumentTypes}/${id}/edit`,
   masterDataEmployeeDetail: (id: string) => `${ROUTES.masterDataEmployees}/${id}`,
   documentsUpload: () => `${ROUTES.documents}?upload=true`,
   loginResetSuccess: () => `${ROUTES.login}?reset=success`,

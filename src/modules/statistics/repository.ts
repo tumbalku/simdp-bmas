@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { matchesDocumentTypeTarget } from "@/modules/document/target-rules";
 
 import type {
   StatisticsChartItem,
@@ -135,6 +136,11 @@ export async function getStatisticsChartsData(): Promise<StatisticsChartsDto> {
     prisma.employee.findMany({
       where: { deletedAt: null },
       select: {
+        employmentStatusId: true,
+        employeeGroupId: true,
+        employeePositionId: true,
+        employeeRankId: true,
+        workplaceId: true,
         gender: true,
         birthDate: true,
         lastEducation: true,
@@ -146,6 +152,7 @@ export async function getStatisticsChartsData(): Promise<StatisticsChartsDto> {
         employeePosition: {
           select: {
             name: true,
+            professionGroupId: true,
             professionGroup: { select: { name: true } },
           },
         },
@@ -186,6 +193,12 @@ export async function getStatisticsChartsData(): Promise<StatisticsChartsDto> {
       select: {
         id: true,
         name: true,
+        employmentStatuses: { select: { employmentStatusId: true } },
+        employeeGroups: { select: { employeeGroupId: true } },
+        employeePositions: { select: { employeePositionId: true } },
+        professionGroups: { select: { professionGroupId: true } },
+        employeeRanks: { select: { employeeRankId: true } },
+        workplaces: { select: { workplaceId: true } },
       },
     }),
   ]);
@@ -249,6 +262,7 @@ export async function getStatisticsChartsData(): Promise<StatisticsChartsDto> {
   const missingMandatoryDocumentsTop = mandatoryDocumentTypes
     .map((type) => {
       const missingCount = employees.filter((employee) => {
+        if (!matchesDocumentTypeTarget(employee, type)) return false;
         const approvedTypeIds = new Set(employee.documentRecords.map((record) => record.documentTypeId));
         return !approvedTypeIds.has(type.id);
       }).length;

@@ -163,6 +163,7 @@ model EmployeePosition {
 
   employees       Employee[]
   careerHistories EmployeeCareerHistory[]
+  documentTypeEmployeePositions DocumentTypeEmployeePosition[]
 
   @@unique([name, professionGroupId])
 }
@@ -298,6 +299,7 @@ model DocumentType {
   professionGroups   DocumentTypeProfessionGroup[]
   employmentStatuses DocumentTypeEmploymentStatus[]
   employeeGroups     DocumentTypeEmployeeGroup[]
+  employeePositions  DocumentTypeEmployeePosition[]
   employeeRanks      DocumentTypeEmployeeRank[]
   workplaces         DocumentTypeWorkplace[]
   documentRecords    DocumentRecord[]
@@ -334,6 +336,17 @@ model DocumentTypeEmployeeGroup {
   employeeGroup EmployeeGroup @relation(fields: [employeeGroupId], references: [id], onDelete: Cascade)
 
   @@unique([documentTypeId, employeeGroupId])
+}
+
+model DocumentTypeEmployeePosition {
+  id                 String @id
+  documentTypeId     String
+  employeePositionId String
+
+  documentType     DocumentType     @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  employeePosition EmployeePosition @relation(fields: [employeePositionId], references: [id], onDelete: Cascade)
+
+  @@unique([documentTypeId, employeePositionId])
 }
 
 model DocumentTypeEmployeeRank {

@@ -101,8 +101,8 @@ export async function getDocumentPreviewUrlAction(id: string) {
 
 export async function getDocumentTypeOptionsAction() {
   try {
-    await requireAuth();
-    const data = await getAvailableDocumentTypes();
+    const session = await requireAuth();
+    const data = await getAvailableDocumentTypes(session);
     return { ok: true as const, data };
   } catch (error: any) {
     console.error("getDocumentTypeOptionsAction error:", error);
@@ -165,6 +165,8 @@ export async function crudDocumentTypeAction(operation: string, id?: string, dat
       actorName,
       session.role
     );
+
+    revalidatePath("/master-data/documents/types");
 
     return { ok: true as const, data: result };
   } catch (error: any) {

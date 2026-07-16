@@ -89,7 +89,7 @@ export function EmployeeDetailView({ employee }: EmployeeDetailViewProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">{document.status}</Badge>
-                  <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={`/documents/${document.id}`}>Buka</Link>
+                  <Link className={buttonVariants({ variant: "outline", size: "xs" })} href={`/documents/${document.id}`}>Buka</Link>
                 </div>
               </div>
             ))}

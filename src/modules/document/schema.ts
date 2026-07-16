@@ -19,6 +19,7 @@ export const crudDocumentTypeSchema = z.object({
       professionGroupIds: z.array(z.string()).optional(),
       employmentStatusIds: z.array(z.string()).optional(),
       employeeGroupIds: z.array(z.string()).optional(),
+      employeePositionIds: z.array(z.string()).optional(),
       employeeRankIds: z.array(z.string()).optional(),
       workplaceIds: z.array(z.string()).optional(),
     })

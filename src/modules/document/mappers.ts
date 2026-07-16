@@ -33,7 +33,7 @@ export function mapDocumentType(type: any) {
     requiresIssueDate: type.requiresIssueDate,
     requiresDocumentNumber: type.requiresDocumentNumber,
     allowedFormats: type.allowedFormats,
-    maxSizeMb: type.maxSizeMb,
+    maxSizeMb: Number(type.maxSizeMb ?? 0),
   };
 }
 
@@ -43,10 +43,23 @@ export function mapDocumentTypeSummary(type: any) {
     targetSummary: {
       employmentStatuses: type.employmentStatuses?.map((item: any) => item.employmentStatus?.name).filter(Boolean) ?? [],
       employeeGroups: type.employeeGroups?.map((item: any) => item.employeeGroup?.name).filter(Boolean) ?? [],
+      employeePositions: type.employeePositions?.map((item: any) => item.employeePosition?.name).filter(Boolean) ?? [],
       professionGroups: type.professionGroups?.map((item: any) => item.professionGroup?.name).filter(Boolean) ?? [],
       employeeRanks: type.employeeRanks?.map((item: any) => item.employeeRank?.name).filter(Boolean) ?? [],
       workplaces: type.workplaces?.map((item: any) => item.workplace?.name).filter(Boolean) ?? [],
     },
+  };
+}
+
+export function mapDocumentTypeFormInitialData(type: any) {
+  return {
+    ...mapDocumentType(type),
+    employmentStatusIds: type.employmentStatuses?.map((item: any) => item.employmentStatusId).filter(Boolean) ?? [],
+    employeeGroupIds: type.employeeGroups?.map((item: any) => item.employeeGroupId).filter(Boolean) ?? [],
+    professionGroupIds: type.professionGroups?.map((item: any) => item.professionGroupId).filter(Boolean) ?? [],
+    employeePositionIds: type.employeePositions?.map((item: any) => item.employeePositionId).filter(Boolean) ?? [],
+    employeeRankIds: type.employeeRanks?.map((item: any) => item.employeeRankId).filter(Boolean) ?? [],
+    workplaceIds: type.workplaces?.map((item: any) => item.workplaceId).filter(Boolean) ?? [],
   };
 }
 

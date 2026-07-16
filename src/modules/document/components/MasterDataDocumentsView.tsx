@@ -147,7 +147,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
       header: "Jenis",
       cell: (doc) => (
         <>
-          <div className="text-sm">{doc.documentTypeName}</div>
+          <div>{doc.documentTypeName}</div>
           <div className="text-xs text-muted-foreground">{doc.archiveCategory}</div>
         </>
       ),
@@ -177,7 +177,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
       cellClassName: "text-right",
       cell: (doc) => (
         <Link
-          className={buttonVariants({ variant: "outline", size: "sm" })}
+          className={buttonVariants({ variant: "outline", size: "xs" })}
           href={buildDocumentDetailUrl(doc.id)}
         >
           Detail
@@ -338,7 +338,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
 
                         <div className="flex justify-end border-t pt-3">
                           <Link
-                            className={buttonVariants({ variant: "outline", size: "sm" })}
+                            className={buttonVariants({ variant: "outline", size: "xs" })}
                             href={buildDocumentDetailUrl(doc.id)}
                           >
                             Detail

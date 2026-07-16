@@ -91,6 +91,49 @@ describe("Document Module Service", () => {
       );
       expect(result[0]).toEqual(expect.objectContaining({ id: "type-1", name: "KTP" }));
     });
+
+    it("should filter employee upload options by target rules", async () => {
+      mockPrisma.documentType.findMany.mockResolvedValue([
+        {
+          id: "type-1",
+          code: "ASN",
+          name: "Dokumen ASN",
+          archiveCategory: "EMPLOYMENT",
+          allowedFormats: "pdf",
+          maxSizeMb: 2,
+          employmentStatuses: [{ employmentStatusId: "status-asn" }],
+          employeeGroups: [],
+        },
+        {
+          id: "type-2",
+          code: "KONTRAK",
+          name: "Dokumen Kontrak",
+          archiveCategory: "EMPLOYMENT",
+          allowedFormats: "pdf",
+          maxSizeMb: 2,
+          employmentStatuses: [{ employmentStatusId: "status-kontrak" }],
+          employeeGroups: [],
+        },
+      ]);
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+        employmentStatusId: "status-asn",
+        employeeGroupId: "group-pns",
+        employeePosition: null,
+        employeeRankId: null,
+        workplaceId: null,
+      });
+
+      const result = await getAvailableDocumentTypes({
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(expect.objectContaining({ id: "type-1" }));
+    });
   });
 
   describe("handleDocumentTypeCrud", () => {
@@ -241,6 +284,48 @@ describe("Document Module Service", () => {
           session
         )
       ).rejects.toThrow("Format file tidak dikenal atau tidak didukung");
+    });
+
+    it("should reject upload when document type does not target the employee", async () => {
+      const docType = {
+        id: "type-1",
+        code: "ASN",
+        name: "Dokumen ASN",
+        maxSizeMb: 5,
+        allowedFormats: "pdf",
+        deletedAt: null,
+        employmentStatuses: [{ employmentStatusId: "status-asn" }],
+        employeeGroups: [{ employeeGroupId: "group-pppk" }],
+      };
+
+      const employee = {
+        id: "emp-1",
+        userId: "user-1",
+        employeeId: "empId-1",
+        name: "John Doe",
+        employmentStatusId: "status-asn",
+        employeeGroupId: "group-pns",
+        employeePosition: null,
+        employeeRankId: null,
+        workplaceId: null,
+      };
+
+      mockPrisma.documentType.findUnique.mockResolvedValue(docType);
+      mockPrisma.employee.findUnique.mockResolvedValue(employee);
+
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      await expect(
+        uploadDocumentRecord(
+          {
+            documentTypeId: "type-1",
+            file: mockFile,
+          },
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
+        )
+      ).rejects.toThrow("Jenis dokumen ini tidak berlaku");
     });
   });
 

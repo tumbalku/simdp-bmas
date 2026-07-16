@@ -2,9 +2,19 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
+export const documentTypeTargetInclude = {
+  employmentStatuses: true,
+  employeeGroups: true,
+  employeePositions: true,
+  professionGroups: true,
+  employeeRanks: true,
+  workplaces: true,
+} as const;
+
 export async function findManyAvailableDocumentTypes() {
   return prisma.documentType.findMany({
     where: { deletedAt: null },
+    include: documentTypeTargetInclude,
     orderBy: [{ isMandatory: "desc" }, { name: "asc" }],
   });
 }
@@ -16,6 +26,7 @@ export async function findDocumentTypesWithPagination(where: any, skip: number, 
       include: {
         employmentStatuses: { include: { employmentStatus: { select: { name: true } } } },
         employeeGroups: { include: { employeeGroup: { select: { name: true } } } },
+        employeePositions: { include: { employeePosition: { select: { name: true } } } },
         professionGroups: { include: { professionGroup: { select: { name: true } } } },
         employeeRanks: { include: { employeeRank: { select: { name: true } } } },
         workplaces: { include: { workplace: { select: { name: true } } } },
@@ -85,6 +96,16 @@ export async function findDocumentRecordDetailById(documentId: string) {
 export async function findDocumentTypeById(id: string) {
   return prisma.documentType.findUnique({
     where: { id },
+    include: documentTypeTargetInclude,
+  });
+}
+
+export async function findEmployeeTargetProfileByUserId(userId: string) {
+  return prisma.employee.findUnique({
+    where: { userId, deletedAt: null } as any,
+    include: {
+      employeePosition: { select: { professionGroupId: true } },
+    },
   });
 }
 
@@ -95,6 +116,7 @@ export async function createDocumentTypeWithRelations(
     professionGroupIds?: string[];
     employmentStatusIds?: string[];
     employeeGroupIds?: string[];
+    employeePositionIds?: string[];
     employeeRankIds?: string[];
     workplaceIds?: string[];
   }
@@ -131,6 +153,15 @@ export async function createDocumentTypeWithRelations(
         })),
       });
     }
+    if (relationIds.employeePositionIds?.length) {
+      await tx.documentTypeEmployeePosition.createMany({
+        data: relationIds.employeePositionIds.map((epId) => ({
+          id: crypto.randomUUID(),
+          documentTypeId: id,
+          employeePositionId: epId,
+        })),
+      });
+    }
     if (relationIds.employeeRankIds?.length) {
       await tx.documentTypeEmployeeRank.createMany({
         data: relationIds.employeeRankIds.map((erId) => ({
@@ -161,6 +192,7 @@ export async function updateDocumentTypeWithRelations(
     professionGroupIds?: string[];
     employmentStatusIds?: string[];
     employeeGroupIds?: string[];
+    employeePositionIds?: string[];
     employeeRankIds?: string[];
     workplaceIds?: string[];
   }
@@ -205,6 +237,19 @@ export async function updateDocumentTypeWithRelations(
             id: crypto.randomUUID(),
             documentTypeId: id,
             employeeGroupId: egId,
+          })),
+        });
+      }
+    }
+
+    if (relationIds.employeePositionIds !== undefined) {
+      await tx.documentTypeEmployeePosition.deleteMany({ where: { documentTypeId: id } });
+      if (relationIds.employeePositionIds.length) {
+        await tx.documentTypeEmployeePosition.createMany({
+          data: relationIds.employeePositionIds.map((epId) => ({
+            id: crypto.randomUUID(),
+            documentTypeId: id,
+            employeePositionId: epId,
           })),
         });
       }

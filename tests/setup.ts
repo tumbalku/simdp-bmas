@@ -136,6 +136,10 @@ export const mockPrisma = {
     createMany: vi.fn(),
     deleteMany: vi.fn(),
   },
+  documentTypeEmployeePosition: {
+    createMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   documentTypeEmployeeRank: {
     createMany: vi.fn(),
     deleteMany: vi.fn(),
