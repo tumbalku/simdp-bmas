@@ -6,6 +6,7 @@ import {
   findDocumentRecordsWithPagination,
   findDocumentRecordDetailById,
   findDocumentTypeById,
+  findDocumentTypesWithPagination,
   findEmployeeByUserId,
   findManyAvailableDocumentTypes,
   restoreDocumentType,
@@ -40,6 +41,24 @@ describe("Document Module Repository", () => {
         orderBy: [{ isMandatory: "desc" }, { name: "asc" }],
       });
       expect(result).toEqual([{ id: "type-1", code: "KTP", name: "Kartu Tanda Penduduk" }]);
+    });
+
+    it("should find document types with pagination and total count", async () => {
+      mockPrisma.documentType.findMany.mockResolvedValue([{ id: "type-1", name: "KTP" }]);
+      mockPrisma.documentType.count.mockResolvedValue(1);
+
+      const [types, total] = await findDocumentTypesWithPagination({ deletedAt: null }, 10, 5);
+
+      expect(mockPrisma.documentType.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { deletedAt: null },
+          skip: 10,
+          take: 5,
+        })
+      );
+      expect(mockPrisma.documentType.count).toHaveBeenCalledWith({ where: { deletedAt: null } });
+      expect(types).toEqual([{ id: "type-1", name: "KTP" }]);
+      expect(total).toBe(1);
     });
 
     it("should find document type by id", async () => {
@@ -87,19 +106,66 @@ describe("Document Module Repository", () => {
     it("should replace only provided relation groups when updating document type", async () => {
       mockPrisma.documentType.update.mockResolvedValue({ id: "type-1" });
 
-      await updateDocumentTypeWithRelations("type-1", { name: "Updated" }, { professionGroupIds: ["prof-1"] });
+      await updateDocumentTypeWithRelations(
+        "type-1",
+        { name: "Updated" },
+        {
+          professionGroupIds: ["prof-1"],
+          employmentStatusIds: ["status-1"],
+          employeeGroupIds: ["group-1"],
+          employeePositionIds: ["pos-1"],
+          employeeRankIds: ["rank-1"],
+          workplaceIds: ["work-1"],
+        }
+      );
 
       expect(mockPrisma.documentType.update).toHaveBeenCalledWith({
         where: { id: "type-1" },
         data: { name: "Updated" },
       });
+
+      // Verification of delete and create operations for relations
       expect(mockPrisma.documentTypeProfessionGroup.deleteMany).toHaveBeenCalledWith({
         where: { documentTypeId: "type-1" },
       });
       expect(mockPrisma.documentTypeProfessionGroup.createMany).toHaveBeenCalledWith({
         data: [expect.objectContaining({ documentTypeId: "type-1", professionGroupId: "prof-1" })],
       });
-      expect(mockPrisma.documentTypeWorkplace.deleteMany).not.toHaveBeenCalled();
+
+      expect(mockPrisma.documentTypeEmploymentStatus.deleteMany).toHaveBeenCalledWith({
+        where: { documentTypeId: "type-1" },
+      });
+      expect(mockPrisma.documentTypeEmploymentStatus.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ documentTypeId: "type-1", employmentStatusId: "status-1" })],
+      });
+
+      expect(mockPrisma.documentTypeEmployeeGroup.deleteMany).toHaveBeenCalledWith({
+        where: { documentTypeId: "type-1" },
+      });
+      expect(mockPrisma.documentTypeEmployeeGroup.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ documentTypeId: "type-1", employeeGroupId: "group-1" })],
+      });
+
+      expect(mockPrisma.documentTypeEmployeePosition.deleteMany).toHaveBeenCalledWith({
+        where: { documentTypeId: "type-1" },
+      });
+      expect(mockPrisma.documentTypeEmployeePosition.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ documentTypeId: "type-1", employeePositionId: "pos-1" })],
+      });
+
+      expect(mockPrisma.documentTypeEmployeeRank.deleteMany).toHaveBeenCalledWith({
+        where: { documentTypeId: "type-1" },
+      });
+      expect(mockPrisma.documentTypeEmployeeRank.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ documentTypeId: "type-1", employeeRankId: "rank-1" })],
+      });
+
+      expect(mockPrisma.documentTypeWorkplace.deleteMany).toHaveBeenCalledWith({
+        where: { documentTypeId: "type-1" },
+      });
+      expect(mockPrisma.documentTypeWorkplace.createMany).toHaveBeenCalledWith({
+        data: [expect.objectContaining({ documentTypeId: "type-1", workplaceId: "work-1" })],
+      });
     });
 
     it("should soft delete document type", async () => {
