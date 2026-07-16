@@ -4,6 +4,7 @@ import {
   BarChart3,
   ShieldCheck,
   Settings,
+  SlidersHorizontal,
   ClipboardCheck,
   Database,
   FolderOpen,
@@ -104,6 +105,12 @@ export const navItems = [
     label: navCopy.settings,
     href: ROUTES.settings,
     icon: Settings,
+    roles: ROLE_GROUPS.all,
+  },
+  {
+    label: navCopy.systemSettings,
+    href: ROUTES.systemSettings,
+    icon: SlidersHorizontal,
     roles: ROLE_GROUPS.adminOnly,
   },
 ] as const satisfies readonly NavItem[];

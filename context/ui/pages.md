@@ -31,7 +31,8 @@
 | `/master-data/employees/[id]` | Admin | Employee profile | Admin bisa melihat detail pegawai dari area master data. |
 | `/verification` | Admin, Staff | Verification queue | Fokus pada dokumen `PENDING`, aksi approve/reject wajib jelas. |
 | `/notifications` | Admin, Staff, Employee | Notification list | Bedakan unread/read dan tipe reminder. |
-| `/settings` | Admin | System settings forms | Ubah setting seperti reminder days dan max upload. Semua aksi sensitif diaudit. |
+| `/settings` | Admin, Staff, Employee | User settings | Pengaturan akun pribadi seperti ganti password. |
+| `/system-settings` | Admin | System settings forms | Ubah setting seperti reminder days dan max upload. Semua aksi sensitif diaudit. |
 | `/security` | Admin | Security log table | Read-only audit trail, filter event type/user/date. |
 
 ## Dashboard Statistik

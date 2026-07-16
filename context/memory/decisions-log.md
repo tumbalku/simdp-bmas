@@ -84,3 +84,10 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Keputusan: SIMDP memakai Hermes/mes sebagai orchestrator dan senior reviewer, Antigravity sebagai developer agent, dan `agent-skills` personas sebagai reviewer/test/security/performance lenses.
 - User tetap menjadi final GitHub approver/merger.
 - Root `AGENTS.md` menjadi instruksi operasional untuk Antigravity dan agent coding lain: wajib membaca context relevan, menjaga scope, tidak melakukan drive-by work, dan tidak melakukan tindakan high-risk tanpa approval.
+
+## [2026-07-16] Pemisahan `/settings` user dan `/system-settings` admin
+- Konteks: halaman `/settings` perlu menampung pengaturan pribadi user seperti ganti password, sementara konfigurasi reminder/upload/retensi adalah pengaturan sistem admin.
+- Keputusan: `/settings` dipakai untuk semua user login sebagai pengaturan akun pribadi. Pengaturan sistem admin dipindahkan ke `/system-settings` tanpa memakai prefix role seperti `/admin/*`.
+- Alasan: menjaga `/profile` tetap fokus ke data pegawai, memisahkan concern akun pribadi dari konfigurasi sistem, dan mengikuti konvensi URL bersih SIMDP.
+- Dampak ke modul: auth, settings, navigation, i18n.
+- Referensi: Issue #112.

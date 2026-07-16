@@ -16,6 +16,7 @@ export const en = {
     masterDataCategories: "Categories",
     security: "Security",
     settings: "Settings",
+    systemSettings: "System Settings",
     menu: "Menu",
   },
   navbar: {

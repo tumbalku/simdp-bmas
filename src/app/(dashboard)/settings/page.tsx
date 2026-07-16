@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants";
-import { getSystemSettings } from "@/modules/settings/actions";
-import { SettingsPageView } from "@/modules/settings/components/SettingsPageView";
+import { getCurrentAccountSettingsAction } from "@/modules/auth/actions";
+import { UserSettingsPageView } from "@/modules/auth/components/UserSettingsPageView";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const result = await getSystemSettings();
+  const result = await getCurrentAccountSettingsAction();
 
   if (!result.ok) {
-    redirect(result.error.code === "FORBIDDEN" ? ROUTES.dashboard : ROUTES.login);
+    redirect(ROUTES.login);
   }
 
-  return <SettingsPageView settings={result.data} />;
+  return <UserSettingsPageView account={result.data} />;
 }

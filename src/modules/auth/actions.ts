@@ -6,6 +6,7 @@ import { requireAuth, getSession, clearAuthCookies, setAuthCookies } from "@/lib
 import { prisma } from "@/lib/prisma";
 import {
   changePassword,
+  getCurrentUserAccount,
   revokeSession,
   revokeAllSessions,
   logoutUser,
@@ -41,13 +42,17 @@ const resetPasswordSchema = z
 
 const changePasswordSchema = z
   .object({
-    oldPassword: z.string().min(1, "Password lama wajib diisi"),
+    currentPassword: z.string().min(1, "Password saat ini wajib diisi"),
     newPassword: z.string().min(8, "Password baru minimal 8 karakter"),
-    confirmNewPassword: z.string(),
+    confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
   })
-  .refine((data) => data.newPassword === data.confirmNewPassword, {
+  .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Konfirmasi password baru tidak cocok",
-    path: ["confirmNewPassword"],
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "Password baru harus berbeda dari password saat ini",
+    path: ["newPassword"],
   });
 
 /* -------------------------------------------------------------------------- */
@@ -202,7 +207,7 @@ export async function changePasswordAction(data: unknown) {
       };
     }
 
-    const { oldPassword, newPassword } = parsed.data;
+    const { currentPassword, newPassword } = parsed.data;
 
     // Fetch user for actor name
     const user = await prisma.user.findFirst({
@@ -214,7 +219,7 @@ export async function changePasswordAction(data: unknown) {
 
     const success = await changePassword(
       session.userId,
-      oldPassword,
+      currentPassword,
       newPassword,
       actorName,
       session.role
@@ -225,7 +230,7 @@ export async function changePasswordAction(data: unknown) {
         ok: false as const,
         error: {
           code: "BUSINESS_RULE_VIOLATION",
-          message: "Password lama salah.",
+          message: "Password saat ini tidak sesuai atau password baru tidak valid.",
         },
       };
     }
@@ -233,6 +238,31 @@ export async function changePasswordAction(data: unknown) {
     return { ok: true as const, data: { success: true } };
   } catch (error: any) {
     console.error("changePasswordAction error:", error);
+    return {
+      ok: false as const,
+      error: {
+        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+      },
+    };
+  }
+}
+
+export async function getCurrentAccountSettingsAction() {
+  try {
+    const session = await requireAuth();
+    const account = await getCurrentUserAccount(session.userId);
+
+    if (!account) {
+      return {
+        ok: false as const,
+        error: { code: "NOT_FOUND", message: "Akun tidak ditemukan." },
+      };
+    }
+
+    return { ok: true as const, data: account };
+  } catch (error: any) {
+    console.error("getCurrentAccountSettingsAction error:", error);
     return {
       ok: false as const,
       error: {

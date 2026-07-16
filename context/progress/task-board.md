@@ -21,6 +21,7 @@
 
 ## In Progress
 
+- [ ] [#112](https://github.com/tumbalku/simdp-bmas/issues/112) Pisahkan user settings dan system settings
 - [ ] [#60](https://github.com/tumbalku/simdp-bmas/issues/60) SIMDP-ROADMAP-001: Fase 1 — Core Employee & Document
 
 ## Done
