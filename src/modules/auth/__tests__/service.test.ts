@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
+  changePassword,
   loginUser,
   rotateSession,
   logoutUser,
@@ -187,6 +188,54 @@ describe("Auth Module Service", () => {
       expect(mockPrisma.user.update).toHaveBeenCalled();
       expect(mockPrisma.passwordResetToken.update).toHaveBeenCalled();
       expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalled();
+    });
+  });
+
+  describe("changePassword", () => {
+    it("should reject password change when the current password is wrong", async () => {
+      const passwordHash = await argon2.hash("correct-password");
+      mockPrisma.user.findFirst.mockResolvedValue({ id: "user-1", passwordHash });
+
+      const success = await changePassword("user-1", "wrong-password", "new-password-123", "Test User", "EMPLOYEE");
+
+      expect(success).toBe(false);
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).not.toHaveBeenCalled();
+    });
+
+    it("should reject password change when the new password matches the current password", async () => {
+      const passwordHash = await argon2.hash("same-password-123");
+      mockPrisma.user.findFirst.mockResolvedValue({ id: "user-1", passwordHash });
+
+      const success = await changePassword("user-1", "same-password-123", "same-password-123", "Test User", "EMPLOYEE");
+
+      expect(success).toBe(false);
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).not.toHaveBeenCalled();
+    });
+
+    it("should update password hash and audit the change", async () => {
+      const passwordHash = await argon2.hash("current-password-123");
+      mockPrisma.user.findFirst.mockResolvedValue({ id: "user-1", passwordHash });
+
+      const success = await changePassword("user-1", "current-password-123", "new-password-123", "Test User", "EMPLOYEE");
+
+      expect(success).toBe(true);
+      expect(mockPrisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "user-1" },
+          data: { passwordHash: expect.any(String) },
+        })
+      );
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "AUTH_PASSWORD_CHANGED",
+            status: "SUCCESS",
+            metadata: undefined,
+          }),
+        })
+      );
     });
   });
 });

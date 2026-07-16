@@ -14,6 +14,7 @@ export type Dictionary = {
     masterDataCategories: string;
     security: string;
     settings: string;
+    systemSettings: string;
     menu: string;
   };
   navbar: {

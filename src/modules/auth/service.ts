@@ -376,6 +376,9 @@ export async function changePassword(
   const isPasswordMatch = await argon2.verify(user.passwordHash, oldPassword);
   if (!isPasswordMatch) return false;
 
+  const isSamePassword = await argon2.verify(user.passwordHash, newPassword);
+  if (isSamePassword) return false;
+
   const passwordHash = await argon2.hash(newPassword);
 
   await prisma.user.update({
@@ -393,6 +396,39 @@ export async function changePassword(
   });
 
   return true;
+}
+
+export async function getCurrentUserAccount(userId: string) {
+  const user = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      isActive: true,
+      lastLoginAt: true,
+      employee: {
+        select: {
+          name: true,
+          employeeId: true,
+          nik: true,
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    lastLoginAt: user.lastLoginAt,
+    employeeName: user.employee?.name ?? null,
+    employeeId: user.employee?.employeeId ?? null,
+    nik: user.employee?.nik ?? null,
+  };
 }
 
 export async function revokeSession(userId: string, tokenId: string, actorName: string, actorRole: string): Promise<boolean> {

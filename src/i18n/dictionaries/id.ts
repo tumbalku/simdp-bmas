@@ -16,6 +16,7 @@ export const id = {
     masterDataCategories: "Kategori",
     security: "Keamanan",
     settings: "Pengaturan",
+    systemSettings: "Pengaturan Sistem",
     menu: "Menu",
   },
   navbar: {

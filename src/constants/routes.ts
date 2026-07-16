@@ -9,6 +9,7 @@ export const ROUTES = {
   statistics: "/statistics",
   profile: "/profile",
   settings: "/settings",
+  systemSettings: "/system-settings",
   securityLog: "/security-log",
   masterData: "/master-data",
   masterDataDocuments: "/master-data/documents",
