@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import {
   getCurrentProfile,
   updateProfile,
@@ -8,6 +9,7 @@ import {
   getEmployeeDetail,
   exportEmployeeDirectoryCsv,
   importFromCsv,
+  addCareerHistory,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
@@ -338,6 +340,99 @@ describe("Employee Module Service", () => {
           data: expect.objectContaining({ name: "Andri Saputra, S.Ked." }),
         }),
       );
+    });
+  });
+
+  describe("addCareerHistory", () => {
+    it("should update current assignment when added history is the newest", async () => {
+      mockPrisma.employeeCareerHistory.create.mockResolvedValue({ id: "history-new" });
+      mockPrisma.employeeCareerHistory.findFirst.mockResolvedValue({ id: "history-new" });
+      mockPrisma.employee.update.mockResolvedValue({ id: "emp-1" });
+
+      const result = await addCareerHistory({
+        employeeId: "emp-1",
+        employmentStatusId: "status-1",
+        employeeGroupId: "group-1",
+        employeePositionId: "position-1",
+        employeeRankId: "rank-1",
+        workplaceId: "workplace-1",
+        effectiveDate: "2026-07-17",
+        note: "Promosi jabatan",
+        createdBy: "admin-1",
+        actorName: "Admin",
+        actorRole: "ADMIN",
+      });
+
+      expect(result).toEqual(expect.objectContaining({ id: "history-new", effectiveDate: "2026-07-17" }));
+      expect(mockPrisma.employeeCareerHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            employeeId: "emp-1",
+            employmentStatusId: "status-1",
+            employeePositionId: "position-1",
+            effectiveDate: new Date("2026-07-17"),
+          }),
+        })
+      );
+      expect(mockPrisma.employee.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "emp-1" },
+          data: expect.objectContaining({
+            employmentStatusId: "status-1",
+            employeeGroupId: "group-1",
+            employeePositionId: "position-1",
+            employeeRankId: "rank-1",
+            workplaceId: "workplace-1",
+          }),
+        })
+      );
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "EMPLOYEE_UPDATED",
+            resource: "Employee:emp-1",
+          }),
+        })
+      );
+    });
+
+    it("should not overwrite current assignment when added history is older than newest history", async () => {
+      mockPrisma.employeeCareerHistory.create.mockResolvedValue({ id: "history-old" });
+      mockPrisma.employeeCareerHistory.findFirst.mockResolvedValue({ id: "history-newer" });
+
+      await addCareerHistory({
+        employeeId: "emp-1",
+        employeePositionId: "position-old",
+        effectiveDate: "2020-01-01",
+        createdBy: "admin-1",
+      });
+
+      expect(mockPrisma.employeeCareerHistory.create).toHaveBeenCalled();
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it("should not clear current assignment when history only contains a note", async () => {
+      mockPrisma.employeeCareerHistory.create.mockResolvedValue({ id: "history-note" });
+      mockPrisma.employeeCareerHistory.findFirst.mockResolvedValue({ id: "history-note" });
+
+      await addCareerHistory({
+        employeeId: "emp-1",
+        effectiveDate: "2026-07-17",
+        note: "Catatan administratif",
+        createdBy: "admin-1",
+      });
+
+      expect(mockPrisma.employeeCareerHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            employeeId: "emp-1",
+            note: "Catatan administratif",
+            employmentStatusId: null,
+            employeePositionId: null,
+          }),
+        })
+      );
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -5,8 +5,22 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { routeTo } from "@/constants";
+import { CareerHistoryDialog } from "./CareerHistoryDialog";
+
+type MasterDataOption = {
+  id: string;
+  name: string;
+};
+
+type EmployeeGroupOption = MasterDataOption & {
+  employmentStatusId: string;
+};
+
+type EmployeePositionOption = MasterDataOption & {
+  professionGroupId: string;
+};
 
 type EmployeeDetail = {
   id: string;
@@ -24,6 +38,12 @@ type EmployeeDetail = {
   employeeGroup: string | null;
   employeePosition: string | null;
   employeeRank: string | null;
+  employmentStatusId: string | null;
+  employeeGroupId: string | null;
+  professionGroupId: string | null;
+  employeePositionId: string | null;
+  employeeRankId: string | null;
+  workplaceId: string | null;
   birthDate: string | null;
   birthPlace: string | null;
   joinDate: string | null;
@@ -42,6 +62,14 @@ type EmployeeDetail = {
 
 type EmployeeDetailViewProps = {
   employee: EmployeeDetail;
+  masterData: {
+    employmentStatuses: MasterDataOption[];
+    employeeGroups: EmployeeGroupOption[];
+    professionGroups: MasterDataOption[];
+    employeePositions: EmployeePositionOption[];
+    employeeRanks: MasterDataOption[];
+    workplaces: MasterDataOption[];
+  };
 };
 
 function formatDate(value: string | null) {
@@ -49,7 +77,7 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export function EmployeeDetailView({ employee }: EmployeeDetailViewProps) {
+export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewProps) {
   const nameInitials = employee.name
     ? employee.name
         .split(" ")
@@ -199,8 +227,24 @@ export function EmployeeDetailView({ employee }: EmployeeDetailViewProps) {
 
           <Card className="border-muted-foreground/10 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base font-semibold">Riwayat Karier</CardTitle>
-              <CardDescription>Catatan perubahan status, jabatan, rumpun profesi, dan unit kerja.</CardDescription>
+              <div>
+                <CardTitle className="text-base font-semibold">Riwayat Karier</CardTitle>
+                <CardDescription>Catatan perubahan status, jabatan, rumpun profesi, dan unit kerja.</CardDescription>
+              </div>
+              <CardAction>
+                <CareerHistoryDialog
+                  employeeId={employee.id}
+                  currentValues={{
+                    employmentStatusId: employee.employmentStatusId,
+                    employeeGroupId: employee.employeeGroupId,
+                    professionGroupId: employee.professionGroupId,
+                    employeePositionId: employee.employeePositionId,
+                    employeeRankId: employee.employeeRankId,
+                    workplaceId: employee.workplaceId,
+                  }}
+                  options={masterData}
+                />
+              </CardAction>
             </CardHeader>
             <CardContent className="space-y-3">
               {employee.careerHistories.map((history) => (
