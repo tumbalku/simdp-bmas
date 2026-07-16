@@ -24,6 +24,7 @@ type PageProps = {
     retirementAgeFrom?: string;
     retirementAgeTo?: string;
     status?: string;
+    archiveView?: string;
   }>;
 };
 
@@ -49,6 +50,7 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
   const [result, employmentStatuses, employeeGroups, professionGroups, employeePositions, employeeRanks, workplaces] =
     await Promise.all([
       getEmployeeDirectoryWithPaginationAction({
+        archiveView: params.archiveView === "archived" ? "archived" : "active",
         page,
         limit,
         search: params.search,
@@ -82,6 +84,7 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
     <MasterDataEmployeesView
       employees={result.data.data}
       pagination={result.data.pagination}
+      archiveView={params.archiveView === "archived" ? "archived" : "active"}
       filterOptions={{
         employmentStatuses: employmentStatuses.data,
         employeeGroups: employeeGroups.data,

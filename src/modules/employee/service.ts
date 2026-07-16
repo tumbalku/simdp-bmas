@@ -7,6 +7,7 @@ import * as repository from "./repository";
 import { mapEmployeeSummary, mapEmployeeDetail } from "./mappers";
 
 type EmployeeDirectoryFilter = {
+  archiveView?: "active" | "archived";
   search?: string;
   page?: number;
   limit?: number;
@@ -33,7 +34,9 @@ function getDateAtAge(age: number) {
 }
 
 function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
-  const where: any = { deletedAt: null };
+  const where: any = {
+    deletedAt: filter.archiveView === "archived" ? { not: null } : null,
+  };
 
   if (filter.search) {
     where.OR = [

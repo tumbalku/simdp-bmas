@@ -54,6 +54,7 @@ export const addCareerHistorySchema = z.object({
 });
 
 export const employeeDirectorySchema = z.object({
+  archiveView: z.enum(["active", "archived"]).optional(),
   search: z.string().optional(),
   employmentStatusId: z.string().optional(),
   employeeGroupId: z.string().optional(),
@@ -71,6 +72,7 @@ export const employeeDirectorySchema = z.object({
 });
 
 export const employeeDirectoryWithPaginationSchema = z.object({
+  archiveView: z.enum(["active", "archived"]).optional(),
   search: z.string().optional(),
   employmentStatusId: z.string().optional(),
   employeeGroupId: z.string().optional(),

@@ -134,6 +134,22 @@ describe("Employee Module Service", () => {
         })
       );
     });
+
+    it("should list archived employees when archive view is requested", async () => {
+      mockPrisma.employee.findMany.mockResolvedValue([]);
+      mockPrisma.employee.count.mockResolvedValue(0);
+
+      await getEmployeeDirectoryWithPagination({ archiveView: "archived" });
+
+      expect(mockPrisma.employee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ deletedAt: { not: null } }),
+        })
+      );
+      expect(mockPrisma.employee.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({ deletedAt: { not: null } }),
+      });
+    });
   });
 
   describe("getCurrentProfile", () => {
