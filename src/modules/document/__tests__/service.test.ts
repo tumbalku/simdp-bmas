@@ -200,6 +200,56 @@ describe("Document Module Service", () => {
         })
       );
     });
+
+    it("should throw error when CREATE is called with missing required fields", async () => {
+      const data = {
+        code: "", // Empty
+        name: "PDF Doc",
+        archiveCategory: "PERSONAL",
+        allowedFormats: "pdf",
+        maxSizeMb: "5",
+      };
+
+      await expect(
+        handleDocumentTypeCrud("CREATE", undefined, data, "admin-1", "Admin User", "ADMIN")
+      ).rejects.toThrow("Field wajib DocumentType tidak boleh kosong");
+    });
+
+    it("should throw error when UPDATE is called without ID", async () => {
+      await expect(
+        handleDocumentTypeCrud("UPDATE", undefined, {}, "admin-1", "Admin User", "ADMIN")
+      ).rejects.toThrow("ID jenis dokumen wajib diisi");
+    });
+
+    it("should throw error when UPDATE target document type is not found", async () => {
+      mockPrisma.documentType.findUnique.mockResolvedValue(null);
+
+      await expect(
+        handleDocumentTypeCrud("UPDATE", "non-existent-id", {}, "admin-1", "Admin User", "ADMIN")
+      ).rejects.toThrow("Jenis dokumen tidak ditemukan");
+    });
+
+    it("should throw error when DELETE target document type is not found", async () => {
+      mockPrisma.documentType.findUnique.mockResolvedValue(null);
+
+      await expect(
+        handleDocumentTypeCrud("DELETE", "non-existent-id", undefined, "admin-1", "Admin User", "ADMIN")
+      ).rejects.toThrow("Jenis dokumen tidak ditemukan");
+    });
+
+    it("should throw error when RESTORE target document type is not found", async () => {
+      mockPrisma.documentType.findUnique.mockResolvedValue(null);
+
+      await expect(
+        handleDocumentTypeCrud("RESTORE", "non-existent-id", undefined, "admin-1", "Admin User", "ADMIN")
+      ).rejects.toThrow("Jenis dokumen tidak ditemukan");
+    });
+
+    it("should throw error for unsupported operation", async () => {
+      await expect(
+        handleDocumentTypeCrud("INVALID_OP" as never, "type-1", undefined, "admin-1", "Admin User", "ADMIN")
+      ).rejects.toThrow("Operasi tidak didukung");
+    });
   });
 
   describe("uploadDocumentRecord", () => {

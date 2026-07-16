@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getAvailableDocumentTypes: vi.fn(),
   uploadDocumentRecord: vi.fn(),
   getDocumentRecordsWithPagination: vi.fn(),
+  getDocumentTypesWithPagination: vi.fn(),
   handleDocumentTypeCrud: vi.fn(),
   softDeleteDocument: vi.fn(),
   restoreDocument: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock("@/modules/document/service", () => ({
   getAvailableDocumentTypes: mocks.getAvailableDocumentTypes,
   uploadDocumentRecord: mocks.uploadDocumentRecord,
   getDocumentRecordsWithPagination: mocks.getDocumentRecordsWithPagination,
+  getDocumentTypesWithPagination: mocks.getDocumentTypesWithPagination,
   handleDocumentTypeCrud: mocks.handleDocumentTypeCrud,
   softDeleteDocument: mocks.softDeleteDocument,
   restoreDocument: mocks.restoreDocument,
@@ -41,6 +43,7 @@ import {
   crudDocumentTypeAction,
   getDocumentRecordsAction,
   getDocumentRecordsWithPaginationAction,
+  getDocumentTypesWithPaginationAction,
   restoreDocumentAction,
   softDeleteDocumentAction,
   uploadDocumentAction,
@@ -143,5 +146,25 @@ describe("Document Module Actions", () => {
 
     expect(mocks.softDeleteDocument).toHaveBeenCalledWith("doc-1", session);
     expect(mocks.restoreDocument).toHaveBeenCalledWith("doc-1", session);
+  });
+
+  it("should list document types with pagination action successfully", async () => {
+    mocks.getDocumentTypesWithPagination.mockResolvedValue({ data: [], total: 0 });
+
+    const result = await getDocumentTypesWithPaginationAction({ page: 1, limit: 10, search: "KTP" });
+
+    expect(mocks.requireAuth).toHaveBeenCalledWith("ADMIN");
+    expect(mocks.getDocumentTypesWithPagination).toHaveBeenCalledWith({ page: 1, limit: 10, search: "KTP" });
+    expect(result).toEqual({ ok: true, data: { data: [], total: 0 } });
+  });
+
+  it("should reject invalid document types pagination query action", async () => {
+    const result = await getDocumentTypesWithPaginationAction({ page: -1 });
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." },
+    });
+    expect(mocks.getDocumentTypesWithPagination).not.toHaveBeenCalled();
   });
 });
