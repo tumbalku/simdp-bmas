@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { Calendar, CheckCircle2, Clock3, FileText, Hash, User, XCircle } from "lucide-react";
 
+import { InfoCard } from "@/components/shared/InfoCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import {
-  DocumentInfoCard,
   DocumentPreviewPanel,
   DocumentReviewLayout,
   DocumentStatusCard,
@@ -192,13 +192,13 @@ export function DocumentDetailView({
         sidebar={
           <>
             <DocumentStatusCard label="Status Dokumen" status={status} />
-            <DocumentInfoCard
+            <InfoCard
               title="Pemilik Dokumen"
               description="Informasi pegawai pemilik berkas."
               icon={User}
               fields={getOwnerFields(document)}
             />
-            <DocumentInfoCard
+            <InfoCard
               title="Informasi Dokumen"
               description="Detail metadata dan informasi file dokumen."
               icon={FileText}

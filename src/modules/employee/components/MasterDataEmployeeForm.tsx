@@ -26,6 +26,12 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { crudEmployeeAction } from "@/modules/employee/actions";
+import {
+  EDUCATION_OPTIONS,
+  EMPLOYEE_STATUS_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
+  RELIGION_OPTIONS,
+} from "@/modules/employee/constants";
 import { ROLE_LABELS } from "@/constants/roles";
 
 /* -------------------------------------------------------------------------- */
@@ -48,6 +54,12 @@ type Props = {
   workplaces: MasterDataRecord[];
 };
 
+type ActionError = {
+  code: string;
+  message: string;
+  details?: Array<{ path: string; message: string }>;
+};
+
 /* -------------------------------------------------------------------------- */
 /*  Constants                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -62,6 +74,37 @@ const ROLE_OPTIONS = [
   { value: "STAFF", label: ROLE_LABELS.STAFF },
   { value: "ADMIN", label: ROLE_LABELS.ADMIN },
 ] as const;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function showFormError(title: string, messages: string[]) {
+  toast.error(title, {
+    description:
+      messages.length > 0 ? (
+        <div className="space-y-1">
+          {messages.map((message) => (
+            <div key={message}>{message}</div>
+          ))}
+        </div>
+      ) : undefined,
+  });
+}
+
+function getActionErrorMessages(error: ActionError) {
+  if (error.details?.length) {
+    return error.details.map((detail) => detail.message);
+  }
+
+  if (error.code === "UNAUTHENTICATED") {
+    return ["Sesi login berakhir. Silakan login ulang lalu coba lagi."];
+  }
+
+  if (error.code === "FORBIDDEN") {
+    return ["Akun Anda tidak memiliki akses untuk menambah pegawai."];
+  }
+
+  return [error.message || "Terjadi kesalahan saat menyimpan data pegawai."];
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Form                                                                         */
@@ -90,6 +133,7 @@ export function MasterDataEmployeeForm({
   const [lastEducation, setLastEducation] = useState("");
   const [religion, setReligion] = useState("");
   const [maritalStatus, setMaritalStatus] = useState("");
+  const [employeeStatus, setEmployeeStatus] = useState("Aktif");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [joinDate, setJoinDate] = useState("");
@@ -112,7 +156,7 @@ export function MasterDataEmployeeForm({
     () =>
       employmentStatusId
         ? employeeGroups.filter((g) => g.employmentStatusId === employmentStatusId)
-        : employeeGroups,
+        : [],
     [employmentStatusId, employeeGroups]
   );
 
@@ -120,7 +164,7 @@ export function MasterDataEmployeeForm({
     () =>
       professionGroupId
         ? employeePositions.filter((p) => p.professionGroupId === professionGroupId)
-        : employeePositions,
+        : [],
     [professionGroupId, employeePositions]
   );
 
@@ -149,23 +193,42 @@ export function MasterDataEmployeeForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Basic validation
-    if (!email.trim()) {
-      toast.error("Email wajib diisi.");
-      return;
+    const validationErrors: string[] = [];
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
+    const trimmedEmployeeId = employeeId.trim();
+    const trimmedNik = nik.trim();
+
+    if (!trimmedEmail) {
+      validationErrors.push("Email wajib diisi.");
+    } else if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      validationErrors.push("Format email tidak valid.");
     }
-    if (!name.trim()) {
-      toast.error("Nama wajib diisi.");
+    if (!trimmedName) {
+      validationErrors.push("Nama lengkap wajib diisi.");
+    }
+    if (!trimmedEmployeeId && !trimmedNik) {
+      validationErrors.push("NIP atau NIK wajib diisi. Isi minimal salah satu identitas pegawai.");
+    }
+    if (hasTmt && !tmtStartDate) {
+      validationErrors.push("TMT mulai wajib diisi jika data TMT diaktifkan.");
+    }
+    if (hasTmt && tmtStartDate && tmtEndDate && tmtEndDate < tmtStartDate) {
+      validationErrors.push("TMT selesai tidak boleh lebih awal dari TMT mulai.");
+    }
+
+    if (validationErrors.length > 0) {
+      showFormError("Data pegawai belum lengkap", validationErrors);
       return;
     }
 
     setSaving(true);
 
     const data: Record<string, unknown> = {
-      email: email.trim(),
-      name: name.trim(),
-      employeeId: employeeId.trim() || null,
-      nik: nik.trim() || null,
+      email: trimmedEmail,
+      name: trimmedName,
+      employeeId: trimmedEmployeeId || null,
+      nik: trimmedNik || null,
       gender: gender || null,
       birthPlace: birthPlace.trim() || null,
       birthDate: birthDate || null,
@@ -173,6 +236,7 @@ export function MasterDataEmployeeForm({
       lastEducation: lastEducation.trim() || null,
       religion: religion.trim() || null,
       maritalStatus: maritalStatus.trim() || null,
+      status: employeeStatus,
       phone: phone.trim() || null,
       address: address.trim() || null,
       joinDate: joinDate || null,
@@ -187,15 +251,21 @@ export function MasterDataEmployeeForm({
       workplaceId: workplaceId || null,
     };
 
-    const result = await crudEmployeeAction("CREATE", undefined, data);
+    try {
+      const result = await crudEmployeeAction("CREATE", undefined, data);
 
-    setSaving(false);
-
-    if (result.ok) {
-      toast.success(`Pegawai "${name}" berhasil ditambahkan.`);
-      router.push("/master-data/employees");
-    } else {
-      toast.error(result.error.message);
+      if (result.ok) {
+        toast.success(`Pegawai "${trimmedName}" berhasil ditambahkan.`);
+        router.push("/master-data/employees");
+      } else {
+        showFormError("Gagal menyimpan pegawai", getActionErrorMessages(result.error));
+      }
+    } catch (error) {
+      showFormError("Gagal menyimpan pegawai", [
+        error instanceof Error ? error.message : "Terjadi kesalahan tak terduga.",
+      ]);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -276,6 +346,22 @@ export function MasterDataEmployeeForm({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="employeeStatus">Status Pegawai</Label>
+              <Select value={employeeStatus} onValueChange={(v) => v && setEmployeeStatus(v)}>
+                <SelectTrigger id="employeeStatus">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMPLOYEE_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
@@ -301,7 +387,7 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="gender">Jenis Kelamin</Label>
-              <Select value={gender} onValueChange={(v) => v && setGender(v)}>
+              <Select value={gender || null} onValueChange={(v) => setGender(v ?? "")}>
                 <SelectTrigger id="gender">
                   <SelectValue placeholder="Pilih..." />
                 </SelectTrigger>
@@ -317,12 +403,18 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="religion">Agama</Label>
-              <Input
-                id="religion"
-                placeholder="Islam, Kristen, dll"
-                value={religion}
-                onChange={(e) => setReligion(e.target.value)}
-              />
+              <Select value={religion || null} onValueChange={(v) => setReligion(v ?? "")}>
+                <SelectTrigger id="religion">
+                  <SelectValue placeholder="Pilih..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {RELIGION_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -347,12 +439,18 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="maritalStatus">Status Pernikahan</Label>
-              <Input
-                id="maritalStatus"
-                placeholder="Kawin, Belum Kawin, dll"
-                value={maritalStatus}
-                onChange={(e) => setMaritalStatus(e.target.value)}
-              />
+              <Select value={maritalStatus || null} onValueChange={(v) => setMaritalStatus(v ?? "")}>
+                <SelectTrigger id="maritalStatus">
+                  <SelectValue placeholder="Pilih..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {MARITAL_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -367,12 +465,18 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="lastEducation">Pendidikan Terakhir</Label>
-              <Input
-                id="lastEducation"
-                placeholder="S1, D3, SMA, dll"
-                value={lastEducation}
-                onChange={(e) => setLastEducation(e.target.value)}
-              />
+              <Select value={lastEducation || null} onValueChange={(v) => setLastEducation(v ?? "")}>
+                <SelectTrigger id="lastEducation">
+                  <SelectValue placeholder="Pilih..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {EDUCATION_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -411,9 +515,9 @@ export function MasterDataEmployeeForm({
             <div className="space-y-2">
               <Label htmlFor="employmentStatusId">Status Kepegawaian</Label>
               <Select
-                value={employmentStatusId}
+                value={employmentStatusId || null}
                 onValueChange={(v) => {
-                  const val = v || "";
+                  const val = v ?? "";
                   setEmploymentStatusId(val);
                   handleResetGroup(val);
                 }}
@@ -433,18 +537,15 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="employeeGroupId">Kelompok Pegawai</Label>
-              <Select value={employeeGroupId} onValueChange={(v) => v && setEmployeeGroupId(v)}>
+              <Select
+                value={employeeGroupId || null}
+                onValueChange={(v) => setEmployeeGroupId(v ?? "")}
+                disabled={!employmentStatusId || filteredGroups.length === 0}
+              >
                 <SelectTrigger id="employeeGroupId">
-                  <SelectValue placeholder="Pilih..." />
+                  <SelectValue placeholder={!employmentStatusId ? "Pilih status kepegawaian dulu" : "Pilih..."} />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredGroups.length === 0 && (
-                    <SelectItem value="__none" disabled>
-                      {employmentStatusId
-                        ? "Tidak ada kelompok"
-                        : "Pilih status dulu"}
-                    </SelectItem>
-                  )}
                   {filteredGroups.map((g) => (
                     <SelectItem key={g.id} value={g.id}>
                       {g.name}
@@ -457,9 +558,9 @@ export function MasterDataEmployeeForm({
             <div className="space-y-2">
               <Label htmlFor="professionGroupId">Rumpun Profesi</Label>
               <Select
-                value={professionGroupId}
+                value={professionGroupId || null}
                 onValueChange={(v) => {
-                  const val = v || "";
+                  const val = v ?? "";
                   setProfessionGroupId(val);
                   handleResetPosition(val);
                 }}
@@ -479,18 +580,15 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="employeePositionId">Jabatan</Label>
-              <Select value={employeePositionId} onValueChange={(v) => v && setEmployeePositionId(v)}>
+              <Select
+                value={employeePositionId || null}
+                onValueChange={(v) => setEmployeePositionId(v ?? "")}
+                disabled={!professionGroupId || filteredPositions.length === 0}
+              >
                 <SelectTrigger id="employeePositionId">
-                  <SelectValue placeholder="Pilih..." />
+                  <SelectValue placeholder={!professionGroupId ? "Pilih rumpun profesi dulu" : "Pilih..."} />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredPositions.length === 0 && (
-                    <SelectItem value="__none" disabled>
-                      {professionGroupId
-                        ? "Tidak ada jabatan"
-                        : "Pilih profesi dulu"}
-                    </SelectItem>
-                  )}
                   {filteredPositions.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
@@ -502,7 +600,7 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="employeeRankId">Pangkat/Golongan</Label>
-              <Select value={employeeRankId} onValueChange={(v) => v && setEmployeeRankId(v)}>
+              <Select value={employeeRankId || null} onValueChange={(v) => setEmployeeRankId(v ?? "")}>
                 <SelectTrigger id="employeeRankId">
                   <SelectValue placeholder="Pilih..." />
                 </SelectTrigger>
@@ -518,7 +616,7 @@ export function MasterDataEmployeeForm({
 
             <div className="space-y-2">
               <Label htmlFor="workplaceId">Tempat Kerja</Label>
-              <Select value={workplaceId} onValueChange={(v) => v && setWorkplaceId(v)}>
+              <Select value={workplaceId || null} onValueChange={(v) => setWorkplaceId(v ?? "")}>
                 <SelectTrigger id="workplaceId">
                   <SelectValue placeholder="Pilih..." />
                 </SelectTrigger>

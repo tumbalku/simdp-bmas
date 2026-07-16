@@ -1,30 +1,14 @@
 import type { ReactNode } from "react";
 
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-
-type RowsPerPageOption = string | number;
-
-type RowsPerPageControl = {
-  value: string;
-  onValueChange: (value: string | null) => void;
-  options: readonly RowsPerPageOption[];
-  label?: string;
-  suffix?: string;
-};
+import { RowsPerPageControl, type RowsPerPageControlProps } from "./RowsPerPageControl";
 
 type DataTableCardProps = {
   title: ReactNode;
   description?: ReactNode;
   icon?: ReactNode;
-  rowsPerPageControl?: RowsPerPageControl;
+  rowsPerPageControl?: RowsPerPageControlProps;
   table: ReactNode;
   tableMinWidthClassName?: string;
   footerSummary?: ReactNode;
@@ -59,7 +43,7 @@ export function DataTableCard({
         </div>
         {rowsPerPageControl ? (
           <CardAction>
-            <RowsPerPageSelect control={rowsPerPageControl} />
+            <RowsPerPageControl {...rowsPerPageControl} variant="table" />
           </CardAction>
         ) : null}
       </CardHeader>
@@ -78,26 +62,5 @@ export function DataTableCard({
         ) : null}
       </CardContent>
     </Card>
-  );
-}
-
-function RowsPerPageSelect({ control }: { control: RowsPerPageControl }) {
-  return (
-    <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground sm:justify-end">
-      <span>{control.label ?? "Tampilkan"}</span>
-      <Select value={control.value} onValueChange={control.onValueChange}>
-        <SelectTrigger className="h-8 w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {control.options.map((option) => (
-            <SelectItem key={String(option)} value={String(option)}>
-              {option}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <span>{control.suffix ?? "row"}</span>
-    </div>
   );
 }

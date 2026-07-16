@@ -16,9 +16,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { InfoCard } from "@/components/shared/InfoCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import {
-  DocumentInfoCard,
   DocumentPreviewPanel,
   DocumentReviewLayout,
   DocumentStatusCard,
@@ -325,13 +325,13 @@ export function VerificationDetailView({ document }: VerificationDetailViewProps
               status={status}
               actions={statusActions}
             />
-            <DocumentInfoCard
+            <InfoCard
               title="Pemilik Dokumen"
               description="Informasi pegawai pengirim berkas."
               icon={User}
               fields={getOwnerFields(document)}
             />
-            <DocumentInfoCard
+            <InfoCard
               title="Informasi Dokumen"
               description="Detail metadata dan informasi file dokumen."
               icon={FileText}

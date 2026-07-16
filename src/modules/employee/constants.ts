@@ -75,6 +75,43 @@ export const EMPLOYEE_CATEGORY_TYPE_OPTIONS = [
   { value: "WORKPLACE", label: EMPLOYEE_CATEGORY_TYPE_CONFIG.WORKPLACE.label },
 ] as const satisfies ReadonlyArray<{ value: EmployeeCategoryType; label: string }>;
 
+export const RELIGION_OPTIONS = [
+  { value: "Islam", label: "Islam" },
+  { value: "Kristen", label: "Kristen (Protestan)" },
+  { value: "Katolik", label: "Katolik" },
+  { value: "Hindu", label: "Hindu" },
+  { value: "Buddha", label: "Buddha" },
+  { value: "Khonghucu", label: "Khonghucu" },
+] as const;
+
+export const EDUCATION_OPTIONS = [
+  { value: "SD", label: "SD / Sederajat" },
+  { value: "SMP", label: "SMP / Sederajat" },
+  { value: "SMA", label: "SMA / SMK / Sederajat" },
+  { value: "D1", label: "D1" },
+  { value: "D2", label: "D2" },
+  { value: "D3", label: "D3" },
+  { value: "D4", label: "D4" },
+  { value: "S1", label: "S1" },
+  { value: "S2", label: "S2" },
+  { value: "S3", label: "S3" },
+  { value: "Profesi", label: "Profesi / Sp-1" },
+  { value: "Sp-2", label: "Sp-2" },
+] as const;
+
+export const MARITAL_STATUS_OPTIONS = [
+  { value: "Belum Kawin", label: "Belum Kawin" },
+  { value: "Kawin", label: "Kawin" },
+  { value: "Cerai Hidup", label: "Cerai Hidup" },
+  { value: "Cerai Meninggal", label: "Cerai Meninggal" },
+] as const;
+
+export const EMPLOYEE_STATUS_OPTIONS = [
+  { value: "Aktif", label: "Aktif" },
+  { value: "Pensiun", label: "Pensiun" },
+  { value: "Tubel", label: "Tugas Belajar (Tubel)" },
+] as const;
+
 export const EMPLOYEE_CATEGORY_COPY = {
   pageTitle: categoryCopy.pageTitle,
   pageDescription: categoryCopy.pageDescription,

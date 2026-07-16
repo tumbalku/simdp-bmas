@@ -9,6 +9,7 @@ import { DataTableCard } from "@/components/shared/DataTableCard";
 import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
 import { PaginationItems } from "@/components/shared/PaginationItems";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { RowsPerPageControl } from "@/components/shared/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -78,15 +79,23 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
   const [rowsPerPage, setRowsPerPage] = useState(() =>
     String(pagination.limit || PAGINATION.defaultPageSize),
   );
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    searchParams.get("view") === "grid" ? "grid" : "list",
+  );
 
-  const buildPageUrl = (page: number, limit = rowsPerPage) => {
+  const buildPageUrl = (page: number, limit = rowsPerPage, nextViewMode = viewMode) => {
     const params = new URLSearchParams();
     params.set("page", page.toString());
     params.set("limit", limit);
     if (search) params.set("search", search);
     if (statusFilter !== "all") params.set("status", statusFilter);
+    if (nextViewMode === "grid") params.set("view", nextViewMode);
     return `${ROUTES.masterDataDocuments}?${params.toString()}`;
+  };
+
+  const handleViewModeChange = (nextViewMode: ViewMode) => {
+    setViewMode(nextViewMode);
+    window.history.replaceState(null, "", buildPageUrl(pagination.page, rowsPerPage, nextViewMode));
   };
 
   const buildDocumentDetailUrl = (documentId: string) => {
@@ -230,7 +239,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
       />
 
       <DocumentSearchFilter
-        description="Cari dokumen berdasarkan nama file, pemilik, status, atau jumlah baris per halaman."
+        description="Cari dokumen berdasarkan nama file, pemilik, atau status."
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Nama file, pemilik..."
@@ -247,20 +256,36 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
             })),
           ],
         }}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        pageSizeOptions={PAGINATION.pageSizeOptions}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />
 
-      <ViewModeToggle value={viewMode} onValueChange={setViewMode} />
+      <ViewModeToggle
+        value={viewMode}
+        onValueChange={handleViewModeChange}
+        leading={
+          viewMode === "grid" ? (
+            <RowsPerPageControl
+              value={rowsPerPage}
+              onValueChange={handleRowsPerPageChange}
+              options={PAGINATION.pageSizeOptions}
+            />
+          ) : undefined
+        }
+      />
 
       {viewMode === "list" ? (
         <DataTableCard
           title="Daftar Dokumen"
           icon={<FileText className="size-5" />}
           description="Buka tinjauan berkas untuk membaca dokumen"
+          rowsPerPageControl={{
+            value: rowsPerPage,
+            onValueChange: handleRowsPerPageChange,
+            options: PAGINATION.pageSizeOptions,
+            label: "Tampilkan",
+            suffix: "row",
+          }}
           tableMinWidthClassName="min-w-[920px]"
           table={
             <DataTable

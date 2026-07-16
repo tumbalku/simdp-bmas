@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { LayoutGrid, Table2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,23 +10,18 @@ type ViewMode = "grid" | "list";
 type ViewModeToggleProps = {
   value: ViewMode;
   onValueChange: (value: ViewMode) => void;
-  title?: string;
-  description?: string;
+  leading?: ReactNode;
 };
 
 export function ViewModeToggle({
   value,
   onValueChange,
-  title = "Mode Tampilan",
-  description = "Pilih tampilan kartu atau tabel untuk daftar dokumen.",
+  leading,
 }: ViewModeToggleProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="inline-flex w-full rounded-md border bg-muted/30 p-1 sm:w-auto">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {leading ? <div className="flex justify-start">{leading}</div> : <div />}
+      <div className="inline-flex w-full rounded-md border border-muted-foreground/10 bg-card p-1 shadow-sm sm:w-auto">
         <Button
           type="button"
           size="sm"
@@ -35,7 +31,7 @@ export function ViewModeToggle({
           onClick={() => onValueChange("grid")}
         >
           <LayoutGrid className="size-4" />
-          Card
+          Grid
         </Button>
         <Button
           type="button"
@@ -46,7 +42,7 @@ export function ViewModeToggle({
           onClick={() => onValueChange("list")}
         >
           <Table2 className="size-4" />
-          Table
+          List
         </Button>
       </div>
     </div>

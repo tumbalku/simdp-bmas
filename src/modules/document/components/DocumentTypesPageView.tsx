@@ -11,6 +11,7 @@ import { DataTableCard } from "@/components/shared/DataTableCard";
 import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PaginationItems } from "@/components/shared/PaginationItems";
+import { RowsPerPageControl } from "@/components/shared/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
 import {
   AlertDialog,
@@ -167,17 +168,25 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
   const [rowsPerPage, setRowsPerPage] = useState(() =>
     String(pagination.limit || PAGINATION.defaultPageSize),
   );
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    searchParams.get("view") === "grid" ? "grid" : "list",
+  );
   const [deleteTarget, setDeleteTarget] = useState<DocumentTypeItem | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
 
-  const buildPageUrl = (page: number, limit = rowsPerPage) => {
+  const buildPageUrl = (page: number, limit = rowsPerPage, nextViewMode = viewMode) => {
     const params = new URLSearchParams();
     params.set("page", page.toString());
     params.set("limit", limit);
     if (search) params.set("search", search);
     if (categoryFilter !== "all") params.set("archiveCategory", categoryFilter);
+    if (nextViewMode === "grid") params.set("view", nextViewMode);
     return `${ROUTES.masterDataDocumentTypes}?${params.toString()}`;
+  };
+
+  const handleViewModeChange = (nextViewMode: ViewMode) => {
+    setViewMode(nextViewMode);
+    window.history.replaceState(null, "", buildPageUrl(pagination.page, rowsPerPage, nextViewMode));
   };
 
   const handleFilter = () => {
@@ -346,7 +355,7 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
       />
 
       <DocumentSearchFilter
-        description="Cari berdasarkan kode, nama, deskripsi, kategori arsip, atau jumlah baris per halaman."
+        description="Cari berdasarkan kode, nama, deskripsi, atau kategori arsip."
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Kode atau nama jenis dokumen..."
@@ -360,17 +369,22 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
             ...ARCHIVE_CATEGORY_OPTIONS,
           ],
         }}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        pageSizeOptions={PAGINATION.pageSizeOptions}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />
 
       <ViewModeToggle
         value={viewMode}
-        onValueChange={setViewMode}
-        description="Pilih tampilan kartu atau tabel untuk daftar jenis dokumen."
+        onValueChange={handleViewModeChange}
+        leading={
+          viewMode === "grid" ? (
+            <RowsPerPageControl
+              value={rowsPerPage}
+              onValueChange={handleRowsPerPageChange}
+              options={PAGINATION.pageSizeOptions}
+            />
+          ) : undefined
+        }
       />
 
       {viewMode === "list" ? (
@@ -378,6 +392,13 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
           title="Daftar Jenis Dokumen"
           icon={<FileText className="size-5" />}
           description="Konfigurasi master jenis dokumen pegawai"
+          rowsPerPageControl={{
+            value: rowsPerPage,
+            onValueChange: handleRowsPerPageChange,
+            options: PAGINATION.pageSizeOptions,
+            label: "Tampilkan",
+            suffix: "row",
+          }}
           tableMinWidthClassName="min-w-[1180px]"
           table={
             <DataTable

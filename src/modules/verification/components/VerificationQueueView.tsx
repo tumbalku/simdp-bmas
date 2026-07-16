@@ -15,6 +15,7 @@ import { DataTableCard } from "@/components/shared/DataTableCard";
 import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
 import { PaginationItems } from "@/components/shared/PaginationItems";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { RowsPerPageControl } from "@/components/shared/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -135,7 +136,9 @@ export function VerificationQueueView({
   const [rowsPerPage, setRowsPerPage] = useState(() =>
     searchParams.get("limit") ?? String(initialPagination.pageSize)
   );
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    searchParams.get("view") === "grid" ? "grid" : "list"
+  );
 
   /* error */
   const [error, setError] = useState<string | null>(null);
@@ -190,17 +193,19 @@ export function VerificationQueueView({
       nextPage: number,
       limit = rowsPerPage,
       nextSearch = search,
-      nextDocumentTypeId = documentTypeId
+      nextDocumentTypeId = documentTypeId,
+      nextViewMode = viewMode
     ) => {
       const params = new URLSearchParams();
       params.set("page", String(nextPage));
       params.set("limit", limit);
       if (nextSearch.trim()) params.set("search", nextSearch.trim());
       if (nextDocumentTypeId) params.set("documentTypeId", nextDocumentTypeId);
+      if (nextViewMode === "grid") params.set("view", nextViewMode);
 
       return `${ROUTES.verification}?${params.toString()}`;
     },
-    [documentTypeId, rowsPerPage, search]
+    [documentTypeId, rowsPerPage, search, viewMode]
   );
 
   const applyFilters = useCallback(
@@ -209,18 +214,21 @@ export function VerificationQueueView({
       nextSearch = search,
       nextDocumentTypeId = documentTypeId,
       nextRowsPerPage = rowsPerPage,
+      nextViewMode = viewMode,
     }: {
       nextPage?: number;
       nextSearch?: string;
       nextDocumentTypeId?: string;
       nextRowsPerPage?: string;
+      nextViewMode?: ViewMode;
     } = {}) => {
       setPage(nextPage);
       setSearch(nextSearch);
       setDocumentTypeId(nextDocumentTypeId);
       setRowsPerPage(nextRowsPerPage);
+      setViewMode(nextViewMode);
       router.push(
-        buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextDocumentTypeId)
+        buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextDocumentTypeId, nextViewMode)
       );
       startTransition(() => {
         fetchQueue({
@@ -231,7 +239,17 @@ export function VerificationQueueView({
         });
       });
     },
-    [buildPageUrl, documentTypeId, fetchQueue, router, rowsPerPage, search, startTransition]
+    [buildPageUrl, documentTypeId, fetchQueue, router, rowsPerPage, search, startTransition, viewMode]
+  );
+
+  const handleViewModeChange = useCallback(
+    (nextViewMode: ViewMode) => {
+      setViewMode(nextViewMode);
+      router.replace(buildPageUrl(page, rowsPerPage, search, documentTypeId, nextViewMode), {
+        scroll: false,
+      });
+    },
+    [buildPageUrl, documentTypeId, page, router, rowsPerPage, search]
   );
 
   const handleDocumentTypeChange = useCallback(
@@ -248,10 +266,15 @@ export function VerificationQueueView({
     [applyFilters]
   );
 
-  const handleRowsPerPageChange = useCallback((value: string | null) => {
-    const nextRowsPerPage = value ?? String(PAGINATION.defaultPageSize);
-    setRowsPerPage(nextRowsPerPage);
-  }, []);
+  const handleRowsPerPageChange = useCallback(
+    (value: string | null) => {
+      applyFilters({
+        nextPage: PAGINATION.defaultPage,
+        nextRowsPerPage: value ?? String(PAGINATION.defaultPageSize),
+      });
+    },
+    [applyFilters]
+  );
 
   const handleApplyFilters = useCallback(() => {
     applyFilters();
@@ -397,7 +420,7 @@ export function VerificationQueueView({
       />
 
       <DocumentSearchFilter
-        description="Cari berdasarkan nama pegawai, jenis dokumen, atau jumlah baris per halaman."
+        description="Cari berdasarkan nama pegawai atau jenis dokumen."
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Cari nama pegawai..."
@@ -414,14 +437,23 @@ export function VerificationQueueView({
             })),
           ],
         }}
-        rowsPerPage={rowsPerPage}
-        onRowsPerPageChange={handleRowsPerPageChange}
-        pageSizeOptions={PAGINATION.pageSizeOptions}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />
 
-      <ViewModeToggle value={viewMode} onValueChange={setViewMode} />
+      <ViewModeToggle
+        value={viewMode}
+        onValueChange={handleViewModeChange}
+        leading={
+          viewMode === "grid" ? (
+            <RowsPerPageControl
+              value={rowsPerPage}
+              onValueChange={handleRowsPerPageChange}
+              options={PAGINATION.pageSizeOptions}
+            />
+          ) : undefined
+        }
+      />
 
       {/* Error state */}
       {error && (
@@ -482,6 +514,13 @@ export function VerificationQueueView({
               title="Daftar Tunggu Pemeriksaan"
               icon={<FileText className="size-5" />}
               description="Buka tinjauan berkas untuk membaca dokumen dan mengambil keputusan verifikasi."
+              rowsPerPageControl={{
+                value: rowsPerPage,
+                onValueChange: handleRowsPerPageChange,
+                options: PAGINATION.pageSizeOptions,
+                label: "Tampilkan",
+                suffix: "row",
+              }}
               tableMinWidthClassName="min-w-[760px]"
               table={
                 <DataTable

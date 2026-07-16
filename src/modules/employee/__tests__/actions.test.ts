@@ -38,6 +38,7 @@ import {
   crudEmployeeAction,
   crudMasterDataAction,
   getEmployeeDirectoryAction,
+  getEmployeeDirectoryWithPaginationAction,
   getMasterDataListAction,
   updateProfileAction,
 } from "../actions";
@@ -58,6 +59,50 @@ describe("Employee Module Actions", () => {
       error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." },
     });
     expect(mocks.getEmployeeDirectory).not.toHaveBeenCalled();
+  });
+
+  it("should accept advanced paginated employee directory filters", async () => {
+    mocks.getEmployeeDirectoryWithPagination.mockResolvedValue({ data: [], pagination: { total: 0 } });
+
+    const result = await getEmployeeDirectoryWithPaginationAction({
+      search: "andi",
+      page: 1,
+      limit: 10,
+      employmentStatusId: "status-1",
+      employeeGroupId: "group-1",
+      professionGroupId: "profession-1",
+      employeePositionId: "position-1",
+      employeeRankId: "rank-1",
+      workplaceId: "workplace-1",
+      maritalStatus: "Kawin",
+      lastEducation: "S1",
+      tmtStartDate: "2020-01-01",
+      tmtEndDate: "2026-12-31",
+      retirementAgeFrom: 50,
+      retirementAgeTo: 58,
+      status: "Aktif",
+    });
+
+    expect(mocks.requireAuth).toHaveBeenCalledWith("ADMIN");
+    expect(mocks.getEmployeeDirectoryWithPagination).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: "andi",
+        employmentStatusId: "status-1",
+        employeeGroupId: "group-1",
+        professionGroupId: "profession-1",
+        employeePositionId: "position-1",
+        employeeRankId: "rank-1",
+        workplaceId: "workplace-1",
+        maritalStatus: "Kawin",
+        lastEducation: "S1",
+        tmtStartDate: "2020-01-01",
+        tmtEndDate: "2026-12-31",
+        retirementAgeFrom: 50,
+        retirementAgeTo: 58,
+        status: "Aktif",
+      })
+    );
+    expect(result).toEqual({ ok: true, data: { data: [], pagination: { total: 0 } } });
   });
 
   it("should validate and pass cleaned profile data to the service", async () => {
@@ -133,5 +178,26 @@ describe("Employee Module Actions", () => {
       expect(result.error.code).toBe("VALIDATION_ERROR");
     }
     expect(mocks.addCareerHistory).not.toHaveBeenCalled();
+  });
+
+  it("should handle error gracefully and return standard error payload in employee directory", async () => {
+    mocks.getEmployeeDirectory.mockRejectedValue(new Error("Database error"));
+
+    const result = await getEmployeeDirectoryAction();
+
+    expect(result).toEqual({
+      ok: false,
+      error: { code: "INTERNAL_ERROR", message: "Database error" },
+    });
+  });
+
+  it("should call paginated master data queries successfully", async () => {
+    mocks.getMasterDataList.mockResolvedValue({ data: [], total: 0 });
+
+    const result = await getMasterDataListAction("Workplace", { limit: 10 });
+
+    expect(mocks.requireAuth).toHaveBeenCalled();
+    expect(mocks.getMasterDataList).toHaveBeenCalledWith("Workplace", { limit: 10 });
+    expect(result).toEqual({ ok: true, data: { data: [], total: 0 } });
   });
 });

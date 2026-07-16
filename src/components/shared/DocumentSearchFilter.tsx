@@ -37,10 +37,7 @@ type DocumentSearchFilterProps = {
   searchValue: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
-  primaryFilter: SelectFilter;
-  rowsPerPage: string;
-  onRowsPerPageChange: (value: string | null) => void;
-  pageSizeOptions: readonly number[];
+  primaryFilter?: SelectFilter;
   onApply: () => void;
   onReset: () => void;
   title?: string;
@@ -53,12 +50,13 @@ export function DocumentSearchFilter({
   onSearchChange,
   searchPlaceholder,
   primaryFilter,
-  rowsPerPage,
-  onRowsPerPageChange,
-  pageSizeOptions,
   onApply,
   onReset,
 }: DocumentSearchFilterProps) {
+  const gridClassName = primaryFilter
+    ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(220px,0.8fr)_auto] lg:items-center"
+    : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:items-center";
+
   return (
     <Card className="border-muted-foreground/10 shadow-sm">
       <CardHeader className="pb-2">
@@ -69,7 +67,7 @@ export function DocumentSearchFilter({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(220px,0.8fr)_180px_auto] lg:items-center">
+        <div className={gridClassName}>
           <div className="relative sm:col-span-2 lg:col-span-1">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -83,34 +81,23 @@ export function DocumentSearchFilter({
             />
           </div>
 
-          <Select
-            value={primaryFilter.value}
-            onValueChange={primaryFilter.onValueChange}
-          >
-            <SelectTrigger className="w-full" aria-label={primaryFilter.ariaLabel}>
-              <SelectValue placeholder={primaryFilter.placeholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {primaryFilter.options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={rowsPerPage} onValueChange={onRowsPerPageChange}>
-            <SelectTrigger className="w-full" aria-label="Row per halaman">
-              <SelectValue placeholder="Row per halaman" />
-            </SelectTrigger>
-            <SelectContent>
-              {pageSizeOptions.map((option) => (
-                <SelectItem key={option} value={String(option)}>
-                  {option} row
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {primaryFilter ? (
+            <Select
+              value={primaryFilter.value}
+              onValueChange={primaryFilter.onValueChange}
+            >
+              <SelectTrigger className="w-full" aria-label={primaryFilter.ariaLabel}>
+                <SelectValue placeholder={primaryFilter.placeholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {primaryFilter.options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
 
           <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
             <Button type="button" className="gap-2" onClick={onApply}>
