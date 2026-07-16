@@ -462,6 +462,13 @@ export async function addCareerHistory(data: {
 }) {
   const historyId = crypto.randomUUID();
   const effectiveDate = new Date(data.effectiveDate);
+  const currentAssignment: Record<string, string | null> = {};
+
+  if (data.employmentStatusId !== undefined) currentAssignment.employmentStatusId = data.employmentStatusId || null;
+  if (data.employeeGroupId !== undefined) currentAssignment.employeeGroupId = data.employeeGroupId || null;
+  if (data.employeePositionId !== undefined) currentAssignment.employeePositionId = data.employeePositionId || null;
+  if (data.employeeRankId !== undefined) currentAssignment.employeeRankId = data.employeeRankId || null;
+  if (data.workplaceId !== undefined) currentAssignment.workplaceId = data.workplaceId || null;
 
   const result = await repository.createCareerHistoryAndUpdateCurrent({
     history: {
@@ -476,13 +483,7 @@ export async function addCareerHistory(data: {
       note: data.note || null,
       createdBy: data.createdBy || null,
     },
-    currentAssignment: {
-      employmentStatusId: data.employmentStatusId || null,
-      employeeGroupId: data.employeeGroupId || null,
-      employeePositionId: data.employeePositionId || null,
-      employeeRankId: data.employeeRankId || null,
-      workplaceId: data.workplaceId || null,
-    },
+    currentAssignment,
   });
 
   await logActivity({

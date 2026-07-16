@@ -221,7 +221,7 @@ export async function createCareerHistoryAndUpdateCurrent(data: {
     const history = await createCareerHistory(data.history, tx);
     const newestHistory = await findNewestCareerHistory(data.history.employeeId, tx);
 
-    if (newestHistory && newestHistory.id === data.history.id) {
+    if (newestHistory && newestHistory.id === history.id && Object.keys(data.currentAssignment).length > 0) {
       await updateEmployee(data.history.employeeId, data.currentAssignment, tx);
     }
 
