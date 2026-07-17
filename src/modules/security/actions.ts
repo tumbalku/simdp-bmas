@@ -9,6 +9,7 @@ export async function getSecurityLog(filter: {
   pageSize?: number;
   search?: string;
   eventType?: string;
+  actorRole?: string;
   status?: string;
   dateFrom?: string;
   dateTo?: string;
