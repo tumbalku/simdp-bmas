@@ -120,9 +120,9 @@ describe("Employee Module Service", () => {
             employeePositionId: "position-1",
             employeeRankId: "rank-1",
             workplaceId: "workplace-1",
-            maritalStatus: "Kawin",
+            maritalStatus: "MARRIED",
             lastEducation: "S1",
-            status: "Aktif",
+            status: "ACTIVE",
             tmtStartDate: { gte: new Date("2020-01-01") },
             tmtEndDate: { lte: new Date("2026-12-31") },
             birthDate: expect.objectContaining({

@@ -3,14 +3,17 @@ import {
   EMPLOYEE_STATUS_VALUE,
   GENDER_VALUE,
   MARITAL_STATUS_VALUE,
+  RELIGION_VALUE,
   mapEmployeeStatusLegacyToCanonical,
   mapGenderLegacyToCanonical,
   mapMaritalStatusLegacyToCanonical,
+  mapReligionLegacyToCanonical,
 } from "./constants";
 
 const employeeStatusValues = Object.values(EMPLOYEE_STATUS_VALUE) as [string, ...string[]];
 const genderValues = Object.values(GENDER_VALUE) as [string, ...string[]];
 const maritalStatusValues = Object.values(MARITAL_STATUS_VALUE) as [string, ...string[]];
+const religionValues = Object.values(RELIGION_VALUE) as [string, ...string[]];
 
 const employeeStatusSchema = z.preprocess(
   (value) => (typeof value === "string" ? mapEmployeeStatusLegacyToCanonical(value) ?? value : value),
@@ -24,13 +27,17 @@ const maritalStatusSchema = z.preprocess(
   (value) => (typeof value === "string" ? mapMaritalStatusLegacyToCanonical(value) ?? value : value),
   z.enum(maritalStatusValues)
 );
+const religionSchema = z.preprocess(
+  (value) => (typeof value === "string" ? mapReligionLegacyToCanonical(value) ?? value : value),
+  z.enum(religionValues)
+);
 
 export const updateProfileSchema = z.object({
   phone: z.string().regex(/^[0-9+\-\s]*$/, "Format telepon tidak valid").optional().nullable(),
   address: z.string().max(255, "Alamat terlalu panjang").optional().nullable(),
   birthPlace: z.string().optional().nullable(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD").optional().nullable(),
-  religion: z.string().optional().nullable(),
+  religion: religionSchema.optional().nullable(),
   maritalStatus: maritalStatusSchema.optional().nullable(),
 });
 
@@ -51,7 +58,7 @@ export const crudEmployeeSchema = z.object({
       birthDate: z.string().optional().nullable(),
       academicDegree: z.string().optional().nullable(),
       lastEducation: z.string().optional().nullable(),
-      religion: z.string().optional().nullable(),
+      religion: religionSchema.optional().nullable(),
       maritalStatus: maritalStatusSchema.optional().nullable(),
       phone: z.string().optional().nullable(),
       address: z.string().optional().nullable(),

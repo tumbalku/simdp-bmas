@@ -1,4 +1,15 @@
-import { PrismaClient, Role, DocumentStatus, ArchiveCategory, EmployeeGender, EmployeeMaritalStatus } from "@prisma/client";
+import {
+  PrismaClient,
+  Role,
+  DocumentStatus,
+  ArchiveCategory,
+  EmployeeGender,
+  EmployeeMaritalStatus,
+  EmployeeReligion,
+  StorageProvider,
+  NotificationType,
+  NotificationRelatedEntityType,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as pg from "pg";
 import * as argon2 from "argon2";
@@ -219,7 +230,7 @@ async function main() {
         birthDate: item.birthDate,
         academicDegree: item.degree,
         lastEducation: item.education,
-        religion: i % 3 === 0 ? "Islam" : i % 3 === 1 ? "Kristen" : "Hindu",
+        religion: i % 3 === 0 ? EmployeeReligion.ISLAM : i % 3 === 1 ? EmployeeReligion.PROTESTANT : EmployeeReligion.HINDU,
         maritalStatus: i % 2 === 0 ? EmployeeMaritalStatus.MARRIED : EmployeeMaritalStatus.SINGLE,
         phone: `08${String(1210000000 + i * 73129)}`,
         address: `Jl. Demo SIMDP No. ${10 + i}, Kendari`,
@@ -307,7 +318,7 @@ async function main() {
         fileSize: fileMeta.fileSize,
         mimeType: "application/pdf",
         fileHash: fileMeta.fileHash,
-        storageProvider: "local",
+        storageProvider: StorageProvider.LOCAL,
         documentNumber: item.number,
         issueDate: item.issue,
         expiryDate: item.expiry,
@@ -333,16 +344,16 @@ async function main() {
 
   await prisma.notification.createMany({
     data: [
-      { id: "seed_notif_001", userId: employeeUser.id, type: "DOCUMENT_APPROVED", title: "KTP disetujui", message: "KTP Budi Setiawan telah disetujui verifikator.", isRead: false, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_001", createdAt: daysAgo(44) },
-      { id: "seed_notif_002", userId: employeeUser.id, type: "DOCUMENT_APPROVED", title: "Ijazah disetujui", message: "Ijazah pendidikan terakhir telah masuk arsip resmi.", isRead: true, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_002", createdAt: daysAgo(39) },
-      { id: "seed_notif_003", userId: employees[5].user.id, type: "DOCUMENT_REJECTED", title: "SIP perlu diperbaiki", message: "Nomor SIP kurang jelas, mohon unggah ulang scan yang lebih tajam.", isRead: false, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_005", createdAt: daysAgo(7) },
-      { id: "seed_notif_004", userId: employees[7].user.id, type: "DOCUMENT_EXPIRED", title: "Sertifikat BLS kedaluwarsa", message: "Sertifikat BLS sudah kedaluwarsa dan perlu diperbarui.", isRead: false, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_007", createdAt: daysAgo(1) },
-      { id: "seed_notif_005", userId: staffUser.id, type: "VERIFICATION_QUEUE", title: "20 dokumen menunggu verifikasi", message: "Ada 20 dokumen daftar tunggu yang perlu ditinjau verifikator.", isRead: false, relatedEntityType: "VERIFICATION", relatedEntityId: "seed_doc_003", createdAt: daysAgo(1) },
-      { id: "seed_notif_006", userId: employees[6].user.id, type: "DOCUMENT_APPROVED", title: "Sertifikat pelatihan diterima", message: "Pelatihan farmasi klinik berhasil diarsipkan.", isRead: true, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_006", createdAt: daysAgo(2) },
-      { id: "seed_notif_007", userId: employees[9].user.id, type: "DOCUMENT_PENDING", title: "Surat sehat sedang ditinjau", message: "Berkas Anda masih menunggu pemeriksaan staf.", isRead: false, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_009", createdAt: daysAgo(3) },
-      { id: "seed_notif_008", userId: employees[4].user.id, type: "REMINDER_H30", title: "STR akan kedaluwarsa", message: "STR Ners Dewi akan kedaluwarsa dalam periode pemantauan.", isRead: true, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_004", createdAt: daysAgo(5) },
-      { id: "seed_notif_009", userId: employees[8].user.id, type: "DOCUMENT_APPROVED", title: "SK Magang disetujui", message: "SK Magang Andri Saputra telah diverifikasi.", isRead: true, relatedEntityType: "DOCUMENT", relatedEntityId: "seed_doc_008", createdAt: daysAgo(16) },
-      { id: "seed_notif_010", userId: employees[1].user.id, type: "SYSTEM", title: "Data demo siap diuji", message: "Seed demo SIMDP telah menyiapkan data untuk uji CRUD dan verifikasi.", isRead: false, relatedEntityType: "SYSTEM", relatedEntityId: null, createdAt: new Date() },
+      { id: "seed_notif_001", userId: employeeUser.id, type: NotificationType.DOCUMENT_STATUS, title: "KTP disetujui", message: "KTP Budi Setiawan telah disetujui verifikator.", isRead: false, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_001", createdAt: daysAgo(44) },
+      { id: "seed_notif_002", userId: employeeUser.id, type: NotificationType.DOCUMENT_STATUS, title: "Ijazah disetujui", message: "Ijazah pendidikan terakhir telah masuk arsip resmi.", isRead: true, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_002", createdAt: daysAgo(39) },
+      { id: "seed_notif_003", userId: employees[5].user.id, type: NotificationType.DOCUMENT_STATUS, title: "SIP perlu diperbaiki", message: "Nomor SIP kurang jelas, mohon unggah ulang scan yang lebih tajam.", isRead: false, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_005", createdAt: daysAgo(7) },
+      { id: "seed_notif_004", userId: employees[7].user.id, type: NotificationType.EXPIRY_REMINDER, title: "Sertifikat BLS kedaluwarsa", message: "Sertifikat BLS sudah kedaluwarsa dan perlu diperbarui.", isRead: false, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_007", createdAt: daysAgo(1) },
+      { id: "seed_notif_005", userId: staffUser.id, type: NotificationType.VERIFICATION_REQUIRED, title: "20 dokumen menunggu verifikasi", message: "Ada 20 dokumen daftar tunggu yang perlu ditinjau verifikator.", isRead: false, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_003", createdAt: daysAgo(1) },
+      { id: "seed_notif_006", userId: employees[6].user.id, type: NotificationType.DOCUMENT_STATUS, title: "Sertifikat pelatihan diterima", message: "Pelatihan farmasi klinik berhasil diarsipkan.", isRead: true, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_006", createdAt: daysAgo(2) },
+      { id: "seed_notif_007", userId: employees[9].user.id, type: NotificationType.DOCUMENT_VERIFICATION, title: "Surat sehat sedang ditinjau", message: "Berkas Anda masih menunggu pemeriksaan staf.", isRead: false, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_009", createdAt: daysAgo(3) },
+      { id: "seed_notif_008", userId: employees[4].user.id, type: NotificationType.EXPIRY_REMINDER, title: "STR akan kedaluwarsa", message: "STR Ners Dewi akan kedaluwarsa dalam periode pemantauan.", isRead: true, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_004", createdAt: daysAgo(5) },
+      { id: "seed_notif_009", userId: employees[9].user.id, type: NotificationType.DOCUMENT_STATUS, title: "SK Magang disetujui", message: "SK Magang Andri Saputra telah diverifikasi.", isRead: true, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_008", createdAt: daysAgo(16) },
+      { id: "seed_notif_010", userId: employees[1].user.id, type: NotificationType.INFO, title: "Data demo siap diuji", message: "Seed demo SIMDP telah menyiapkan data untuk uji CRUD dan verifikasi.", isRead: false, relatedEntityType: null, relatedEntityId: null, createdAt: new Date() },
     ],
   });
 

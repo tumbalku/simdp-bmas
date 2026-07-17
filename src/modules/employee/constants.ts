@@ -240,6 +240,12 @@ export function mapMaritalStatusLegacyToCanonical(value: string | null | undefin
   return MARITAL_STATUS_LEGACY_TO_CANONICAL[value as keyof typeof MARITAL_STATUS_LEGACY_TO_CANONICAL] ?? null;
 }
 
+export function mapReligionLegacyToCanonical(value: string | null | undefined) {
+  if (!value) return null;
+  if (value in RELIGION_LABELS) return value as ReligionValue;
+  return RELIGION_LEGACY_TO_CANONICAL[value as keyof typeof RELIGION_LEGACY_TO_CANONICAL] ?? null;
+}
+
 export function getEmployeeStatusLabel(value: string | null | undefined) {
   const canonical = mapEmployeeStatusLegacyToCanonical(value);
   return canonical ? EMPLOYEE_STATUS_LABELS[canonical] : value ?? null;
@@ -255,18 +261,23 @@ export function getMaritalStatusLabel(value: string | null | undefined) {
   return canonical ? MARITAL_STATUS_LABELS[canonical] : value ?? null;
 }
 
+export function getReligionLabel(value: string | null | undefined) {
+  const canonical = mapReligionLegacyToCanonical(value);
+  return canonical ? RELIGION_LABELS[canonical] : value ?? null;
+}
+
 export function mapEducationLevelLegacyToCanonical(value: string | null | undefined) {
   if (!value) return null;
   return EDUCATION_LEVEL_LEGACY_TO_CANONICAL[value as keyof typeof EDUCATION_LEVEL_LEGACY_TO_CANONICAL] ?? null;
 }
 
 export const RELIGION_OPTIONS = [
-  { value: "Islam", label: "Islam" },
-  { value: "Kristen", label: "Kristen (Protestan)" },
-  { value: "Katolik", label: "Katolik" },
-  { value: "Hindu", label: "Hindu" },
-  { value: "Buddha", label: "Buddha" },
-  { value: "Khonghucu", label: "Khonghucu" },
+  { value: RELIGION_VALUE.ISLAM, label: RELIGION_LABELS.ISLAM },
+  { value: RELIGION_VALUE.PROTESTANT, label: RELIGION_LABELS.PROTESTANT },
+  { value: RELIGION_VALUE.CATHOLIC, label: RELIGION_LABELS.CATHOLIC },
+  { value: RELIGION_VALUE.HINDU, label: RELIGION_LABELS.HINDU },
+  { value: RELIGION_VALUE.BUDDHIST, label: RELIGION_LABELS.BUDDHIST },
+  { value: RELIGION_VALUE.CONFUCIAN, label: RELIGION_LABELS.CONFUCIAN },
 ] as const;
 
 export const EDUCATION_OPTIONS = [

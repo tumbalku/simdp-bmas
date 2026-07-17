@@ -35,6 +35,7 @@ import {
   mapEmployeeStatusLegacyToCanonical,
   mapGenderLegacyToCanonical,
   mapMaritalStatusLegacyToCanonical,
+  mapReligionLegacyToCanonical,
 } from "@/modules/employee/constants";
 import { ROLE_LABELS } from "@/constants/roles";
 
@@ -172,7 +173,7 @@ export function MasterDataEmployeeForm({
   const [birthDate, setBirthDate] = useState(toDateInputValue(initialData?.birthDate));
   const [academicDegree, setAcademicDegree] = useState(initialData?.academicDegree ?? "");
   const [lastEducation, setLastEducation] = useState(initialData?.lastEducation ?? "");
-  const [religion, setReligion] = useState(initialData?.religion ?? "");
+  const [religion, setReligion] = useState(mapReligionLegacyToCanonical(initialData?.religion) ?? "");
   const [maritalStatus, setMaritalStatus] = useState(mapMaritalStatusLegacyToCanonical(initialData?.maritalStatus) ?? "");
   const [employeeStatus, setEmployeeStatus] = useState(mapEmployeeStatusLegacyToCanonical(initialData?.status) ?? "ACTIVE");
   const [phone, setPhone] = useState(initialData?.phone ?? "");

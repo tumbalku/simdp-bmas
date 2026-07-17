@@ -47,9 +47,9 @@ export const ARCHIVE_CATEGORY_OPTIONS = [
 ] as const;
 
 export const STORAGE_PROVIDER_VALUE = {
-  LOCAL: "local",
-  SUPABASE: "supabase",
-  S3: "s3",
+  LOCAL: "LOCAL",
+  SUPABASE: "SUPABASE",
+  S3: "S3",
 } as const;
 
 export type StorageProviderValue = (typeof STORAGE_PROVIDER_VALUE)[keyof typeof STORAGE_PROVIDER_VALUE];

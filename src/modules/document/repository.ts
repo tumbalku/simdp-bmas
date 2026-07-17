@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification/constants";
+import type { StorageProviderValue } from "./constants";
 
 export const documentTypeTargetInclude = {
   employmentStatuses: true,
@@ -322,7 +323,7 @@ export async function createUploadedDocumentTransaction(data: {
   fileSize: bigint;
   mimeType: string | null;
   fileHash: string;
-  storageProvider: string;
+  storageProvider: StorageProviderValue;
   documentNumber: string | null;
   issueDate: Date | null;
   expiryDate: Date | null;
@@ -432,7 +433,7 @@ export async function replaceDocumentFileTransaction(data: {
   fileSize: bigint;
   mimeType: string | null;
   fileHash: string;
-  storageProvider: string;
+  storageProvider: StorageProviderValue;
   updatedBy: string;
   documentTypeName: string;
   ownerName: string;

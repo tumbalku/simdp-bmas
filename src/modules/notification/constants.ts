@@ -9,8 +9,28 @@ export const NOTIFICATION_TYPE = {
 export type NotificationType = (typeof NOTIFICATION_TYPE)[keyof typeof NOTIFICATION_TYPE];
 
 export const NOTIFICATION_RELATED_ENTITY_TYPE = {
-  DOCUMENT_RECORD: "DocumentRecord",
+  DOCUMENT_RECORD: "DOCUMENT_RECORD",
 } as const;
 
 export type NotificationRelatedEntityType =
   (typeof NOTIFICATION_RELATED_ENTITY_TYPE)[keyof typeof NOTIFICATION_RELATED_ENTITY_TYPE];
+
+export const NOTIFICATION_RELATED_ENTITY_TYPE_LEGACY_TO_CANONICAL = {
+  DocumentRecord: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
+} as const;
+
+export function mapNotificationRelatedEntityTypeLegacyToCanonical(value: string | null | undefined) {
+  if (!value) return null;
+  if (value in NOTIFICATION_RELATED_ENTITY_TYPE) return value as NotificationRelatedEntityType;
+  return (
+    NOTIFICATION_RELATED_ENTITY_TYPE_LEGACY_TO_CANONICAL[
+      value as keyof typeof NOTIFICATION_RELATED_ENTITY_TYPE_LEGACY_TO_CANONICAL
+    ] ?? null
+  );
+}
+
+export function mapNotificationTypeToCanonical(value: string | null | undefined) {
+  if (!value) return NOTIFICATION_TYPE.INFO;
+  if (value in NOTIFICATION_TYPE) return value as NotificationType;
+  return NOTIFICATION_TYPE.INFO;
+}

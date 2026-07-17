@@ -764,7 +764,7 @@ describe("Document Module Service", () => {
       expect(success).toBe(true);
       expect(storage.delete).toHaveBeenCalledWith("uploads/KTP/KTP-1-1990.pdf");
       expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
-        where: { relatedEntityType: "DocumentRecord", relatedEntityId: "doc-1" },
+        where: { relatedEntityType: "DOCUMENT_RECORD", relatedEntityId: "doc-1" },
       });
       expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({ where: { id: "doc-1" } });
       expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(

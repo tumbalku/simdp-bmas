@@ -46,6 +46,33 @@ enum EmployeeMaritalStatus {
   WIDOWED
 }
 
+enum EmployeeReligion {
+  ISLAM
+  PROTESTANT
+  CATHOLIC
+  HINDU
+  BUDDHIST
+  CONFUCIAN
+}
+
+enum StorageProvider {
+  LOCAL    @map("local")
+  SUPABASE @map("supabase")
+  S3       @map("s3")
+}
+
+enum NotificationType {
+  DOCUMENT_STATUS
+  DOCUMENT_VERIFICATION
+  EXPIRY_REMINDER
+  VERIFICATION_REQUIRED
+  INFO
+}
+
+enum NotificationRelatedEntityType {
+  DOCUMENT_RECORD @map("DocumentRecord")
+}
+
 model User {
   id           String    @id
   email        String    @unique
@@ -233,7 +260,7 @@ model Employee {
   birthPlace         String?
   academicDegree     String?
   lastEducation      String?
-  religion           String?
+  religion           EmployeeReligion?
   maritalStatus      EmployeeMaritalStatus?
   phone              String?
   address            String?
@@ -390,33 +417,32 @@ model DocumentTypeWorkplace {
   @@unique([documentTypeId, workplaceId])
 }
 
-/// SQL has CHECK storageProvider IN ('local', 'supabase', 's3').
-/// SQL also has a partial unique index uniq_current_document_per_type.
+/// SQL has a partial unique index uniq_current_document_per_type.
 /// Prisma does not represent partial indexes or CHECK constraints; keep them in SQL migrations.
 model DocumentRecord {
-  id                    String         @id
+  id                    String          @id
   ownerId               String
   documentTypeId        String
   title                 String?
-  status                DocumentStatus @default(PENDING)
-  isCurrent             Boolean        @default(true)
-  allowMultipleSnapshot Boolean        @default(false)
+  status                DocumentStatus  @default(PENDING)
+  isCurrent             Boolean         @default(true)
+  allowMultipleSnapshot Boolean         @default(false)
   fileName              String
   filePath              String
   fileSize              BigInt?
   mimeType              String?
   fileHash              String?
-  storageProvider       String         @default("local")
+  storageProvider       StorageProvider @default(LOCAL)
   documentNumber        String?
-  issueDate             DateTime?      @db.Date
-  expiryDate            DateTime?      @db.Date
+  issueDate             DateTime?       @db.Date
+  expiryDate            DateTime?       @db.Date
   reminderH30SentAt     DateTime?
   reminderH7SentAt      DateTime?
   reminderH1SentAt      DateTime?
   createdBy             String?
   updatedBy             String?
-  uploadedAt            DateTime       @default(now())
-  updatedAt             DateTime       @default(now())
+  uploadedAt            DateTime        @default(now())
+  updatedAt             DateTime        @default(now())
   deletedAt             DateTime?
 
   owner         Employee     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -446,15 +472,15 @@ model VerificationHistory {
 }
 
 model Notification {
-  id                String   @id
+  id                String                         @id
   userId            String
-  type              String
+  type              NotificationType
   title             String
   message           String?
-  isRead            Boolean  @default(false)
-  relatedEntityType String?
+  isRead            Boolean                        @default(false)
+  relatedEntityType NotificationRelatedEntityType?
   relatedEntityId   String?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime                       @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -10,6 +10,7 @@ import {
   mapEmployeeStatusLegacyToCanonical,
   mapGenderLegacyToCanonical,
   mapMaritalStatusLegacyToCanonical,
+  mapReligionLegacyToCanonical,
 } from "./constants";
 
 type EmployeeDirectoryFilter = {
@@ -86,9 +87,9 @@ function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
   if (filter.employeePositionId) where.employeePositionId = filter.employeePositionId;
   if (filter.employeeRankId) where.employeeRankId = filter.employeeRankId;
   if (filter.workplaceId) where.workplaceId = filter.workplaceId;
-  if (filter.maritalStatus) where.maritalStatus = filter.maritalStatus;
+  if (filter.maritalStatus) where.maritalStatus = canonicalMaritalStatus(filter.maritalStatus);
+  if (filter.status) where.status = canonicalEmployeeStatus(filter.status);
   if (filter.lastEducation) where.lastEducation = filter.lastEducation;
-  if (filter.status) where.status = filter.status;
 
   if (filter.tmtStartDate) {
     where.tmtStartDate = { ...(where.tmtStartDate || {}), gte: new Date(filter.tmtStartDate) };
@@ -122,6 +123,10 @@ function canonicalGender(value: string | null | undefined) {
 
 function canonicalMaritalStatus(value: string | null | undefined) {
   return mapMaritalStatusLegacyToCanonical(value);
+}
+
+function canonicalReligion(value: string | null | undefined) {
+  return mapReligionLegacyToCanonical(value);
 }
 
 export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {}) {
@@ -246,7 +251,7 @@ export async function updateProfile(
       address: data.address,
       birthPlace: data.birthPlace,
       birthDate: data.birthDate === undefined ? undefined : data.birthDate ? new Date(data.birthDate) : null,
-      religion: data.religion,
+      religion: data.religion === undefined ? undefined : canonicalReligion(data.religion),
       maritalStatus: data.maritalStatus,
     }).filter(([, value]) => value !== undefined)
   );
@@ -333,7 +338,7 @@ export async function handleEmployeeCrud(
         birthDate: data.birthDate ? new Date(data.birthDate) : null,
         academicDegree: data.academicDegree || null,
         lastEducation: data.lastEducation || null,
-        religion: data.religion || null,
+        religion: canonicalReligion(data.religion),
         maritalStatus: canonicalMaritalStatus(data.maritalStatus),
         phone: data.phone || null,
         address: data.address || null,
@@ -406,7 +411,7 @@ export async function handleEmployeeCrud(
         birthDate: data.birthDate !== undefined ? (data.birthDate ? new Date(data.birthDate) : null) : undefined,
         academicDegree: data.academicDegree !== undefined ? data.academicDegree : undefined,
         lastEducation: data.lastEducation !== undefined ? data.lastEducation : undefined,
-        religion: data.religion !== undefined ? data.religion : undefined,
+        religion: data.religion !== undefined ? canonicalReligion(data.religion) : undefined,
         maritalStatus: data.maritalStatus !== undefined ? canonicalMaritalStatus(data.maritalStatus) : undefined,
         phone: data.phone !== undefined ? data.phone : undefined,
         address: data.address !== undefined ? data.address : undefined,
@@ -657,7 +662,7 @@ export async function importFromCsv(
           birthDate: row.birthDate || null,
           academicDegree: row.academicDegree || null,
           lastEducation: row.lastEducation || null,
-          religion: row.religion || null,
+          religion: canonicalReligion(row.religion),
           maritalStatus: canonicalMaritalStatus(row.maritalStatus),
           phone: row.phone || null,
           address: row.address || null,

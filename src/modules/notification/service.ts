@@ -2,7 +2,12 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { realtimeProvider, emailProvider, jobProvider } from "@/lib/notifications";
-import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "./constants";
+import {
+  NOTIFICATION_RELATED_ENTITY_TYPE,
+  NOTIFICATION_TYPE,
+  mapNotificationRelatedEntityTypeLegacyToCanonical,
+  mapNotificationTypeToCanonical,
+} from "./constants";
 
 export async function getNotifications(
   userId: string,
@@ -95,10 +100,10 @@ export async function createNotification(input: {
     data: {
       id,
       userId: input.userId,
-      type: input.type,
+      type: mapNotificationTypeToCanonical(input.type),
       title: input.title,
       message: input.message || null,
-      relatedEntityType: input.relatedEntityType || null,
+      relatedEntityType: mapNotificationRelatedEntityTypeLegacyToCanonical(input.relatedEntityType),
       relatedEntityId: input.relatedEntityId || null,
     },
   });
