@@ -28,6 +28,24 @@ enum ArchiveCategory {
   LEGAL
 }
 
+enum EmployeeStatus {
+  ACTIVE
+  RETIRED
+  STUDY_ASSIGNMENT
+}
+
+enum EmployeeGender {
+  MALE
+  FEMALE
+}
+
+enum EmployeeMaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
 model User {
   id           String    @id
   email        String    @unique
@@ -161,8 +179,8 @@ model EmployeePosition {
   createdByUser   User?           @relation("EmployeePositionCreatedBy", fields: [createdBy], references: [id])
   updatedByUser   User?           @relation("EmployeePositionUpdatedBy", fields: [updatedBy], references: [id])
 
-  employees       Employee[]
-  careerHistories EmployeeCareerHistory[]
+  employees                     Employee[]
+  careerHistories               EmployeeCareerHistory[]
   documentTypeEmployeePositions DocumentTypeEmployeePosition[]
 
   @@unique([name, professionGroupId])
@@ -203,26 +221,26 @@ model Workplace {
 /// SQL has CHECK ("employeeId" IS NOT NULL OR nik IS NOT NULL).
 /// Prisma does not represent CHECK constraints; keep it in SQL migrations.
 model Employee {
-  id                 String    @id
-  userId             String    @unique
-  employeeId         String?   @unique
-  nik                String?   @unique
+  id                 String                 @id
+  userId             String                 @unique
+  employeeId         String?                @unique
+  nik                String?                @unique
   name               String
-  status             String    @default("Aktif") // "Aktif", "Pensiun", "Tubel"
+  status             EmployeeStatus         @default(ACTIVE)
   avatarUrl          String?
-  gender             String?
-  birthDate          DateTime? @db.Date
+  gender             EmployeeGender?
+  birthDate          DateTime?              @db.Date
   birthPlace         String?
   academicDegree     String?
   lastEducation      String?
   religion           String?
-  maritalStatus      String?
+  maritalStatus      EmployeeMaritalStatus?
   phone              String?
   address            String?
-  joinDate           DateTime? @db.Date
-  hasTmt             Boolean   @default(false)
-  tmtStartDate       DateTime? @db.Date
-  tmtEndDate         DateTime? @db.Date
+  joinDate           DateTime?              @db.Date
+  hasTmt             Boolean                @default(false)
+  tmtStartDate       DateTime?              @db.Date
+  tmtEndDate         DateTime?              @db.Date
   employmentStatusId String?
   employeeGroupId    String?
   employeePositionId String?
@@ -230,8 +248,8 @@ model Employee {
   workplaceId        String?
   createdBy          String?
   updatedBy          String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @default(now())
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @default(now())
   deletedAt          DateTime?
 
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)

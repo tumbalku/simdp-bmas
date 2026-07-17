@@ -2,6 +2,13 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-18] Employee Profile Enum Canonical English
+- Konteks: Kolom profil pegawai `status`, `gender`, dan `maritalStatus` sebelumnya menyimpan string Indonesia sehingga rawan magic string dan sulit disejajarkan dengan Prisma enum.
+- Keputusan: Database memakai Prisma enum English (`EmployeeStatus`, `EmployeeGender`, `EmployeeMaritalStatus`). UI tetap menampilkan label Bahasa Indonesia melalui mapping constants, dan schema/service masih menerima legacy value Indonesia untuk transisi/import CSV.
+- Alasan: canonical value stabil untuk DB/API internal, tetapi UX tetap sesuai bahasa pengguna.
+- Dampak ke modul: employee, prisma migrations, seed.
+- Referensi: #133, #134, #136.
+
 ## [2026-07-08] Pemisahan User dan Employee menjadi 2 tabel
 - Konteks: perlu memisahkan concern akun login dari profil kepegawaian.
 - Keputusan: `User` hanya menyimpan email, password, dan role. `Employee` menyimpan seluruh data kepegawaian dengan relasi 1-1 ke `User`.

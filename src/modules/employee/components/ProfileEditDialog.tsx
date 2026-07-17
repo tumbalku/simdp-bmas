@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { updateProfileAction } from "@/modules/employee/actions";
-import { MARITAL_STATUS_OPTIONS, RELIGION_OPTIONS } from "@/modules/employee/constants";
+import { MARITAL_STATUS_OPTIONS, RELIGION_OPTIONS, mapMaritalStatusLegacyToCanonical } from "@/modules/employee/constants";
 
 type EditableProfileData = {
   phone: string;
@@ -50,7 +50,10 @@ export function ProfileEditDialog({ initialData }: ProfileEditDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState(initialData);
+  const [form, setForm] = useState({
+    ...initialData,
+    maritalStatus: mapMaritalStatusLegacyToCanonical(initialData.maritalStatus) ?? "",
+  });
 
   const updateField = (field: keyof EditableProfileData, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { getEmployeeStatusLabel, getGenderLabel, getMaritalStatusLabel } from "./constants";
 
 export function toIsoDate(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -11,8 +12,8 @@ export function mapEmployeeSummary(employee: any) {
     employeeId: employee.employeeId,
     nik: employee.nik,
     name: employee.name,
-    status: employee.status || "Aktif",
-    gender: employee.gender,
+    status: getEmployeeStatusLabel(employee.status) || "Aktif",
+    gender: getGenderLabel(employee.gender),
     phone: employee.phone,
     email: employee.user?.email || null,
     role: employee.user?.role || "EMPLOYEE",
@@ -34,7 +35,7 @@ export function mapEmployeeDetail(employee: any) {
     academicDegree: employee.academicDegree,
     lastEducation: employee.lastEducation,
     religion: employee.religion,
-    maritalStatus: employee.maritalStatus,
+    maritalStatus: getMaritalStatusLabel(employee.maritalStatus),
     address: employee.address,
     joinDate: toIsoDate(employee.joinDate),
     tmtStartDate: toIsoDate(employee.tmtStartDate),

@@ -5,6 +5,12 @@ import { AppError } from "@/lib/errors";
 import { logActivity } from "@/modules/security/service";
 import * as repository from "./repository";
 import { mapEmployeeSummary, mapEmployeeDetail } from "./mappers";
+import {
+  EMPLOYEE_STATUS_VALUE,
+  mapEmployeeStatusLegacyToCanonical,
+  mapGenderLegacyToCanonical,
+  mapMaritalStatusLegacyToCanonical,
+} from "./constants";
 
 type EmployeeDirectoryFilter = {
   archiveView?: "active" | "archived";
@@ -104,6 +110,18 @@ function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
   }
 
   return where;
+}
+
+function canonicalEmployeeStatus(value: string | null | undefined) {
+  return mapEmployeeStatusLegacyToCanonical(value) ?? EMPLOYEE_STATUS_VALUE.ACTIVE;
+}
+
+function canonicalGender(value: string | null | undefined) {
+  return mapGenderLegacyToCanonical(value);
+}
+
+function canonicalMaritalStatus(value: string | null | undefined) {
+  return mapMaritalStatusLegacyToCanonical(value);
 }
 
 export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {}) {
@@ -309,14 +327,14 @@ export async function handleEmployeeCrud(
         employeeId: data.employeeId || null,
         nik: data.nik || null,
         name: data.name,
-        status: data.status || "Aktif",
-        gender: data.gender || null,
+        status: canonicalEmployeeStatus(data.status),
+        gender: canonicalGender(data.gender),
         birthPlace: data.birthPlace || null,
         birthDate: data.birthDate ? new Date(data.birthDate) : null,
         academicDegree: data.academicDegree || null,
         lastEducation: data.lastEducation || null,
         religion: data.religion || null,
-        maritalStatus: data.maritalStatus || null,
+        maritalStatus: canonicalMaritalStatus(data.maritalStatus),
         phone: data.phone || null,
         address: data.address || null,
         joinDate: data.joinDate ? new Date(data.joinDate) : null,
@@ -382,14 +400,14 @@ export async function handleEmployeeCrud(
         employeeId: data.employeeId !== undefined ? data.employeeId : undefined,
         nik: data.nik !== undefined ? data.nik : undefined,
         name: data.name ?? undefined,
-        status: data.status !== undefined ? data.status : undefined,
-        gender: data.gender !== undefined ? data.gender : undefined,
+        status: data.status !== undefined ? canonicalEmployeeStatus(data.status) : undefined,
+        gender: data.gender !== undefined ? canonicalGender(data.gender) : undefined,
         birthPlace: data.birthPlace !== undefined ? data.birthPlace : undefined,
         birthDate: data.birthDate !== undefined ? (data.birthDate ? new Date(data.birthDate) : null) : undefined,
         academicDegree: data.academicDegree !== undefined ? data.academicDegree : undefined,
         lastEducation: data.lastEducation !== undefined ? data.lastEducation : undefined,
         religion: data.religion !== undefined ? data.religion : undefined,
-        maritalStatus: data.maritalStatus !== undefined ? data.maritalStatus : undefined,
+        maritalStatus: data.maritalStatus !== undefined ? canonicalMaritalStatus(data.maritalStatus) : undefined,
         phone: data.phone !== undefined ? data.phone : undefined,
         address: data.address !== undefined ? data.address : undefined,
         joinDate: data.joinDate !== undefined ? (data.joinDate ? new Date(data.joinDate) : null) : undefined,
@@ -634,13 +652,13 @@ export async function importFromCsv(
           role: row.role || "EMPLOYEE",
           employeeId: row.employeeId || null,
           nik: row.nik || null,
-          gender: row.gender || null,
+          gender: canonicalGender(row.gender),
           birthPlace: row.birthPlace || null,
           birthDate: row.birthDate || null,
           academicDegree: row.academicDegree || null,
           lastEducation: row.lastEducation || null,
           religion: row.religion || null,
-          maritalStatus: row.maritalStatus || null,
+          maritalStatus: canonicalMaritalStatus(row.maritalStatus),
           phone: row.phone || null,
           address: row.address || null,
           joinDate: row.joinDate || null,

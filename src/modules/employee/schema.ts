@@ -1,4 +1,29 @@
 import { z } from "zod";
+import {
+  EMPLOYEE_STATUS_VALUE,
+  GENDER_VALUE,
+  MARITAL_STATUS_VALUE,
+  mapEmployeeStatusLegacyToCanonical,
+  mapGenderLegacyToCanonical,
+  mapMaritalStatusLegacyToCanonical,
+} from "./constants";
+
+const employeeStatusValues = Object.values(EMPLOYEE_STATUS_VALUE) as [string, ...string[]];
+const genderValues = Object.values(GENDER_VALUE) as [string, ...string[]];
+const maritalStatusValues = Object.values(MARITAL_STATUS_VALUE) as [string, ...string[]];
+
+const employeeStatusSchema = z.preprocess(
+  (value) => (typeof value === "string" ? mapEmployeeStatusLegacyToCanonical(value) ?? value : value),
+  z.enum(employeeStatusValues)
+);
+const genderSchema = z.preprocess(
+  (value) => (typeof value === "string" ? mapGenderLegacyToCanonical(value) ?? value : value),
+  z.enum(genderValues)
+);
+const maritalStatusSchema = z.preprocess(
+  (value) => (typeof value === "string" ? mapMaritalStatusLegacyToCanonical(value) ?? value : value),
+  z.enum(maritalStatusValues)
+);
 
 export const updateProfileSchema = z.object({
   phone: z.string().regex(/^[0-9+\-\s]*$/, "Format telepon tidak valid").optional().nullable(),
@@ -6,7 +31,7 @@ export const updateProfileSchema = z.object({
   birthPlace: z.string().optional().nullable(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD").optional().nullable(),
   religion: z.string().optional().nullable(),
-  maritalStatus: z.string().optional().nullable(),
+  maritalStatus: maritalStatusSchema.optional().nullable(),
 });
 
 export const crudEmployeeSchema = z.object({
@@ -20,14 +45,14 @@ export const crudEmployeeSchema = z.object({
       employeeId: z.string().optional().nullable(),
       nik: z.string().optional().nullable(),
       name: z.string().optional(),
-      status: z.string().optional(),
-      gender: z.string().optional().nullable(),
+      status: employeeStatusSchema.optional(),
+      gender: genderSchema.optional().nullable(),
       birthPlace: z.string().optional().nullable(),
       birthDate: z.string().optional().nullable(),
       academicDegree: z.string().optional().nullable(),
       lastEducation: z.string().optional().nullable(),
       religion: z.string().optional().nullable(),
-      maritalStatus: z.string().optional().nullable(),
+      maritalStatus: maritalStatusSchema.optional().nullable(),
       phone: z.string().optional().nullable(),
       address: z.string().optional().nullable(),
       joinDate: z.string().optional().nullable(),
@@ -63,13 +88,13 @@ export const employeeDirectorySchema = z.object({
   employeePositionId: z.string().optional(),
   employeeRankId: z.string().optional(),
   workplaceId: z.string().optional(),
-  maritalStatus: z.string().optional(),
+  maritalStatus: maritalStatusSchema.optional(),
   lastEducation: z.string().optional(),
   tmtStartDate: z.string().optional(),
   tmtEndDate: z.string().optional(),
   retirementAgeFrom: z.number().int().nonnegative().optional(),
   retirementAgeTo: z.number().int().nonnegative().optional(),
-  status: z.string().optional(),
+  status: employeeStatusSchema.optional(),
 });
 
 export const employeeDirectoryWithPaginationSchema = z.object({
@@ -81,13 +106,13 @@ export const employeeDirectoryWithPaginationSchema = z.object({
   employeePositionId: z.string().optional(),
   employeeRankId: z.string().optional(),
   workplaceId: z.string().optional(),
-  maritalStatus: z.string().optional(),
+  maritalStatus: maritalStatusSchema.optional(),
   lastEducation: z.string().optional(),
   tmtStartDate: z.string().optional(),
   tmtEndDate: z.string().optional(),
   retirementAgeFrom: z.number().int().nonnegative().optional(),
   retirementAgeTo: z.number().int().nonnegative().optional(),
-  status: z.string().optional(),
+  status: employeeStatusSchema.optional(),
   page: z.number().int().positive().optional(),
   limit: z.number().int().positive().max(100).optional(),
 });
