@@ -21,7 +21,7 @@
 
 ## In Progress
 
-- [ ] [#62](https://github.com/tumbalku/simdp-bmas/issues/62) PR kecil: Career History Dialog
+- [ ] [#62](https://github.com/tumbalku/simdp-bmas/issues/62) PR kecil: User Account Management Controls
 - [ ] [#115](https://github.com/tumbalku/simdp-bmas/issues/115) Polish halaman kategori pegawai dengan bounded height dan scroll area
 - [ ] [#112](https://github.com/tumbalku/simdp-bmas/issues/112) Pisahkan user settings dan system settings
 - [ ] [#60](https://github.com/tumbalku/simdp-bmas/issues/60) SIMDP-ROADMAP-001: Fase 1 — Core Employee & Document

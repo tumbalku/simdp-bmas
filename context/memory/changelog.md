@@ -8,6 +8,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #62: Menambahkan PR kecil kelima Admin & Master Data untuk kontrol akun pegawai admin, termasuk status akun di detail pegawai, pengelolaan email/role/status aktif akun, guard nonaktifkan akun sendiri, dan audit perubahan akun sensitif.
 - Issue #62: Menambahkan PR kecil keempat Admin & Master Data untuk dialog tambah riwayat karier dari detail pegawai, termasuk cascade pilihan master data dan guard agar riwayat lama tidak menimpa penugasan aktif.
 - Issue #62: Menambahkan PR kecil ketiga Admin & Master Data untuk UI import CSV pegawai dan endpoint export CSV direktori pegawai sesuai filter aktif.
 - Issue #62: Menambahkan PR kecil kedua Admin & Master Data untuk UI arsip/pulihkan pegawai, termasuk filter tampilan Aktif/Arsip, action Hapus/Pulihkan, dan query direktori pegawai arsip.

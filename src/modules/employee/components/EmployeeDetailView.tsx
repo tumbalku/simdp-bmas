@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil, ShieldCheck } from "lucide-react";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { routeTo } from "@/constants";
+import { ROLE_LABELS, getRoleBadgeStyle, routeTo, type UserRole } from "@/constants";
 import { CareerHistoryDialog } from "./CareerHistoryDialog";
 
 type MasterDataOption = {
@@ -87,6 +87,7 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
         .toUpperCase()
     : "EP";
   const employeeDetailHref = routeTo.masterDataEmployeeDetail(employee.id);
+  const roleLabel = employee.role in ROLE_LABELS ? ROLE_LABELS[employee.role as UserRole] : employee.role;
 
   const buildDocumentHref = (documentId: string) => {
     const params = new URLSearchParams({ returnTo: employeeDetailHref });
@@ -201,6 +202,42 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
         />
 
         <div className="space-y-6">
+          <Card className="border-muted-foreground/10 shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base font-semibold">
+                <ShieldCheck className="size-4 text-primary" />
+                Data Akun
+              </CardTitle>
+              <CardDescription>Email login, role, dan status akses akun SIMDP.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border bg-muted/20 p-3 text-sm sm:col-span-2">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Mail className="size-3.5" />
+                  Email Login
+                </div>
+                <div className="mt-1 truncate font-medium" title={employee.email || undefined}>
+                  {employee.email || "-"}
+                </div>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Role</div>
+                <Badge variant="outline" className={`mt-2 ${getRoleBadgeStyle(employee.role)}`}>
+                  {roleLabel}
+                </Badge>
+              </div>
+              <div className="rounded-lg border bg-muted/20 p-3 text-sm">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status Akun</div>
+                <Badge variant={employee.isActive ? "default" : "secondary"} className="mt-2">
+                  {employee.isActive ? "Aktif" : "Nonaktif"}
+                </Badge>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {employee.isActive ? "Akun dapat login ke SIMDP." : "Akun tidak dapat login sampai diaktifkan kembali."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-muted-foreground/10 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base font-semibold">Dokumen Pegawai</CardTitle>

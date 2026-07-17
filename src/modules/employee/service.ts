@@ -301,7 +301,7 @@ export async function handleEmployeeCrud(
         email: data.email,
         passwordHash,
         role: data.role || "EMPLOYEE",
-        isActive: true,
+        isActive: data.isActive ?? true,
       },
       employee: {
         id: employeeId,
@@ -363,13 +363,21 @@ export async function handleEmployeeCrud(
       if (exist) throw new AppError("CONFLICT", "NIK sudah terdaftar. Periksa kembali NIK pegawai.", 409);
     }
 
+    if (data.isActive === false && employee.userId === systemActor.actorId) {
+      throw new AppError("VALIDATION_ERROR", "Akun sendiri tidak dapat dinonaktifkan.", 400);
+    }
+
+    const userUpdateData = {
+      ...(data.email !== undefined && data.email !== employee.user.email ? { email: data.email } : {}),
+      ...(data.role !== undefined && data.role !== employee.user.role ? { role: data.role } : {}),
+      ...(data.isActive !== undefined && data.isActive !== employee.user.isActive ? { isActive: data.isActive } : {}),
+    };
+    const accountUpdatedFields = Object.keys(userUpdateData);
+
     const result = await repository.updateEmployeeWithUserTransaction({
       id,
       userId: employee.userId,
-      user: data.email || data.role !== undefined ? {
-        email: data.email ?? undefined,
-        role: data.role ?? undefined,
-      } : undefined,
+      user: accountUpdatedFields.length > 0 ? userUpdateData : undefined,
       employee: {
         employeeId: data.employeeId !== undefined ? data.employeeId : undefined,
         nik: data.nik !== undefined ? data.nik : undefined,
@@ -404,6 +412,19 @@ export async function handleEmployeeCrud(
       status: "SUCCESS",
       metadata: { name: result.name },
     });
+
+    if (accountUpdatedFields.length > 0) {
+      await logActivity({
+        ...systemActor,
+        eventType: "EMPLOYEE_ACCOUNT_UPDATED",
+        resource: `User:${employee.userId}`,
+        status: "SUCCESS",
+        metadata: {
+          employeeId: id,
+          updatedFields: accountUpdatedFields,
+        },
+      });
+    }
 
     return { id: result.id, name: result.name };
   }

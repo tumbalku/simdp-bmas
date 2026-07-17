@@ -75,6 +75,7 @@ export type EmployeeFormInitialData = {
   tmtStartDate: string | null;
   tmtEndDate: string | null;
   role: string;
+  isActive: boolean;
   employmentStatusId: string | null;
   employeeGroupId: string | null;
   professionGroupId: string | null;
@@ -102,6 +103,11 @@ const ROLE_OPTIONS = [
   { value: "EMPLOYEE", label: ROLE_LABELS.EMPLOYEE },
   { value: "STAFF", label: ROLE_LABELS.STAFF },
   { value: "ADMIN", label: ROLE_LABELS.ADMIN },
+] as const;
+
+const ACCOUNT_STATUS_OPTIONS = [
+  { value: "active", label: "Aktif" },
+  { value: "inactive", label: "Nonaktif" },
 ] as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -177,6 +183,7 @@ export function MasterDataEmployeeForm({
   const [tmtStartDate, setTmtStartDate] = useState(toDateInputValue(initialData?.tmtStartDate));
   const [tmtEndDate, setTmtEndDate] = useState(toDateInputValue(initialData?.tmtEndDate));
   const [role, setRole] = useState(initialData?.role ?? "EMPLOYEE");
+  const [accountStatus, setAccountStatus] = useState(initialData?.isActive === false ? "inactive" : "active");
 
   // Master data selects
   const [employmentStatusId, setEmploymentStatusId] = useState(initialData?.employmentStatusId ?? "");
@@ -280,6 +287,7 @@ export function MasterDataEmployeeForm({
       tmtStartDate: hasTmt ? (tmtStartDate || null) : null,
       tmtEndDate: hasTmt ? (tmtEndDate || null) : null,
       role: role || "EMPLOYEE",
+      isActive: accountStatus === "active",
       employmentStatusId: employmentStatusId || null,
       employeeGroupId: employeeGroupId || null,
       employeePositionId: employeePositionId || null,
@@ -337,8 +345,8 @@ export function MasterDataEmployeeForm({
             <CardTitle className="text-base">Data Akun</CardTitle>
             <CardDescription>Informasi akun login pegawai.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
+          <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-2 sm:col-span-2 lg:col-span-3">
               <Label htmlFor="email">
                 Email <span className="text-destructive">*</span>
               </Label>
@@ -389,6 +397,25 @@ export function MasterDataEmployeeForm({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="accountStatus">Status Akun</Label>
+              <Select value={accountStatus} onValueChange={(v) => v && setAccountStatus(v)}>
+                <SelectTrigger id="accountStatus">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACCOUNT_STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Akun nonaktif tidak bisa login ke SIMDP.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -740,17 +767,10 @@ export function MasterDataEmployeeForm({
             Batal
           </Link>
           <Button type="submit" disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 size-4" />
-                {isEditMode ? "Simpan Perubahan" : "Simpan"}
-              </>
-            )}
+            <span className="inline-flex size-4 items-center justify-center">
+              {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            </span>
+            <span>{saving ? "Menyimpan..." : isEditMode ? "Simpan Perubahan" : "Simpan"}</span>
           </Button>
         </div>
       </div>
