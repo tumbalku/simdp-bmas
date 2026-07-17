@@ -39,6 +39,7 @@ export function mapEmployeeDetail(employee: any) {
     joinDate: toIsoDate(employee.joinDate),
     tmtStartDate: toIsoDate(employee.tmtStartDate),
     tmtEndDate: toIsoDate(employee.tmtEndDate),
+    hasTmt: employee.hasTmt ?? false,
     employmentStatusId: employee.employmentStatusId || null,
     employeeGroupId: employee.employeeGroupId || null,
     professionGroupId: employee.employeePosition?.professionGroupId || null,

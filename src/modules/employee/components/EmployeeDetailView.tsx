@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil, ShieldCheck } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil } from "lucide-react";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ type EmployeeDetail = {
   email: string | null;
   role: string;
   isActive: boolean;
+  hasTmt: boolean;
   employmentStatus: string | null;
   workplace: string | null;
   employeeGroup: string | null;
@@ -132,6 +133,9 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
               <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-medium">
                 {employee.employmentStatus || "-"}
               </Badge>
+              <Badge variant="outline" className={`px-1.5 py-0 text-[10px] font-medium ${getRoleBadgeStyle(employee.role)}`}>
+                {roleLabel}
+              </Badge>
             </div>
             <p className="pt-0.5 text-xs font-medium text-muted-foreground">
               {employee.employeePosition || "Pegawai"} • {employee.workplace || "Unit belum diisi"}
@@ -193,7 +197,7 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
               value: employee.tmtEndDate
                 ? `${formatDate(employee.tmtStartDate)} s.d. ${formatDate(employee.tmtEndDate)}`
                 : formatDate(employee.tmtStartDate),
-              hidden: !employee.tmtStartDate,
+              hidden: !employee.hasTmt || !employee.tmtStartDate,
             },
           ]}
           icon={User}
@@ -202,42 +206,6 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
         />
 
         <div className="space-y-6">
-          <Card className="border-muted-foreground/10 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base font-semibold">
-                <ShieldCheck className="size-4 text-primary" />
-                Data Akun
-              </CardTitle>
-              <CardDescription>Email login, role, dan status akses akun SIMDP.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border bg-muted/20 p-3 text-sm sm:col-span-2">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <Mail className="size-3.5" />
-                  Email Login
-                </div>
-                <div className="mt-1 truncate font-medium" title={employee.email || undefined}>
-                  {employee.email || "-"}
-                </div>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Role</div>
-                <Badge variant="outline" className={`mt-2 ${getRoleBadgeStyle(employee.role)}`}>
-                  {roleLabel}
-                </Badge>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-3 text-sm">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status Akun</div>
-                <Badge variant={employee.isActive ? "default" : "secondary"} className="mt-2">
-                  {employee.isActive ? "Aktif" : "Nonaktif"}
-                </Badge>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {employee.isActive ? "Akun dapat login ke SIMDP." : "Akun tidak dapat login sampai diaktifkan kembali."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="border-muted-foreground/10 shadow-sm">
             <CardHeader>
               <CardTitle className="text-base font-semibold">Dokumen Pegawai</CardTitle>
