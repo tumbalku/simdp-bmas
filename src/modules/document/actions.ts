@@ -9,6 +9,7 @@ import {
   handleDocumentTypeCrud,
   softDeleteDocument,
   restoreDocument,
+  permanentlyDeleteDocument,
   getDocumentRecordsForSession,
   getDocumentRecordDetailForSession,
   generateDownloadUrl,
@@ -181,6 +182,9 @@ export async function softDeleteDocumentAction(id: string) {
 
     const success = await softDeleteDocument(id, session);
 
+    revalidatePath("/documents");
+    revalidatePath("/master-data/documents");
+
     return { ok: true as const, data: { success } };
   } catch (error: any) {
     console.error("softDeleteDocumentAction error:", error);
@@ -194,9 +198,28 @@ export async function restoreDocumentAction(id: string) {
 
     const success = await restoreDocument(id, session);
 
+    revalidatePath("/documents");
+    revalidatePath("/master-data/documents");
+
     return { ok: true as const, data: { success } };
   } catch (error: any) {
     console.error("restoreDocumentAction error:", error);
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+  }
+}
+
+export async function permanentDeleteDocumentAction(id: string) {
+  try {
+    const session = await requireAuth("ADMIN");
+
+    const success = await permanentlyDeleteDocument(id, session);
+
+    revalidatePath("/documents");
+    revalidatePath("/master-data/documents");
+
+    return { ok: true as const, data: { success } };
+  } catch (error: any) {
+    console.error("permanentDeleteDocumentAction error:", error);
     return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }

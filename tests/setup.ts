@@ -186,6 +186,7 @@ export const mockPrisma = {
     createMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     updateMany: vi.fn(),
     count: vi.fn(),
   },

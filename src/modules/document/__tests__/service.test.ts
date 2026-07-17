@@ -4,6 +4,7 @@ import {
   uploadDocumentRecord,
   generateDownloadUrl,
   restoreDocument,
+  permanentlyDeleteDocument,
   processExpiredDocumentsAndReminders,
   getDocumentRecordsForSession,
   getDocumentRecordDetailForSession,
@@ -453,6 +454,54 @@ describe("Document Module Service", () => {
     it("should reject non-ADMIN from restoring document", async () => {
       const session = { userId: "staff-1", role: "STAFF", employeeId: null };
       await expect(restoreDocument("doc-1", session)).rejects.toThrow("FORBIDDEN");
+    });
+  });
+
+  describe("permanentlyDeleteDocument", () => {
+    it("should delete archived document metadata, related notifications, file storage, and audit", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-1",
+        ownerId: "emp-1",
+        fileName: "KTP-1-1990.pdf",
+        filePath: "uploads/KTP/KTP-1-1990.pdf",
+        deletedAt: new Date("2026-07-17T00:00:00.000Z"),
+        owner: { name: "John" },
+      });
+
+      const session = { userId: "admin-1", role: "ADMIN", employeeId: null };
+      const success = await permanentlyDeleteDocument("doc-1", session);
+
+      expect(success).toBe(true);
+      expect(storage.delete).toHaveBeenCalledWith("uploads/KTP/KTP-1-1990.pdf");
+      expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
+        where: { relatedEntityType: "DocumentRecord", relatedEntityId: "doc-1" },
+      });
+      expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({ where: { id: "doc-1" } });
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "DOCUMENT_PERMANENTLY_DELETED",
+            resource: "DocumentRecord:doc-1",
+          }),
+        })
+      );
+    });
+
+    it("should reject permanent delete for active documents", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-active",
+        ownerId: "emp-1",
+        filePath: "uploads/KTP/KTP-1-1990.pdf",
+        deletedAt: null,
+        owner: { name: "John" },
+      });
+
+      await expect(
+        permanentlyDeleteDocument("doc-active", { userId: "admin-1", role: "ADMIN", employeeId: null })
+      ).rejects.toThrow("Dokumen aktif harus diarsipkan terlebih dahulu sebelum dihapus permanen.");
+
+      expect(storage.delete).not.toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.delete).not.toHaveBeenCalled();
     });
   });
 

@@ -436,6 +436,16 @@ export async function restoreDocumentRecord(id: string) {
   });
 }
 
+export async function permanentlyDeleteDocumentRecord(id: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.notification.deleteMany({
+      where: { relatedEntityType: "DocumentRecord", relatedEntityId: id },
+    });
+
+    await tx.documentRecord.delete({ where: { id } });
+  });
+}
+
 export async function findExpiredApprovedDocuments(now: Date) {
   return prisma.documentRecord.findMany({
     where: {
