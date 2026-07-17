@@ -6,7 +6,7 @@ import { DocumentsPageView } from "@/modules/document/components/DocumentsPageVi
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  const session = await requireAuth();
+  await requireAuth();
   const [documentsResult, documentTypesResult] = await Promise.all([
     getDocumentRecordsAction(),
     getDocumentTypeOptionsAction(),
@@ -20,7 +20,7 @@ export default async function Page() {
     <DocumentsPageView
       documents={documentsResult.data}
       documentTypes={documentTypesResult.data}
-      canUpload={session.role === "EMPLOYEE"}
+      canUpload={true}
     />
   );
 }

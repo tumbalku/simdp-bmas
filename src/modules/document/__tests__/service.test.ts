@@ -3,6 +3,8 @@ import {
   handleDocumentTypeCrud,
   uploadDocumentRecord,
   generateDownloadUrl,
+  softDeleteDocument,
+  replaceDocumentFile,
   restoreDocument,
   permanentlyDeleteDocument,
   processExpiredDocumentsAndReminders,
@@ -55,6 +57,44 @@ describe("Document Module Service", () => {
       expect(result).toEqual([
         expect.objectContaining({ id: "doc-1", ownerName: "John Doe", fileSize: 1024 }),
       ]);
+    });
+
+    it("should keep employee ownership filter when listing archived documents", async () => {
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1" });
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+
+      await getDocumentRecordsForSession(session, { archiveView: "archived" });
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ ownerId: "emp-1", deletedAt: { not: null } }),
+        })
+      );
+    });
+
+    it("should also scope admin/staff self-service document lists to their own employee profile", async () => {
+      const session = { userId: "admin-user", role: "ADMIN", employeeId: "admin-emp" };
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "admin-emp", userId: "admin-user" });
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+
+      await getDocumentRecordsForSession(session);
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ ownerId: "admin-emp", deletedAt: null }),
+        })
+      );
+    });
+
+    it("should return an empty self-service document list when the user has no employee profile", async () => {
+      const session = { userId: "admin-user", role: "ADMIN", employeeId: "admin-emp" };
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+
+      const result = await getDocumentRecordsForSession(session);
+
+      expect(result).toEqual([]);
+      expect(mockPrisma.documentRecord.findMany).not.toHaveBeenCalled();
     });
 
     it("should fetch document detail with ownership guard", async () => {
@@ -130,6 +170,49 @@ describe("Document Module Service", () => {
         userId: "user-1",
         role: "EMPLOYEE",
         employeeId: "emp-1",
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(expect.objectContaining({ id: "type-1" }));
+    });
+
+    it("should filter admin/staff upload options by their own employee target rules", async () => {
+      mockPrisma.documentType.findMany.mockResolvedValue([
+        {
+          id: "type-1",
+          code: "ASN",
+          name: "Dokumen ASN",
+          archiveCategory: "EMPLOYMENT",
+          allowedFormats: "pdf",
+          maxSizeMb: 2,
+          employmentStatuses: [{ employmentStatusId: "status-asn" }],
+          employeeGroups: [],
+        },
+        {
+          id: "type-2",
+          code: "KONTRAK",
+          name: "Dokumen Kontrak",
+          archiveCategory: "EMPLOYMENT",
+          allowedFormats: "pdf",
+          maxSizeMb: 2,
+          employmentStatuses: [{ employmentStatusId: "status-kontrak" }],
+          employeeGroups: [],
+        },
+      ]);
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "admin-emp",
+        userId: "admin-user",
+        employmentStatusId: "status-asn",
+        employeeGroupId: "group-pns",
+        employeePosition: null,
+        employeeRankId: null,
+        workplaceId: null,
+      });
+
+      const result = await getAvailableDocumentTypes({
+        userId: "admin-user",
+        role: "ADMIN",
+        employeeId: "admin-emp",
       });
 
       expect(result).toHaveLength(1);
@@ -378,6 +461,133 @@ describe("Document Module Service", () => {
         )
       ).rejects.toThrow("Jenis dokumen ini tidak berlaku");
     });
+
+    it("should reject adding another active document for a non-multiple document type", async () => {
+      const docType = {
+        id: "type-1",
+        code: "KTP",
+        name: "KTP",
+        maxSizeMb: 5,
+        allowedFormats: "pdf",
+        allowMultiple: false,
+        deletedAt: null,
+        employmentStatuses: [],
+        employeeGroups: [],
+      };
+      const employee = { id: "emp-1", userId: "user-1", employeeId: "empId-1", name: "John Doe" };
+
+      mockPrisma.documentType.findUnique.mockResolvedValue(docType);
+      mockPrisma.employee.findUnique.mockResolvedValue(employee);
+      mockPrisma.documentRecord.count.mockResolvedValueOnce(1);
+
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      await expect(
+        uploadDocumentRecord(
+          {
+            documentTypeId: "type-1",
+            file: mockFile,
+          },
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
+        )
+      ).rejects.toThrow("Gunakan tombol Ganti");
+
+      expect(mockPrisma.documentRecord.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("replaceDocumentFile", () => {
+    it("should replace file metadata on the same document id and add verification history", async () => {
+      const doc = {
+        id: "doc-1",
+        ownerId: "emp-1",
+        documentTypeId: "type-1",
+        filePath: "uploads/KTP/KTP-1-empId-1.pdf",
+        owner: {
+          id: "emp-1",
+          userId: "user-1",
+          employeeId: "empId-1",
+          nik: null,
+          name: "John Doe",
+          employeePosition: null,
+        },
+        documentType: {
+          id: "type-1",
+          code: "KTP",
+          name: "KTP",
+          maxSizeMb: 5,
+          allowedFormats: "pdf",
+          deletedAt: null,
+          employmentStatuses: [],
+          employeeGroups: [],
+          professionGroups: [],
+          employeePositions: [],
+          employeeRanks: [],
+          workplaces: [],
+        },
+      };
+
+      mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+      mockPrisma.documentRecord.count.mockResolvedValue(1);
+      mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }]);
+      mockPrisma.documentRecord.update.mockResolvedValue({
+        id: "doc-1",
+        status: "PENDING",
+        fileName: "KTP-2-empId-1.pdf",
+        filePath: "uploads/KTP/KTP-2-empId-1.pdf",
+      });
+      mockPrisma.securityLog.create.mockResolvedValue({});
+
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "ktp-baru.pdf", {
+        type: "application/pdf",
+      });
+
+      const result = await replaceDocumentFile(
+        { documentId: "doc-1", file: mockFile },
+        { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
+      );
+
+      expect(result.id).toBe("doc-1");
+      expect(storage.upload).toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "doc-1" },
+          data: expect.objectContaining({ status: "PENDING", fileName: "KTP-2-empId-1.pdf" }),
+        })
+      );
+      expect(mockPrisma.verificationHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            documentRecordId: "doc-1",
+            status: "PENDING",
+            reviewNote: expect.stringContaining("diganti"),
+          }),
+        })
+      );
+    });
+
+    it("should reject replacing another user's document", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-1",
+        owner: { userId: "user-2" },
+        documentType: { deletedAt: null },
+      });
+
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      await expect(
+        replaceDocumentFile(
+          { documentId: "doc-1", file: mockFile },
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
+        )
+      ).rejects.toThrow("OWNERSHIP_REQUIRED");
+
+      expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
+    });
   });
 
   describe("generateDownloadUrl & ownership check", () => {
@@ -432,6 +642,86 @@ describe("Document Module Service", () => {
       const session = { userId: "staff-1", role: "STAFF", employeeId: "emp-2" };
       const url = await generateDownloadUrl("doc-1", session);
       expect(url).toBeDefined();
+    });
+  });
+
+  describe("softDeleteDocument", () => {
+    it("should archive an owned pending employee document and create an audit log", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-1",
+        status: "PENDING",
+        owner: { userId: "user-1", name: "John Doe" },
+      });
+      mockPrisma.documentRecord.update.mockResolvedValue({ id: "doc-1", deletedAt: new Date() });
+      mockPrisma.securityLog.create.mockResolvedValue({});
+
+      const success = await softDeleteDocument("doc-1", {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      });
+
+      expect(success).toBe(true);
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "doc-1" },
+          data: expect.objectContaining({ deletedAt: expect.any(Date), isCurrent: false }),
+        })
+      );
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorId: "user-1",
+            actorName: "John Doe",
+            actorRole: "EMPLOYEE",
+            eventType: "DOCUMENT_DELETED",
+            resource: "DocumentRecord:doc-1",
+            status: "SUCCESS",
+          }),
+        })
+      );
+    });
+
+    it("should allow an employee to archive an owned approved document", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-1",
+        status: "APPROVED",
+        owner: { userId: "user-1", name: "John Doe" },
+      });
+      mockPrisma.documentRecord.update.mockResolvedValue({ id: "doc-1", deletedAt: new Date() });
+      mockPrisma.securityLog.create.mockResolvedValue({});
+
+      const success = await softDeleteDocument("doc-1", {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      });
+
+      expect(success).toBe(true);
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "doc-1" },
+          data: expect.objectContaining({ deletedAt: expect.any(Date), isCurrent: false }),
+        })
+      );
+    });
+
+    it("should reject employee soft delete for another employee document", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-1",
+        status: "PENDING",
+        owner: { userId: "user-2", name: "Other Employee" },
+      });
+
+      await expect(
+        softDeleteDocument("doc-1", {
+          userId: "user-1",
+          role: "EMPLOYEE",
+          employeeId: "emp-1",
+        })
+      ).rejects.toThrow("OWNERSHIP_REQUIRED");
+
+      expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
     });
   });
 

@@ -1,4 +1,8 @@
+"use client";
+
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   FileText,
   ShieldCheck,
@@ -10,11 +14,26 @@ import {
   Award,
   Scale,
   User,
+  Plus,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PageHeader } from "@/components/shared/PageHeader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -22,29 +41,21 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DATE_FORMATS, DATE_LOCALE, routeTo } from "@/constants";
+import { softDeleteDocumentAction } from "@/modules/document/actions";
 import { DocumentUploadForm } from "@/modules/document/components/DocumentUploadForm";
 import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document/constants";
-
-type DocumentRecord = {
-  id: string;
-  title: string;
-  status: string;
-  uploadedAt: string;
-  expiryDate: string | null;
-  fileName: string;
-  fileSize: number | null;
-  documentTypeId: string;
-  documentTypeName: string;
-  archiveCategory: string;
-  ownerName: string;
-  ownerEmployeeId: string | null;
-};
-
-type DocumentTypeOption = Parameters<typeof DocumentUploadForm>[0]["documentTypes"][number];
+import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document/types";
 
 type DocumentsPageViewProps = {
-  documents: DocumentRecord[];
+  documents: DocumentRecordListItem[];
   documentTypes: DocumentTypeOption[];
   canUpload: boolean;
 };
@@ -83,30 +94,159 @@ type GroupedDocuments = {
   documentTypeId: string;
   documentTypeName: string;
   archiveCategory: string;
-  documents: DocumentRecord[];
+  allowMultiple: boolean;
+  documentType?: DocumentTypeOption;
+  documents: DocumentRecordListItem[];
 };
 
-function groupDocumentsByType(documents: DocumentRecord[]): GroupedDocuments[] {
-  const grouped = new Map<string, GroupedDocuments>();
+function groupDocumentsByAvailableTypes(
+  documents: DocumentRecordListItem[],
+  documentTypes: DocumentTypeOption[],
+): GroupedDocuments[] {
+  const documentsByType = new Map<string, DocumentRecordListItem[]>();
 
-  for (const doc of documents) {
-    if (!grouped.has(doc.documentTypeId)) {
-      grouped.set(doc.documentTypeId, {
-        documentTypeId: doc.documentTypeId,
-        documentTypeName: doc.documentTypeName,
-        archiveCategory: doc.archiveCategory,
-        documents: [],
-      });
-    }
-    grouped.get(doc.documentTypeId)!.documents.push(doc);
+  for (const document of documents) {
+    const current = documentsByType.get(document.documentTypeId) ?? [];
+    current.push(document);
+    documentsByType.set(document.documentTypeId, current);
   }
 
-  return Array.from(grouped.values()).sort((a, b) =>
-    a.documentTypeName.localeCompare(b.documentTypeName)
+  const groups: GroupedDocuments[] = documentTypes.map((type) => ({
+    documentTypeId: type.id,
+    documentTypeName: type.name,
+    archiveCategory: type.archiveCategory,
+    allowMultiple: type.allowMultiple,
+    documentType: type,
+    documents: documentsByType.get(type.id) ?? [],
+  }));
+
+  const knownTypeIds = new Set(documentTypes.map((type) => type.id));
+  for (const document of documents) {
+    if (knownTypeIds.has(document.documentTypeId)) continue;
+
+    groups.push({
+      documentTypeId: document.documentTypeId,
+      documentTypeName: document.documentTypeName,
+      archiveCategory: document.archiveCategory,
+      allowMultiple: true,
+      documents: documentsByType.get(document.documentTypeId) ?? [],
+    });
+    knownTypeIds.add(document.documentTypeId);
+  }
+
+  return groups.sort((a, b) => a.documentTypeName.localeCompare(b.documentTypeName));
+}
+
+function DocumentTypeUploadAction({
+  group,
+  documentTypes,
+}: {
+  group: GroupedDocuments;
+  documentTypes: DocumentTypeOption[];
+}) {
+  const [open, setOpen] = useState(false);
+  if (!group.documentType) return null;
+
+  const isDisabled = !group.allowMultiple && group.documents.length > 0;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button
+        type="button"
+        size="xs"
+        variant="default"
+        className="ml-auto shrink-0 whitespace-nowrap"
+        disabled={isDisabled}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (isDisabled) return;
+          setOpen(true);
+        }}
+      >
+        <Plus className="size-3.5" />
+        Tambah
+      </Button>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Tambah dokumen</DialogTitle>
+          <DialogDescription>
+            {`Unggah dokumen baru untuk jenis ${group.documentTypeName}.`}
+          </DialogDescription>
+        </DialogHeader>
+        <DocumentUploadForm
+          compact
+          documentTypes={documentTypes}
+          initialDocumentTypeId={group.documentTypeId}
+          lockDocumentType
+          submitLabel="Tambah dokumen"
+          onSuccess={() => setOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function DocumentList({ documents }: { documents: DocumentRecord[] }) {
+function DocumentReplaceAction({
+  document,
+  documentTypes,
+}: {
+  document: DocumentRecordListItem;
+  documentTypes: DocumentTypeOption[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button type="button" size="xs" variant="outline" onClick={() => setOpen(true)}>
+        <RefreshCw className="size-3.5" />
+        <span className="hidden md:inline">Ganti</span>
+      </Button>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Ganti file dokumen</DialogTitle>
+          <DialogDescription>
+            {`Ganti file untuk "${document.title}". ID dokumen tetap sama dan riwayat verifikasi akan mencatat penggantian ini.`}
+          </DialogDescription>
+        </DialogHeader>
+        <DocumentUploadForm
+          compact
+          documentTypes={documentTypes}
+          initialDocumentTypeId={document.documentTypeId}
+          initialValues={{
+            title: document.title,
+            documentNumber: document.documentNumber,
+            issueDate: document.issueDate,
+            expiryDate: document.expiryDate,
+          }}
+          lockDocumentType
+          replaceDocumentId={document.id}
+          submitLabel="Ganti file"
+          onSuccess={() => setOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DocumentList({
+  documents,
+  documentTypes,
+  pendingDocumentId,
+  onArchive,
+}: {
+  documents: DocumentRecordListItem[];
+  documentTypes: DocumentTypeOption[];
+  pendingDocumentId: string | null;
+  onArchive: (document: DocumentRecordListItem) => void;
+}) {
+  if (documents.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-xs text-muted-foreground">
+        Belum ada dokumen aktif untuk jenis ini.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-1.5">
       {documents.map((document) => {
@@ -142,13 +282,43 @@ function DocumentList({ documents }: { documents: DocumentRecord[] }) {
                 </span>
               </div>
             </div>
-            <div>
+            <div className="flex justify-end gap-2">
               <Link
                 className={buttonVariants({ variant: "outline", size: "xs" })}
                 href={routeTo.documentDetail(document.id)}
               >
-                Detail
+                <FileText className="size-3.5" />
+                <span className="hidden md:inline">Detail</span>
               </Link>
+              <DocumentReplaceAction document={document} documentTypes={documentTypes} />
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={
+                    <Button
+                      variant="destructive"
+                      size="xs"
+                      disabled={pendingDocumentId === document.id}
+                    />
+                  }
+                >
+                  <Trash2 className="size-3.5" />
+                  <span className="hidden md:inline">Hapus</span>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Arsipkan dokumen?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {`Dokumen "${document.title}" akan dipindahkan ke arsip. Admin dapat melihat dan mengelolanya dari Master Data Dokumen.`}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction variant="destructive" onClick={() => onArchive(document)}>
+                      Arsipkan
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         );
@@ -158,21 +328,41 @@ function DocumentList({ documents }: { documents: DocumentRecord[] }) {
 }
 
 export function DocumentsPageView({ documents, documentTypes, canUpload }: DocumentsPageViewProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+
   const pendingCount = documents.filter((doc) => doc.status === "PENDING").length;
   const approvedCount = documents.filter((doc) => doc.status === "APPROVED").length;
   const rejectedCount = documents.filter((doc) => doc.status === "REJECTED").length;
   const expiringCount = documents.filter(
     (doc) =>
-      doc.expiryDate && new Date(doc.expiryDate) < new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
+      doc.expiryDate && new Date(doc.expiryDate) < new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
   ).length;
 
-  const groupedDocuments = groupDocumentsByType(documents);
+  const groupedDocuments = groupDocumentsByAvailableTypes(documents, documentTypes);
+
+  const handleArchive = (document: DocumentRecordListItem) => {
+    setPendingDocumentId(document.id);
+    startTransition(async () => {
+      const result = await softDeleteDocumentAction(document.id);
+      if (result.ok) {
+        toast.success(`Dokumen "${document.title}" berhasil diarsipkan.`);
+        router.refresh();
+        setPendingDocumentId(null);
+        return;
+      }
+
+      toast.error(result.error.message);
+      setPendingDocumentId(null);
+    });
+  };
 
   const documentMetricCards = [
     {
       title: "Total dokumen",
       value: documents.length,
-      description: "Semua status dokumen",
+      description: "Semua status dokumen aktif",
       icon: FileText,
       iconClassName: "bg-blue-500/10 text-blue-500",
     },
@@ -206,7 +396,7 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
     <div className="space-y-6">
       <PageHeader
         title="Dokumen pegawai"
-        description="Unggah, pantau status, dan buka dokumen kepegawaian sesuai akses pengguna."
+        description="Unggah, pantau status, dan buka dokumen kepegawaian milik Anda."
       />
 
       {expiringCount > 0 ? (
@@ -230,17 +420,15 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
         ))}
       </div>
 
-      {canUpload ? <DocumentUploadForm documentTypes={documentTypes} /> : null}
-
       {groupedDocuments.length === 0 ? (
         <Card>
           <CardContent className="flex min-h-[200px] items-center justify-center text-center">
             <div className="space-y-2">
               <FileText className="mx-auto size-12 text-muted-foreground/50" />
-              <p className="text-sm font-medium text-muted-foreground">Belum ada dokumen.</p>
+              <p className="text-sm font-medium text-muted-foreground">Belum ada jenis dokumen yang tersedia.</p>
               {canUpload && (
                 <p className="text-xs text-muted-foreground">
-                  Unggah dokumen pertama Anda menggunakan form di atas.
+                  Jenis dokumen akan tampil di sini setelah admin mengaktifkannya untuk data kepegawaian Anda.
                 </p>
               )}
             </div>
@@ -248,7 +436,6 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
         </Card>
       ) : (
         <div className="space-y-3">
-          {/* Desktop: Card wrapper with Accordion content */}
           <div className="hidden space-y-2.5 lg:block">
             {groupedDocuments.map((group) => {
               const Icon = archiveCategoryIcons[group.archiveCategory] || FileText;
@@ -265,6 +452,7 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
                           {group.documents.length} dokumen · {group.archiveCategory}
                         </CardDescription>
                       </div>
+                      {canUpload ? <DocumentTypeUploadAction group={group} documentTypes={documentTypes} /> : null}
                     </div>
                   </CardHeader>
                   <CardContent className="px-3 pt-0">
@@ -272,7 +460,12 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
                       <AccordionItem value="documents" className="border-b-0">
                         <AccordionTrigger className="text-xs font-medium hover:no-underline">Lihat daftar dokumen</AccordionTrigger>
                         <AccordionContent className="pb-0">
-                          <DocumentList documents={group.documents} />
+                          <DocumentList
+                            documents={group.documents}
+                            documentTypes={documentTypes}
+                            pendingDocumentId={isPending ? pendingDocumentId : null}
+                            onArchive={handleArchive}
+                          />
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
@@ -282,7 +475,6 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
             })}
           </div>
 
-          {/* Mobile: Pure Accordion */}
           <div className="lg:hidden">
             <Card>
               <CardContent className="p-4">
@@ -291,21 +483,29 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
                     const Icon = archiveCategoryIcons[group.archiveCategory] || FileText;
                     return (
                       <AccordionItem key={group.documentTypeId} value={group.documentTypeId}>
-                        <AccordionTrigger>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
-                              <Icon className="size-4 text-primary" />
-                            </div>
-                            <div className="text-left">
-                              <div className="text-sm font-medium">{group.documentTypeName}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {group.documents.length} dokumen
+                        <div className="flex w-full items-center gap-2">
+                          <AccordionTrigger className="min-w-0 flex-1">
+                            <div className="flex min-w-0 items-center gap-3 pr-2">
+                              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                <Icon className="size-4 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1 text-left">
+                                <div className="truncate text-sm font-medium">{group.documentTypeName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {group.documents.length} dokumen
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </AccordionTrigger>
+                          </AccordionTrigger>
+                          {canUpload ? <DocumentTypeUploadAction group={group} documentTypes={documentTypes} /> : null}
+                        </div>
                         <AccordionContent>
-                          <DocumentList documents={group.documents} />
+                          <DocumentList
+                            documents={group.documents}
+                            documentTypes={documentTypes}
+                            pendingDocumentId={isPending ? pendingDocumentId : null}
+                            onArchive={handleArchive}
+                          />
                         </AccordionContent>
                       </AccordionItem>
                     );

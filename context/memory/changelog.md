@@ -8,6 +8,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #60: Memperbarui halaman `/documents` sebagai self-service dokumen pegawai, termasuk card per jenis dokumen yang berlaku untuk user, tombol `Tambah`/`Ganti` sesuai `allowMultiple`, aksi `Hapus` yang mengarsipkan dokumen, dan guard service agar arsip tetap berbasis ownership.
 - Issue #124: Menambahkan kontrol arsip dan hapus permanen dokumen pada `/master-data/documents`, termasuk tab Aktif/Arsip, hapus file storage saat hapus permanen, pembersihan notifikasi terkait, dan audit event `DOCUMENT_PERMANENTLY_DELETED`.
 - Issue #62: Menambahkan aksi hapus permanen khusus untuk pegawai arsip, termasuk guard agar pegawai aktif tidak bisa langsung dihapus, pembersihan referensi user sebelum delete cascade, audit event, dan dialog konfirmasi destruktif di tab Arsip.
 - Issue #62: Menambahkan PR kecil kelima Admin & Master Data untuk kontrol akun pegawai admin, termasuk status akun di detail pegawai, pengelolaan email/role/status aktif akun, guard nonaktifkan akun sendiri, dan audit perubahan akun sensitif.
