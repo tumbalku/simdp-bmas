@@ -46,5 +46,13 @@ export const ARCHIVE_CATEGORY_OPTIONS = [
   { value: "LEGAL", label: ARCHIVE_CATEGORY_LABELS.LEGAL },
 ] as const;
 
+export const STORAGE_PROVIDER_VALUE = {
+  LOCAL: "local",
+  SUPABASE: "supabase",
+  S3: "s3",
+} as const;
+
+export type StorageProviderValue = (typeof STORAGE_PROVIDER_VALUE)[keyof typeof STORAGE_PROVIDER_VALUE];
+
 export type DocumentStatus = keyof typeof DOCUMENT_STATUS_LABELS;
 export type ArchiveCategory = keyof typeof ARCHIVE_CATEGORY_LABELS;

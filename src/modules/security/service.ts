@@ -2,8 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { PAGINATION } from "@/constants/pagination";
-
-export type SecurityLogStatus = "SUCCESS" | "FAILED";
+import type { SecurityLogStatus } from "./constants";
 
 export type LogActivityInput = {
   actorId?: string | null;

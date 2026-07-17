@@ -110,3 +110,10 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Alasan: Modularitas, meminimalkan circular dependency, dan menyederhanakan API permukaan modul.
 - Dampak ke modul: Semua modul.
 - Referensi: Issue #129, #130, #131.
+
+## [2026-07-18] Employee.lastEducation Menunggu Audit Distinct Value Sebelum Enum
+- Konteks: `Employee.lastEducation` saat ini masih string dan opsi UI memakai jenjang pendidikan Indonesia seperti `SD`, `SMP`, `SMA`, `D1`, `S1`, `Profesi`, dan `Sp-2`.
+- Keputusan: `Employee.lastEducation` diperlakukan sebagai kandidat enum, tetapi migration database ditunda sampai ada audit distinct value dari data production/local dan mapping legacy yang disetujui. Untuk sementara, kode boleh menyediakan canonical English mapping (`ELEMENTARY_SCHOOL`, `BACHELOR`, `PROFESSIONAL`, dst.) tanpa mengubah nilai yang disimpan.
+- Alasan: Pendidikan memiliki kemungkinan variasi historis/singkatan sehingga migration langsung berisiko mengunci data yang belum diaudit.
+- Dampak ke modul: employee, Prisma migration lanjutan.
+- Referensi: Issue #137.
