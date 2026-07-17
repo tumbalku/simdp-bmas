@@ -41,6 +41,7 @@ export async function getSecurityLogs(filter: {
   pageSize?: number;
   search?: string;
   eventType?: string;
+  actorRole?: string;
   status?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -52,6 +53,10 @@ export async function getSecurityLogs(filter: {
 
   if (filter.eventType) {
     where.eventType = filter.eventType;
+  }
+
+  if (filter.actorRole) {
+    where.actorRole = filter.actorRole;
   }
 
   if (filter.status) {

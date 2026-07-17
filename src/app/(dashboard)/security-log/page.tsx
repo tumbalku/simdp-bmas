@@ -12,6 +12,7 @@ type PageProps = {
     pageSize?: string;
     search?: string;
     eventType?: string;
+    actorRole?: string;
     status?: string;
     dateFrom?: string;
     dateTo?: string;
@@ -25,6 +26,7 @@ export default async function SecurityLogPage({ searchParams }: PageProps) {
     pageSize: params.pageSize ? parseInt(params.pageSize, 10) : PAGINATION.defaultSecurityLogPageSize,
     search: params.search,
     eventType: params.eventType,
+    actorRole: params.actorRole,
     status: params.status,
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,

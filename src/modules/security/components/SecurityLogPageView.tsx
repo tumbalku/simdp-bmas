@@ -1,9 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Activity, AlertTriangle, CheckCircle2, Filter, Search, ShieldCheck } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  Filter,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 
+import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
+import { DataTableCard } from "@/components/shared/DataTableCard";
+import { MetricCard } from "@/components/shared/MetricCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PaginationItems } from "@/components/shared/PaginationItems";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROLE_LABELS, ROUTES } from "@/constants";
 
 type SecurityLogItem = {
@@ -60,10 +69,41 @@ const STATUS_OPTIONS = [
   { value: "FAILED", label: "Gagal" },
 ] as const;
 
+const ACTOR_OPTIONS = [
+  { value: "all", label: "Semua aktor" },
+  { value: "ADMIN", label: ROLE_LABELS.ADMIN },
+  { value: "STAFF", label: ROLE_LABELS.STAFF },
+  { value: "EMPLOYEE", label: ROLE_LABELS.EMPLOYEE },
+  { value: "Public", label: "Publik" },
+  { value: "System", label: "Sistem" },
+] as const;
+
+const EVENT_OPTIONS = [
+  { value: "all", label: "Semua event" },
+  { value: "AUTH_LOGIN_SUCCESS", label: "Login berhasil" },
+  { value: "AUTH_LOGIN_FAILED", label: "Login gagal" },
+  { value: "AUTH_LOGOUT", label: "Logout" },
+  { value: "AUTH_PASSWORD_CHANGED", label: "Password diubah" },
+  { value: "DOCUMENT_UPLOADED", label: "Dokumen diunggah" },
+  { value: "DOCUMENT_DOWNLOADED", label: "Dokumen diunduh" },
+  { value: "DOCUMENT_DELETED", label: "Dokumen diarsipkan" },
+  { value: "DOCUMENT_RESTORED", label: "Dokumen dipulihkan" },
+  { value: "DOCUMENT_PERMANENTLY_DELETED", label: "Dokumen dihapus permanen" },
+  { value: "EMPLOYEE_CREATED", label: "Pegawai dibuat" },
+  { value: "EMPLOYEE_UPDATED", label: "Pegawai diperbarui" },
+  { value: "EMPLOYEE_EXPORTED", label: "Data pegawai diekspor" },
+  { value: "MASTER_DATA_CREATED", label: "Master data dibuat" },
+  { value: "MASTER_DATA_UPDATED", label: "Master data diperbarui" },
+  { value: "MASTER_DATA_DELETED", label: "Master data dihapus" },
+  { value: "CRON_DOCUMENT_EXPIRED", label: "Dokumen kedaluwarsa" },
+  { value: "CRON_CHECK_EXPIRY_RUN", label: "Cek kedaluwarsa berjalan" },
+] as const;
+
 export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
-  const [eventType, setEventType] = useState(() => searchParams.get("eventType") ?? "");
+  const [actorRole, setActorRole] = useState(() => searchParams.get("actorRole") ?? "all");
+  const [eventType, setEventType] = useState(() => searchParams.get("eventType") ?? "all");
   const [status, setStatus] = useState(() => searchParams.get("status") ?? "all");
   const [dateFrom, setDateFrom] = useState(() => searchParams.get("dateFrom") ?? "");
   const [dateTo, setDateTo] = useState(() => searchParams.get("dateTo") ?? "");
@@ -75,31 +115,152 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
     return { success, failed };
   }, [logs]);
 
-  const buildPageUrl = (page: number, pageSize = rowsPerPage) => {
+  const buildPageUrl = (
+    page: number,
+    pageSize = rowsPerPage,
+    nextActorRole = actorRole,
+    nextEventType = eventType,
+    nextStatus = status,
+    nextDateFrom = dateFrom,
+    nextDateTo = dateTo,
+  ) => {
     const params = new URLSearchParams();
     params.set("page", page.toString());
     params.set("pageSize", pageSize);
-    if (search) params.set("search", search);
-    if (eventType) params.set("eventType", eventType);
-    if (status !== "all") params.set("status", status);
-    if (dateFrom) params.set("dateFrom", dateFrom);
-    if (dateTo) params.set("dateTo", dateTo);
+    if (nextActorRole !== "all") params.set("actorRole", nextActorRole);
+    if (nextEventType !== "all") params.set("eventType", nextEventType);
+    if (nextStatus !== "all") params.set("status", nextStatus);
+    if (nextDateFrom) params.set("dateFrom", nextDateFrom);
+    if (nextDateTo) params.set("dateTo", nextDateTo);
     return `${ROUTES.securityLog}?${params.toString()}`;
   };
 
-  const handleFilter = () => {
-    window.location.href = buildPageUrl(PAGINATION.defaultPage);
+  const applyFilters = ({
+    nextPage = PAGINATION.defaultPage,
+    nextRowsPerPage = rowsPerPage,
+    nextActorRole = actorRole,
+    nextEventType = eventType,
+    nextStatus = status,
+    nextDateFrom = dateFrom,
+    nextDateTo = dateTo,
+  }: {
+    nextPage?: number;
+    nextRowsPerPage?: string;
+    nextActorRole?: string;
+    nextEventType?: string;
+    nextStatus?: string;
+    nextDateFrom?: string;
+    nextDateTo?: string;
+  } = {}) => {
+    setActorRole(nextActorRole);
+    setEventType(nextEventType);
+    setStatus(nextStatus);
+    setDateFrom(nextDateFrom);
+    setDateTo(nextDateTo);
+    setRowsPerPage(nextRowsPerPage);
+    router.push(buildPageUrl(nextPage, nextRowsPerPage, nextActorRole, nextEventType, nextStatus, nextDateFrom, nextDateTo));
   };
 
+  const handleFilter = () => applyFilters();
+
   const handleResetFilter = () => {
-    window.location.href = `${ROUTES.securityLog}?pageSize=${rowsPerPage}`;
+    applyFilters({
+      nextPage: PAGINATION.defaultPage,
+      nextRowsPerPage: String(PAGINATION.defaultSecurityLogPageSize),
+      nextActorRole: "all",
+      nextEventType: "all",
+      nextStatus: "all",
+      nextDateFrom: "",
+      nextDateTo: "",
+    });
   };
 
   const handleRowsPerPageChange = (value: string | null) => {
-    const nextPageSize = value ?? rowsPerPage;
-    setRowsPerPage(nextPageSize);
-    window.location.href = buildPageUrl(PAGINATION.defaultPage, nextPageSize);
+    applyFilters({
+      nextPage: PAGINATION.defaultPage,
+      nextRowsPerPage: value ?? String(PAGINATION.defaultSecurityLogPageSize),
+    });
   };
+
+  const columns: DataTableColumn<SecurityLogItem>[] = [
+    {
+      key: "timestamp",
+      header: "Waktu",
+      headClassName: "w-[170px]",
+      cell: (log) => (
+        <div className="space-y-0.5">
+          <div className="font-medium">{formatDate(log.timestamp)}</div>
+          <div className="text-xs text-muted-foreground">{formatTime(log.timestamp)}</div>
+        </div>
+      ),
+    },
+    {
+      key: "actor",
+      header: "Aktor",
+      headClassName: "w-[220px]",
+      cell: (log) => (
+        <div className="space-y-0.5">
+          <div className="font-medium">{log.actorName}</div>
+          <div className="text-xs text-muted-foreground">
+            {ROLE_LABELS[log.actorRole as keyof typeof ROLE_LABELS] ?? log.actorRole}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "event",
+      header: "Event",
+      cell: (log) => <code className="rounded bg-muted px-2 py-1 text-xs font-medium">{log.eventType}</code>,
+    },
+    {
+      key: "resource",
+      header: "Resource",
+      cell: (log) => (
+        <div className="max-w-[280px] truncate" title={log.resource}>
+          {log.resource}
+        </div>
+      ),
+    },
+    {
+      key: "ipAddress",
+      header: "IP",
+      headClassName: "hidden md:table-cell",
+      cellClassName: "hidden md:table-cell",
+      cell: (log) => log.ipAddress || "-",
+    },
+    {
+      key: "status",
+      header: "Status",
+      headClassName: "text-right",
+      cellClassName: "text-right",
+      cell: (log) => <StatusBadge status={log.status} />,
+    },
+  ];
+
+  const paginationFooter = (
+    <p className="text-xs text-muted-foreground">
+      Menampilkan {logs.length} dari {pagination.totalItems} log.
+    </p>
+  );
+
+  const paginationControls =
+    pagination.totalPages > 1 ? (
+      <Pagination className="mx-0 w-auto justify-end">
+        <PaginationContent>
+          {pagination.hasPreviousPage ? (
+            <PaginationItem>
+              <PaginationPrevious href={buildPageUrl(Math.max(1, pagination.page - 1))} />
+            </PaginationItem>
+          ) : null}
+          <PaginationItems page={pagination.page} totalPages={pagination.totalPages} getHref={buildPageUrl} />
+          {pagination.hasNextPage ? (
+            <PaginationItem>
+              <PaginationNext href={buildPageUrl(Math.min(pagination.totalPages, pagination.page + 1))} />
+            </PaginationItem>
+          ) : null}
+        </PaginationContent>
+      </Pagination>
+    ) : null;
 
   return (
     <div className="space-y-6">
@@ -109,49 +270,75 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
         description="Pantau audit log aktivitas penting, perubahan data, akses sistem, dan tindakan sensitif."
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <SummaryCard icon={Activity} label="Total log" value={pagination.totalItems.toString()} />
-        <SummaryCard icon={CheckCircle2} label="Berhasil di halaman ini" value={stats.success.toString()} />
-        <SummaryCard icon={AlertTriangle} label="Gagal di halaman ini" value={stats.failed.toString()} />
+      <div className="grid gap-3 md:grid-cols-3">
+        <MetricCard
+          title="Total log"
+          value={pagination.totalItems.toString()}
+          description="Semua audit log sesuai filter aktif."
+          icon={Activity}
+          iconClassName="bg-primary/10 text-primary"
+        />
+        <MetricCard
+          title="Berhasil"
+          value={stats.success.toString()}
+          description="Log berhasil pada halaman ini."
+          icon={CheckCircle2}
+          iconClassName="bg-success/10 text-success"
+        />
+        <MetricCard
+          title="Gagal"
+          value={stats.failed.toString()}
+          description="Log gagal pada halaman ini."
+          icon={AlertTriangle}
+          iconClassName="bg-destructive/10 text-destructive"
+        />
       </div>
 
       <Card className="border-muted-foreground/10 shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="size-5" />
-            Filter Audit Log
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="size-4" />
+            Filter & Pencarian
           </CardTitle>
-          <CardDescription>Cari berdasarkan aktor, event, resource, status, atau rentang tanggal.</CardDescription>
+          <CardDescription>Saring berdasarkan aktor, event, status, dan rentang tanggal.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_190px_170px_150px_150px_auto] lg:items-end">
-            <div className="space-y-2">
-              <Label htmlFor="security-search">Cari</Label>
-              <Input
-                id="security-search"
-                className="h-9"
-                placeholder="Nama, event, resource..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && handleFilter()}
-              />
+          <div className="grid gap-3 lg:grid-cols-[minmax(150px,0.9fr)_minmax(190px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_auto] lg:items-end">
+            <div className="space-y-1.5">
+              <Label htmlFor="actor-role">Aktor</Label>
+              <Select value={actorRole} onValueChange={(value) => setActorRole(value ?? "all")}>
+                <SelectTrigger id="actor-role" className="w-full">
+                  <SelectValue placeholder="Semua aktor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ACTOR_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="event-type">Event</Label>
-              <Input
-                id="event-type"
-                className="h-9"
-                placeholder="LOGIN, UPDATE..."
-                value={eventType}
-                onChange={(event) => setEventType(event.target.value)}
-                onKeyDown={(event) => event.key === "Enter" && handleFilter()}
-              />
+              <Select value={eventType} onValueChange={(value) => setEventType(value ?? "all")}>
+                <SelectTrigger id="event-type" className="w-full">
+                  <SelectValue placeholder="Semua event" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="security-status">Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(value ?? "all")}>
-                <SelectTrigger id="security-status" className="h-9 w-full">
-                  <SelectValue />
+                <SelectTrigger id="security-status" className="w-full">
+                  <SelectValue placeholder="Semua status" />
                 </SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map((option) => (
@@ -162,20 +349,20 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="date-from">Dari</Label>
-              <Input id="date-from" className="h-9" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <div className="space-y-1.5">
+              <Label htmlFor="date-from">Dari tanggal</Label>
+              <Input id="date-from" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="date-to">Sampai</Label>
-              <Input id="date-to" className="h-9" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            <div className="space-y-1.5">
+              <Label htmlFor="date-to">Sampai tanggal</Label>
+              <Input id="date-to" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
             </div>
-            <div className="flex flex-wrap gap-2 lg:justify-end">
-              <Button className="h-9" onClick={handleFilter}>
-                <Search className="mr-2 size-4" />
+            <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+              <Button type="button" className="gap-2" onClick={handleFilter}>
+                <Search className="size-4" />
                 Terapkan
               </Button>
-              <Button className="h-9" variant="outline" onClick={handleResetFilter}>
+              <Button type="button" variant="outline" onClick={handleResetFilter}>
                 Reset
               </Button>
             </div>
@@ -183,133 +370,31 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
         </CardContent>
       </Card>
 
-      <Card className="border-muted-foreground/10 shadow-sm">
-        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="size-5" />
-              Audit Log
-            </CardTitle>
-            <CardDescription>
-              Total {pagination.totalItems} log - Halaman {pagination.page} dari {pagination.totalPages || 1}
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Tampilkan</span>
-            <Select value={rowsPerPage} onValueChange={handleRowsPerPageChange}>
-              <SelectTrigger className="h-8 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGINATION.pageSizeOptions.map((option) => (
-                  <SelectItem key={option} value={String(option)}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span>row</span>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="overflow-x-auto rounded-lg border">
-            <Table className="min-w-[980px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Waktu</TableHead>
-                  <TableHead>Aktor</TableHead>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Resource</TableHead>
-                  <TableHead>IP</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell>
-                      <div className="font-medium">{formatDate(log.timestamp)}</div>
-                      <div className="text-xs text-muted-foreground">{formatTime(log.timestamp)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{log.actorName}</div>
-                      <div className="text-xs text-muted-foreground">{ROLE_LABELS[log.actorRole as keyof typeof ROLE_LABELS] ?? log.actorRole}</div>
-                    </TableCell>
-                    <TableCell>
-                      <code className="rounded bg-muted px-2 py-1 text-xs font-medium">{log.eventType}</code>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[280px] truncate" title={log.resource}>
-                        {log.resource}
-                      </div>
-                    </TableCell>
-                    <TableCell>{log.ipAddress || "-"}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={log.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                      Tidak ada audit log yang cocok dengan filter.
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </div>
-
-          {pagination.totalPages > 1 ? (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href={buildPageUrl(Math.max(1, pagination.page - 1))}
-                    text="Sebelumnya"
-                    aria-disabled={!pagination.hasPreviousPage}
-                  />
-                </PaginationItem>
-                <PaginationItems
-                  page={pagination.page}
-                  totalPages={pagination.totalPages}
-                  getHref={buildPageUrl}
-                />
-                <PaginationItem>
-                  <PaginationNext
-                    href={buildPageUrl(Math.min(pagination.totalPages, pagination.page + 1))}
-                    text="Berikutnya"
-                    aria-disabled={!pagination.hasNextPage}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          ) : null}
-        </CardContent>
-      </Card>
+      <DataTableCard
+        title="Audit Log"
+        icon={<ShieldCheck className="size-5" />}
+        description={`Total ${pagination.totalItems} log · Halaman ${pagination.page} dari ${pagination.totalPages || 1}`}
+        rowsPerPageControl={{
+          value: rowsPerPage,
+          onValueChange: handleRowsPerPageChange,
+          options: PAGINATION.pageSizeOptions,
+          label: "Tampilkan",
+          suffix: "row",
+        }}
+        tableMinWidthClassName="min-w-[900px]"
+        table={
+          <DataTable
+            data={logs}
+            columns={columns}
+            getRowKey={(log) => log.id}
+            headerClassName="bg-muted/20"
+            emptyMessage="Tidak ada audit log yang cocok dengan filter."
+          />
+        }
+        footerSummary={paginationFooter}
+        pagination={paginationControls}
+      />
     </div>
-  );
-}
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Activity;
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between gap-3">
-          <CardDescription>{label}</CardDescription>
-          <Icon className="size-4 text-primary" />
-        </div>
-        <CardTitle className="text-xl">{value}</CardTitle>
-      </CardHeader>
-    </Card>
   );
 }
 
