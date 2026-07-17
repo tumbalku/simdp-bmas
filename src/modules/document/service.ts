@@ -27,7 +27,7 @@ type DocumentTypeListFilter = {
 export async function getAvailableDocumentTypes(session?: TokenPayload) {
   const types = await repo.findManyAvailableDocumentTypes();
 
-  if (!session || session.role !== "EMPLOYEE") {
+  if (!session) {
     return types.map(mapDocumentType);
   }
 
@@ -97,11 +97,9 @@ export async function getDocumentRecordsForSession(session: TokenPayload, filter
     ];
   }
 
-  if (session.role === "EMPLOYEE") {
-    const employee = await repo.findEmployeeByUserId(session.userId);
-    if (!employee) return [];
-    where.ownerId = employee.id;
-  }
+  const employee = await repo.findEmployeeByUserId(session.userId);
+  if (!employee) return [];
+  where.ownerId = employee.id;
 
   const records = await repo.findDocumentRecords(where);
   return records.map(mapDocumentRecord);
@@ -350,6 +348,17 @@ export async function uploadDocumentRecord(
     throw new AppError("FORBIDDEN", "Jenis dokumen ini tidak berlaku untuk data kepegawaian Anda.", 403);
   }
 
+  if (!docType.allowMultiple) {
+    const activeCount = await repo.countActiveDocumentRecords(employee.id, docType.id);
+    if (activeCount > 0) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Jenis dokumen ini hanya boleh memiliki satu dokumen aktif. Gunakan tombol Ganti untuk memperbarui file.",
+        400
+      );
+    }
+  }
+
   // 3. Validate conditional fields
   if (docType.requiresDocumentNumber && !data.documentNumber) {
     throw new AppError("VALIDATION_ERROR", "Nomor dokumen wajib diisi untuk jenis dokumen ini.", 400);
@@ -443,6 +452,99 @@ export async function uploadDocumentRecord(
   };
 }
 
+export async function replaceDocumentFile(
+  data: {
+    documentId: string;
+    file: File;
+    title?: string;
+    documentNumber?: string;
+    issueDate?: string;
+    expiryDate?: string;
+  },
+  session: TokenPayload,
+  ipAddress?: string | null
+) {
+  const doc = await repo.findDocumentRecordWithOwnerAndDocumentType(data.documentId);
+
+  if (!doc) throw new AppError("NOT_FOUND", "Dokumen tidak ditemukan atau terhapus", 404);
+  if (doc.owner.userId !== session.userId) {
+    throw new AppError("OWNERSHIP_REQUIRED", "OWNERSHIP_REQUIRED", 403);
+  }
+  if (doc.documentType.deletedAt) {
+    throw new AppError("VALIDATION_ERROR", "Jenis dokumen tidak ditemukan atau tidak aktif", 400);
+  }
+  if (!matchesDocumentTypeTarget(doc.owner, doc.documentType)) {
+    throw new AppError("FORBIDDEN", "Jenis dokumen ini tidak berlaku untuk data kepegawaian Anda.", 403);
+  }
+
+  if (doc.documentType.requiresDocumentNumber && !data.documentNumber) {
+    throw new AppError("VALIDATION_ERROR", "Nomor dokumen wajib diisi untuk jenis dokumen ini.", 400);
+  }
+  if (doc.documentType.requiresIssueDate && !data.issueDate) {
+    throw new AppError("VALIDATION_ERROR", "Tanggal terbit wajib diisi untuk jenis dokumen ini.", 400);
+  }
+  if (doc.documentType.requiresExpiryDate && !data.expiryDate) {
+    throw new AppError("VALIDATION_ERROR", "Tanggal kedaluwarsa wajib diisi untuk jenis dokumen ini.", 400);
+  }
+
+  const fileArrayBuffer = await data.file.arrayBuffer();
+  const buffer = Buffer.from(fileArrayBuffer);
+  const sizeMb = buffer.length / (1024 * 1024);
+
+  if (sizeMb > doc.documentType.maxSizeMb) {
+    throw new AppError("PAYLOAD_TOO_LARGE", `Ukuran file melebihi batas maksimal ${doc.documentType.maxSizeMb} MB.`, 413);
+  }
+
+  const ext = validateFileFormat(buffer, doc.documentType.allowedFormats);
+  const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
+  const existingCount = await repo.countDocumentRecords(doc.ownerId, doc.documentTypeId);
+  const sequence = existingCount + 1;
+  const identifier = doc.owner.employeeId || doc.owner.nik || session.userId;
+  const fileName = `${doc.documentType.code}-${sequence}-${identifier}.${ext}`;
+  const uploadPath = path.join(doc.documentType.code, fileName).replace(/\\/g, "/");
+  const savedPath = await storage.upload(uploadPath, buffer, data.file.type);
+
+  const record = await repo.replaceDocumentFileTransaction({
+    documentId: doc.id,
+    fileName,
+    filePath: savedPath,
+    fileSize: BigInt(buffer.length),
+    mimeType: data.file.type || null,
+    fileHash,
+    storageProvider: "local",
+    updatedBy: session.userId,
+    documentTypeName: doc.documentType.name,
+    ownerName: doc.owner.name,
+    title: data.title || doc.title || doc.documentType.name,
+    documentNumber: doc.documentType.requiresDocumentNumber ? data.documentNumber || null : doc.documentNumber,
+    issueDate: doc.documentType.requiresIssueDate && data.issueDate ? new Date(data.issueDate) : doc.issueDate,
+    expiryDate: doc.documentType.requiresExpiryDate && data.expiryDate ? new Date(data.expiryDate) : doc.expiryDate,
+  });
+
+  await logActivity({
+    actorId: session.userId,
+    actorName: doc.owner.name,
+    actorRole: session.role,
+    eventType: "DOCUMENT_UPLOADED",
+    resource: `DocumentRecord:${doc.id}`,
+    ipAddress,
+    status: "SUCCESS",
+    metadata: {
+      action: "replace_file",
+      documentTypeId: doc.documentTypeId,
+      fileName,
+      previousFilePath: doc.filePath,
+    },
+  });
+
+  return {
+    id: record.id,
+    status: record.status,
+    fileName: record.fileName,
+    filePath: record.filePath,
+  };
+}
+
 export async function generateDownloadUrl(documentId: string, session: TokenPayload) {
   const doc = await repo.findDocumentRecordWithOwner(documentId);
 
@@ -502,10 +604,6 @@ export async function softDeleteDocument(documentId: string, session: TokenPaylo
   if (session.role === "EMPLOYEE") {
     if (doc.owner.userId !== session.userId) {
       throw new Error("OWNERSHIP_REQUIRED");
-    }
-    // Employee can delete only if PENDING or REJECTED
-    if (doc.status !== "PENDING" && doc.status !== "REJECTED") {
-      throw new Error("Pegawai tidak dapat menghapus dokumen yang sudah disetujui (APPROVED).");
     }
   }
 

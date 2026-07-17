@@ -17,6 +17,7 @@ import {
   uploadDocumentRecord,
   getDocumentRecordsWithPagination,
   getDocumentTypesWithPagination,
+  replaceDocumentFile,
 } from "@/modules/document/service";
 import {
   crudDocumentTypeSchema,
@@ -137,6 +138,43 @@ export async function uploadDocumentAction(formData: FormData) {
   } catch (error: any) {
     console.error("uploadDocumentAction error:", error);
     return handleActionError(error, { defaultMessage: "Gagal mengunggah dokumen." });
+  }
+}
+
+export async function replaceDocumentFileAction(formData: FormData) {
+  try {
+    const session = await requireAuth();
+    const documentId = formData.get("documentId");
+    const file = formData.get("file");
+
+    if (typeof documentId !== "string" || !documentId) {
+      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "ID dokumen wajib diisi." } };
+    }
+    if (!(file instanceof File) || file.size === 0) {
+      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "File dokumen wajib dipilih." } };
+    }
+
+    const parsed = uploadDocumentSchema.safeParse({
+      documentTypeId: formData.get("documentTypeId"),
+      title: formData.get("title") || undefined,
+      documentNumber: formData.get("documentNumber") || undefined,
+      issueDate: formData.get("issueDate") || undefined,
+      expiryDate: formData.get("expiryDate") || undefined,
+    });
+
+    if (!parsed.success) {
+      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0]?.message || "Input tidak valid." } };
+    }
+
+    const data = await replaceDocumentFile({ documentId, file, ...parsed.data }, session);
+    revalidatePath("/documents");
+    revalidatePath(`/documents/${documentId}`);
+    revalidatePath("/master-data/documents");
+
+    return { ok: true as const, data };
+  } catch (error: any) {
+    console.error("replaceDocumentFileAction error:", error);
+    return handleActionError(error, { defaultMessage: "Gagal mengganti file dokumen." });
   }
 }
 
