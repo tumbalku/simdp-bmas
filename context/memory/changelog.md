@@ -5,9 +5,12 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #129: Menyusun dokumentasi perencanaan refaktor terkait batasan modul, peran aggregator `index.ts` (murni re-export), evolusi struktur modul besar ke subfolder terfokus, standardisasi nilai enum database dalam bahasa Inggris, serta tata cara migrasi enum database beserta legacy data mapping di `module-boundaries.md`, `file-structure.md`, dan `decisions-log.md`.
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #130 & #131: Menambahkan file root module aggregator `index.ts` dan sub-komponen aggregator `index.ts` untuk 8 modul inti (`auth`, `document`, `employee`, `notification`, `security`, `settings`, `statistics`, `verification`) untuk memperjelas dan mengamankan batasan modul tanpa logika internal.
+
 - Issue #60: Memperbarui halaman `/documents` sebagai self-service dokumen pegawai, termasuk card per jenis dokumen yang berlaku untuk user, tombol `Tambah`/`Ganti` sesuai `allowMultiple`, aksi `Hapus` yang mengarsipkan dokumen, dan guard service agar arsip tetap berbasis ownership.
 - Issue #124: Menambahkan kontrol arsip dan hapus permanen dokumen pada `/master-data/documents`, termasuk tab Aktif/Arsip, hapus file storage saat hapus permanen, pembersihan notifikasi terkait, dan audit event `DOCUMENT_PERMANENTLY_DELETED`.
 - Issue #62: Menambahkan aksi hapus permanen khusus untuk pegawai arsip, termasuk guard agar pegawai aktif tidak bisa langsung dihapus, pembersihan referensi user sebelum delete cascade, audit event, dan dialog konfirmasi destruktif di tab Arsip.

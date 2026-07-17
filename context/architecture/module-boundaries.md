@@ -80,3 +80,16 @@ Jika satu modul dipisah menjadi microservice:
 3. Modul lain tidak berubah karena tetap memanggil `service.ts` yang sama.
 
 Kandidat jangka panjang: `document` + `verification`, karena beban file dan workflow verifikasi biasanya paling berat.
+
+## 6. Aggregator & Export Boundaries (index.ts)
+
+- Setiap modul menyediakan file `index.ts` di root folder modulnya (misal `src/modules/employee/index.ts`) dan di folder komponen (`components/index.ts`).
+- File `index.ts` bertindak murni sebagai aggregator/re-export dari API/komponen publik modul tersebut. Tidak boleh ada logika bisnis atau state di dalam file `index.ts`.
+- Impor dari modul eksternal harus melewati aggregator/public boundary ini (`service.ts` atau re-export di `index.ts`) daripada mengimpor file internal seperti `repository.ts`.
+- Struktur folder modul dapat berkembang menjadi subfolder terfokus (seperti `services/`, `repositories/`, `hooks/`, `components/`, `constants/`) jika modul tersebut menjadi sangat besar dan memiliki banyak concern terpisah.
+
+## 7. Aturan Naming & Database Enum (Issue #129)
+
+- Nilai enum di database wajib menggunakan bahasa Inggris (English), contoh: `PENDING`, `APPROVED`, `REJECTED`.
+- Penulisan label atau deskripsi dalam bahasa Indonesia hanya dilakukan di tingkat UI (React components) atau mapping domain helper.
+- Setiap migrasi skema database yang menyangkut enum (terutama penambahan/perubahan/penghapusan nilai) wajib menyertakan script mapping data legacy yang aman serta dokumentasi preflight.

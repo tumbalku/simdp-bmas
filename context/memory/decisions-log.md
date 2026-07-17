@@ -86,8 +86,27 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Root `AGENTS.md` menjadi instruksi operasional untuk Antigravity dan agent coding lain: wajib membaca context relevan, menjaga scope, tidak melakukan drive-by work, dan tidak melakukan tindakan high-risk tanpa approval.
 
 ## [2026-07-16] Pemisahan `/settings` user dan `/system-settings` admin
-- Konteks: halaman `/settings` perlu menampung pengaturan pribadi user seperti ganti password, sementara konfigurasi reminder/upload/retensi adalah pengaturan sistem admin.
+- Konteks: Halaman `/settings` perlu menampung pengaturan pribadi user seperti ganti password, sementara konfigurasi reminder/upload/retensi adalah pengaturan sistem admin.
 - Keputusan: `/settings` dipakai untuk semua user login sebagai pengaturan akun pribadi. Pengaturan sistem admin dipindahkan ke `/system-settings` tanpa memakai prefix role seperti `/admin/*`.
-- Alasan: menjaga `/profile` tetap fokus ke data pegawai, memisahkan concern akun pribadi dari konfigurasi sistem, dan mengikuti konvensi URL bersih SIMDP.
+- Alasan: Menjaga `/profile` tetap fokus ke data pegawai, memisahkan concern akun pribadi dari konfigurasi sistem, dan mengikuti konvensi URL bersih SIMDP.
 - Dampak ke modul: auth, settings, navigation, i18n.
 - Referensi: Issue #112.
+
+## [2026-07-18] Standarisasi Nilai Enum Database & Migrasi
+- Konteks: Nilai enum di database (PostgreSQL/Prisma) dan tata cara melakukan migrasinya.
+- Keputusan:
+  - Nilai enum database kanonikal wajib menggunakan bahasa Inggris (English). Label bahasa Indonesia disajikan di tingkat UI/mapping label domain.
+  - Setiap migrasi enum database wajib menyertakan legacy data mapping eksplisit serta catatan preflight.
+- Alasan: Konsistensi bahasa sistem di level database dan portabilitas kode, serta keamanan migrasi data legacy.
+- Dampak ke modul: Semua modul yang berinteraksi dengan database/Prisma.
+- Referensi: Issue #129.
+
+## [2026-07-18] Penggunaan index.ts sebagai Aggregator dan Evolusi Folder Modul
+- Konteks: Struktur modul yang membesar dan pembatasan impor antar modul.
+- Keputusan:
+  - File `index.ts` di root modul dan subfolder komponen bertindak murni sebagai aggregator/re-export (tidak ada logic internal).
+  - Untuk modul yang besar, struktur folder modul dapat berkembang menggunakan subfolder fokus seperti `services/`, `repositories/`, `hooks/`, `components/`, `constants/`.
+  - Impor eksternal dari modul lain harus menggunakan service/public boundary yang diekspos melalui aggregator jika tersedia.
+- Alasan: Modularitas, meminimalkan circular dependency, dan menyederhanakan API permukaan modul.
+- Dampak ke modul: Semua modul.
+- Referensi: Issue #129, #130, #131.
