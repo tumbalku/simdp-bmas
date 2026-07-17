@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { FileText, Settings2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Archive, Eye, FileText, RotateCcw, Settings2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { DataTableCard } from "@/components/shared/DataTableCard";
 import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
@@ -11,8 +12,19 @@ import { PaginationItems } from "@/components/shared/PaginationItems";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { RowsPerPageControl } from "@/components/shared/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Pagination,
@@ -23,6 +35,11 @@ import {
 } from "@/components/ui/pagination";
 import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROUTES, routeTo } from "@/constants";
 import { DOCUMENT_STATUS_OPTIONS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document/constants";
+import {
+  permanentDeleteDocumentAction,
+  restoreDocumentAction,
+  softDeleteDocumentAction,
+} from "@/modules/document/actions";
 
 type ViewMode = "grid" | "list";
 
@@ -50,6 +67,7 @@ type PaginationMeta = {
 type MasterDataDocumentsViewProps = {
   documents: DocumentRecord[];
   pagination: PaginationMeta;
+  archiveView: "active" | "archived";
 };
 
 const statusConfig = Object.fromEntries(
@@ -70,8 +88,11 @@ function formatFileSize(value: number | null) {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function MasterDataDocumentsView({ documents, pagination }: MasterDataDocumentsViewProps) {
+export function MasterDataDocumentsView({ documents, pagination, archiveView }: MasterDataDocumentsViewProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(
     () => searchParams.get("status") ?? "all",
@@ -82,14 +103,27 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     searchParams.get("view") === "grid" ? "grid" : "list",
   );
+  const isArchiveView = archiveView === "archived";
 
   const buildPageUrl = (page: number, limit = rowsPerPage, nextViewMode = viewMode) => {
     const params = new URLSearchParams();
     params.set("page", page.toString());
     params.set("limit", limit);
+    if (isArchiveView) params.set("archiveView", "archived");
     if (search) params.set("search", search);
     if (statusFilter !== "all") params.set("status", statusFilter);
     if (nextViewMode === "grid") params.set("view", nextViewMode);
+    return `${ROUTES.masterDataDocuments}?${params.toString()}`;
+  };
+
+  const buildArchiveViewUrl = (nextArchiveView: "active" | "archived") => {
+    const params = new URLSearchParams();
+    params.set("page", String(PAGINATION.defaultPage));
+    params.set("limit", rowsPerPage);
+    if (nextArchiveView === "archived") params.set("archiveView", "archived");
+    if (search) params.set("search", search);
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (viewMode === "grid") params.set("view", "grid");
     return `${ROUTES.masterDataDocuments}?${params.toString()}`;
   };
 
@@ -109,13 +143,13 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
   };
 
   const handleFilter = () => {
-    window.location.href = buildPageUrl(PAGINATION.defaultPage);
+    router.push(buildPageUrl(PAGINATION.defaultPage));
   };
 
   const handleRowsPerPageChange = (value: string | null) => {
     const nextLimit = value ?? rowsPerPage;
     setRowsPerPage(nextLimit);
-    window.location.href = buildPageUrl(PAGINATION.defaultPage, nextLimit);
+    router.push(buildPageUrl(PAGINATION.defaultPage, nextLimit));
   };
 
   const handleResetFilter = () => {
@@ -123,8 +157,134 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
     setSearch("");
     setStatusFilter("all");
     setRowsPerPage(defaultLimit);
-    window.location.href = `${ROUTES.masterDataDocuments}?page=${PAGINATION.defaultPage}&limit=${defaultLimit}`;
+    const params = new URLSearchParams();
+    params.set("page", String(PAGINATION.defaultPage));
+    params.set("limit", defaultLimit);
+    if (isArchiveView) params.set("archiveView", "archived");
+    router.push(`${ROUTES.masterDataDocuments}?${params.toString()}`);
   };
+
+  const handleArchiveAction = (doc: DocumentRecord) => {
+    setPendingDocumentId(doc.id);
+    startTransition(async () => {
+      const result = isArchiveView
+        ? await restoreDocumentAction(doc.id)
+        : await softDeleteDocumentAction(doc.id);
+
+      if (result.ok) {
+        toast.success(
+          isArchiveView
+            ? `Dokumen "${doc.title}" berhasil dipulihkan.`
+            : `Dokumen "${doc.title}" berhasil diarsipkan.`,
+        );
+        router.refresh();
+        setPendingDocumentId(null);
+        return;
+      }
+
+      toast.error(result.error.message);
+      setPendingDocumentId(null);
+    });
+  };
+
+  const handlePermanentDeleteAction = (doc: DocumentRecord) => {
+    setPendingDocumentId(doc.id);
+    startTransition(async () => {
+      const result = await permanentDeleteDocumentAction(doc.id);
+
+      if (result.ok) {
+        toast.success(`Dokumen "${doc.title}" berhasil dihapus permanen.`);
+        router.refresh();
+        setPendingDocumentId(null);
+        return;
+      }
+
+      toast.error(result.error.message);
+      setPendingDocumentId(null);
+    });
+  };
+
+  const renderDocumentActions = (doc: DocumentRecord) => (
+    <div className="flex justify-end gap-2">
+      {!isArchiveView ? (
+        <Link
+          className={buttonVariants({ variant: "outline", size: "xs" })}
+          href={buildDocumentDetailUrl(doc.id)}
+        >
+          <Eye className="size-3.5" />
+          <span className="hidden md:inline">Detail</span>
+        </Link>
+      ) : null}
+      {isArchiveView ? (
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button
+                variant="destructive"
+                size="xs"
+                disabled={isPending && pendingDocumentId === doc.id}
+              />
+            }
+          >
+            <Trash2 className="size-3.5" />
+            <span className="hidden md:inline">Hapus permanen</span>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus permanen dokumen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {`Dokumen "${doc.title}" akan dihapus permanen dari database beserta file fisik storage dan notifikasi terkait. Aksi ini tidak dapat dibatalkan.`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => handlePermanentDeleteAction(doc)}
+              >
+                Hapus Permanen
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant={isArchiveView ? "outline" : "destructive"}
+              size="xs"
+              disabled={isPending && pendingDocumentId === doc.id}
+            />
+          }
+        >
+          {isArchiveView ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
+          <span className="hidden md:inline">{isArchiveView ? "Pulihkan" : "Hapus"}</span>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {isArchiveView ? "Pulihkan dokumen?" : "Arsipkan dokumen?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {isArchiveView
+                ? `Dokumen "${doc.title}" akan dikembalikan ke daftar aktif.`
+                : `Dokumen "${doc.title}" akan dipindahkan ke arsip. File fisik belum dihapus sampai aksi hapus permanen dijalankan.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              variant={isArchiveView ? "default" : "destructive"}
+              onClick={() => handleArchiveAction(doc)}
+            >
+              {isArchiveView ? "Pulihkan" : "Arsipkan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 
   const documentColumns: DataTableColumn<DocumentRecord>[] = [
     {
@@ -182,16 +342,9 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
     {
       key: "action",
       header: "Aksi",
-      headClassName: "text-right",
+      headClassName: "w-[260px] text-right",
       cellClassName: "text-right",
-      cell: (doc) => (
-        <Link
-          className={buttonVariants({ variant: "outline", size: "xs" })}
-          href={buildDocumentDetailUrl(doc.id)}
-        >
-          Detail
-        </Link>
-      ),
+      cell: (doc) => renderDocumentActions(doc),
     },
   ];
 
@@ -220,7 +373,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
 
   const footerSummary = (
     <p className="text-xs text-muted-foreground">
-      Menampilkan {documents.length} dari {pagination.total} dokumen.
+      Menampilkan {documents.length} dari {pagination.total} dokumen {isArchiveView ? "arsip" : "aktif"}.
     </p>
   );
 
@@ -264,13 +417,39 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
         value={viewMode}
         onValueChange={handleViewModeChange}
         leading={
-          viewMode === "grid" ? (
-            <RowsPerPageControl
-              value={rowsPerPage}
-              onValueChange={handleRowsPerPageChange}
-              options={PAGINATION.pageSizeOptions}
-            />
-          ) : undefined
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="inline-flex w-full rounded-md border border-muted-foreground/10 bg-card p-1 shadow-sm sm:w-auto">
+              <Link
+                className={buttonVariants({
+                  variant: !isArchiveView ? "default" : "ghost",
+                  size: "sm",
+                  className: "flex-1 gap-2 sm:flex-none",
+                })}
+                href={buildArchiveViewUrl("active")}
+              >
+                <FileText className="size-4" />
+                Aktif
+              </Link>
+              <Link
+                className={buttonVariants({
+                  variant: isArchiveView ? "default" : "ghost",
+                  size: "sm",
+                  className: "flex-1 gap-2 sm:flex-none",
+                })}
+                href={buildArchiveViewUrl("archived")}
+              >
+                <Archive className="size-4" />
+                Arsip
+              </Link>
+            </div>
+            {viewMode === "grid" ? (
+              <RowsPerPageControl
+                value={rowsPerPage}
+                onValueChange={handleRowsPerPageChange}
+                options={PAGINATION.pageSizeOptions}
+              />
+            ) : null}
+          </div>
         }
       />
 
@@ -278,7 +457,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
         <DataTableCard
           title="Daftar Dokumen"
           icon={<FileText className="size-5" />}
-          description="Buka tinjauan berkas untuk membaca dokumen"
+          description={`Total ${pagination.total} dokumen ${isArchiveView ? "arsip" : "aktif"} - Halaman ${pagination.page} dari ${pagination.totalPages || 1}`}
           rowsPerPageControl={{
             value: rowsPerPage,
             onValueChange: handleRowsPerPageChange,
@@ -286,13 +465,13 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
             label: "Tampilkan",
             suffix: "row",
           }}
-          tableMinWidthClassName="min-w-[920px]"
+          tableMinWidthClassName="min-w-[980px]"
           table={
             <DataTable
               data={documents}
               columns={documentColumns}
               getRowKey={(doc) => doc.id}
-              emptyMessage="Tidak ada dokumen yang sesuai filter."
+              emptyMessage={isArchiveView ? "Tidak ada dokumen arsip yang sesuai filter." : "Tidak ada dokumen aktif yang sesuai filter."}
             />
           }
           pagination={paginationControls}
@@ -308,7 +487,9 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
                     Tidak ada dokumen
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Tidak ada dokumen yang sesuai filter.
+                    {isArchiveView
+                      ? "Tidak ada dokumen arsip yang sesuai filter."
+                      : "Tidak ada dokumen aktif yang sesuai filter."}
                   </p>
                 </div>
               </CardContent>
@@ -362,12 +543,7 @@ export function MasterDataDocumentsView({ documents, pagination }: MasterDataDoc
                         </div>
 
                         <div className="flex justify-end border-t pt-3">
-                          <Link
-                            className={buttonVariants({ variant: "outline", size: "xs" })}
-                            href={buildDocumentDetailUrl(doc.id)}
-                          >
-                            Detail
-                          </Link>
+                          {renderDocumentActions(doc)}
                         </div>
                       </div>
                     </CardContent>

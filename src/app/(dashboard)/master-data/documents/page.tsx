@@ -9,6 +9,7 @@ type PageProps = {
   searchParams: Promise<{
     page?: string;
     limit?: string;
+    archiveView?: string;
     status?: string;
     search?: string;
   }>;
@@ -20,15 +21,17 @@ export default async function MasterDataDocumentsPage({ searchParams }: PageProp
   const params = await searchParams;
   const page = params.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;
   const limit = params.limit ? parseInt(params.limit, 10) : PAGINATION.defaultPageSize;
+  const archiveView = params.archiveView === "archived" ? "archived" : "active";
   const status = params.status as "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED" | undefined;
   const search = params.search;
 
   const result = await getDocumentRecordsWithPagination({
     page,
     limit,
+    archiveView,
     status,
     search,
   });
 
-  return <MasterDataDocumentsView documents={result.data} pagination={result.pagination} />;
+  return <MasterDataDocumentsView documents={result.data} pagination={result.pagination} archiveView={archiveView} />;
 }

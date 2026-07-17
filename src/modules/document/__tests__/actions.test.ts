@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   handleDocumentTypeCrud: vi.fn(),
   softDeleteDocument: vi.fn(),
   restoreDocument: vi.fn(),
+  permanentlyDeleteDocument: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -37,6 +38,7 @@ vi.mock("@/modules/document/service", () => ({
   handleDocumentTypeCrud: mocks.handleDocumentTypeCrud,
   softDeleteDocument: mocks.softDeleteDocument,
   restoreDocument: mocks.restoreDocument,
+  permanentlyDeleteDocument: mocks.permanentlyDeleteDocument,
 }));
 
 import {
@@ -45,6 +47,7 @@ import {
   getDocumentRecordsWithPaginationAction,
   getDocumentTypesWithPaginationAction,
   restoreDocumentAction,
+  permanentDeleteDocumentAction,
   softDeleteDocumentAction,
   uploadDocumentAction,
 } from "../actions";
@@ -76,6 +79,15 @@ describe("Document Module Actions", () => {
 
     expect(mocks.requireAuth).toHaveBeenCalledWith("ADMIN");
     expect(mocks.getDocumentRecordsWithPagination).toHaveBeenCalledWith({ page: 2, limit: 25, search: "sk" });
+    expect(result).toEqual({ ok: true, data: { data: [], total: 0 } });
+  });
+
+  it("should accept archived document list filter", async () => {
+    mocks.getDocumentRecordsWithPagination.mockResolvedValue({ data: [], total: 0 });
+
+    const result = await getDocumentRecordsWithPaginationAction({ archiveView: "archived", page: 1 });
+
+    expect(mocks.getDocumentRecordsWithPagination).toHaveBeenCalledWith({ archiveView: "archived", page: 1 });
     expect(result).toEqual({ ok: true, data: { data: [], total: 0 } });
   });
 
@@ -140,12 +152,16 @@ describe("Document Module Actions", () => {
   it("should wrap soft delete and restore services in action envelopes", async () => {
     mocks.softDeleteDocument.mockResolvedValue(true);
     mocks.restoreDocument.mockResolvedValue(true);
+    mocks.permanentlyDeleteDocument.mockResolvedValue(true);
 
     await expect(softDeleteDocumentAction("doc-1")).resolves.toEqual({ ok: true, data: { success: true } });
     await expect(restoreDocumentAction("doc-1")).resolves.toEqual({ ok: true, data: { success: true } });
+    await expect(permanentDeleteDocumentAction("doc-1")).resolves.toEqual({ ok: true, data: { success: true } });
 
     expect(mocks.softDeleteDocument).toHaveBeenCalledWith("doc-1", session);
     expect(mocks.restoreDocument).toHaveBeenCalledWith("doc-1", session);
+    expect(mocks.permanentlyDeleteDocument).toHaveBeenCalledWith("doc-1", session);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/master-data/documents");
   });
 
   it("should list document types with pagination action successfully", async () => {

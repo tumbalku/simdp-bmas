@@ -35,11 +35,13 @@ export const uploadDocumentSchema = z.object({
 });
 
 export const documentRecordsQuerySchema = z.object({
+  archiveView: z.enum(["active", "archived"]).optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED", "EXPIRED", "REPLACED"]).optional(),
   search: z.string().optional(),
 });
 
 export const documentRecordsWithPaginationQuerySchema = z.object({
+  archiveView: z.enum(["active", "archived"]).optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED", "EXPIRED", "REPLACED"]).optional(),
   search: z.string().optional(),
   page: z.number().int().positive().optional(),

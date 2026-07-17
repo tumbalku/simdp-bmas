@@ -10,6 +10,7 @@ import * as repo from "./repository";
 import { matchesDocumentTypeTarget } from "./target-rules";
 
 type DocumentListFilter = {
+  archiveView?: "active" | "archived";
   status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
   search?: string;
   page?: number;
@@ -81,7 +82,7 @@ export async function getDocumentTypeForAdminEdit(id: string) {
 }
 
 export async function getDocumentRecordsForSession(session: TokenPayload, filter: DocumentListFilter = {}) {
-  const where: any = { deletedAt: null };
+  const where: any = { deletedAt: filter.archiveView === "archived" ? { not: null } : null };
 
   if (filter.status) {
     where.status = filter.status;
@@ -113,7 +114,7 @@ export async function getDocumentRecordsWithPagination(
   const limit = filter.limit || 20;
   const skip = (page - 1) * limit;
 
-  const where: any = { deletedAt: null };
+  const where: any = { deletedAt: filter.archiveView === "archived" ? { not: null } : null };
 
   if (filter.status) {
     where.status = filter.status;
@@ -540,6 +541,42 @@ export async function restoreDocument(documentId: string, session: TokenPayload)
     eventType: "DOCUMENT_RESTORED",
     resource: `DocumentRecord:${documentId}`,
     status: "SUCCESS",
+  });
+
+  return true;
+}
+
+export async function permanentlyDeleteDocument(documentId: string, session: TokenPayload) {
+  if (session.role !== "ADMIN") {
+    throw new Error("FORBIDDEN");
+  }
+
+  const doc = await repo.findDocumentRecordWithDeletedWithOwner(documentId);
+
+  if (!doc) throw new Error("Dokumen tidak ditemukan");
+  if (!doc.deletedAt) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Dokumen aktif harus diarsipkan terlebih dahulu sebelum dihapus permanen.",
+      400
+    );
+  }
+
+  await storage.delete(doc.filePath);
+  await repo.permanentlyDeleteDocumentRecord(documentId);
+
+  await logActivity({
+    actorId: session.userId,
+    actorName: doc.owner.name,
+    actorRole: session.role,
+    eventType: "DOCUMENT_PERMANENTLY_DELETED",
+    resource: `DocumentRecord:${documentId}`,
+    status: "SUCCESS",
+    metadata: {
+      fileName: doc.fileName,
+      filePath: doc.filePath,
+      ownerId: doc.ownerId,
+    },
   });
 
   return true;

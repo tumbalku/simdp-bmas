@@ -9,6 +9,7 @@ import {
   findDocumentTypesWithPagination,
   findEmployeeByUserId,
   findManyAvailableDocumentTypes,
+  permanentlyDeleteDocumentRecord,
   restoreDocumentType,
   softDeleteDocumentType,
   updateDocumentTypeWithRelations,
@@ -244,6 +245,15 @@ describe("Document Module Repository", () => {
         where: { id: "doc-1", deletedAt: null },
         include: expect.any(Object),
       });
+    });
+
+    it("should permanently delete document record and related notifications", async () => {
+      await permanentlyDeleteDocumentRecord("doc-1");
+
+      expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
+        where: { relatedEntityType: "DocumentRecord", relatedEntityId: "doc-1" },
+      });
+      expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({ where: { id: "doc-1" } });
     });
 
     it("should replace current records and notify verifiers when uploading single-current document", async () => {
