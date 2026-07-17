@@ -2,6 +2,13 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-18] Remaining Canonical Prisma Enums
+- Konteks: `Employee.religion`, `DocumentRecord.storageProvider`, dan `Notification.type`/`relatedEntityType` masih berupa string walau option/constants canonical sudah tersedia.
+- Keputusan: Tambahkan Prisma enum untuk agama pegawai, provider storage, tipe notifikasi, dan related entity notifikasi. `StorageProvider` dan `NotificationRelatedEntityType` memakai enum mapping Prisma agar DB tetap menyimpan nilai legacy kompatibel (`local`, `DocumentRecord`) sementara TypeScript memakai value canonical (`LOCAL`, `DOCUMENT_RECORD`).
+- Alasan: mengurangi magic string tanpa memutus data lama dan tetap menjaga label UI Indonesia.
+- Dampak ke modul: employee, document, notification, prisma migrations, seed.
+- Referensi: #135, #139, #140.
+
 ## [2026-07-18] Employee Profile Enum Canonical English
 - Konteks: Kolom profil pegawai `status`, `gender`, dan `maritalStatus` sebelumnya menyimpan string Indonesia sehingga rawan magic string dan sulit disejajarkan dengan Prisma enum.
 - Keputusan: Database memakai Prisma enum English (`EmployeeStatus`, `EmployeeGender`, `EmployeeMaritalStatus`). UI tetap menampilkan label Bahasa Indonesia melalui mapping constants, dan schema/service masih menerima legacy value Indonesia untuk transisi/import CSV.

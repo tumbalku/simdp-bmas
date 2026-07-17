@@ -251,7 +251,7 @@ describe("Document Module Repository", () => {
       await permanentlyDeleteDocumentRecord("doc-1");
 
       expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
-        where: { relatedEntityType: "DocumentRecord", relatedEntityId: "doc-1" },
+        where: { relatedEntityType: "DOCUMENT_RECORD", relatedEntityId: "doc-1" },
       });
       expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({ where: { id: "doc-1" } });
     });
@@ -271,7 +271,7 @@ describe("Document Module Repository", () => {
         fileSize: BigInt(10),
         mimeType: "application/pdf",
         fileHash: "hash",
-        storageProvider: "local",
+        storageProvider: "LOCAL",
         documentNumber: null,
         issueDate: null,
         expiryDate: null,

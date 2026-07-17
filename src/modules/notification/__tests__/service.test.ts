@@ -87,7 +87,7 @@ describe("Notification Module Service", () => {
         type: "DOCUMENT_STATUS",
         title: "Test Title",
         message: "Test Message",
-        relatedEntityType: "DocumentRecord",
+        relatedEntityType: "DOCUMENT_RECORD",
         relatedEntityId: "doc-1",
       };
 
@@ -123,7 +123,7 @@ describe("Notification Module Service", () => {
         type: "DOCUMENT_STATUS",
         title: "Test Title",
         message: "Test Message",
-        relatedEntityType: "DocumentRecord",
+        relatedEntityType: "DOCUMENT_RECORD",
         relatedEntityId: "doc-1",
         createdAt: new Date(),
         isRead: false,

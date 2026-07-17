@@ -26,7 +26,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { updateProfileAction } from "@/modules/employee/actions";
-import { MARITAL_STATUS_OPTIONS, RELIGION_OPTIONS, mapMaritalStatusLegacyToCanonical } from "@/modules/employee/constants";
+import {
+  MARITAL_STATUS_OPTIONS,
+  RELIGION_OPTIONS,
+  mapMaritalStatusLegacyToCanonical,
+  mapReligionLegacyToCanonical,
+} from "@/modules/employee/constants";
 
 type EditableProfileData = {
   phone: string;
@@ -52,6 +57,7 @@ export function ProfileEditDialog({ initialData }: ProfileEditDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [form, setForm] = useState({
     ...initialData,
+    religion: mapReligionLegacyToCanonical(initialData.religion) ?? "",
     maritalStatus: mapMaritalStatusLegacyToCanonical(initialData.maritalStatus) ?? "",
   });
 
