@@ -29,8 +29,12 @@ import { crudEmployeeAction } from "@/modules/employee/actions";
 import {
   EDUCATION_OPTIONS,
   EMPLOYEE_STATUS_OPTIONS,
+  GENDER_OPTIONS,
   MARITAL_STATUS_OPTIONS,
   RELIGION_OPTIONS,
+  mapEmployeeStatusLegacyToCanonical,
+  mapGenderLegacyToCanonical,
+  mapMaritalStatusLegacyToCanonical,
 } from "@/modules/employee/constants";
 import { ROLE_LABELS } from "@/constants/roles";
 
@@ -93,11 +97,6 @@ type ActionError = {
 /* -------------------------------------------------------------------------- */
 /*  Constants                                                                   */
 /* -------------------------------------------------------------------------- */
-
-const GENDER_OPTIONS = [
-  { value: "Laki-laki", label: "Laki-laki" },
-  { value: "Perempuan", label: "Perempuan" },
-] as const;
 
 const ROLE_OPTIONS = [
   { value: "EMPLOYEE", label: ROLE_LABELS.EMPLOYEE },
@@ -168,14 +167,14 @@ export function MasterDataEmployeeForm({
   const [employeeId, setEmployeeId] = useState(initialData?.employeeId ?? "");
   const [nik, setNik] = useState(initialData?.nik ?? "");
   const [name, setName] = useState(initialData?.name ?? "");
-  const [gender, setGender] = useState(initialData?.gender ?? "");
+  const [gender, setGender] = useState(mapGenderLegacyToCanonical(initialData?.gender) ?? "");
   const [birthPlace, setBirthPlace] = useState(initialData?.birthPlace ?? "");
   const [birthDate, setBirthDate] = useState(toDateInputValue(initialData?.birthDate));
   const [academicDegree, setAcademicDegree] = useState(initialData?.academicDegree ?? "");
   const [lastEducation, setLastEducation] = useState(initialData?.lastEducation ?? "");
   const [religion, setReligion] = useState(initialData?.religion ?? "");
-  const [maritalStatus, setMaritalStatus] = useState(initialData?.maritalStatus ?? "");
-  const [employeeStatus, setEmployeeStatus] = useState(initialData?.status ?? "Aktif");
+  const [maritalStatus, setMaritalStatus] = useState(mapMaritalStatusLegacyToCanonical(initialData?.maritalStatus) ?? "");
+  const [employeeStatus, setEmployeeStatus] = useState(mapEmployeeStatusLegacyToCanonical(initialData?.status) ?? "ACTIVE");
   const [phone, setPhone] = useState(initialData?.phone ?? "");
   const [address, setAddress] = useState(initialData?.address ?? "");
   const [joinDate, setJoinDate] = useState(toDateInputValue(initialData?.joinDate));

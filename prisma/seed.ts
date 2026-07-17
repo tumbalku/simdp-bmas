@@ -1,4 +1,4 @@
-import { PrismaClient, Role, DocumentStatus, ArchiveCategory } from "@prisma/client";
+import { PrismaClient, Role, DocumentStatus, ArchiveCategory, EmployeeGender, EmployeeMaritalStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as pg from "pg";
 import * as argon2 from "argon2";
@@ -214,13 +214,13 @@ async function main() {
         employeeId: item.employeeId,
         nik: item.nik,
         name: item.name,
-        gender: item.gender,
+        gender: item.gender === "Laki-laki" ? EmployeeGender.MALE : EmployeeGender.FEMALE,
         birthPlace: item.birthPlace,
         birthDate: item.birthDate,
         academicDegree: item.degree,
         lastEducation: item.education,
         religion: i % 3 === 0 ? "Islam" : i % 3 === 1 ? "Kristen" : "Hindu",
-        maritalStatus: i % 2 === 0 ? "Menikah" : "Belum Menikah",
+        maritalStatus: i % 2 === 0 ? EmployeeMaritalStatus.MARRIED : EmployeeMaritalStatus.SINGLE,
         phone: `08${String(1210000000 + i * 73129)}`,
         address: `Jl. Demo SIMDP No. ${10 + i}, Kendari`,
         joinDate: dateOnly(2015 + (i % 8), (i % 12) + 1, 10),
