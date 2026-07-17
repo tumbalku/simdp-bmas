@@ -251,7 +251,7 @@ export async function updateProfile(
 }
 
 export async function handleEmployeeCrud(
-  operation: "CREATE" | "UPDATE" | "DELETE" | "RESTORE",
+  operation: "CREATE" | "UPDATE" | "DELETE" | "RESTORE" | "PERMANENT_DELETE",
   id?: string,
   data?: any,
   actorId?: string,
@@ -461,6 +461,38 @@ export async function handleEmployeeCrud(
       resource: `Employee:${id}`,
       status: "SUCCESS",
     });
+
+    return { id, name: employee.name };
+  }
+
+  if (operation === "PERMANENT_DELETE") {
+    if (!id) throw new AppError("VALIDATION_ERROR", "ID pegawai wajib diisi.", 400);
+
+    const employee = await repository.findEmployeeById(id);
+    if (!employee) throw new AppError("NOT_FOUND", "Pegawai tidak ditemukan.", 404);
+    if (!employee.deletedAt) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Pegawai aktif harus diarsipkan terlebih dahulu sebelum dihapus permanen.",
+        400
+      );
+    }
+    if (employee.userId === systemActor.actorId) {
+      throw new AppError("VALIDATION_ERROR", "Akun sendiri tidak dapat dihapus permanen.", 400);
+    }
+
+    await logActivity({
+      ...systemActor,
+      eventType: "EMPLOYEE_PERMANENTLY_DELETED",
+      resource: `Employee:${id}`,
+      status: "SUCCESS",
+      metadata: {
+        employeeName: employee.name,
+        userId: employee.userId,
+      },
+    });
+
+    await repository.permanentlyDeleteEmployeeAndUser(id, employee.userId);
 
     return { id, name: employee.name };
   }

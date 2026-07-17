@@ -10,7 +10,7 @@ export const updateProfileSchema = z.object({
 });
 
 export const crudEmployeeSchema = z.object({
-  operation: z.enum(["CREATE", "UPDATE", "DELETE", "RESTORE"]),
+  operation: z.enum(["CREATE", "UPDATE", "DELETE", "RESTORE", "PERMANENT_DELETE"]),
   id: z.string().optional(),
   data: z
     .object({

@@ -213,6 +213,50 @@ export async function restoreEmployeeAndUser(employeeId: string, userId: string)
   });
 }
 
+async function nullifyCreatedUpdatedBy(delegate: any, userId: string) {
+  await delegate.updateMany({
+    where: { createdBy: userId },
+    data: { createdBy: null },
+  });
+  await delegate.updateMany({
+    where: { updatedBy: userId },
+    data: { updatedBy: null },
+  });
+}
+
+export async function permanentlyDeleteEmployeeAndUser(employeeId: string, userId: string) {
+  return prisma.$transaction(async (tx) => {
+    await nullifyCreatedUpdatedBy(tx.employmentStatus, userId);
+    await nullifyCreatedUpdatedBy(tx.employeeGroup, userId);
+    await nullifyCreatedUpdatedBy(tx.professionGroup, userId);
+    await nullifyCreatedUpdatedBy(tx.employeePosition, userId);
+    await nullifyCreatedUpdatedBy(tx.employeeRank, userId);
+    await nullifyCreatedUpdatedBy(tx.workplace, userId);
+    await nullifyCreatedUpdatedBy(tx.employee, userId);
+    await tx.employeeCareerHistory.updateMany({
+      where: { createdBy: userId },
+      data: { createdBy: null },
+    });
+    await nullifyCreatedUpdatedBy(tx.documentType, userId);
+    await nullifyCreatedUpdatedBy(tx.documentRecord, userId);
+    await tx.verificationHistory.updateMany({
+      where: { reviewedById: userId },
+      data: { reviewedById: null },
+    });
+    await tx.securityLog.updateMany({
+      where: { actorId: userId },
+      data: { actorId: null },
+    });
+    await tx.systemSetting.updateMany({
+      where: { updatedBy: userId },
+      data: { updatedBy: null },
+    });
+
+    await tx.employee.delete({ where: { id: employeeId } });
+    await tx.user.delete({ where: { id: userId } });
+  });
+}
+
 export async function createCareerHistoryAndUpdateCurrent(data: {
   history: any;
   currentAssignment: any;

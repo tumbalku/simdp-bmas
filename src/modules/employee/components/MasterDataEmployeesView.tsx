@@ -255,6 +255,23 @@ export function MasterDataEmployeesView({
     });
   };
 
+  const handlePermanentDeleteAction = (employee: EmployeeSummary) => {
+    setPendingEmployeeId(employee.id);
+    startTransition(async () => {
+      const result = await crudEmployeeAction("PERMANENT_DELETE", employee.id);
+
+      if (result.ok) {
+        toast.success(`Pegawai "${employee.name}" berhasil dihapus permanen.`);
+        router.refresh();
+        setPendingEmployeeId(null);
+        return;
+      }
+
+      toast.error(result.error.message);
+      setPendingEmployeeId(null);
+    });
+  };
+
   const renderEmployeeActions = (emp: EmployeeSummary) => (
     <div className="flex justify-end gap-2">
       {!isArchiveView ? (
@@ -274,6 +291,39 @@ export function MasterDataEmployeesView({
             <span className="hidden md:inline">Detail</span>
           </Link>
         </>
+      ) : null}
+      {isArchiveView ? (
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button
+                variant="destructive"
+                size="xs"
+                disabled={isPending && pendingEmployeeId === emp.id}
+              />
+            }
+          >
+            <Trash2 className="size-3.5" />
+            <span className="hidden md:inline">Hapus permanen</span>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus permanen pegawai?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {`Pegawai "${emp.name}" akan dihapus permanen dari database beserta relasi akun, sesi, riwayat karier, dokumen, verifikasi, dan notifikasi. Aksi ini tidak dapat dibatalkan.`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => handlePermanentDeleteAction(emp)}
+              >
+                Hapus Permanen
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       ) : null}
       <AlertDialog>
         <AlertDialogTrigger
