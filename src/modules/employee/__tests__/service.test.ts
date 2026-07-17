@@ -369,6 +369,49 @@ describe("Employee Module Service", () => {
       ).rejects.toThrow("Pegawai tidak ditemukan");
     });
 
+    it("should permanently delete only archived employees with user relations cleaned", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+        name: "John",
+        deletedAt: new Date("2026-07-17T00:00:00.000Z"),
+      });
+
+      const result = await handleEmployeeCrud("PERMANENT_DELETE", "emp-1", undefined, "admin-1", "Admin", "ADMIN");
+
+      expect(result).toEqual({ id: "emp-1", name: "John" });
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "EMPLOYEE_PERMANENTLY_DELETED",
+            resource: "Employee:emp-1",
+          }),
+        })
+      );
+      expect(mockPrisma.securityLog.updateMany).toHaveBeenCalledWith({
+        where: { actorId: "user-1" },
+        data: { actorId: null },
+      });
+      expect(mockPrisma.employee.delete).toHaveBeenCalledWith({ where: { id: "emp-1" } });
+      expect(mockPrisma.user.delete).toHaveBeenCalledWith({ where: { id: "user-1" } });
+    });
+
+    it("should reject permanent delete for active employees", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "emp-active",
+        userId: "user-active",
+        name: "Active User",
+        deletedAt: null,
+      });
+
+      await expect(
+        handleEmployeeCrud("PERMANENT_DELETE", "emp-active", undefined, "admin-1", "Admin", "ADMIN")
+      ).rejects.toThrow("Pegawai aktif harus diarsipkan terlebih dahulu sebelum dihapus permanen.");
+
+      expect(mockPrisma.employee.delete).not.toHaveBeenCalled();
+      expect(mockPrisma.user.delete).not.toHaveBeenCalled();
+    });
+
     it("should throw error when RESTORE target employee is not found", async () => {
       mockPrisma.employee.findUnique.mockResolvedValue(null);
 

@@ -135,10 +135,10 @@ describe("Employee Module Actions", () => {
   it("should call employee CRUD service with parsed action data", async () => {
     mocks.handleEmployeeCrud.mockResolvedValue({ id: "emp-1" });
 
-    const result = await crudEmployeeAction("RESTORE", "emp-1");
+    const result = await crudEmployeeAction("PERMANENT_DELETE", "emp-1");
 
     expect(mocks.handleEmployeeCrud).toHaveBeenCalledWith(
-      "RESTORE",
+      "PERMANENT_DELETE",
       "emp-1",
       undefined,
       "user-1",
