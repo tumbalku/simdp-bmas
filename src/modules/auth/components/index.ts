@@ -4,3 +4,5 @@ export * from "./PublicAuthLayout";
 export * from "./LoginPage";
 export * from "./ForgotPasswordPage";
 export * from "./ResetPasswordPage";
+export * from "./ChangePasswordDialog";
+export * from "./UserSettingsPageView";

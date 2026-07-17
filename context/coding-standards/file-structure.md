@@ -113,5 +113,23 @@ Boleh memecah file jika:
 - kompleksitas membuat test sulit.
 
 Tetap pertahankan public entry point:
-- modul lain tetap import dari `service.ts`;
+- modul lain tetap import dari `service.ts` atau `index.ts` aggregator;
 - jangan expose `repository.ts` sebagai shortcut.
+
+## Evolusi Struktur Modul Besar
+
+Jika suatu modul berkembang sangat besar, struktur file flat di root modul dapat dipecah menjadi folder-folder terfokus:
+```txt
+src/modules/<module>/
+├── index.ts              # entry point utama (hanya re-export)
+├── services/             # logika bisnis terpecah
+├── repositories/         # Prisma/DB query terpecah
+├── hooks/                # TanStack query hooks terpecah
+├── components/           # komponen UI terpecah
+│   └── index.ts          # aggregator komponen (hanya re-export)
+└── constants/            # konstanta internal/eksternal modul
+```
+
+Aturan penting untuk evolusi ini:
+1. File `index.ts` di root modul dan subfolder `components/` hanya boleh berisi pernyataan `export` (re-export aggregator). Tidak boleh ada logika bisnis atau definisi variabel/fungsi langsung di dalamnya.
+2. Modul eksternal harus mengimpor fungsionalitas melalui aggregator modul ini, bukan mengimpor file internal/dalam secara langsung.
