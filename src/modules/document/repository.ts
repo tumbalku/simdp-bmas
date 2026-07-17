@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification/constants";
 
 export const documentTypeTargetInclude = {
   employmentStatuses: true,
@@ -387,10 +388,10 @@ export async function createUploadedDocumentTransaction(data: {
       data: adminsAndStaff.map((u) => ({
         id: crypto.randomUUID(),
         userId: u.id,
-        type: "VERIFICATION_REQUIRED",
+        type: NOTIFICATION_TYPE.VERIFICATION_REQUIRED,
         title: "Dokumen Baru Perlu Verifikasi",
         message: `Pegawai ${data.ownerName} telah mengunggah dokumen baru: ${data.documentTypeName}`,
-        relatedEntityType: "DocumentRecord",
+        relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
         relatedEntityId: data.docId,
       })),
     });
@@ -484,10 +485,10 @@ export async function replaceDocumentFileTransaction(data: {
       data: adminsAndStaff.map((u) => ({
         id: crypto.randomUUID(),
         userId: u.id,
-        type: "VERIFICATION_REQUIRED",
+        type: NOTIFICATION_TYPE.VERIFICATION_REQUIRED,
         title: "Dokumen Diganti Perlu Verifikasi",
         message: `Pegawai ${data.ownerName} telah mengganti file dokumen: ${data.documentTypeName}`,
-        relatedEntityType: "DocumentRecord",
+        relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
         relatedEntityId: data.documentId,
       })),
     });
@@ -533,7 +534,7 @@ export async function restoreDocumentRecord(id: string) {
 export async function permanentlyDeleteDocumentRecord(id: string) {
   return prisma.$transaction(async (tx) => {
     await tx.notification.deleteMany({
-      where: { relatedEntityType: "DocumentRecord", relatedEntityId: id },
+      where: { relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD, relatedEntityId: id },
     });
 
     await tx.documentRecord.delete({ where: { id } });
@@ -595,10 +596,10 @@ export async function createNotificationAndUpdateReminder(data: {
       data: {
         id: data.notificationId,
         userId: data.userId,
-        type: "EXPIRY_REMINDER",
+        type: NOTIFICATION_TYPE.EXPIRY_REMINDER,
         title: data.title,
         message: data.message,
-        relatedEntityType: "DocumentRecord",
+        relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
         relatedEntityId: data.relatedEntityId,
       },
     }),

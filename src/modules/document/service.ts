@@ -8,6 +8,7 @@ import { AppError } from "@/lib/errors";
 import { mapDocumentRecord, mapDocumentType, mapDocumentDetail, mapDocumentTypeFormInitialData, mapDocumentTypeSummary } from "./mappers";
 import * as repo from "./repository";
 import { matchesDocumentTypeTarget } from "./target-rules";
+import { STORAGE_PROVIDER_VALUE } from "./constants";
 
 type DocumentListFilter = {
   archiveView?: "active" | "archived";
@@ -411,7 +412,7 @@ export async function uploadDocumentRecord(
     fileSize: BigInt(buffer.length),
     mimeType: data.file.type || null,
     fileHash,
-    storageProvider: "local",
+    storageProvider: STORAGE_PROVIDER_VALUE.LOCAL,
     documentNumber: data.documentNumber || null,
     issueDate: data.issueDate ? new Date(data.issueDate) : null,
     expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
@@ -511,7 +512,7 @@ export async function replaceDocumentFile(
     fileSize: BigInt(buffer.length),
     mimeType: data.file.type || null,
     fileHash,
-    storageProvider: "local",
+    storageProvider: STORAGE_PROVIDER_VALUE.LOCAL,
     updatedBy: session.userId,
     documentTypeName: doc.documentType.name,
     ownerName: doc.owner.name,

@@ -5,6 +5,8 @@ import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
 import { PAGINATION } from "@/constants/pagination";
 import { bigIntToNumber } from "@/lib/utils";
+import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification/constants";
+import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
 
 export async function getVerificationQueue(filter: {
   page?: number;
@@ -138,12 +140,12 @@ export async function verifyDocument(
   const { createNotification } = await import("@/modules/notification/service");
   await createNotification({
     userId: doc.owner.userId,
-    type: "DOCUMENT_STATUS",
+    type: NOTIFICATION_TYPE.DOCUMENT_STATUS,
     title: decision === "APPROVED" ? "Dokumen Disetujui" : "Dokumen Ditolak",
     message: `Dokumen ${doc.documentType.name} Anda telah ${
       decision === "APPROVED" ? "disetujui" : "ditolak"
     }.${note ? ` Catatan: ${note}` : ""}`,
-    relatedEntityType: "DocumentRecord",
+    relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
     relatedEntityId: id,
   });
 
@@ -151,9 +153,10 @@ export async function verifyDocument(
     actorId: reviewerId,
     actorName: reviewerName,
     actorRole: reviewerRole,
-    eventType: decision === "APPROVED" ? "DOCUMENT_APPROVED" : "DOCUMENT_REJECTED",
+    eventType:
+      decision === "APPROVED" ? SECURITY_EVENT_TYPE.DOCUMENT_APPROVED : SECURITY_EVENT_TYPE.DOCUMENT_REJECTED,
     resource: `DocumentRecord:${id}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { reviewNote: note },
   });
 

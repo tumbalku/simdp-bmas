@@ -2,6 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { realtimeProvider, emailProvider, jobProvider } from "@/lib/notifications";
+import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "./constants";
 
 export async function getNotifications(
   userId: string,
@@ -156,8 +157,9 @@ export async function dispatchNotification(input: {
     } = await import("@/lib/notifications/email-renderer");
 
     if (
-      (notification.type === "DOCUMENT_STATUS" || notification.type === "DOCUMENT_VERIFICATION") &&
-      notification.relatedEntityType === "DocumentRecord" &&
+      (notification.type === NOTIFICATION_TYPE.DOCUMENT_STATUS ||
+        notification.type === NOTIFICATION_TYPE.DOCUMENT_VERIFICATION) &&
+      notification.relatedEntityType === NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD &&
       notification.relatedEntityId
     ) {
       const doc = await prisma.documentRecord.findUnique({

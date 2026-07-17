@@ -3,6 +3,7 @@ import * as argon2 from "argon2";
 import crypto from "crypto";
 import { generateRefreshToken, hashRefreshToken } from "@/lib/auth";
 import { logActivity } from "@/modules/security/service";
+import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
 
 export interface LoginResult {
   user: {
@@ -50,11 +51,11 @@ export async function loginUser(
   if (!userId) {
     await logActivity({
       actorName: "System",
-      actorRole: "Public",
-      eventType: "AUTH_LOGIN_FAILED",
+      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+      eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `UserIdentifier:${identifier}`,
       ipAddress,
-      status: "FAILED",
+      status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "User tidak ditemukan" },
     });
     return null;
@@ -69,11 +70,11 @@ export async function loginUser(
   if (!user) {
     await logActivity({
       actorName: "System",
-      actorRole: "Public",
-      eventType: "AUTH_LOGIN_FAILED",
+      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+      eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `User:${userId}`,
       ipAddress,
-      status: "FAILED",
+      status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "User tidak aktif atau terhapus" },
     });
     return null;
@@ -86,10 +87,10 @@ export async function loginUser(
       actorId: user.id,
       actorName: user.employee?.name || user.email,
       actorRole: user.role,
-      eventType: "AUTH_LOGIN_FAILED",
+      eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `User:${user.id}`,
       ipAddress,
-      status: "FAILED",
+      status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "Password salah" },
     });
     return null;
@@ -111,10 +112,10 @@ export async function loginUser(
       actorId: user.id,
       actorName: user.employee?.name || user.email,
       actorRole: user.role,
-      eventType: "AUTH_FORCE_LOGOUT_OTHERS",
+      eventType: SECURITY_EVENT_TYPE.AUTH_FORCE_LOGOUT_OTHERS,
       resource: `User:${user.id}`,
       ipAddress,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { revokedCount: activeTokens.length },
     });
   }
@@ -145,10 +146,10 @@ export async function loginUser(
     actorId: user.id,
     actorName: user.employee?.name || user.email,
     actorRole: user.role,
-    eventType: "AUTH_LOGIN_SUCCESS",
+    eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
     resource: `User:${user.id}`,
     ipAddress,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return {
@@ -181,11 +182,11 @@ export async function rotateSession(
   if (!refreshTokenRecord || refreshTokenRecord.expiresAt < new Date()) {
     await logActivity({
       actorName: "System",
-      actorRole: "Public",
-      eventType: "AUTH_REFRESH_FAILED",
+      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+      eventType: SECURITY_EVENT_TYPE.AUTH_REFRESH_FAILED,
       resource: "SessionRotation",
       ipAddress,
-      status: "FAILED",
+      status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "Token invalid, revoked, atau expired" },
     });
     return null;
@@ -219,10 +220,10 @@ export async function rotateSession(
     actorId: user.id,
     actorName: user.employee?.name || user.email,
     actorRole: user.role,
-    eventType: "AUTH_REFRESH_SUCCESS",
+    eventType: SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS,
     resource: `User:${user.id}`,
     ipAddress,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return {
@@ -260,9 +261,9 @@ export async function logoutUser(tokenPlain: string, userId: string, actorRole: 
     actorId: userId,
     actorName,
     actorRole,
-    eventType: "AUTH_LOGOUT",
+    eventType: SECURITY_EVENT_TYPE.AUTH_LOGOUT,
     resource: `User:${userId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return true;
@@ -278,10 +279,10 @@ export async function requestPasswordReset(email: string): Promise<string | null
     // Generate a log for non-existent email safely
     await logActivity({
       actorName: "System",
-      actorRole: "Public",
-      eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+      eventType: SECURITY_EVENT_TYPE.AUTH_PASSWORD_RESET_REQUESTED,
       resource: `Email:${email}`,
-      status: "FAILED",
+      status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "Email tidak terdaftar" },
     });
     return null;
@@ -305,9 +306,9 @@ export async function requestPasswordReset(email: string): Promise<string | null
     actorId: user.id,
     actorName: user.employee?.name || user.email,
     actorRole: user.role,
-    eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+    eventType: SECURITY_EVENT_TYPE.AUTH_PASSWORD_RESET_REQUESTED,
     resource: `User:${user.id}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return resetToken;
@@ -352,9 +353,9 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
     actorId: user.id,
     actorName: user.employee?.name || user.email,
     actorRole: user.role,
-    eventType: "AUTH_PASSWORD_RESET_SUCCESS",
+    eventType: SECURITY_EVENT_TYPE.AUTH_PASSWORD_RESET_SUCCESS,
     resource: `User:${user.id}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return true;
@@ -390,9 +391,9 @@ export async function changePassword(
     actorId: userId,
     actorName,
     actorRole,
-    eventType: "AUTH_PASSWORD_CHANGED",
+    eventType: SECURITY_EVENT_TYPE.AUTH_PASSWORD_CHANGED,
     resource: `User:${userId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return true;
@@ -447,9 +448,9 @@ export async function revokeSession(userId: string, tokenId: string, actorName: 
     actorId: userId,
     actorName,
     actorRole,
-    eventType: "AUTH_REFRESH_FAILED", // Used as revoke audit per auth.md
+    eventType: SECURITY_EVENT_TYPE.AUTH_REFRESH_FAILED, // Used as revoke audit per auth.md
     resource: `RefreshToken:${tokenId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { action: "revoke_session" },
   });
 
@@ -466,9 +467,9 @@ export async function revokeAllSessions(userId: string, actorName: string, actor
     actorId: userId,
     actorName,
     actorRole,
-    eventType: "AUTH_FORCE_LOGOUT_OTHERS",
+    eventType: SECURITY_EVENT_TYPE.AUTH_FORCE_LOGOUT_OTHERS,
     resource: `User:${userId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { action: "revoke_all_sessions" },
   });
 

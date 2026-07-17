@@ -9,6 +9,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #132, #137, #138: Menambahkan fondasi constants canonical English untuk employee, keputusan `Employee.lastEducation` sebagai kandidat enum setelah audit distinct value, serta constants typed untuk audit/security dan notification tanpa mengubah schema database.
 - Issue #130 & #131: Menambahkan file root module aggregator `index.ts` dan sub-komponen aggregator `index.ts` untuk 8 modul inti (`auth`, `document`, `employee`, `notification`, `security`, `settings`, `statistics`, `verification`) untuk memperjelas dan mengamankan batasan modul tanpa logika internal.
 
 - Issue #60: Memperbarui halaman `/documents` sebagai self-service dokumen pegawai, termasuk card per jenis dokumen yang berlaku untuk user, tombol `Tambah`/`Ganti` sesuai `allowMultiple`, aksi `Hapus` yang mengarsipkan dokumen, dan guard service agar arsip tetap berbasis ownership.
