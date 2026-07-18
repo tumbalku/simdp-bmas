@@ -3,7 +3,6 @@
 
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import {
   getVerificationQueue as getQueueService,
   verifyDocument,
@@ -11,6 +10,7 @@ import {
   getVerificationDocumentDetail,
 } from "@/modules/verification/service";
 import { generateDownloadUrl } from "@/modules/document/service";
+import { findUserWithEmployeeById } from "./repositories/common";
 
 const verifyDocumentSchema = z
   .object({
@@ -77,10 +77,7 @@ export async function verifyDocumentAction(id: string, decision: string, note?: 
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
+    const user = await findUserWithEmployeeById(session.userId);
     const actorName = user?.employee?.name || user?.email || "Reviewer";
 
     const result = await verifyDocument(

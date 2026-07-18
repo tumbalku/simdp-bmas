@@ -3,8 +3,8 @@
 
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { getSystemSettings as getSettingsService, updateSettings } from "@/modules/settings/service";
+import { findUserWithEmployeeById } from "./repositories/common";
 
 const updateSettingsSchema = z.object({
   settings: z.array(
@@ -55,10 +55,7 @@ export async function updateSystemSettingAction(data: unknown) {
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
+    const user = await findUserWithEmployeeById(session.userId);
     const actorName = user?.employee?.name || user?.email || "Admin";
 
     await updateSettings(parsed.data.settings, session.userId, actorName, session.role);

@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #159: Mengisolasi akses Prisma modul `auth`, `notification`, `security`, `settings`, `statistics`, dan `verification` ke repository layer tanpa mengubah query, API, atau business behavior.
 - Issues #145-#148: Memecah UI besar lintas employee/document/verification/security/statistics menjadi helper dan subcomponent yang lebih terfokus tanpa mengubah behavior atau service/repository.
 - Issue #144: Memecah facade document service/repository ke folder internal `services/` dan `repositories/` yang lebih terfokus untuk document type, listing/detail, upload/replace, download, lifecycle arsip, dan expiry/reminder tanpa mengubah public import.
 - Issue #143: Memecah facade employee service/repository ke folder internal `services/` dan `repositories/` yang lebih terfokus, sambil mempertahankan public import `src/modules/employee/service.ts` dan `repository.ts` sebagai re-export boundary.

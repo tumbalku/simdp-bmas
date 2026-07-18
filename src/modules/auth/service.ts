@@ -1,9 +1,9 @@
-import { prisma } from "@/lib/prisma";
 import * as argon2 from "argon2";
 import crypto from "crypto";
 import { generateRefreshToken, hashRefreshToken } from "@/lib/auth";
 import { logActivity } from "@/modules/security/service";
 import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import * as repo from "./repositories/common";
 
 export interface LoginResult {
   user: {
@@ -26,25 +26,16 @@ export async function loginUser(
 
   // 1. Identify detection logic
   if (isNumeric(identifier) && identifier.length === 16) {
-    const employee = await prisma.employee.findFirst({
-      where: { nik: identifier, deletedAt: null },
-      select: { userId: true },
-    });
+    const employee = await repo.findEmployeeUserIdByNik(identifier);
     if (employee) userId = employee.userId;
   } else if (isNumeric(identifier) && identifier.length >= 10) {
-    const employee = await prisma.employee.findFirst({
-      where: { employeeId: identifier, deletedAt: null },
-      select: { userId: true },
-    });
+    const employee = await repo.findEmployeeUserIdByEmployeeId(identifier);
     if (employee) userId = employee.userId;
   }
 
   // Fallback to email if not resolved
   if (!userId) {
-    const user = await prisma.user.findFirst({
-      where: { email: identifier, deletedAt: null },
-      select: { id: true },
-    });
+    const user = await repo.findUserIdByEmail(identifier);
     if (user) userId = user.id;
   }
 
@@ -62,10 +53,7 @@ export async function loginUser(
   }
 
   // Fetch active user
-  const user = await prisma.user.findFirst({
-    where: { id: userId, isActive: true, deletedAt: null },
-    include: { employee: true },
-  });
+  const user = await repo.findActiveUserWithEmployee(userId);
 
   if (!user) {
     await logActivity({
@@ -99,15 +87,10 @@ export async function loginUser(
   const employeeId = user.employee?.id || null;
 
   // Single device enforcement: revoke other active refresh tokens
-  const activeTokens = await prisma.refreshToken.findMany({
-    where: { userId: user.id, revokedAt: null },
-  });
+  const activeTokens = await repo.findActiveRefreshTokensByUserId(user.id);
 
   if (activeTokens.length > 0) {
-    await prisma.refreshToken.updateMany({
-      where: { userId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await repo.revokeActiveRefreshTokensByUserId(user.id);
     await logActivity({
       actorId: user.id,
       actorName: user.employee?.name || user.email,
@@ -125,22 +108,17 @@ export async function loginUser(
   const hashedToken = hashRefreshToken(refreshTokenPlain);
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-  await prisma.refreshToken.create({
-    data: {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      token: hashedToken,
-      expiresAt,
-      userAgent,
-      ipAddress,
-    },
+  await repo.createRefreshToken({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    token: hashedToken,
+    expiresAt,
+    userAgent,
+    ipAddress,
   });
 
   // Update last login timestamp
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLoginAt: new Date() },
-  });
+  await repo.updateUserLastLoginAt(user.id);
 
   await logActivity({
     actorId: user.id,
@@ -170,14 +148,7 @@ export async function rotateSession(
 ): Promise<LoginResult | null> {
   const hashedToken = hashRefreshToken(tokenPlain);
 
-  const refreshTokenRecord = await prisma.refreshToken.findFirst({
-    where: { token: hashedToken, revokedAt: null },
-    include: {
-      user: {
-        include: { employee: true },
-      },
-    },
-  });
+  const refreshTokenRecord = await repo.findRefreshTokenForRotationByToken(hashedToken);
 
   if (!refreshTokenRecord || refreshTokenRecord.expiresAt < new Date()) {
     await logActivity({
@@ -195,25 +166,20 @@ export async function rotateSession(
   const user = refreshTokenRecord.user;
 
   // Revoke old token
-  await prisma.refreshToken.update({
-    where: { id: refreshTokenRecord.id },
-    data: { revokedAt: new Date() },
-  });
+  await repo.revokeRefreshTokenById(refreshTokenRecord.id);
 
   // Generate new refresh token
   const newRefreshTokenPlain = generateRefreshToken();
   const newHashedToken = hashRefreshToken(newRefreshTokenPlain);
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-  await prisma.refreshToken.create({
-    data: {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      token: newHashedToken,
-      expiresAt,
-      userAgent,
-      ipAddress,
-    },
+  await repo.createRefreshToken({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    token: newHashedToken,
+    expiresAt,
+    userAgent,
+    ipAddress,
   });
 
   await logActivity({
@@ -240,21 +206,13 @@ export async function rotateSession(
 export async function logoutUser(tokenPlain: string, userId: string, actorRole: string): Promise<boolean> {
   const hashedToken = hashRefreshToken(tokenPlain);
 
-  const user = await prisma.user.findFirst({
-    where: { id: userId },
-    include: { employee: true },
-  });
+  const user = await repo.findUserWithEmployeeById(userId);
   const actorName = user?.employee?.name || user?.email || "User";
 
-  const refreshTokenRecord = await prisma.refreshToken.findFirst({
-    where: { token: hashedToken, userId },
-  });
+  const refreshTokenRecord = await repo.findRefreshTokenByTokenAndUserId(hashedToken, userId);
 
   if (refreshTokenRecord) {
-    await prisma.refreshToken.update({
-      where: { id: refreshTokenRecord.id },
-      data: { revokedAt: new Date() },
-    });
+    await repo.revokeRefreshTokenById(refreshTokenRecord.id);
   }
 
   await logActivity({
@@ -270,10 +228,7 @@ export async function logoutUser(tokenPlain: string, userId: string, actorRole: 
 }
 
 export async function requestPasswordReset(email: string): Promise<string | null> {
-  const user = await prisma.user.findFirst({
-    where: { email, deletedAt: null },
-    include: { employee: true },
-  });
+  const user = await repo.findUserWithEmployeeByEmail(email);
 
   if (!user) {
     // Generate a log for non-existent email safely
@@ -293,13 +248,11 @@ export async function requestPasswordReset(email: string): Promise<string | null
   const hashedResetToken = hashRefreshToken(resetToken);
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-  await prisma.passwordResetToken.create({
-    data: {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      token: hashedResetToken,
-      expiresAt,
-    },
+  await repo.createPasswordResetToken({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    token: hashedResetToken,
+    expiresAt,
   });
 
   await logActivity({
@@ -316,14 +269,7 @@ export async function requestPasswordReset(email: string): Promise<string | null
 
 export async function resetPasswordWithToken(token: string, newPassword: string): Promise<boolean> {
   const hashedResetToken = hashRefreshToken(token);
-  const resetTokenRecord = await prisma.passwordResetToken.findFirst({
-    where: { token: hashedResetToken, usedAt: null },
-    include: {
-      user: {
-        include: { employee: true },
-      },
-    },
-  });
+  const resetTokenRecord = await repo.findUnusedPasswordResetTokenWithUser(hashedResetToken);
 
   if (!resetTokenRecord || resetTokenRecord.expiresAt < new Date()) {
     return false;
@@ -333,21 +279,11 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
   const passwordHash = await argon2.hash(newPassword);
 
   // Update user password and mark token as used
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
-    }),
-    prisma.passwordResetToken.update({
-      where: { id: resetTokenRecord.id },
-      data: { usedAt: new Date() },
-    }),
-    // Revoke all refresh tokens
-    prisma.refreshToken.updateMany({
-      where: { userId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    }),
-  ]);
+  await repo.resetUserPasswordAndRevokeSessions({
+    userId: user.id,
+    resetTokenId: resetTokenRecord.id,
+    passwordHash,
+  });
 
   await logActivity({
     actorId: user.id,
@@ -368,9 +304,7 @@ export async function changePassword(
   actorName: string,
   actorRole: string
 ): Promise<boolean> {
-  const user = await prisma.user.findFirst({
-    where: { id: userId, deletedAt: null },
-  });
+  const user = await repo.findUserById(userId);
 
   if (!user) return false;
 
@@ -382,10 +316,7 @@ export async function changePassword(
 
   const passwordHash = await argon2.hash(newPassword);
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash },
-  });
+  await repo.updateUserPassword(userId, passwordHash);
 
   await logActivity({
     actorId: userId,
@@ -400,23 +331,7 @@ export async function changePassword(
 }
 
 export async function getCurrentUserAccount(userId: string) {
-  const user = await prisma.user.findFirst({
-    where: { id: userId, deletedAt: null },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      isActive: true,
-      lastLoginAt: true,
-      employee: {
-        select: {
-          name: true,
-          employeeId: true,
-          nik: true,
-        },
-      },
-    },
-  });
+  const user = await repo.findCurrentUserAccount(userId);
 
   if (!user) return null;
 
@@ -433,16 +348,11 @@ export async function getCurrentUserAccount(userId: string) {
 }
 
 export async function revokeSession(userId: string, tokenId: string, actorName: string, actorRole: string): Promise<boolean> {
-  const tokenRecord = await prisma.refreshToken.findFirst({
-    where: { id: tokenId, userId },
-  });
+  const tokenRecord = await repo.findRefreshTokenByIdAndUserId(tokenId, userId);
 
   if (!tokenRecord) return false;
 
-  await prisma.refreshToken.update({
-    where: { id: tokenId },
-    data: { revokedAt: new Date() },
-  });
+  await repo.revokeRefreshTokenById(tokenId);
 
   await logActivity({
     actorId: userId,
@@ -458,10 +368,7 @@ export async function revokeSession(userId: string, tokenId: string, actorName: 
 }
 
 export async function revokeAllSessions(userId: string, actorName: string, actorRole: string): Promise<boolean> {
-  await prisma.refreshToken.updateMany({
-    where: { userId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  await repo.revokeActiveRefreshTokensByUserId(userId);
 
   await logActivity({
     actorId: userId,

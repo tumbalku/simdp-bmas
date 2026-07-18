@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { logActivity } from "@/modules/security/service";
 import { TokenPayload } from "@/lib/auth";
@@ -7,6 +6,7 @@ import { PAGINATION } from "@/constants/pagination";
 import { bigIntToNumber } from "@/lib/utils";
 import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification/constants";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import * as repo from "./repositories/common";
 
 export async function getVerificationQueue(filter: {
   page?: number;
@@ -40,21 +40,11 @@ export async function getVerificationQueue(filter: {
     }
   }
 
-  const [items, totalItems] = await prisma.$transaction([
-    prisma.documentRecord.findMany({
-      where,
-      include: {
-        owner: {
-          include: { workplace: true },
-        },
-        documentType: true,
-      },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { uploadedAt: "desc" },
-    }),
-    prisma.documentRecord.count({ where }),
-  ]);
+  const [items, totalItems] = await repo.findPendingDocumentsWithCount({
+    where,
+    page,
+    pageSize,
+  });
 
   const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -100,13 +90,7 @@ export async function verifyDocument(
   reviewerRole: string
 ) {
   // Find document record
-  const doc = await prisma.documentRecord.findFirst({
-    where: { id, deletedAt: null },
-    include: {
-      owner: true,
-      documentType: true,
-    },
-  });
+  const doc = await repo.findDocumentForVerification(id);
 
   if (!doc) throw new Error("Dokumen tidak ditemukan atau sudah dihapus");
 
@@ -114,26 +98,12 @@ export async function verifyDocument(
     throw new Error("Catatan penolakan (note) wajib diisi minimal 5 karakter.");
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    // 1. Update DocumentRecord status
-    const updatedDoc = await tx.documentRecord.update({
-      where: { id },
-      data: { status: decision, updatedAt: new Date() },
-    });
-
-    // 2. Add VerificationHistory record
-    await tx.verificationHistory.create({
-      data: {
-        id: crypto.randomUUID(),
-        documentRecordId: id,
-        status: decision,
-        reviewedById: reviewerId,
-        reviewNote: note || null,
-        reviewedAt: new Date(),
-      },
-    });
-
-    return updatedDoc;
+  const result = await repo.updateDocumentVerificationStatus({
+    id,
+    status: decision,
+    verificationHistoryId: crypto.randomUUID(),
+    reviewerId,
+    reviewNote: note,
   });
 
   // 3. Send notification to the document owner via the notification service boundary
@@ -167,10 +137,7 @@ export async function verifyDocument(
 }
 
 export async function getVerificationHistory(documentId: string, session: TokenPayload) {
-  const doc = await prisma.documentRecord.findUnique({
-    where: { id: documentId, deletedAt: null },
-    include: { owner: true },
-  });
+  const doc = await repo.findDocumentWithOwner(documentId);
 
   if (!doc) throw new Error("Dokumen tidak ditemukan");
 
@@ -181,15 +148,7 @@ export async function getVerificationHistory(documentId: string, session: TokenP
     }
   }
 
-  const histories = await prisma.verificationHistory.findMany({
-    where: { documentRecordId: documentId },
-    include: {
-      reviewedBy: {
-        include: { employee: true },
-      },
-    },
-    orderBy: { reviewedAt: "desc" },
-  });
+  const histories = await repo.findVerificationHistories(documentId);
 
   return histories.map((vh) => ({
     id: vh.id,
@@ -205,21 +164,7 @@ export async function getVerificationHistory(documentId: string, session: TokenP
 }
 
 export async function getVerificationDocumentDetail(documentId: string, session: TokenPayload) {
-  const record = await prisma.documentRecord.findUnique({
-    where: { id: documentId, deletedAt: null },
-    include: {
-      documentType: {
-        select: { id: true, name: true, archiveCategory: true, code: true, description: true },
-      },
-      owner: {
-        include: { workplace: true },
-      },
-      verificationHistories: {
-        orderBy: { reviewedAt: "desc" },
-        include: { reviewedBy: { select: { email: true, employee: { select: { name: true } } } } },
-      },
-    },
-  });
+  const record = await repo.findVerificationDocumentDetail(documentId);
 
   if (!record) throw new Error("Dokumen tidak ditemukan");
 

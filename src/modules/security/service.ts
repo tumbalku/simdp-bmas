@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { PAGINATION } from "@/constants/pagination";
 import {
@@ -8,6 +7,7 @@ import {
   type SecurityActorRole,
   type SecurityLogStatus,
 } from "./constants";
+import * as repo from "./repositories/common";
 
 export type LogActivityInput = {
   actorId?: string | null;
@@ -22,18 +22,16 @@ export type LogActivityInput = {
 
 export async function logActivity(input: LogActivityInput): Promise<void> {
   try {
-    await prisma.securityLog.create({
-      data: {
-        id: crypto.randomUUID(),
-        actorId: input.actorId || null,
-        actorName: input.actorName,
-        actorRole: normalizeSecurityActorRole(input.actorRole),
-        eventType: input.eventType,
-        resource: input.resource,
-        ipAddress: input.ipAddress || null,
-        status: normalizeSecurityLogStatus(input.status),
-        metadata: input.metadata ?? undefined,
-      },
+    await repo.createSecurityLog({
+      id: crypto.randomUUID(),
+      actorId: input.actorId || null,
+      actorName: input.actorName,
+      actorRole: normalizeSecurityActorRole(input.actorRole),
+      eventType: input.eventType,
+      resource: input.resource,
+      ipAddress: input.ipAddress || null,
+      status: normalizeSecurityLogStatus(input.status),
+      metadata: input.metadata,
     });
   } catch (error) {
     console.error("Gagal mencatat log aktivitas keamanan:", error);
@@ -87,15 +85,11 @@ export async function getSecurityLogs(filter: {
     ];
   }
 
-  const [items, totalItems] = await prisma.$transaction([
-    prisma.securityLog.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { timestamp: "desc" },
-    }),
-    prisma.securityLog.count({ where }),
-  ]);
+  const [items, totalItems] = await repo.findSecurityLogsWithCount({
+    where,
+    page,
+    pageSize,
+  });
 
   const totalPages = Math.ceil(totalItems / pageSize);
 

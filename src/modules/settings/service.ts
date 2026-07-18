@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/modules/security/service";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import * as repo from "./repositories/common";
 
 const DEFAULTS = [
   {
@@ -36,14 +36,12 @@ const DEFAULTS = [
 ];
 
 export async function getSystemSettings() {
-  let settings = await prisma.systemSetting.findMany();
+  let settings = await repo.findSystemSettings();
 
   if (settings.length === 0) {
     // Seed defaults
-    await prisma.systemSetting.createMany({
-      data: DEFAULTS,
-    });
-    settings = await prisma.systemSetting.findMany();
+    await repo.createDefaultSystemSettings(DEFAULTS);
+    settings = await repo.findSystemSettings();
   }
 
   return settings;
@@ -55,18 +53,7 @@ export async function updateSettings(
   actorName: string,
   actorRole: string
 ) {
-  await prisma.$transaction(
-    settingsList.map((setting) =>
-      prisma.systemSetting.update({
-        where: { key: setting.key },
-        data: {
-          value: setting.value,
-          updatedBy: userId,
-          updatedAt: new Date(),
-        },
-      })
-    )
-  );
+  await repo.updateSystemSettings(settingsList, userId);
 
   await logActivity({
     actorId: userId,
