@@ -5,8 +5,8 @@ import { AlertCircle, AlertTriangle, Clock, FileText, RefreshCw, ShieldCheck, Tr
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { MetricCard } from "@/components/shared/MetricCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
+import { MetricCard } from "@/components/cards/MetricCard";
 import { EmptyState } from "./StatisticsCharts";
 import { StatisticsSkeleton } from "./StatisticsSkeleton";
 import { StatisticsTabs } from "./StatisticsTabs";

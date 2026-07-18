@@ -15,7 +15,7 @@ import {
   chartTooltipStyle,
   getChartColor,
   defaultValueFormatter,
-} from "@/lib/chartUtils";
+} from "@/utils/chart";
 
 export type ChartDatum = Record<string, string | number | null | undefined>;
 

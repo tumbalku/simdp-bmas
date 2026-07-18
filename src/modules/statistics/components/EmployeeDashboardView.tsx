@@ -10,8 +10,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { MetricCard } from "@/components/shared/MetricCard";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { MetricCard } from "@/components/cards/MetricCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -34,7 +34,7 @@ import {
   DOCUMENT_STATUS_VARIANTS,
   type DocumentStatus,
 } from "@/modules/document";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 
 type RecentUpload = {
   id: string;

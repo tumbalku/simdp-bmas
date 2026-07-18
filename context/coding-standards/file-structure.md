@@ -84,9 +84,12 @@ src/app/
 
 ```txt
 src/components/
-├── ui/        # shadcn/ui primitives
-├── layout/    # Sidebar, Navbar, PageHeader
-└── shared/    # StatusBadge, EmptyState, DataTable wrapper
+├── ui/          # shadcn/ui primitives
+├── cards/       # InfoCard, MetricCard, field display helpers
+├── charts/      # reusable chart primitives/wrappers
+├── navigation/  # Navbar, Sidebar, PageHeader, navigation panels
+├── providers/   # app-level React providers
+└── tables/      # DataTable, pagination, filters, table view controls
 ```
 
 Komponen umum wajib memakai shadcn/ui atau wrapper internal berbasis shadcn/ui.
@@ -95,12 +98,22 @@ Komponen umum wajib memakai shadcn/ui atau wrapper internal berbasis shadcn/ui.
 
 ```txt
 src/lib/
-├── prisma.ts
-├── jwt.ts
-├── auth-utils.ts
+├── api-response.ts
+├── auth.ts
 ├── env.ts
-├── api-client.ts
+├── errors.ts
+├── events/
+├── notifications/
+├── prisma.ts
 └── storage/
+```
+
+`src/lib/` disimpan untuk infrastruktur, adapter/provider, singleton, dan boundary runtime server/client. Helper umum non-infrastruktur berada di:
+
+```txt
+src/utils/
+├── index.ts    # cn(), bigIntToNumber(), helper umum kecil
+└── chart.ts    # helper chart color/formatter
 ```
 
 `src/lib/storage/` adalah satu-satunya tempat yang boleh tahu detail SDK/file system provider.

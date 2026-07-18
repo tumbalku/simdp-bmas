@@ -1,6 +1,6 @@
 import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
 
-import { MetricCard } from "@/components/shared/MetricCard";
+import { MetricCard } from "@/components/cards/MetricCard";
 
 type SecurityLogMetricsProps = {
   totalItems: number;

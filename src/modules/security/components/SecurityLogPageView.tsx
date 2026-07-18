@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 
-import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
-import { DataTableCard } from "@/components/shared/DataTableCard";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { PaginationItems } from "@/components/shared/PaginationItems";
+import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
+import { DataTableCard } from "@/components/tables/DataTableCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
+import { PaginationItems } from "@/components/tables/PaginationItems";
 import { Badge } from "@/components/ui/badge";
 import {
   Pagination,

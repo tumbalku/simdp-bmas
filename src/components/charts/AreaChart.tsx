@@ -17,8 +17,8 @@ import {
   getChartColor,
   toNumber,
   type ChartValue,
-} from "@/lib/chartUtils";
-import { cn } from "@/lib/utils";
+} from "@/utils/chart";
+import { cn } from "@/utils";
 
 type AreaChartDatum = Record<string, ChartValue>;
 

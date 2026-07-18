@@ -2,7 +2,7 @@ import { ArrowRight, FileCheck2, ShieldCheck, UsersRound } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatisticsDashboardPreview } from "@/modules/statistics/components/StatisticsDashboardPreview";
-import Navbar from "@/components/shared/Navbar";
+import Navbar from "@/components/navigation/Navbar";
 import Link from "next/link";
 
 const features = [

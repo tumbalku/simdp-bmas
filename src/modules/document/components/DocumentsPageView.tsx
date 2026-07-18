@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Clock3, FileText, FileWarning, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { MetricCard } from "@/components/shared/MetricCard";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { MetricCard } from "@/components/cards/MetricCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,

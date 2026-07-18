@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Archive, Eye, FileText, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
-import { DataTableCard } from "@/components/shared/DataTableCard";
-import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
-import { PaginationItems } from "@/components/shared/PaginationItems";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { RowsPerPageControl } from "@/components/shared/RowsPerPageControl";
-import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
+import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
+import { DataTableCard } from "@/components/tables/DataTableCard";
+import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { PaginationItems } from "@/components/tables/PaginationItems";
+import { PageHeader } from "@/components/navigation/PageHeader";
+import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
+import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
 import {
   AlertDialog,
   AlertDialogAction,
