@@ -379,6 +379,12 @@ describe("Document Module Service", () => {
         fileName: "198501012010011001_PERSONAL_PDF_20260115_1.pdf",
         filePath: "uploads/PDF/198501012010011001_PERSONAL_PDF_20260115_1.pdf",
       });
+      mockPrisma.documentRecord.update.mockResolvedValue({
+        id: "doc-1",
+        status: "PENDING",
+        fileName: "198501012010011001_PERSONAL_PDF_20260115_1.pdf",
+        filePath: "uploads/PDF/PDF-1-user-1.pdf",
+      });
 
       // Valid PDF magic bytes: %PDF (25 50 44 46)
       const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0x00])], "test.pdf", {
@@ -564,6 +570,25 @@ describe("Document Module Service", () => {
       };
 
       mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+      mockPrisma.documentRecord.findUniqueOrThrow.mockResolvedValue({
+        title: null,
+        status: "APPROVED",
+        isCurrent: true,
+        fileName: "KTP-1-empId-1.pdf",
+        filePath: "uploads/KTP/KTP-1-empId-1.pdf",
+        fileSize: BigInt(10),
+        mimeType: "application/pdf",
+        fileHash: "old-hash",
+        storageProvider: "LOCAL",
+        documentNumber: null,
+        issueDate: null,
+        expiryDate: null,
+        updatedBy: null,
+        uploadedAt: new Date("2026-01-01T00:00:00.000Z"),
+        reminderH30SentAt: null,
+        reminderH7SentAt: null,
+        reminderH1SentAt: null,
+      });
       mockPrisma.documentRecord.count.mockResolvedValue(1);
       mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }]);
       mockPrisma.documentRecord.update.mockResolvedValue({

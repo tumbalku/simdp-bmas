@@ -160,6 +160,7 @@ export const mockPrisma = {
   },
   documentRecord: {
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),

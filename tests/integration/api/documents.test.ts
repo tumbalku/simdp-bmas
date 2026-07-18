@@ -146,6 +146,7 @@ describe("Documents Stream Integration API", () => {
         id: "doc-type-1",
         code: "PDF",
         name: "PDF Doc Type",
+        archiveCategory: "PERSONAL",
         requiresDocumentNumber: false,
         requiresIssueDate: false,
         requiresExpiryDate: false,
@@ -161,6 +162,12 @@ describe("Documents Stream Integration API", () => {
       mockPrisma.documentRecord.count.mockResolvedValue(0);
       mockPrisma.documentRecord.findMany.mockResolvedValue([]);
       mockPrisma.documentRecord.create.mockResolvedValue({
+        id: "doc-rec-1",
+        status: "PENDING",
+        fileName: "PDF-1-empId-1.pdf",
+        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+      });
+      mockPrisma.documentRecord.update.mockResolvedValue({
         id: "doc-rec-1",
         status: "PENDING",
         fileName: "PDF-1-empId-1.pdf",

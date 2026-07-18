@@ -73,65 +73,76 @@ export async function processExpiredDocumentsAndReminders() {
     H7: 0,
     H1: 0,
   };
+  const reminderErrors: Array<{ documentRecordId: string; errorMessage: string }> = [];
 
   const dateString = (d: Date) => d.toISOString().split("T")[0];
+  const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : "Unknown error");
 
   for (const doc of docsToRemind) {
-    if (!doc.expiryDate) continue;
-    if (isSameUtcDate(doc.expiryDate, h30Date) && !doc.reminderH30SentAt) {
-      const title = "Peringatan Kedaluwarsa Dokumen (H-30)";
-      const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
-        doc.expiryDate
-      )}).`;
-      await repo.updateReminderSentAt({
+    try {
+      if (!doc.expiryDate) continue;
+      if (isSameUtcDate(doc.expiryDate, h30Date) && !doc.reminderH30SentAt) {
+        const title = "Peringatan Kedaluwarsa Dokumen (H-30)";
+        const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
+          doc.expiryDate
+        )}).`;
+        await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
+          userId: doc.owner.userId,
+          documentRecordId: doc.id,
+          documentTypeName: doc.documentType.name,
+          title,
+          message,
+          reminderStage: "H30",
+        });
+        await repo.updateReminderSentAt({
+          documentRecordId: doc.id,
+          reminderField: "reminderH30SentAt",
+        });
+        remindersSent.H30++;
+      } else if (isSameUtcDate(doc.expiryDate, h7Date) && !doc.reminderH7SentAt) {
+        const title = "Peringatan Kedaluwarsa Dokumen (H-7)";
+        const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
+          doc.expiryDate
+        )}).`;
+        await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
+          userId: doc.owner.userId,
+          documentRecordId: doc.id,
+          documentTypeName: doc.documentType.name,
+          title,
+          message,
+          reminderStage: "H7",
+        });
+        await repo.updateReminderSentAt({
+          documentRecordId: doc.id,
+          reminderField: "reminderH7SentAt",
+        });
+        remindersSent.H7++;
+      } else if (isSameUtcDate(doc.expiryDate, h1Date) && !doc.reminderH1SentAt) {
+        const title = "Peringatan Kedaluwarsa Dokumen (H-1)";
+        const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
+          doc.expiryDate
+        )}).`;
+        await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
+          userId: doc.owner.userId,
+          documentRecordId: doc.id,
+          documentTypeName: doc.documentType.name,
+          title,
+          message,
+          reminderStage: "H1",
+        });
+        await repo.updateReminderSentAt({
+          documentRecordId: doc.id,
+          reminderField: "reminderH1SentAt",
+        });
+        remindersSent.H1++;
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      console.error("[ExpiryCron] Failed to process document reminder", {
         documentRecordId: doc.id,
-        reminderField: "reminderH30SentAt",
+        error,
       });
-      await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
-        userId: doc.owner.userId,
-        documentRecordId: doc.id,
-        documentTypeName: doc.documentType.name,
-        title,
-        message,
-        reminderStage: "H30",
-      });
-      remindersSent.H30++;
-    } else if (isSameUtcDate(doc.expiryDate, h7Date) && !doc.reminderH7SentAt) {
-      const title = "Peringatan Kedaluwarsa Dokumen (H-7)";
-      const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
-        doc.expiryDate
-      )}).`;
-      await repo.updateReminderSentAt({
-        documentRecordId: doc.id,
-        reminderField: "reminderH7SentAt",
-      });
-      await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
-        userId: doc.owner.userId,
-        documentRecordId: doc.id,
-        documentTypeName: doc.documentType.name,
-        title,
-        message,
-        reminderStage: "H7",
-      });
-      remindersSent.H7++;
-    } else if (isSameUtcDate(doc.expiryDate, h1Date) && !doc.reminderH1SentAt) {
-      const title = "Peringatan Kedaluwarsa Dokumen (H-1)";
-      const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
-        doc.expiryDate
-      )}).`;
-      await repo.updateReminderSentAt({
-        documentRecordId: doc.id,
-        reminderField: "reminderH1SentAt",
-      });
-      await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
-        userId: doc.owner.userId,
-        documentRecordId: doc.id,
-        documentTypeName: doc.documentType.name,
-        title,
-        message,
-        reminderStage: "H1",
-      });
-      remindersSent.H1++;
+      reminderErrors.push({ documentRecordId: doc.id, errorMessage });
     }
   }
 
@@ -141,7 +152,7 @@ export async function processExpiredDocumentsAndReminders() {
     eventType: SECURITY_EVENT_TYPE.CRON_CHECK_EXPIRY_RUN,
     resource: "CronCheckExpiry",
     status: SECURITY_LOG_STATUS.SUCCESS,
-    metadata: { expiredCount, remindersSent },
+    metadata: { expiredCount, remindersSent, reminderErrors },
   });
 
   return {
