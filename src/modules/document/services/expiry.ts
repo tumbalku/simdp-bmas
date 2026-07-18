@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import { EVENT_NAMES, publishEvent } from "@/lib/events";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repository";
@@ -64,57 +64,58 @@ export async function processExpiredDocumentsAndReminders() {
     if (!doc.expiryDate) continue;
     const docTime = doc.expiryDate.getTime();
 
-    const { enqueueNotificationDispatch } = await import("@/modules/notification/server");
-
     if (docTime === h30Date.getTime() && !doc.reminderH30SentAt) {
-      const notificationId = crypto.randomUUID();
-      await repo.createNotificationAndUpdateReminder({
-        notificationId,
-        userId: doc.owner.userId,
-        title: "Peringatan Kedaluwarsa Dokumen (H-30)",
-        message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
-          doc.expiryDate
-        )}).`,
-        relatedEntityId: doc.id,
+      const title = "Peringatan Kedaluwarsa Dokumen (H-30)";
+      const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
+        doc.expiryDate
+      )}).`;
+      await repo.updateReminderSentAt({
         documentRecordId: doc.id,
         reminderField: "reminderH30SentAt",
       });
-      await enqueueNotificationDispatch({ notificationId, userId: doc.owner.userId }).catch((err) => {
-        console.error("Failed to enqueue expiry reminder notification H30:", err);
+      await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
+        userId: doc.owner.userId,
+        documentRecordId: doc.id,
+        documentTypeName: doc.documentType.name,
+        title,
+        message,
+        reminderStage: "H30",
       });
       remindersSent.H30++;
     } else if (docTime === h7Date.getTime() && !doc.reminderH7SentAt) {
-      const notificationId = crypto.randomUUID();
-      await repo.createNotificationAndUpdateReminder({
-        notificationId,
-        userId: doc.owner.userId,
-        title: "Peringatan Kedaluwarsa Dokumen (H-7)",
-        message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
-          doc.expiryDate
-        )}).`,
-        relatedEntityId: doc.id,
+      const title = "Peringatan Kedaluwarsa Dokumen (H-7)";
+      const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
+        doc.expiryDate
+      )}).`;
+      await repo.updateReminderSentAt({
         documentRecordId: doc.id,
         reminderField: "reminderH7SentAt",
       });
-      await enqueueNotificationDispatch({ notificationId, userId: doc.owner.userId }).catch((err) => {
-        console.error("Failed to enqueue expiry reminder notification H7:", err);
+      await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
+        userId: doc.owner.userId,
+        documentRecordId: doc.id,
+        documentTypeName: doc.documentType.name,
+        title,
+        message,
+        reminderStage: "H7",
       });
       remindersSent.H7++;
     } else if (docTime === h1Date.getTime() && !doc.reminderH1SentAt) {
-      const notificationId = crypto.randomUUID();
-      await repo.createNotificationAndUpdateReminder({
-        notificationId,
-        userId: doc.owner.userId,
-        title: "Peringatan Kedaluwarsa Dokumen (H-1)",
-        message: `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
-          doc.expiryDate
-        )}).`,
-        relatedEntityId: doc.id,
+      const title = "Peringatan Kedaluwarsa Dokumen (H-1)";
+      const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
+        doc.expiryDate
+      )}).`;
+      await repo.updateReminderSentAt({
         documentRecordId: doc.id,
         reminderField: "reminderH1SentAt",
       });
-      await enqueueNotificationDispatch({ notificationId, userId: doc.owner.userId }).catch((err) => {
-        console.error("Failed to enqueue expiry reminder notification H1:", err);
+      await publishEvent(EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED, {
+        userId: doc.owner.userId,
+        documentRecordId: doc.id,
+        documentTypeName: doc.documentType.name,
+        title,
+        message,
+        reminderStage: "H1",
       });
       remindersSent.H1++;
     }

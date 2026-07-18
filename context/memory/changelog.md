@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #163: Menambahkan internal event bus berbasis Inngest untuk side effect lintas modul notification, termasuk event typed terpusat, publisher wrapper, subscriber Inngest, dan pemindahan dispatch/verification/expiry notification flow ke publish-subscribe.
 - Issue #162: Menegakkan public API boundary root `index.ts` untuk import module, mengalihkan deep import service/actions/constants/types/schema ke `@/modules/<module>`, dan menambahkan ESLint guard `no-restricted-imports`.
 - Issue #161: Menormalkan root `actions`, `schema`, `types`, `mappers`, `constants`, dan `hooks` menjadi folder-based module files dengan root facade re-export agar import publik tetap kompatibel.
 - Issue #160: Memecah root service besar pada modul `auth`, `notification`, `security`, `settings`, `statistics`, dan `verification` menjadi service per responsibility di folder `services/`, sambil mempertahankan `service.ts` sebagai facade re-export.

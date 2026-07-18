@@ -1,6 +1,6 @@
 import crypto from "crypto";
+import { EVENT_NAMES, publishEvent } from "@/lib/events";
 import { logActivity } from "@/modules/security/server";
-import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repositories/common";
 
@@ -28,17 +28,20 @@ export async function verifyDocument(
     reviewNote: note,
   });
 
-  const { createNotification } = await import("@/modules/notification/server");
-  await createNotification({
-    userId: doc.owner.userId,
-    type: NOTIFICATION_TYPE.DOCUMENT_STATUS,
-    title: decision === "APPROVED" ? "Dokumen Disetujui" : "Dokumen Ditolak",
-    message: `Dokumen ${doc.documentType.name} Anda telah ${
-      decision === "APPROVED" ? "disetujui" : "ditolak"
-    }.${note ? ` Catatan: ${note}` : ""}`,
-    relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
-    relatedEntityId: id,
-  });
+  if (decision === "APPROVED") {
+    await publishEvent(EVENT_NAMES.VERIFICATION_APPROVED, {
+      userId: doc.owner.userId,
+      documentRecordId: id,
+      documentTypeName: doc.documentType.name,
+    });
+  } else {
+    await publishEvent(EVENT_NAMES.VERIFICATION_REJECTED, {
+      userId: doc.owner.userId,
+      documentRecordId: id,
+      documentTypeName: doc.documentType.name,
+      note: note ?? "",
+    });
+  }
 
   await logActivity({
     actorId: reviewerId,

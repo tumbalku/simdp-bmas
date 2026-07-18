@@ -9,6 +9,15 @@ import {
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
+vi.mock("@/lib/events", () => ({
+  EVENT_NAMES: {
+    NOTIFICATION_DISPATCH_REQUESTED: "notification/dispatch.requested",
+  },
+  publishEvent: vi.fn(),
+}));
+
+import { EVENT_NAMES, publishEvent } from "@/lib/events";
+
 describe("Notification Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -112,6 +121,10 @@ describe("Notification Module Service", () => {
           }),
         })
       );
+      expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, {
+        notificationId: "mock-uuid",
+        userId: "user-1",
+      });
     });
   });
 

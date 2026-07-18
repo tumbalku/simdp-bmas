@@ -10,6 +10,14 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Dampak ke modul: security, auth/document/employee/settings callers, Prisma migration, seed, UI filter security log.
 - Referensi: #141, #142.
 
+## [2026-07-18] Internal Event Bus untuk Side Effect Notification
+- Konteks: Alur verifikasi dokumen, reminder kedaluwarsa, dan dispatch notification masih memiliki coupling langsung antar modul.
+- Keputusan: SIMDP memakai internal event bus berbasis Inngest untuk side effect notification lintas modul. Event name dan payload type dipusatkan di `src/lib/events/`, publisher memakai wrapper `publishEvent()`, dan subscriber terdaftar di route Inngest.
+- Alasan: Modul domain cukup mempublikasikan fakta domain, sementara modul notification menjalankan side effect miliknya sendiri secara async.
+- Batasan: Refaktor ini mencakup side effect notification. Audit trail `logActivity()` tetap panggilan service langsung karena append-only audit masih bagian dari flow sensitif yang harus deterministik.
+- Dampak ke modul: document, verification, notification, lib events, route Inngest.
+- Referensi: #163.
+
 ## [2026-07-18] Remaining Canonical Prisma Enums
 - Konteks: `Employee.religion`, `DocumentRecord.storageProvider`, dan `Notification.type`/`relatedEntityType` masih berupa string walau option/constants canonical sudah tersedia.
 - Keputusan: Tambahkan Prisma enum untuk agama pegawai, provider storage, tipe notifikasi, dan related entity notifikasi. `StorageProvider` dan `NotificationRelatedEntityType` memakai enum mapping Prisma agar DB tetap menyimpan nilai legacy kompatibel (`local`, `DocumentRecord`) sementara TypeScript memakai value canonical (`LOCAL`, `DOCUMENT_RECORD`).
