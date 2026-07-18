@@ -17,7 +17,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import type { UserRole } from "@/constants/roles";
 import { getNavItemsByRole, type NavItem } from "@/config/nav";
 import { ROUTES } from "@/constants/routes";

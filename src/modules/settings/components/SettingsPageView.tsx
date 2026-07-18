@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { BellRing, DatabaseBackup, Loader2, Save, ShieldCheck, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader } from "@/components/shared/PageHeader";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

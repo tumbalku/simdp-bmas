@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock3, KeyRound, Mail, ShieldCheck } from "lucide-react";
 
-import { PageHeader } from "@/components/shared/PageHeader";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS, type UserRole } from "@/constants";

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import { RowsPerPageControl, type RowsPerPageControlProps } from "./RowsPerPageControl";
 
 type DataTableCardProps = {

@@ -12,17 +12,17 @@ import {
   ChevronDown,
 } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils"
 import { Button } from "@/components/ui/button"
 import { getSessionProfileAction } from "@/modules/auth"
 import type { UserRole } from "@/constants/roles"
 import { getNavItemsByRole, type NavItem } from "@/config/nav"
 import { APP, ROUTES } from "@/constants"
-import { NotificationPanel } from "@/components/shared/navbar/NotificationPanel"
+import { NotificationPanel } from "@/components/navigation/navbar/NotificationPanel"
 import {
   UserProfileMenu,
   type NavbarProfile,
-} from "@/components/shared/navbar/UserProfileMenu"
+} from "@/components/navigation/navbar/UserProfileMenu"
 
 /* -------------------------------------------------------------------------- */
 /*  Data hook                                                                   */

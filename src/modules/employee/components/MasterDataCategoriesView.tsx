@@ -14,7 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { PageHeader } from "@/components/shared/PageHeader";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import { crudMasterDataAction } from "@/modules/employee";
 import {
   EMPLOYEE_CATEGORY_COPY,

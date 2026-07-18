@@ -1,7 +1,7 @@
 import { Briefcase, Calendar, GraduationCap, Heart, Mail, MapPin, Phone, ShieldCheck, User } from "lucide-react";
 
-import { InfoCard } from "@/components/shared/InfoCard";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { InfoCard } from "@/components/cards/InfoCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";

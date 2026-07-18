@@ -1,8 +1,8 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import Navbar from "@/components/shared/Navbar";
-import { SideBar } from "@/components/shared/Sidebar";
+import Navbar from "@/components/navigation/Navbar";
+import { SideBar } from "@/components/navigation/Sidebar";
 import { getSession } from "@/lib/auth";
 import type { UserRole } from "@/constants/roles";
 

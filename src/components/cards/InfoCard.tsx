@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils";
 import { InfoField, type InfoFieldVariant } from "./InfoField";
 
 export type InfoCardField = {

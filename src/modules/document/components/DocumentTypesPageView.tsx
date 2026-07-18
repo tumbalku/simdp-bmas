@@ -6,13 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
-import { DataTableCard } from "@/components/shared/DataTableCard";
-import { DocumentSearchFilter } from "@/components/shared/DocumentSearchFilter";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { PaginationItems } from "@/components/shared/PaginationItems";
-import { RowsPerPageControl } from "@/components/shared/RowsPerPageControl";
-import { ViewModeToggle } from "@/components/shared/ViewModeToggle";
+import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
+import { DataTableCard } from "@/components/tables/DataTableCard";
+import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { PageHeader } from "@/components/navigation/PageHeader";
+import { PaginationItems } from "@/components/tables/PaginationItems";
+import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
+import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
 import {
   AlertDialog,
   AlertDialogAction,

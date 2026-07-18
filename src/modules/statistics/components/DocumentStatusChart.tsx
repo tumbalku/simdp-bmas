@@ -1,7 +1,7 @@
 "use client";
 
 import { DonutChart } from "@/components/charts/DonutChart";
-import { defaultValueFormatter, getChartColor } from "@/lib/chartUtils";
+import { defaultValueFormatter, getChartColor } from "@/utils/chart";
 
 type DocumentStatusDatum = {
   status: string;

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Bell, CheckCheck, FileText, Inbox } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/utils"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

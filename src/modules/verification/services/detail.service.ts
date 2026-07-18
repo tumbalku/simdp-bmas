@@ -1,5 +1,5 @@
 import { TokenPayload } from "@/lib/auth";
-import { bigIntToNumber } from "@/lib/utils";
+import { bigIntToNumber } from "@/utils";
 import * as repo from "../repositories/common";
 
 export async function getVerificationDocumentDetail(documentId: string, session: TokenPayload) {

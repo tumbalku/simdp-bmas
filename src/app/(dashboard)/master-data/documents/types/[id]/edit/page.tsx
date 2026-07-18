@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { DocumentTypeFormPage } from "@/components/shared/DocumentTypeFormPage";
+import { DocumentTypeFormPage } from "@/modules/document/components/DocumentTypeFormPage";
 import { PAGINATION } from "@/constants";
 import { requireAuth } from "@/lib/auth";
 import { AppError } from "@/lib/errors";

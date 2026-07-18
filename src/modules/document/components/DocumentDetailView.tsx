@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { Calendar, CheckCircle2, Clock3, FileText, Hash, User, XCircle } from "lucide-react";
 
-import { InfoCard } from "@/components/shared/InfoCard";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { InfoCard } from "@/components/cards/InfoCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import {
   DocumentPreviewPanel,
   DocumentReviewLayout,
@@ -12,7 +12,7 @@ import {
   DocumentVerificationHistory,
   type ReviewInfoField,
   type ReviewStatusConfig,
-} from "@/components/shared/document-review";
+} from "@/modules/document/components/document-review";
 import { getDocumentPreviewUrlAction } from "@/modules/document";
 import { DownloadDocumentButton } from "@/modules/document/components/DownloadDocumentButton";
 

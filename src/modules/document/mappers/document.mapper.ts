@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { bigIntToNumber } from "@/lib/utils";
+import { bigIntToNumber } from "@/utils";
 
 export function mapDocumentRecord(record: any) {
   return {

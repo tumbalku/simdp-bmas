@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MetricCard } from "@/components/shared/MetricCard";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { MetricCard } from "@/components/cards/MetricCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Users, FileText, ShieldCheck, FileClock } from "lucide-react";
 import { DocumentStatusChart } from "./DocumentStatusChart";
 import { UploadTrendChart } from "./UploadTrendChart";

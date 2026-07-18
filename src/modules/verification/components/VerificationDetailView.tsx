@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { InfoCard } from "@/components/shared/InfoCard";
-import { PageHeader } from "@/components/shared/PageHeader";
+import { InfoCard } from "@/components/cards/InfoCard";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import {
   DocumentPreviewPanel,
   DocumentReviewLayout,
@@ -25,7 +25,7 @@ import {
   DocumentVerificationHistory,
   type ReviewInfoField,
   type ReviewStatusConfig,
-} from "@/components/shared/document-review";
+} from "@/modules/document/components/document-review";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
