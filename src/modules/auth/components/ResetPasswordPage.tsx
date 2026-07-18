@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthCardShell } from "./AuthCardShell";
-import { resetPasswordAction } from "@/modules/auth/actions";
+import { resetPasswordAction } from "@/modules/auth";
 import { id as defaultDictionary } from "@/i18n/dictionaries/id";
 
 const resetPasswordCopy = defaultDictionary.auth.resetPassword;

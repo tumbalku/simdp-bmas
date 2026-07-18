@@ -1,13 +1,4 @@
-export * from "./service";
+// Public API boundary for the employee module. Do not bypass this file from other modules.
 export * from "./constants";
-export {
-  getEmployeeDirectoryAction,
-  getEmployeeDirectoryWithPaginationAction,
-  getEmployeeDetailAction,
-  updateProfileAction,
-  crudEmployeeAction,
-  addCareerHistoryAction,
-  importEmployeesAction,
-  getMasterDataListAction,
-  crudMasterDataAction,
-} from "./actions";
+export * from "./schema";
+export * from "./actions";

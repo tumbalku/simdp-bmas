@@ -15,7 +15,7 @@ import {
   getEmployeeDetail,
   getEmployeeDirectoryWithPagination,
   getActorDisplayName,
-} from "@/modules/employee/service";
+} from "../service";
 import {
   updateProfileSchema,
   crudEmployeeSchema,

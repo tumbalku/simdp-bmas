@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ROUTES } from "@/constants";
-import { getDocumentRecordDetailAction } from "@/modules/document/actions";
+import { getDocumentRecordDetailAction } from "@/modules/document";
 import { DocumentDetailView } from "@/modules/document/components/DocumentDetailView";
 
 export const dynamic = "force-dynamic";

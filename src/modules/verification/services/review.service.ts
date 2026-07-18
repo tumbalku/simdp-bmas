@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import { logActivity } from "@/modules/security/service";
-import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification/constants";
-import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import { logActivity } from "@/modules/security/server";
+import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification";
+import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repositories/common";
 
 export async function verifyDocument(
@@ -28,7 +28,7 @@ export async function verifyDocument(
     reviewNote: note,
   });
 
-  const { createNotification } = await import("@/modules/notification/service");
+  const { createNotification } = await import("@/modules/notification/server");
   await createNotification({
     userId: doc.owner.userId,
     type: NOTIFICATION_TYPE.DOCUMENT_STATUS,

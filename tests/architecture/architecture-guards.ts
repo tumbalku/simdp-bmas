@@ -71,7 +71,7 @@ function findRepositoryBoundaryViolations(
   content: string
 ): ArchitectureViolation[] {
   const fileModule = getOwningModule(rootDir, filePath);
-  const importPattern = /from\s+["']@\/modules\/([^/]+)\/(?:repository|repositories\/[^"']+)["']/g;
+  const importPattern = /from\s+["']@\/modules\/([^/"'\s]+)\/(?:repository|repositories\/[^"']+)["']/g;
 
   return findMatches(content, importPattern)
     .filter((match) => match.groups[0] !== fileModule)

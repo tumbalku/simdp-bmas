@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { requireAuth } from "@/lib/auth";
 import { MasterDataEmployeeForm } from "@/modules/employee/components/MasterDataEmployeeForm";
-import { getEmployeeDetail, getMasterDataList } from "@/modules/employee/service";
+import { getEmployeeDetail, getMasterDataList } from "@/modules/employee/server";
 
 export const dynamic = "force-dynamic";
 

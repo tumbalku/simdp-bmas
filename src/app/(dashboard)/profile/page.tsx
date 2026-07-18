@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants";
-import { getSessionProfileAction } from "@/modules/auth/actions";
-import { getCurrentProfile } from "@/modules/employee/actions";
+import { getSessionProfileAction } from "@/modules/auth";
+import { getCurrentProfile } from "@/modules/employee";
 import { ProfilePageView } from "@/modules/employee/components/ProfilePageView";
 
 export const dynamic = "force-dynamic";

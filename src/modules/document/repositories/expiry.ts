@@ -1,4 +1,4 @@
-import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification/constants";
+import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification";
 import { prisma } from "./common";
 
 export async function findExpiredApprovedDocuments(now: Date) {

@@ -1,7 +1,3 @@
-export * from "./service";
+// Public API boundary for the verification module. Do not bypass this file from other modules.
 export * from "./constants";
-export {
-  verifyDocumentAction,
-  getVerificationDocumentDetailAction,
-  getVerificationDocumentPreviewUrlAction,
-} from "./actions";
+export * from "./actions";

@@ -3,8 +3,8 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PAGINATION } from "@/constants";
 import { requireAuth } from "@/lib/auth";
-import { getDocumentTypeOptionsAction } from "@/modules/document/actions";
-import { getVerificationQueue } from "@/modules/verification/actions";
+import { getDocumentTypeOptionsAction } from "@/modules/document";
+import { getVerificationQueue } from "@/modules/verification";
 import { VerificationQueueView } from "@/modules/verification/components/VerificationQueueView";
 
 export const dynamic = "force-dynamic";

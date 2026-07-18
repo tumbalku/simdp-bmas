@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants";
-import { getSystemSettings } from "@/modules/settings/actions";
+import { getSystemSettings } from "@/modules/settings";
 import { SettingsPageView } from "@/modules/settings/components/SettingsPageView";
 
 export const dynamic = "force-dynamic";

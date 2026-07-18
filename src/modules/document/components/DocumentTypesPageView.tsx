@@ -39,8 +39,8 @@ import {
   ARCHIVE_CATEGORY_LABELS,
   ARCHIVE_CATEGORY_OPTIONS,
   type ArchiveCategory,
-} from "@/modules/document/constants";
-import { crudDocumentTypeAction } from "@/modules/document/actions";
+} from "@/modules/document";
+import { crudDocumentTypeAction } from "@/modules/document";
 import { routeTo } from "@/constants/routes";
 
 type ViewMode = "grid" | "list";

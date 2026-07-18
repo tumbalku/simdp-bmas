@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { PAGINATION } from "@/constants";
-import { getEmployeeDirectoryWithPaginationAction } from "@/modules/employee/actions";
-import { getMasterDataList } from "@/modules/employee/service";
+import { getEmployeeDirectoryWithPaginationAction } from "@/modules/employee";
+import { getMasterDataList } from "@/modules/employee/server";
 import { MasterDataEmployeesView } from "@/modules/employee/components/MasterDataEmployeesView";
 
 export const dynamic = "force-dynamic";

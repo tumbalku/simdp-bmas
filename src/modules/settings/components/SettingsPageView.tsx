@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DATE_FORMATS, DATE_LOCALE } from "@/constants";
-import { updateSystemSettingAction } from "@/modules/settings/actions";
+import { updateSystemSettingAction } from "@/modules/settings";
 
 type SystemSetting = {
   key: string;

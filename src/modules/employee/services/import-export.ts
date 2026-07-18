@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { logActivity } from "@/modules/security/service";
-import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import { logActivity } from "@/modules/security/server";
+import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import { handleEmployeeCrud } from "./crud";
 import { canonicalGender, canonicalMaritalStatus, canonicalReligion } from "./shared";
 

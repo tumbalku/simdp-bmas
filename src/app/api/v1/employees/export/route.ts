@@ -1,8 +1,8 @@
 import { requireAuth } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
 import { AppError } from "@/lib/errors";
-import { employeeDirectorySchema } from "@/modules/employee/schema";
-import { exportEmployeeDirectoryCsv, getActorDisplayName } from "@/modules/employee/service";
+import { employeeDirectorySchema } from "@/modules/employee";
+import { exportEmployeeDirectoryCsv, getActorDisplayName } from "@/modules/employee/server";
 
 export const dynamic = "force-dynamic";
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { getDocumentRecordsAction, getDocumentTypeOptionsAction } from "@/modules/document/actions";
+import { getDocumentRecordsAction, getDocumentTypeOptionsAction } from "@/modules/document";
 import { DocumentsPageView } from "@/modules/document/components/DocumentsPageView";
 
 export const dynamic = "force-dynamic";

@@ -13,8 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { replaceDocumentFileAction, uploadDocumentAction } from "@/modules/document/actions";
-import type { DocumentTypeOption } from "@/modules/document/types";
+import { replaceDocumentFileAction, uploadDocumentAction } from "@/modules/document";
+import type { DocumentTypeOption } from "@/modules/document";
 
 type DocumentUploadInitialValues = {
   title?: string | null;

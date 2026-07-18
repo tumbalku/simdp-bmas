@@ -34,12 +34,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROUTES, routeTo } from "@/constants";
-import { DOCUMENT_STATUS_OPTIONS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document/constants";
+import { DOCUMENT_STATUS_OPTIONS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document";
 import {
   permanentDeleteDocumentAction,
   restoreDocumentAction,
   softDeleteDocumentAction,
-} from "@/modules/document/actions";
+} from "@/modules/document";
 
 type ViewMode = "grid" | "list";
 

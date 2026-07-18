@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getDocumentPreviewUrlAction } from "@/modules/document/actions";
+import { getDocumentPreviewUrlAction } from "@/modules/document";
 
 type DownloadDocumentButtonProps = {
   documentId: string;

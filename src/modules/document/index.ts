@@ -1,4 +1,6 @@
-export * from "./service";
+// Public API boundary for the document module. Do not bypass this file from other modules.
 export * from "./actions";
 export * from "./types";
 export * from "./constants";
+export * from "./schema";
+export * from "./target-rules";

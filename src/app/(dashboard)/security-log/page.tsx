@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { PAGINATION, ROUTES } from "@/constants";
-import { getSecurityLog } from "@/modules/security/actions";
+import { getSecurityLog } from "@/modules/security";
 import { SecurityLogPageView } from "@/modules/security/components/SecurityLogPageView";
 
 export const dynamic = "force-dynamic";

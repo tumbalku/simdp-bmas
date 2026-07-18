@@ -2,8 +2,8 @@
 import * as argon2 from "argon2";
 import crypto from "crypto";
 import { AppError } from "@/lib/errors";
-import { logActivity } from "@/modules/security/service";
-import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import { logActivity } from "@/modules/security/server";
+import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repository from "../repository";
 import { canonicalEmployeeStatus, canonicalGender, canonicalMaritalStatus, canonicalReligion } from "./shared";
 

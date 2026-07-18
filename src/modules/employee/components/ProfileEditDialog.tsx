@@ -25,13 +25,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { updateProfileAction } from "@/modules/employee/actions";
+import { updateProfileAction } from "@/modules/employee";
 import {
   MARITAL_STATUS_OPTIONS,
   RELIGION_OPTIONS,
   mapMaritalStatusLegacyToCanonical,
   mapReligionLegacyToCanonical,
-} from "@/modules/employee/constants";
+} from "@/modules/employee";
 
 type EditableProfileData = {
   phone: string;

@@ -1,5 +1,5 @@
-import { logActivity } from "@/modules/security/service";
-import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import { logActivity } from "@/modules/security/server";
+import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repository from "../repository";
 import { mapEmployeeDetail } from "../mappers";
 import { canonicalReligion } from "./shared";

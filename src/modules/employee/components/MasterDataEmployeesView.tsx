@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/pagination";
 import { PAGINATION } from "@/constants";
 import { routeTo } from "@/constants/routes";
-import { crudEmployeeAction } from "@/modules/employee/actions";
+import { crudEmployeeAction } from "@/modules/employee";
 import {
   EmployeeDirectoryFilter,
   type EmployeeDirectoryFilterOptions,

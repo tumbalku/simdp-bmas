@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getEmployeeDetailAction, getMasterDataListAction } from "@/modules/employee/actions";
+import { getEmployeeDetailAction, getMasterDataListAction } from "@/modules/employee";
 import { EmployeeDetailView } from "@/modules/employee/components/EmployeeDetailView";
 
 export const dynamic = "force-dynamic";

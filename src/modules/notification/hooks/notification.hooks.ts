@@ -7,7 +7,7 @@ import {
   getNotifications,
   markAllNotificationsReadAction,
   markNotificationReadAction,
-} from "@/modules/notification/actions"
+} from "@/modules/notification"
 import { getPusherClient } from "@/lib/notifications/client/pusher-client"
 
 export type NavbarNotification = {

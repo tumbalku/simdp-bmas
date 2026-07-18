@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
-import { uploadDocumentRecord } from "@/modules/document/service";
+import { uploadDocumentRecord } from "@/modules/document/server";
 import { AppError } from "@/lib/errors";
 
 export async function POST(request: NextRequest) {

@@ -1,4 +1,4 @@
-import { NOTIFICATION_RELATED_ENTITY_TYPE } from "@/modules/notification/constants";
+import { NOTIFICATION_RELATED_ENTITY_TYPE } from "@/modules/notification";
 import { prisma } from "./common";
 
 export async function findDocumentRecordByFilePath(filePath: string) {

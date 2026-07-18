@@ -13,8 +13,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { softDeleteDocumentAction } from "@/modules/document/actions";
-import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document/types";
+import { softDeleteDocumentAction } from "@/modules/document";
+import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 import {
   archiveCategoryIcons,
   DocumentList,

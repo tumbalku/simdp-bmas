@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { successResponse, errorResponse, validationErrorResponse } from "@/lib/api-response";
-import { resetPasswordWithToken } from "@/modules/auth/service";
+import { resetPasswordWithToken } from "@/modules/auth/server";
 
 const resetPasswordSchema = z
   .object({

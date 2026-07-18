@@ -33,7 +33,7 @@ import {
   DOCUMENT_STATUS_LABELS,
   DOCUMENT_STATUS_VARIANTS,
   type DocumentStatus,
-} from "@/modules/document/constants";
+} from "@/modules/document";
 import { cn } from "@/lib/utils";
 
 type RecentUpload = {

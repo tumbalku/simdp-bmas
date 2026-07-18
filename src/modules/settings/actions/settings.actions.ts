@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
-import { getSystemSettings as getSettingsService, updateSettings } from "@/modules/settings/service";
+import { getSystemSettings as getSettingsService, updateSettings } from "../service";
 import { findUserWithEmployeeById } from "../repositories/common";
 
 const updateSettingsSchema = z.object({
