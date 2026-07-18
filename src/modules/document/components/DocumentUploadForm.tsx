@@ -1,6 +1,6 @@
 "use client";
 
-import { DragEvent, useId, useMemo, useRef, useState, useTransition } from "react";
+import { DragEvent, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,9 +64,20 @@ export function DocumentUploadForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documentTypeId, setDocumentTypeId] = useState(initialDocumentTypeId);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [documentNumber, setDocumentNumber] = useState(initialValues?.documentNumber ?? "");
+  const [issueDate, setIssueDate] = useState(formatDateInput(initialValues?.issueDate));
+  const [expiryDate, setExpiryDate] = useState(formatDateInput(initialValues?.expiryDate));
   const [isDragging, setIsDragging] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setTitle(initialValues?.title ?? "");
+    setDocumentNumber(initialValues?.documentNumber ?? "");
+    setIssueDate(formatDateInput(initialValues?.issueDate));
+    setExpiryDate(formatDateInput(initialValues?.expiryDate));
+  }, [initialValues?.documentNumber, initialValues?.expiryDate, initialValues?.issueDate, initialValues?.title]);
 
   const selectedDocumentType = useMemo(
     () => documentTypes.find((type) => type.id === documentTypeId),
@@ -108,6 +119,10 @@ export function DocumentUploadForm({
 
       formRef.current?.reset();
       setSelectedFileName(null);
+      setTitle(initialValues?.title ?? "");
+      setDocumentNumber(initialValues?.documentNumber ?? "");
+      setIssueDate(formatDateInput(initialValues?.issueDate));
+      setExpiryDate(formatDateInput(initialValues?.expiryDate));
       setDocumentTypeId(lockDocumentType ? initialDocumentTypeId : "");
       setMessage(
         replaceDocumentId
@@ -165,7 +180,8 @@ export function DocumentUploadForm({
           id="title"
           name="title"
           placeholder="Contoh: KTP terbaru"
-          defaultValue={initialValues?.title ?? ""}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
         />
       </div>
 
@@ -176,7 +192,8 @@ export function DocumentUploadForm({
             id="documentNumber"
             name="documentNumber"
             placeholder="Masukkan nomor dokumen"
-            defaultValue={initialValues?.documentNumber ?? ""}
+            value={documentNumber}
+            onChange={(event) => setDocumentNumber(event.target.value)}
             required
           />
         </div>
@@ -189,7 +206,8 @@ export function DocumentUploadForm({
             id="issueDate"
             name="issueDate"
             type="date"
-            defaultValue={formatDateInput(initialValues?.issueDate)}
+            value={issueDate}
+            onChange={(event) => setIssueDate(event.target.value)}
             required
           />
         </div>
@@ -202,7 +220,8 @@ export function DocumentUploadForm({
             id="expiryDate"
             name="expiryDate"
             type="date"
-            defaultValue={formatDateInput(initialValues?.expiryDate)}
+            value={expiryDate}
+            onChange={(event) => setExpiryDate(event.target.value)}
             required
           />
         </div>
