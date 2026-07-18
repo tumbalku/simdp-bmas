@@ -22,16 +22,23 @@ export async function findSystemSettings() {
   return prisma.systemSetting.findMany();
 }
 
-export async function findDocumentsToRemind(h30Date: Date, h7Date: Date, h1Date: Date) {
+export async function findDocumentsToRemind(input: {
+  h30Start: Date;
+  h30End: Date;
+  h7Start: Date;
+  h7End: Date;
+  h1Start: Date;
+  h1End: Date;
+}) {
   return prisma.documentRecord.findMany({
     where: {
       status: "APPROVED",
       deletedAt: null,
       expiryDate: { not: null },
       OR: [
-        { expiryDate: h30Date, reminderH30SentAt: null },
-        { expiryDate: h7Date, reminderH7SentAt: null },
-        { expiryDate: h1Date, reminderH1SentAt: null },
+        { expiryDate: { gte: input.h30Start, lt: input.h30End }, reminderH30SentAt: null },
+        { expiryDate: { gte: input.h7Start, lt: input.h7End }, reminderH7SentAt: null },
+        { expiryDate: { gte: input.h1Start, lt: input.h1End }, reminderH1SentAt: null },
       ],
     },
     include: {

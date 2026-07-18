@@ -21,6 +21,8 @@
 
 ## In Progress
 
+- [ ] [#180](https://github.com/tumbalku/simdp-bmas/issues/180) Clean up notification dispatch and navbar realtime lifecycle
+- [ ] [#181](https://github.com/tumbalku/simdp-bmas/issues/181) Harden document replace lifecycle and expiry reminder matching
 - [ ] [#62](https://github.com/tumbalku/simdp-bmas/issues/62) PR kecil: User Account Management Controls
 - [ ] [#115](https://github.com/tumbalku/simdp-bmas/issues/115) Polish halaman kategori pegawai dengan bounded height dan scroll area
 - [ ] [#112](https://github.com/tumbalku/simdp-bmas/issues/112) Pisahkan user settings dan system settings

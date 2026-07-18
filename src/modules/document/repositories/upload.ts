@@ -46,15 +46,14 @@ export async function createUploadedDocumentTransaction(data: {
   documentTypeName: string;
   ownerName: string;
 }) {
-  const replacedDocumentIds: string[] = [];
-  let verificationRecipientUserIds: string[] = [];
-  const record = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     await lockDocumentSequence(tx, data.ownerId, data.documentTypeId);
 
     const existingCount = await tx.documentRecord.count({
       where: { ownerId: data.ownerId, documentTypeId: data.documentTypeId },
     });
     const { fileName, filePath } = await data.prepareFile(existingCount + 1);
+    const replacedDocumentIds: string[] = [];
 
     if (!data.allowMultiple) {
       const activeDocs = await tx.documentRecord.findMany({
@@ -106,12 +105,10 @@ export async function createUploadedDocumentTransaction(data: {
       where: { role: { in: ["ADMIN", "STAFF"] }, isActive: true, deletedAt: null },
       select: { id: true },
     });
-    verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
+    const verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
 
-    return docRec;
+    return { record: docRec, replacedDocumentIds, verificationRecipientUserIds };
   });
-
-  return { record, replacedDocumentIds, verificationRecipientUserIds };
 }
 
 export async function findDocumentRecordWithOwner(id: string) {
@@ -154,7 +151,6 @@ export async function replaceDocumentFileTransaction(data: {
   issueDate: Date | null;
   expiryDate: Date | null;
 }) {
-  let verificationRecipientUserIds: string[] = [];
   return prisma.$transaction(async (tx) => {
     await lockDocumentSequence(tx, data.ownerId, data.documentTypeId);
 
@@ -201,7 +197,7 @@ export async function replaceDocumentFileTransaction(data: {
       where: { role: { in: ["ADMIN", "STAFF"] }, isActive: true, deletedAt: null },
       select: { id: true },
     });
-    verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
+    const verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
 
     return { record, verificationRecipientUserIds };
   });

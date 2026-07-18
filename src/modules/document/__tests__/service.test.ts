@@ -536,6 +536,7 @@ describe("Document Module Service", () => {
         id: "doc-1",
         ownerId: "emp-1",
         documentTypeId: "type-1",
+        status: "APPROVED",
         filePath: "uploads/KTP/KTP-1-empId-1.pdf",
         owner: {
           id: "emp-1",
@@ -614,6 +615,41 @@ describe("Document Module Service", () => {
         ownerName: "John Doe",
         action: "REPLACED",
       });
+    });
+
+    it("should reject replacing expired documents", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "doc-1",
+        ownerId: "emp-1",
+        documentTypeId: "type-1",
+        status: "EXPIRED",
+        owner: {
+          userId: "user-1",
+          employeePosition: null,
+        },
+        documentType: {
+          deletedAt: null,
+          employmentStatuses: [],
+          employeeGroups: [],
+          professionGroups: [],
+          employeePositions: [],
+          employeeRanks: [],
+          workplaces: [],
+        },
+      });
+
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      await expect(
+        replaceDocumentFile(
+          { documentId: "doc-1", file: mockFile },
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
+        )
+      ).rejects.toThrow("Status dokumen tidak dapat diganti file.");
+
+      expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
     });
 
     it("should reject replacing another user's document", async () => {
@@ -866,7 +902,7 @@ describe("Document Module Service", () => {
         { key: "reminder_days_h1", value: "1" },
       ]);
 
-      const h30Date = new Date("2026-08-08T00:00:00Z"); // +30 days
+      const h30Date = new Date("2026-08-08T12:34:56Z"); // +30 days, non-midnight
       mockPrisma.documentRecord.findMany.mockResolvedValueOnce([
         {
           id: "doc-remind-h30",

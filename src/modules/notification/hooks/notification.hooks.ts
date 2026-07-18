@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { PAGINATION } from "@/constants"
 import {
@@ -25,20 +25,36 @@ export function useNavbarNotifications(enabled: boolean, userId?: string) {
   const [notifications, setNotifications] = useState<NavbarNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(enabled)
+  const mountedRef = useRef(false)
+  const loadRequestIdRef = useRef(0)
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+      loadRequestIdRef.current += 1
+    }
+  }, [])
 
   const loadNotifications = useCallback(async (options?: { showLoading?: boolean }) => {
+    const requestId = loadRequestIdRef.current + 1
+    loadRequestIdRef.current = requestId
+
     if (!enabled) {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
       return
     }
 
-    if (options?.showLoading) setLoading(true)
+    if (options?.showLoading && mountedRef.current) setLoading(true)
 
     try {
       const res = await getNotifications({
         page: PAGINATION.defaultPage,
         pageSize: PAGINATION.navbarNotificationLimit,
       })
+
+      if (!mountedRef.current || loadRequestIdRef.current !== requestId) return
 
       if (res.ok) {
         setNotifications(res.data)
@@ -47,7 +63,9 @@ export function useNavbarNotifications(enabled: boolean, userId?: string) {
     } catch (err) {
       console.error("Failed to load notifications in Navbar:", err)
     } finally {
-      if (options?.showLoading) setLoading(false)
+      if (options?.showLoading && mountedRef.current && loadRequestIdRef.current === requestId) {
+        setLoading(false)
+      }
     }
   }, [enabled])
 
@@ -62,7 +80,9 @@ export function useNavbarNotifications(enabled: boolean, userId?: string) {
 
   // Realtime subscription via Pusher, with polling fallback for local/no-provider setups.
   useEffect(() => {
-    if (!enabled || !userId) return
+    let cleanup = () => {}
+
+    if (!enabled || !userId) return cleanup
 
     const pusher = getPusherClient()
     if (!pusher) {
@@ -70,7 +90,8 @@ export function useNavbarNotifications(enabled: boolean, userId?: string) {
         void loadNotifications()
       }, 15000)
 
-      return () => window.clearInterval(intervalId)
+      cleanup = () => window.clearInterval(intervalId)
+      return cleanup
     }
 
     const channelName = `private-user-${userId}`
@@ -85,10 +106,12 @@ export function useNavbarNotifications(enabled: boolean, userId?: string) {
       setUnreadCount((c) => c + 1)
     })
 
-    return () => {
+    cleanup = () => {
       channel.unbind("notification:new")
       pusher.unsubscribe(channelName)
     }
+
+    return cleanup
   }, [enabled, loadNotifications, userId])
 
   const markAllRead = async () => {

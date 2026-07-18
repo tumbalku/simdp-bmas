@@ -267,6 +267,9 @@ export async function replaceDocumentFile(
   if (doc.documentType.deletedAt) {
     throw new AppError("VALIDATION_ERROR", "Jenis dokumen tidak ditemukan atau tidak aktif", 400);
   }
+  if (!["PENDING", "APPROVED", "REJECTED"].includes(doc.status)) {
+    throw new AppError("VALIDATION_ERROR", "Status dokumen tidak dapat diganti file.", 400);
+  }
   if (!matchesDocumentTypeTarget(doc.owner, doc.documentType)) {
     throw new AppError("FORBIDDEN", "Jenis dokumen ini tidak berlaku untuk data kepegawaian Anda.", 403);
   }

@@ -13,6 +13,7 @@ export async function createNotification(input: {
   message?: string | null;
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
+  skipDispatch?: boolean;
 }) {
   const id = crypto.randomUUID();
   const notif = await repo.createNotificationRecord({
@@ -25,10 +26,12 @@ export async function createNotification(input: {
     relatedEntityId: input.relatedEntityId || null,
   });
 
-  await enqueueNotificationDispatch({
-    notificationId: notif.id,
-    userId: notif.userId,
-  });
+  if (!input.skipDispatch) {
+    await enqueueNotificationDispatch({
+      notificationId: notif.id,
+      userId: notif.userId,
+    });
+  }
 
   return notif;
 }

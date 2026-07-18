@@ -42,6 +42,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Issues #180, #181: Membersihkan lifecycle notification realtime/polling, mengurangi dispatch sinkron pada local subscriber, memindahkan Inngest client ke event layer, memakai constants canonical untuk routing notifikasi, memperkuat guard replace dokumen, dan memperbaiki matching reminder expiry berbasis range tanggal.
 - Format nama file upload/ganti dokumen kini mengikuti `{NIK-atau-NIP}_{KATEGORI-ARSIP}_{KODE-DOKUMEN}_{YYYYMMDD}_{VERSI}.{ext}` dengan prioritas identifier NIK.
 - Review P2: sequence nama file upload/ganti dokumen kini direservasi dalam Prisma transaction dengan advisory lock per pegawai dan jenis dokumen untuk mencegah overwrite pada upload concurrent.
 - Review blocker Event Bus & Notification: metadata `DocumentRecord.storageProvider` kini mengikuti provider aktif, `publishEvent()` tidak lagi menelan error, dan flow upload/verifikasi mencatat status publish notifikasi di audit metadata.

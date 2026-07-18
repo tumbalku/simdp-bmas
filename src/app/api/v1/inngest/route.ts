@@ -1,5 +1,5 @@
 import { serve } from "inngest/next";
-import { inngest } from "@/lib/notifications/providers/inngest-job-provider";
+import { inngest } from "@/lib/events/inngest";
 import { eventSubscribers } from "@/lib/events";
 
 export const { GET, POST, PUT } = serve({
