@@ -25,6 +25,7 @@ vi.mock("@/modules/notification", () => ({
   NOTIFICATION_TYPE: {
     DOCUMENT_STATUS: "DOCUMENT_STATUS",
     EXPIRY_REMINDER: "EXPIRY_REMINDER",
+    VERIFICATION_REQUIRED: "VERIFICATION_REQUIRED",
   },
 }));
 
@@ -35,6 +36,7 @@ vi.mock("@/modules/notification/server", () => ({
 
 import {
   handleDocumentExpiryReminderCreated,
+  handleDocumentVerificationRequested,
   handleEmailSendRequested,
   handleNotificationDispatchRequested,
   handleVerificationApproved,
@@ -75,6 +77,50 @@ describe("event subscribers", () => {
     expect(mocks.dispatchNotification).toHaveBeenCalledWith({
       notificationId: "notification-1",
     });
+  });
+
+  it("creates realtime verification request notifications for every recipient", async () => {
+    await handleDocumentVerificationRequested({
+      recipientUserIds: ["admin-1", "staff-1"],
+      documentRecordId: "doc-1",
+      documentTypeName: "STR",
+      ownerName: "Sil",
+      action: "UPLOADED",
+    });
+
+    expect(mocks.createNotification).toHaveBeenCalledTimes(2);
+    expect(mocks.createNotification).toHaveBeenCalledWith({
+      userId: "admin-1",
+      type: "VERIFICATION_REQUIRED",
+      title: "Dokumen Baru Perlu Verifikasi",
+      message: "Pegawai Sil telah mengunggah dokumen baru: STR",
+      relatedEntityType: "DOCUMENT_RECORD",
+      relatedEntityId: "doc-1",
+    });
+    expect(mocks.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "staff-1",
+        title: "Dokumen Baru Perlu Verifikasi",
+      })
+    );
+  });
+
+  it("creates replacement verification notifications for every recipient", async () => {
+    await handleDocumentVerificationRequested({
+      recipientUserIds: ["staff-1"],
+      documentRecordId: "doc-1",
+      documentTypeName: "STR",
+      ownerName: "Sil",
+      action: "REPLACED",
+    });
+
+    expect(mocks.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "staff-1",
+        title: "Dokumen Diganti Perlu Verifikasi",
+        message: "Pegawai Sil telah mengganti file dokumen: STR",
+      })
+    );
   });
 
   it("creates verification status notifications", async () => {

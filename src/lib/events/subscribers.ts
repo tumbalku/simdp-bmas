@@ -25,6 +25,30 @@ export async function handleDocumentExpiryReminderCreated(
   });
 }
 
+export async function handleDocumentVerificationRequested(
+  data: EventPayload<typeof EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED>
+) {
+  const title =
+    data.action === "REPLACED" ? "Dokumen Diganti Perlu Verifikasi" : "Dokumen Baru Perlu Verifikasi";
+  const message =
+    data.action === "REPLACED"
+      ? `Pegawai ${data.ownerName} telah mengganti file dokumen: ${data.documentTypeName}`
+      : `Pegawai ${data.ownerName} telah mengunggah dokumen baru: ${data.documentTypeName}`;
+
+  await Promise.all(
+    data.recipientUserIds.map((userId) =>
+      createNotification({
+        userId,
+        type: NOTIFICATION_TYPE.VERIFICATION_REQUIRED,
+        title,
+        message,
+        relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
+        relatedEntityId: data.documentRecordId,
+      })
+    )
+  );
+}
+
 export async function handleEmailSendRequested(data: EventPayload<typeof EVENT_NAMES.EMAIL_SEND_REQUESTED>) {
   await emailProvider.sendEmail(data);
 }
@@ -74,6 +98,16 @@ const emailSendFn = inngest.createFunction(
   }
 );
 
+const documentVerificationRequestedFn = inngest.createFunction(
+  {
+    id: "document-verification-requested",
+    triggers: [{ event: EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED }],
+  },
+  async ({ event }: { event: { data: EventPayload<typeof EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED> } }) => {
+    await handleDocumentVerificationRequested(event.data);
+  }
+);
+
 const notificationDispatchRequestedFn = inngest.createFunction(
   {
     id: "notification-dispatch-requested",
@@ -100,6 +134,7 @@ const verificationRejectedFn = inngest.createFunction(
 
 export const eventSubscribers = [
   documentExpiryReminderCreatedFn,
+  documentVerificationRequestedFn,
   emailSendFn,
   notificationDispatchRequestedFn,
   verificationApprovedFn,
