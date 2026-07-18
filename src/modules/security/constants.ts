@@ -5,15 +5,28 @@ export const SECURITY_LOG_STATUS = {
 
 export type SecurityLogStatus = (typeof SECURITY_LOG_STATUS)[keyof typeof SECURITY_LOG_STATUS];
 
+export const SECURITY_LOG_STATUS_LABELS: Record<SecurityLogStatus, string> = {
+  SUCCESS: "Berhasil",
+  FAILED: "Gagal",
+};
+
 export const SECURITY_ACTOR_ROLE = {
   ADMIN: "ADMIN",
   STAFF: "STAFF",
   EMPLOYEE: "EMPLOYEE",
-  PUBLIC: "Public",
-  SYSTEM: "System",
+  PUBLIC: "PUBLIC",
+  SYSTEM: "SYSTEM",
 } as const;
 
 export type SecurityActorRole = (typeof SECURITY_ACTOR_ROLE)[keyof typeof SECURITY_ACTOR_ROLE];
+
+export const SECURITY_ACTOR_ROLE_LABELS: Record<SecurityActorRole, string> = {
+  ADMIN: "Admin",
+  STAFF: "Staff",
+  EMPLOYEE: "Pegawai",
+  PUBLIC: "Publik",
+  SYSTEM: "Sistem",
+};
 
 export const SECURITY_EVENT_TYPE = {
   AUTH_FORCE_LOGOUT_OTHERS: "AUTH_FORCE_LOGOUT_OTHERS",
@@ -48,3 +61,52 @@ export const SECURITY_EVENT_TYPE = {
 } as const;
 
 export type SecurityEventType = (typeof SECURITY_EVENT_TYPE)[keyof typeof SECURITY_EVENT_TYPE];
+
+export const SECURITY_EVENT_TYPE_LABELS: Record<SecurityEventType, string> = {
+  AUTH_FORCE_LOGOUT_OTHERS: "Sesi lain diakhiri",
+  AUTH_LOGIN_FAILED: "Login gagal",
+  AUTH_LOGIN_SUCCESS: "Login berhasil",
+  AUTH_LOGOUT: "Logout",
+  AUTH_PASSWORD_CHANGED: "Password diubah",
+  AUTH_PASSWORD_RESET_REQUESTED: "Reset password diminta",
+  AUTH_PASSWORD_RESET_SUCCESS: "Reset password berhasil",
+  AUTH_REFRESH_FAILED: "Refresh sesi gagal",
+  AUTH_REFRESH_SUCCESS: "Refresh sesi berhasil",
+  CRON_CHECK_EXPIRY_RUN: "Cek kedaluwarsa berjalan",
+  CRON_DOCUMENT_EXPIRED: "Dokumen kedaluwarsa",
+  DOCUMENT_APPROVED: "Dokumen disetujui",
+  DOCUMENT_DELETED: "Dokumen diarsipkan",
+  DOCUMENT_DOWNLOADED: "Dokumen diunduh",
+  DOCUMENT_PERMANENTLY_DELETED: "Dokumen dihapus permanen",
+  DOCUMENT_REJECTED: "Dokumen ditolak",
+  DOCUMENT_RESTORED: "Dokumen dipulihkan",
+  DOCUMENT_UPLOADED: "Dokumen diunggah",
+  EMPLOYEE_ACCOUNT_UPDATED: "Akun pegawai diperbarui",
+  EMPLOYEE_CREATED: "Pegawai dibuat",
+  EMPLOYEE_DELETED: "Pegawai diarsipkan",
+  EMPLOYEE_EXPORTED: "Data pegawai diekspor",
+  EMPLOYEE_PERMANENTLY_DELETED: "Pegawai dihapus permanen",
+  EMPLOYEE_RESTORED: "Pegawai dipulihkan",
+  EMPLOYEE_UPDATED: "Pegawai diperbarui",
+  MASTER_DATA_CREATED: "Master data dibuat",
+  MASTER_DATA_DELETED: "Master data dihapus",
+  MASTER_DATA_UPDATED: "Master data diperbarui",
+  SYSTEM_SETTING_UPDATED: "Pengaturan sistem diubah",
+};
+
+export const SECURITY_EVENT_TYPE_OPTIONS = Object.values(SECURITY_EVENT_TYPE).map((value) => ({
+  value,
+  label: SECURITY_EVENT_TYPE_LABELS[value],
+}));
+
+export function normalizeSecurityLogStatus(value: string | null | undefined): SecurityLogStatus {
+  return value === SECURITY_LOG_STATUS.SUCCESS ? SECURITY_LOG_STATUS.SUCCESS : SECURITY_LOG_STATUS.FAILED;
+}
+
+export function normalizeSecurityActorRole(value: string | null | undefined): SecurityActorRole {
+  const normalized = value?.toUpperCase();
+  if (normalized && normalized in SECURITY_ACTOR_ROLE) {
+    return SECURITY_ACTOR_ROLE[normalized as keyof typeof SECURITY_ACTOR_ROLE];
+  }
+  return SECURITY_ACTOR_ROLE.SYSTEM;
+}

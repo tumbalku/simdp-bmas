@@ -2,6 +2,14 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-18] SecurityLog Event Taxonomy dan Actor/Status Enum
+- Konteks: `SecurityLog.status` dan `actorRole` masih string bebas, sedangkan `eventType` punya banyak event append-only dari auth, dokumen, employee, settings, dan cron.
+- Keputusan: `SecurityLog.status` dan `SecurityLog.actorRole` memakai Prisma enum canonical uppercase. `SecurityLog.eventType` tetap string tetapi dikontrol typed constants TypeScript dan dokumentasi taxonomy.
+- Alasan: status/aktor punya set nilai kecil dan stabil, sedangkan event audit akan bertambah seiring fitur sehingga terlalu kaku jika setiap event baru perlu migration database.
+- Legacy mapping: `Public` → `PUBLIC`, `System` → `SYSTEM`, status unknown → `FAILED`, actor unknown → `SYSTEM`.
+- Dampak ke modul: security, auth/document/employee/settings callers, Prisma migration, seed, UI filter security log.
+- Referensi: #141, #142.
+
 ## [2026-07-18] Remaining Canonical Prisma Enums
 - Konteks: `Employee.religion`, `DocumentRecord.storageProvider`, dan `Notification.type`/`relatedEntityType` masih berupa string walau option/constants canonical sudah tersedia.
 - Keputusan: Tambahkan Prisma enum untuk agama pegawai, provider storage, tipe notifikasi, dan related entity notifikasi. `StorageProvider` dan `NotificationRelatedEntityType` memakai enum mapping Prisma agar DB tetap menyimpan nilai legacy kompatibel (`local`, `DocumentRecord`) sementara TypeScript memakai value canonical (`LOCAL`, `DOCUMENT_RECORD`).

@@ -2,16 +2,21 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { PAGINATION } from "@/constants/pagination";
-import type { SecurityLogStatus } from "./constants";
+import {
+  normalizeSecurityActorRole,
+  normalizeSecurityLogStatus,
+  type SecurityActorRole,
+  type SecurityLogStatus,
+} from "./constants";
 
 export type LogActivityInput = {
   actorId?: string | null;
   actorName: string;
-  actorRole: string;
+  actorRole: SecurityActorRole | string;
   eventType: string;
   resource: string;
   ipAddress?: string | null;
-  status: SecurityLogStatus;
+  status: SecurityLogStatus | string;
   metadata?: Record<string, any>;
 };
 
@@ -22,11 +27,11 @@ export async function logActivity(input: LogActivityInput): Promise<void> {
         id: crypto.randomUUID(),
         actorId: input.actorId || null,
         actorName: input.actorName,
-        actorRole: input.actorRole,
+        actorRole: normalizeSecurityActorRole(input.actorRole),
         eventType: input.eventType,
         resource: input.resource,
         ipAddress: input.ipAddress || null,
-        status: input.status,
+        status: normalizeSecurityLogStatus(input.status),
         metadata: input.metadata ?? undefined,
       },
     });
@@ -55,11 +60,11 @@ export async function getSecurityLogs(filter: {
   }
 
   if (filter.actorRole) {
-    where.actorRole = filter.actorRole;
+    where.actorRole = normalizeSecurityActorRole(filter.actorRole);
   }
 
   if (filter.status) {
-    where.status = filter.status;
+    where.status = normalizeSecurityLogStatus(filter.status);
   }
 
   if (filter.dateFrom || filter.dateTo) {

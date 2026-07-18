@@ -73,6 +73,19 @@ enum NotificationRelatedEntityType {
   DOCUMENT_RECORD @map("DocumentRecord")
 }
 
+enum SecurityLogStatus {
+  SUCCESS
+  FAILED
+}
+
+enum SecurityActorRole {
+  ADMIN
+  STAFF
+  EMPLOYEE
+  PUBLIC
+  SYSTEM
+}
+
 model User {
   id           String    @id
   email        String    @unique
@@ -488,15 +501,15 @@ model Notification {
 }
 
 model SecurityLog {
-  id        String   @id
-  timestamp DateTime @default(now())
+  id        String            @id
+  timestamp DateTime          @default(now())
   actorId   String?
   actorName String
-  actorRole String
+  actorRole SecurityActorRole
   eventType String
   resource  String
   ipAddress String?
-  status    String
+  status    SecurityLogStatus
   metadata  Json?
 
   actor User? @relation("SecurityLogActor", fields: [actorId], references: [id])

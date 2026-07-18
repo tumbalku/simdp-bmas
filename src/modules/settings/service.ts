@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/modules/security/service";
+import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
 
 const DEFAULTS = [
   {
@@ -71,9 +72,9 @@ export async function updateSettings(
     actorId: userId,
     actorName,
     actorRole,
-    eventType: "SYSTEM_SETTING_UPDATED",
+    eventType: SECURITY_EVENT_TYPE.SYSTEM_SETTING_UPDATED,
     resource: "SystemSetting",
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { updatedKeys: settingsList.map((s) => s.key) },
   });
 

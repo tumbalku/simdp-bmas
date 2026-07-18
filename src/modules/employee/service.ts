@@ -3,6 +3,7 @@ import * as argon2 from "argon2";
 import crypto from "crypto";
 import { AppError } from "@/lib/errors";
 import { logActivity } from "@/modules/security/service";
+import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
 import * as repository from "./repository";
 import { mapEmployeeSummary, mapEmployeeDetail } from "./mappers";
 import {
@@ -199,9 +200,9 @@ export async function exportEmployeeDirectoryCsv(
 
   await logActivity({
     ...actor,
-    eventType: "EMPLOYEE_EXPORTED",
+    eventType: SECURITY_EVENT_TYPE.EMPLOYEE_EXPORTED,
     resource: "EmployeeDirectory",
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: {
       rowCount: employees.length,
       archiveView: filter.archiveView || "active",
@@ -264,9 +265,9 @@ export async function updateProfile(
     actorId: userId,
     actorName,
     actorRole,
-    eventType: "EMPLOYEE_UPDATED",
+    eventType: SECURITY_EVENT_TYPE.EMPLOYEE_UPDATED,
     resource: `EmployeeProfile:${employee.id}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { updatedFields: Object.keys(updateData) },
   });
 
@@ -284,7 +285,7 @@ export async function handleEmployeeCrud(
   const systemActor = {
     actorId: actorId || null,
     actorName: actorName || "System",
-    actorRole: actorRole || "ADMIN",
+    actorRole: actorRole || SECURITY_ACTOR_ROLE.ADMIN,
   };
 
   if (operation === "CREATE") {
@@ -357,9 +358,9 @@ export async function handleEmployeeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "EMPLOYEE_CREATED",
+      eventType: SECURITY_EVENT_TYPE.EMPLOYEE_CREATED,
       resource: `Employee:${employeeId}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { email: data.email, name: data.name },
     });
 
@@ -430,18 +431,18 @@ export async function handleEmployeeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "EMPLOYEE_UPDATED",
+      eventType: SECURITY_EVENT_TYPE.EMPLOYEE_UPDATED,
       resource: `Employee:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { name: result.name },
     });
 
     if (accountUpdatedFields.length > 0) {
       await logActivity({
         ...systemActor,
-        eventType: "EMPLOYEE_ACCOUNT_UPDATED",
+        eventType: SECURITY_EVENT_TYPE.EMPLOYEE_ACCOUNT_UPDATED,
         resource: `User:${employee.userId}`,
-        status: "SUCCESS",
+        status: SECURITY_LOG_STATUS.SUCCESS,
         metadata: {
           employeeId: id,
           updatedFields: accountUpdatedFields,
@@ -462,9 +463,9 @@ export async function handleEmployeeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "EMPLOYEE_DELETED",
+      eventType: SECURITY_EVENT_TYPE.EMPLOYEE_DELETED,
       resource: `Employee:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
     });
 
     return { id, name: employee.name };
@@ -480,9 +481,9 @@ export async function handleEmployeeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "EMPLOYEE_RESTORED",
+      eventType: SECURITY_EVENT_TYPE.EMPLOYEE_RESTORED,
       resource: `Employee:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
     });
 
     return { id, name: employee.name };
@@ -506,9 +507,9 @@ export async function handleEmployeeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "EMPLOYEE_PERMANENTLY_DELETED",
+      eventType: SECURITY_EVENT_TYPE.EMPLOYEE_PERMANENTLY_DELETED,
       resource: `Employee:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: {
         employeeName: employee.name,
         userId: employee.userId,
@@ -565,10 +566,10 @@ export async function addCareerHistory(data: {
   await logActivity({
     actorId: data.createdBy || null,
     actorName: data.actorName || "System",
-    actorRole: data.actorRole || "ADMIN",
-    eventType: "EMPLOYEE_UPDATED",
+    actorRole: data.actorRole || SECURITY_ACTOR_ROLE.ADMIN,
+    eventType: SECURITY_EVENT_TYPE.EMPLOYEE_UPDATED,
     resource: `Employee:${data.employeeId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { careerHistoryId: historyId, action: "add_career_history" },
   });
 
@@ -689,9 +690,9 @@ export async function importFromCsv(
     actorId,
     actorName,
     actorRole,
-    eventType: "EMPLOYEE_UPDATED",
+    eventType: SECURITY_EVENT_TYPE.EMPLOYEE_UPDATED,
     resource: "BulkImport",
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { importedCount, failedCount },
   });
 
@@ -772,7 +773,7 @@ export async function handleMasterDataCrud(
   const systemActor = {
     actorId: actorId || null,
     actorName: actorName || "System",
-    actorRole: actorRole || "ADMIN",
+    actorRole: actorRole || SECURITY_ACTOR_ROLE.ADMIN,
   };
 
   if (operation === "CREATE") {
@@ -787,9 +788,9 @@ export async function handleMasterDataCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "MASTER_DATA_CREATED",
+      eventType: SECURITY_EVENT_TYPE.MASTER_DATA_CREATED,
       resource: `${entityType}:${newId}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { name: record.name },
     });
 
@@ -809,9 +810,9 @@ export async function handleMasterDataCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "MASTER_DATA_UPDATED",
+      eventType: SECURITY_EVENT_TYPE.MASTER_DATA_UPDATED,
       resource: `${entityType}:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { name: record.name },
     });
 
@@ -828,9 +829,9 @@ export async function handleMasterDataCrud(
 
       await logActivity({
         ...systemActor,
-        eventType: "MASTER_DATA_DELETED",
+        eventType: SECURITY_EVENT_TYPE.MASTER_DATA_DELETED,
         resource: `${entityType}:${id}`,
-        status: "SUCCESS",
+        status: SECURITY_LOG_STATUS.SUCCESS,
         metadata: { name: record.name },
       });
 
