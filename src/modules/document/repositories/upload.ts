@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification";
 import type { StorageProviderValue } from "../constants";
 import { prisma } from "./common";
 import { documentTypeTargetInclude } from "./document-types";
@@ -36,6 +35,7 @@ export async function createUploadedDocumentTransaction(data: {
   ownerName: string;
 }) {
   const replacedDocumentIds: string[] = [];
+  let verificationRecipientUserIds: string[] = [];
   const record = await prisma.$transaction(async (tx) => {
     if (!data.allowMultiple) {
       const activeDocs = await tx.documentRecord.findMany({
@@ -87,23 +87,12 @@ export async function createUploadedDocumentTransaction(data: {
       where: { role: { in: ["ADMIN", "STAFF"] }, isActive: true, deletedAt: null },
       select: { id: true },
     });
-
-    await tx.notification.createMany({
-      data: adminsAndStaff.map((u) => ({
-        id: crypto.randomUUID(),
-        userId: u.id,
-        type: NOTIFICATION_TYPE.VERIFICATION_REQUIRED,
-        title: "Dokumen Baru Perlu Verifikasi",
-        message: `Pegawai ${data.ownerName} telah mengunggah dokumen baru: ${data.documentTypeName}`,
-        relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
-        relatedEntityId: data.docId,
-      })),
-    });
+    verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
 
     return docRec;
   });
 
-  return { record, replacedDocumentIds };
+  return { record, replacedDocumentIds, verificationRecipientUserIds };
 }
 
 export async function findDocumentRecordWithOwner(id: string) {
@@ -145,6 +134,7 @@ export async function replaceDocumentFileTransaction(data: {
   issueDate: Date | null;
   expiryDate: Date | null;
 }) {
+  let verificationRecipientUserIds: string[] = [];
   return prisma.$transaction(async (tx) => {
     const record = await tx.documentRecord.update({
       where: { id: data.documentId },
@@ -184,19 +174,8 @@ export async function replaceDocumentFileTransaction(data: {
       where: { role: { in: ["ADMIN", "STAFF"] }, isActive: true, deletedAt: null },
       select: { id: true },
     });
+    verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
 
-    await tx.notification.createMany({
-      data: adminsAndStaff.map((u) => ({
-        id: crypto.randomUUID(),
-        userId: u.id,
-        type: NOTIFICATION_TYPE.VERIFICATION_REQUIRED,
-        title: "Dokumen Diganti Perlu Verifikasi",
-        message: `Pegawai ${data.ownerName} telah mengganti file dokumen: ${data.documentTypeName}`,
-        relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
-        relatedEntityId: data.documentId,
-      })),
-    });
-
-    return record;
+    return { record, verificationRecipientUserIds };
   });
 }

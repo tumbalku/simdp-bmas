@@ -18,6 +18,7 @@ import { storage } from "@/lib/storage";
 vi.mock("@/lib/events", () => ({
   EVENT_NAMES: {
     DOCUMENT_EXPIRY_REMINDER_CREATED: "document/expiry-reminder.created",
+    DOCUMENT_VERIFICATION_REQUESTED: "document/verification.requested",
   },
   publishEvent: vi.fn(),
 }));
@@ -395,6 +396,13 @@ describe("Document Module Service", () => {
       expect(result).toBeDefined();
       expect(storage.upload).toHaveBeenCalled();
       expect(mockPrisma.documentRecord.create).toHaveBeenCalled();
+      expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
+        recipientUserIds: ["admin-1"],
+        documentRecordId: "doc-1",
+        documentTypeName: "PDF Doc",
+        ownerName: "John Doe",
+        action: "UPLOADED",
+      });
     });
 
     it("should throw error for invalid magic bytes", async () => {
@@ -575,6 +583,13 @@ describe("Document Module Service", () => {
           }),
         })
       );
+      expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
+        recipientUserIds: ["admin-1"],
+        documentRecordId: "doc-1",
+        documentTypeName: "KTP",
+        ownerName: "John Doe",
+        action: "REPLACED",
+      });
     });
 
     it("should reject replacing another user's document", async () => {

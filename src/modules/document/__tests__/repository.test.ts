@@ -256,7 +256,7 @@ describe("Document Module Repository", () => {
       expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({ where: { id: "doc-1" } });
     });
 
-    it("should replace current records and notify verifiers when uploading single-current document", async () => {
+    it("should replace current records and return verifier recipients when uploading single-current document", async () => {
       mockPrisma.documentRecord.findMany.mockResolvedValue([{ id: "old-doc" }]);
       mockPrisma.documentRecord.create.mockResolvedValue({ id: "doc-1" });
       mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }, { id: "staff-1" }]);
@@ -288,13 +288,12 @@ describe("Document Module Repository", () => {
       expect(mockPrisma.verificationHistory.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ documentRecordId: "doc-1", status: "PENDING" }),
       });
-      expect(mockPrisma.notification.createMany).toHaveBeenCalledWith({
-        data: expect.arrayContaining([
-          expect.objectContaining({ userId: "admin-1", relatedEntityId: "doc-1" }),
-          expect.objectContaining({ userId: "staff-1", relatedEntityId: "doc-1" }),
-        ]),
+      expect(mockPrisma.notification.createMany).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        record: { id: "doc-1" },
+        replacedDocumentIds: ["old-doc"],
+        verificationRecipientUserIds: ["admin-1", "staff-1"],
       });
-      expect(result).toEqual({ record: { id: "doc-1" }, replacedDocumentIds: ["old-doc"] });
     });
   });
 });

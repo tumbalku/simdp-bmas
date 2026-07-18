@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import path from "path";
+import { EVENT_NAMES, publishEvent } from "@/lib/events";
 import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
@@ -117,7 +118,7 @@ export async function uploadDocumentRecord(
   // 7. Write record to DB
   const docId = crypto.randomUUID();
 
-  const { record, replacedDocumentIds } = await repo.createUploadedDocumentTransaction({
+  const { record, replacedDocumentIds, verificationRecipientUserIds } = await repo.createUploadedDocumentTransaction({
     docId,
     ownerId: employee.id,
     documentTypeId: docType.id,
@@ -158,6 +159,14 @@ export async function uploadDocumentRecord(
     ipAddress,
     status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { fileName, documentTypeId: docType.id },
+  });
+
+  await publishEvent(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
+    recipientUserIds: verificationRecipientUserIds,
+    documentRecordId: record.id,
+    documentTypeName: docType.name,
+    ownerName: employee.name,
+    action: "UPLOADED",
   });
 
   return {
@@ -220,7 +229,7 @@ export async function replaceDocumentFile(
   const uploadPath = path.join(doc.documentType.code, fileName).replace(/\\/g, "/");
   const savedPath = await storage.upload(uploadPath, buffer, data.file.type);
 
-  const record = await repo.replaceDocumentFileTransaction({
+  const { record, verificationRecipientUserIds } = await repo.replaceDocumentFileTransaction({
     documentId: doc.id,
     fileName,
     filePath: savedPath,
@@ -251,6 +260,14 @@ export async function replaceDocumentFile(
       fileName,
       previousFilePath: doc.filePath,
     },
+  });
+
+  await publishEvent(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
+    recipientUserIds: verificationRecipientUserIds,
+    documentRecordId: record.id,
+    documentTypeName: doc.documentType.name,
+    ownerName: doc.owner.name,
+    action: "REPLACED",
   });
 
   return {

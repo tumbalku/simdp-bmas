@@ -11,6 +11,13 @@ export type EventPayloadMap = {
     message: string;
     reminderStage: DocumentExpiryReminderStage;
   };
+  [EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED]: {
+    recipientUserIds: string[];
+    documentRecordId: string;
+    documentTypeName: string;
+    ownerName: string;
+    action: "UPLOADED" | "REPLACED";
+  };
   [EVENT_NAMES.EMAIL_SEND_REQUESTED]: {
     to: string;
     subject: string;
