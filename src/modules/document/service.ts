@@ -3,6 +3,7 @@ import crypto from "crypto";
 import path from "path";
 import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/service";
+import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
 import { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import { mapDocumentRecord, mapDocumentType, mapDocumentDetail, mapDocumentTypeFormInitialData, mapDocumentTypeSummary } from "./mappers";
@@ -163,7 +164,7 @@ export async function handleDocumentTypeCrud(
   const systemActor = {
     actorId: actorId || null,
     actorName: actorName || "System",
-    actorRole: actorRole || "ADMIN",
+    actorRole: actorRole || SECURITY_ACTOR_ROLE.ADMIN,
   };
 
   if (operation === "CREATE") {
@@ -201,9 +202,9 @@ export async function handleDocumentTypeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "MASTER_DATA_CREATED",
+      eventType: SECURITY_EVENT_TYPE.MASTER_DATA_CREATED,
       resource: `DocumentType:${typeId}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { code: result.code, name: result.name },
     });
 
@@ -245,9 +246,9 @@ export async function handleDocumentTypeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "MASTER_DATA_UPDATED",
+      eventType: SECURITY_EVENT_TYPE.MASTER_DATA_UPDATED,
       resource: `DocumentType:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { code: result.code, name: result.name },
     });
 
@@ -264,9 +265,9 @@ export async function handleDocumentTypeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "MASTER_DATA_DELETED",
+      eventType: SECURITY_EVENT_TYPE.MASTER_DATA_DELETED,
       resource: `DocumentType:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
     });
 
     return { id, code: docType.code, name: docType.name };
@@ -282,9 +283,9 @@ export async function handleDocumentTypeCrud(
 
     await logActivity({
       ...systemActor,
-      eventType: "MASTER_DATA_UPDATED",
+      eventType: SECURITY_EVENT_TYPE.MASTER_DATA_UPDATED,
       resource: `DocumentType:${id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { action: "restore" },
     });
 
@@ -427,9 +428,9 @@ export async function uploadDocumentRecord(
       actorId: session.userId,
       actorName: employee.name,
       actorRole: session.role,
-      eventType: "DOCUMENT_DELETED",
+      eventType: SECURITY_EVENT_TYPE.DOCUMENT_DELETED,
       resource: `DocumentRecord:${replacedDocumentId}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { reason: "replaced_by_new_upload" },
     });
   }
@@ -438,10 +439,10 @@ export async function uploadDocumentRecord(
     actorId: session.userId,
     actorName: employee.name,
     actorRole: session.role,
-    eventType: "DOCUMENT_UPLOADED",
+    eventType: SECURITY_EVENT_TYPE.DOCUMENT_UPLOADED,
     resource: `DocumentRecord:${docId}`,
     ipAddress,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { fileName, documentTypeId: docType.id },
   });
 
@@ -526,10 +527,10 @@ export async function replaceDocumentFile(
     actorId: session.userId,
     actorName: doc.owner.name,
     actorRole: session.role,
-    eventType: "DOCUMENT_UPLOADED",
+    eventType: SECURITY_EVENT_TYPE.DOCUMENT_UPLOADED,
     resource: `DocumentRecord:${doc.id}`,
     ipAddress,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: {
       action: "replace_file",
       documentTypeId: doc.documentTypeId,
@@ -558,9 +559,9 @@ export async function generateDownloadUrl(documentId: string, session: TokenPayl
         actorId: session.userId,
         actorName: doc.owner.name,
         actorRole: session.role,
-        eventType: "DOCUMENT_DOWNLOADED",
+        eventType: SECURITY_EVENT_TYPE.DOCUMENT_DOWNLOADED,
         resource: `DocumentRecord:${documentId}`,
-        status: "FAILED",
+        status: SECURITY_LOG_STATUS.FAILED,
         metadata: { reason: "OWNERSHIP_REQUIRED" },
       });
       throw new AppError("OWNERSHIP_REQUIRED", "OWNERSHIP_REQUIRED", 403);
@@ -573,9 +574,9 @@ export async function generateDownloadUrl(documentId: string, session: TokenPayl
     actorId: session.userId,
     actorName: doc.owner.name,
     actorRole: session.role,
-    eventType: "DOCUMENT_DOWNLOADED",
+    eventType: SECURITY_EVENT_TYPE.DOCUMENT_DOWNLOADED,
     resource: `DocumentRecord:${documentId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return downloadUrl;
@@ -614,9 +615,9 @@ export async function softDeleteDocument(documentId: string, session: TokenPaylo
     actorId: session.userId,
     actorName: doc.owner.name,
     actorRole: session.role,
-    eventType: "DOCUMENT_DELETED",
+    eventType: SECURITY_EVENT_TYPE.DOCUMENT_DELETED,
     resource: `DocumentRecord:${documentId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return true;
@@ -637,9 +638,9 @@ export async function restoreDocument(documentId: string, session: TokenPayload)
     actorId: session.userId,
     actorName: doc.owner.name,
     actorRole: session.role,
-    eventType: "DOCUMENT_RESTORED",
+    eventType: SECURITY_EVENT_TYPE.DOCUMENT_RESTORED,
     resource: `DocumentRecord:${documentId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
   return true;
@@ -668,9 +669,9 @@ export async function permanentlyDeleteDocument(documentId: string, session: Tok
     actorId: session.userId,
     actorName: doc.owner.name,
     actorRole: session.role,
-    eventType: "DOCUMENT_PERMANENTLY_DELETED",
+    eventType: SECURITY_EVENT_TYPE.DOCUMENT_PERMANENTLY_DELETED,
     resource: `DocumentRecord:${documentId}`,
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: {
       fileName: doc.fileName,
       filePath: doc.filePath,
@@ -693,10 +694,10 @@ export async function processExpiredDocumentsAndReminders() {
 
     await logActivity({
       actorName: "System",
-      actorRole: "System",
-      eventType: "CRON_DOCUMENT_EXPIRED",
+      actorRole: SECURITY_ACTOR_ROLE.SYSTEM,
+      eventType: SECURITY_EVENT_TYPE.CRON_DOCUMENT_EXPIRED,
       resource: `DocumentRecord:${doc.id}`,
-      status: "SUCCESS",
+      status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { code: doc.documentType.code, ownerId: doc.ownerId },
     });
 
@@ -800,10 +801,10 @@ export async function processExpiredDocumentsAndReminders() {
 
   await logActivity({
     actorName: "System",
-    actorRole: "System",
-    eventType: "CRON_CHECK_EXPIRY_RUN",
+    actorRole: SECURITY_ACTOR_ROLE.SYSTEM,
+    eventType: SECURITY_EVENT_TYPE.CRON_CHECK_EXPIRY_RUN,
     resource: "CronCheckExpiry",
-    status: "SUCCESS",
+    status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { expiredCount, remindersSent },
   });
 

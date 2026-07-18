@@ -9,6 +9,8 @@ import {
   StorageProvider,
   NotificationType,
   NotificationRelatedEntityType,
+  SecurityActorRole,
+  SecurityLogStatus,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import * as pg from "pg";
@@ -369,16 +371,16 @@ async function main() {
 
   await prisma.securityLog.createMany({
     data: [
-      { id: "seed_log_001", actorId: employees[0].user.id, actorName: employees[0].employee.name, actorRole: "ADMIN", eventType: "USER_CREATED", resource: "User:seed", status: "SUCCESS", metadata: { source: "seed" }, timestamp: daysAgo(20) },
-      { id: "seed_log_002", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: "STAFF", eventType: "DOCUMENT_VERIFIED", resource: "DocumentRecord:seed_doc_001", status: "SUCCESS", metadata: { decision: "APPROVED" }, timestamp: daysAgo(44) },
-      { id: "seed_log_003", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: "STAFF", eventType: "DOCUMENT_VERIFIED", resource: "DocumentRecord:seed_doc_005", status: "SUCCESS", metadata: { decision: "REJECTED" }, timestamp: daysAgo(7) },
-      { id: "seed_log_004", actorId: employeeUser.id, actorName: employees[3].employee.name, actorRole: "EMPLOYEE", eventType: "DOCUMENT_UPLOADED", resource: "DocumentRecord:seed_doc_003", status: "SUCCESS", metadata: { documentType: "STR" }, timestamp: daysAgo(1) },
-      { id: "seed_log_005", actorId: employees[9].user.id, actorName: employees[9].employee.name, actorRole: "EMPLOYEE", eventType: "DOCUMENT_UPLOADED", resource: "DocumentRecord:seed_doc_009", status: "SUCCESS", metadata: { documentType: "SURAT-SEHAT" }, timestamp: daysAgo(3) },
-      { id: "seed_log_006", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: "STAFF", eventType: "DOCUMENT_DOWNLOADED", resource: "DocumentRecord:seed_doc_004", status: "SUCCESS", metadata: { purpose: "verification" }, timestamp: daysAgo(23) },
-      { id: "seed_log_007", actorId: employees[2].user.id, actorName: employees[2].employee.name, actorRole: "STAFF", eventType: "EMPLOYEE_UPDATED", resource: "Employee:emp_seed_emp_1", status: "SUCCESS", metadata: { field: "workplace" }, timestamp: daysAgo(12) },
-      { id: "seed_log_008", actorId: employees[0].user.id, actorName: employees[0].employee.name, actorRole: "ADMIN", eventType: "SYSTEM_SETTING_UPDATED", resource: "SystemSetting:seed.reminderDays", status: "SUCCESS", metadata: { value: "30,7,1" }, timestamp: daysAgo(6) },
-      { id: "seed_log_009", actorId: null, actorName: "System", actorRole: "SYSTEM", eventType: "EXPIRY_CRON_RUN", resource: "Cron:check-expiry", status: "SUCCESS", metadata: { scanned: 10 }, timestamp: daysAgo(1) },
-      { id: "seed_log_010", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: "STAFF", eventType: "LOGIN", resource: "Session:demo", status: "SUCCESS", metadata: { source: "seed-demo" }, timestamp: new Date() },
+      { id: "seed_log_001", actorId: employees[0].user.id, actorName: employees[0].employee.name, actorRole: SecurityActorRole.ADMIN, eventType: "EMPLOYEE_ACCOUNT_UPDATED", resource: "User:seed", status: SecurityLogStatus.SUCCESS, metadata: { source: "seed" }, timestamp: daysAgo(20) },
+      { id: "seed_log_002", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: SecurityActorRole.STAFF, eventType: "DOCUMENT_APPROVED", resource: "DocumentRecord:seed_doc_001", status: SecurityLogStatus.SUCCESS, metadata: { decision: "APPROVED" }, timestamp: daysAgo(44) },
+      { id: "seed_log_003", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: SecurityActorRole.STAFF, eventType: "DOCUMENT_REJECTED", resource: "DocumentRecord:seed_doc_005", status: SecurityLogStatus.SUCCESS, metadata: { decision: "REJECTED" }, timestamp: daysAgo(7) },
+      { id: "seed_log_004", actorId: employeeUser.id, actorName: employees[3].employee.name, actorRole: SecurityActorRole.EMPLOYEE, eventType: "DOCUMENT_UPLOADED", resource: "DocumentRecord:seed_doc_003", status: SecurityLogStatus.SUCCESS, metadata: { documentType: "STR" }, timestamp: daysAgo(1) },
+      { id: "seed_log_005", actorId: employees[9].user.id, actorName: employees[9].employee.name, actorRole: SecurityActorRole.EMPLOYEE, eventType: "DOCUMENT_UPLOADED", resource: "DocumentRecord:seed_doc_009", status: SecurityLogStatus.SUCCESS, metadata: { documentType: "SURAT-SEHAT" }, timestamp: daysAgo(3) },
+      { id: "seed_log_006", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: SecurityActorRole.STAFF, eventType: "DOCUMENT_DOWNLOADED", resource: "DocumentRecord:seed_doc_004", status: SecurityLogStatus.SUCCESS, metadata: { purpose: "verification" }, timestamp: daysAgo(23) },
+      { id: "seed_log_007", actorId: employees[2].user.id, actorName: employees[2].employee.name, actorRole: SecurityActorRole.STAFF, eventType: "EMPLOYEE_UPDATED", resource: "Employee:emp_seed_emp_1", status: SecurityLogStatus.SUCCESS, metadata: { field: "workplace" }, timestamp: daysAgo(12) },
+      { id: "seed_log_008", actorId: employees[0].user.id, actorName: employees[0].employee.name, actorRole: SecurityActorRole.ADMIN, eventType: "SYSTEM_SETTING_UPDATED", resource: "SystemSetting:seed.reminderDays", status: SecurityLogStatus.SUCCESS, metadata: { value: "30,7,1" }, timestamp: daysAgo(6) },
+      { id: "seed_log_009", actorId: null, actorName: "System", actorRole: SecurityActorRole.SYSTEM, eventType: "CRON_CHECK_EXPIRY_RUN", resource: "Cron:check-expiry", status: SecurityLogStatus.SUCCESS, metadata: { scanned: 10 }, timestamp: daysAgo(1) },
+      { id: "seed_log_010", actorId: staffUser.id, actorName: REVIEWER_NAME, actorRole: SecurityActorRole.STAFF, eventType: "AUTH_LOGIN_SUCCESS", resource: "Session:demo", status: SecurityLogStatus.SUCCESS, metadata: { source: "seed-demo" }, timestamp: new Date() },
     ],
   });
 

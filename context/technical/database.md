@@ -18,6 +18,15 @@
 | `Role` | `ADMIN`, `STAFF`, `EMPLOYEE` |
 | `DocumentStatus` | `PENDING`, `APPROVED`, `REJECTED`, `EXPIRED`, `REPLACED` |
 | `ArchiveCategory` | `PERSONAL`, `EDUCATION`, `EMPLOYMENT`, `CERTIFICATION`, `LEGAL` |
+| `EmployeeStatus` | `ACTIVE`, `RETIRED`, `STUDY_ASSIGNMENT` |
+| `EmployeeGender` | `MALE`, `FEMALE` |
+| `EmployeeMaritalStatus` | `SINGLE`, `MARRIED`, `DIVORCED`, `WIDOWED` |
+| `EmployeeReligion` | `ISLAM`, `PROTESTANT`, `CATHOLIC`, `HINDU`, `BUDDHIST`, `CONFUCIAN` |
+| `StorageProvider` | `LOCAL`, `SUPABASE`, `S3` |
+| `NotificationType` | `DOCUMENT_STATUS`, `DOCUMENT_VERIFICATION`, `EXPIRY_REMINDER`, `VERIFICATION_REQUIRED`, `INFO` |
+| `NotificationRelatedEntityType` | `DOCUMENT_RECORD` |
+| `SecurityLogStatus` | `SUCCESS`, `FAILED` |
+| `SecurityActorRole` | `ADMIN`, `STAFF`, `EMPLOYEE`, `PUBLIC`, `SYSTEM` |
 
 ## Tabel Auth
 

@@ -54,9 +54,25 @@ type LogActivityInput = {
 async function logActivity(input: LogActivityInput): Promise<void>;
 ```
 
+`actorRole` disimpan sebagai canonical uppercase enum: `ADMIN`, `STAFF`, `EMPLOYEE`, `PUBLIC`, atau `SYSTEM`.
+Legacy value `Public`/`System` dimapping ke `PUBLIC`/`SYSTEM` saat migrasi.
+
 Catatan:
 - Jangan simpan password, token, secret key, atau isi file dokumen di `metadata`.
 - Simpan ID resource dan ringkasan aman saja.
+
+## 3.1 Keputusan Event Type
+
+`SecurityLog.eventType` tetap berupa string yang dikontrol typed constants TypeScript, bukan Prisma enum.
+Alasannya: audit log bersifat append-only dan event baru harus mudah ditambahkan tanpa migration database untuk setiap event operasional baru.
+
+Canonical event taxonomy saat ini:
+
+- Auth: `AUTH_LOGIN_SUCCESS`, `AUTH_LOGIN_FAILED`, `AUTH_FORCE_LOGOUT_OTHERS`, `AUTH_REFRESH_SUCCESS`, `AUTH_REFRESH_FAILED`, `AUTH_LOGOUT`, `AUTH_PASSWORD_RESET_REQUESTED`, `AUTH_PASSWORD_RESET_SUCCESS`, `AUTH_PASSWORD_CHANGED`.
+- Document: `DOCUMENT_UPLOADED`, `DOCUMENT_DOWNLOADED`, `DOCUMENT_APPROVED`, `DOCUMENT_REJECTED`, `DOCUMENT_DELETED`, `DOCUMENT_RESTORED`, `DOCUMENT_PERMANENTLY_DELETED`.
+- Employee: `EMPLOYEE_CREATED`, `EMPLOYEE_UPDATED`, `EMPLOYEE_DELETED`, `EMPLOYEE_RESTORED`, `EMPLOYEE_PERMANENTLY_DELETED`, `EMPLOYEE_ACCOUNT_UPDATED`, `EMPLOYEE_EXPORTED`.
+- Master data/settings: `MASTER_DATA_CREATED`, `MASTER_DATA_UPDATED`, `MASTER_DATA_DELETED`, `SYSTEM_SETTING_UPDATED`.
+- Cron/system: `CRON_DOCUMENT_EXPIRED`, `CRON_CHECK_EXPIRY_RUN`.
 
 ## 4. Event Types Wajib dari PRD
 

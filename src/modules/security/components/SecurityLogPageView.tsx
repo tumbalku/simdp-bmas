@@ -36,6 +36,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROLE_LABELS, ROUTES } from "@/constants";
+import {
+  SECURITY_ACTOR_ROLE,
+  SECURITY_ACTOR_ROLE_LABELS,
+  SECURITY_EVENT_TYPE_LABELS,
+  SECURITY_EVENT_TYPE_OPTIONS,
+  SECURITY_LOG_STATUS,
+  SECURITY_LOG_STATUS_LABELS,
+} from "../constants";
 
 type SecurityLogItem = {
   id: string;
@@ -65,38 +73,17 @@ type SecurityLogPageViewProps = {
 
 const STATUS_OPTIONS = [
   { value: "all", label: "Semua status" },
-  { value: "SUCCESS", label: "Berhasil" },
-  { value: "FAILED", label: "Gagal" },
+  ...Object.values(SECURITY_LOG_STATUS).map((value) => ({ value, label: SECURITY_LOG_STATUS_LABELS[value] })),
 ] as const;
 
 const ACTOR_OPTIONS = [
   { value: "all", label: "Semua aktor" },
-  { value: "ADMIN", label: ROLE_LABELS.ADMIN },
-  { value: "STAFF", label: ROLE_LABELS.STAFF },
-  { value: "EMPLOYEE", label: ROLE_LABELS.EMPLOYEE },
-  { value: "Public", label: "Publik" },
-  { value: "System", label: "Sistem" },
+  ...Object.values(SECURITY_ACTOR_ROLE).map((value) => ({ value, label: SECURITY_ACTOR_ROLE_LABELS[value] })),
 ] as const;
 
 const EVENT_OPTIONS = [
   { value: "all", label: "Semua event" },
-  { value: "AUTH_LOGIN_SUCCESS", label: "Login berhasil" },
-  { value: "AUTH_LOGIN_FAILED", label: "Login gagal" },
-  { value: "AUTH_LOGOUT", label: "Logout" },
-  { value: "AUTH_PASSWORD_CHANGED", label: "Password diubah" },
-  { value: "DOCUMENT_UPLOADED", label: "Dokumen diunggah" },
-  { value: "DOCUMENT_DOWNLOADED", label: "Dokumen diunduh" },
-  { value: "DOCUMENT_DELETED", label: "Dokumen diarsipkan" },
-  { value: "DOCUMENT_RESTORED", label: "Dokumen dipulihkan" },
-  { value: "DOCUMENT_PERMANENTLY_DELETED", label: "Dokumen dihapus permanen" },
-  { value: "EMPLOYEE_CREATED", label: "Pegawai dibuat" },
-  { value: "EMPLOYEE_UPDATED", label: "Pegawai diperbarui" },
-  { value: "EMPLOYEE_EXPORTED", label: "Data pegawai diekspor" },
-  { value: "MASTER_DATA_CREATED", label: "Master data dibuat" },
-  { value: "MASTER_DATA_UPDATED", label: "Master data diperbarui" },
-  { value: "MASTER_DATA_DELETED", label: "Master data dihapus" },
-  { value: "CRON_DOCUMENT_EXPIRED", label: "Dokumen kedaluwarsa" },
-  { value: "CRON_CHECK_EXPIRY_RUN", label: "Cek kedaluwarsa berjalan" },
+  ...SECURITY_EVENT_TYPE_OPTIONS,
 ] as const;
 
 export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewProps) {
@@ -110,8 +97,8 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
   const [rowsPerPage, setRowsPerPage] = useState(() => String(pagination.pageSize || PAGINATION.defaultSecurityLogPageSize));
 
   const stats = useMemo(() => {
-    const success = logs.filter((log) => log.status === "SUCCESS").length;
-    const failed = logs.filter((log) => log.status === "FAILED").length;
+    const success = logs.filter((log) => log.status === SECURITY_LOG_STATUS.SUCCESS).length;
+    const failed = logs.filter((log) => log.status === SECURITY_LOG_STATUS.FAILED).length;
     return { success, failed };
   }, [logs]);
 
@@ -202,7 +189,9 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
         <div className="space-y-0.5">
           <div className="font-medium">{log.actorName}</div>
           <div className="text-xs text-muted-foreground">
-            {ROLE_LABELS[log.actorRole as keyof typeof ROLE_LABELS] ?? log.actorRole}
+            {SECURITY_ACTOR_ROLE_LABELS[log.actorRole as keyof typeof SECURITY_ACTOR_ROLE_LABELS] ??
+              ROLE_LABELS[log.actorRole as keyof typeof ROLE_LABELS] ??
+              log.actorRole}
           </div>
         </div>
       ),
@@ -210,7 +199,11 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
     {
       key: "event",
       header: "Event",
-      cell: (log) => <code className="rounded bg-muted px-2 py-1 text-xs font-medium">{log.eventType}</code>,
+      cell: (log) => (
+        <code className="rounded bg-muted px-2 py-1 text-xs font-medium">
+          {SECURITY_EVENT_TYPE_LABELS[log.eventType as keyof typeof SECURITY_EVENT_TYPE_LABELS] ?? log.eventType}
+        </code>
+      ),
     },
     {
       key: "resource",
@@ -399,12 +392,12 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "SUCCESS") {
-    return <Badge>Berhasil</Badge>;
+  if (status === SECURITY_LOG_STATUS.SUCCESS) {
+    return <Badge>{SECURITY_LOG_STATUS_LABELS.SUCCESS}</Badge>;
   }
 
-  if (status === "FAILED") {
-    return <Badge variant="destructive">Gagal</Badge>;
+  if (status === SECURITY_LOG_STATUS.FAILED) {
+    return <Badge variant="destructive">{SECURITY_LOG_STATUS_LABELS.FAILED}</Badge>;
   }
 
   return <Badge variant="outline">{status}</Badge>;
