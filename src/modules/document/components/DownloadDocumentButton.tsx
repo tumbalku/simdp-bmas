@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getDocumentPreviewUrlAction } from "@/modules/document/actions";
 
 type DownloadDocumentButtonProps = {
   documentId: string;
@@ -15,9 +16,8 @@ export function DownloadDocumentButton({ documentId }: DownloadDocumentButtonPro
   function handleDownload() {
     setMessage(null);
     startTransition(async () => {
-      const response = await fetch(`/api/v1/documents/download/${documentId}`);
-      const payload = await response.json();
-      if (!response.ok || !payload.ok) {
+      const payload = await getDocumentPreviewUrlAction(documentId);
+      if (!payload.ok) {
         setMessage(payload.error?.message || "Gagal membuka dokumen.");
         return;
       }

@@ -12,6 +12,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #149: Menambahkan Vitest architecture guard untuk mencegah import repository lintas modul, `fetch()` langsung di Client Component, dan legacy hardcoded status pegawai di layer non-label.
 - Issue #141, #142: Menetapkan taxonomy `SecurityLog.eventType` sebagai typed constants TypeScript, lalu memigrasikan `SecurityLog.status` dan `actorRole` ke Prisma enum canonical uppercase dengan legacy mapping untuk `Public`/`System`.
 - Issue #135, #139, #140: Memigrasikan `Employee.religion`, `DocumentRecord.storageProvider`, serta `Notification.type`/`relatedEntityType` ke Prisma enum canonical dengan migration SQL legacy mapping dan kompatibilitas label UI Bahasa Indonesia.
 - Issue #133, #134, #136: Memigrasikan `Employee.status`, `Employee.gender`, dan `Employee.maritalStatus` ke Prisma enum canonical English dengan migration SQL yang memetakan legacy value Indonesia, sambil menjaga label UI tetap Bahasa Indonesia dan CSV/import tetap menerima value legacy.

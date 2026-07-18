@@ -8,6 +8,7 @@ Gunakan checklist ini sebelum menganggap fitur selesai atau sebelum membuka PR.
 
 ## A. Checklist Arsitektur
 
+- [ ] Architecture guard lulus via `npm run test -- tests/architecture/architecture-guards.test.ts`.
 - [ ] Komponen tidak ada `fetch()` langsung; semua data lewat `hooks.ts`.
 - [ ] `hooks.ts` hanya memanggil `api.ts` di modul yang sama.
 - [ ] Server Action/Route Handler hanya memanggil `service.ts` di modul yang sama.
