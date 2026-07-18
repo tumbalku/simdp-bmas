@@ -2,25 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  Filter,
-  Search,
-  ShieldCheck,
-} from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { DataTable, type DataTableColumn } from "@/components/shared/DataTable";
 import { DataTableCard } from "@/components/shared/DataTableCard";
-import { MetricCard } from "@/components/shared/MetricCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PaginationItems } from "@/components/shared/PaginationItems";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -28,13 +16,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROLE_LABELS, ROUTES } from "@/constants";
 import {
   SECURITY_ACTOR_ROLE,
@@ -44,6 +26,8 @@ import {
   SECURITY_LOG_STATUS,
   SECURITY_LOG_STATUS_LABELS,
 } from "../constants";
+import { SecurityLogFilters } from "./SecurityLogFilters";
+import { SecurityLogMetrics } from "./SecurityLogMetrics";
 
 type SecurityLogItem = {
   id: string;
@@ -263,105 +247,25 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
         description="Pantau audit log aktivitas penting, perubahan data, akses sistem, dan tindakan sensitif."
       />
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <MetricCard
-          title="Total log"
-          value={pagination.totalItems.toString()}
-          description="Semua audit log sesuai filter aktif."
-          icon={Activity}
-          iconClassName="bg-primary/10 text-primary"
-        />
-        <MetricCard
-          title="Berhasil"
-          value={stats.success.toString()}
-          description="Log berhasil pada halaman ini."
-          icon={CheckCircle2}
-          iconClassName="bg-success/10 text-success"
-        />
-        <MetricCard
-          title="Gagal"
-          value={stats.failed.toString()}
-          description="Log gagal pada halaman ini."
-          icon={AlertTriangle}
-          iconClassName="bg-destructive/10 text-destructive"
-        />
-      </div>
+      <SecurityLogMetrics totalItems={pagination.totalItems} success={stats.success} failed={stats.failed} />
 
-      <Card className="border-muted-foreground/10 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Filter className="size-4" />
-            Filter & Pencarian
-          </CardTitle>
-          <CardDescription>Saring berdasarkan aktor, event, status, dan rentang tanggal.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 lg:grid-cols-[minmax(150px,0.9fr)_minmax(190px,1.1fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_minmax(150px,0.8fr)_auto] lg:items-end">
-            <div className="space-y-1.5">
-              <Label htmlFor="actor-role">Aktor</Label>
-              <Select value={actorRole} onValueChange={(value) => setActorRole(value ?? "all")}>
-                <SelectTrigger id="actor-role" className="w-full">
-                  <SelectValue placeholder="Semua aktor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACTOR_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="event-type">Event</Label>
-              <Select value={eventType} onValueChange={(value) => setEventType(value ?? "all")}>
-                <SelectTrigger id="event-type" className="w-full">
-                  <SelectValue placeholder="Semua event" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EVENT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="security-status">Status</Label>
-              <Select value={status} onValueChange={(value) => setStatus(value ?? "all")}>
-                <SelectTrigger id="security-status" className="w-full">
-                  <SelectValue placeholder="Semua status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="date-from">Dari tanggal</Label>
-              <Input id="date-from" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="date-to">Sampai tanggal</Label>
-              <Input id="date-to" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
-              <Button type="button" className="gap-2" onClick={handleFilter}>
-                <Search className="size-4" />
-                Terapkan
-              </Button>
-              <Button type="button" variant="outline" onClick={handleResetFilter}>
-                Reset
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SecurityLogFilters
+        actorRole={actorRole}
+        eventType={eventType}
+        status={status}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        actorOptions={ACTOR_OPTIONS}
+        eventOptions={EVENT_OPTIONS}
+        statusOptions={STATUS_OPTIONS}
+        onActorRoleChange={setActorRole}
+        onEventTypeChange={setEventType}
+        onStatusChange={setStatus}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        onApply={handleFilter}
+        onReset={handleResetFilter}
+      />
 
       <DataTableCard
         title="Audit Log"

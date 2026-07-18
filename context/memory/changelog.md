@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issues #145-#148: Memecah UI besar lintas employee/document/verification/security/statistics menjadi helper dan subcomponent yang lebih terfokus tanpa mengubah behavior atau service/repository.
 - Issue #144: Memecah facade document service/repository ke folder internal `services/` dan `repositories/` yang lebih terfokus untuk document type, listing/detail, upload/replace, download, lifecycle arsip, dan expiry/reminder tanpa mengubah public import.
 - Issue #143: Memecah facade employee service/repository ke folder internal `services/` dan `repositories/` yang lebih terfokus, sambil mempertahankan public import `src/modules/employee/service.ts` dan `repository.ts` sebagai re-export boundary.
 - Issue #129: Menyusun dokumentasi perencanaan refaktor terkait batasan modul, peran aggregator `index.ts` (murni re-export), evolusi struktur modul besar ke subfolder terfokus, standardisasi nilai enum database dalam bahasa Inggris, serta tata cara migrasi enum database beserta legacy data mapping di `module-boundaries.md`, `file-structure.md`, dan `decisions-log.md`.
