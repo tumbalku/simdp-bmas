@@ -6,7 +6,32 @@ import { documentTypeTargetInclude } from "./document-types";
 
 type PreparedDocumentFile = {
   fileName: string;
+  uploadPath: string;
+};
+
+type ReplacedDocumentSnapshot = {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
+};
+
+type PreviousDocumentFileSnapshot = {
+  title: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
+  isCurrent: boolean;
+  fileName: string;
   filePath: string;
+  fileSize: bigint | null;
+  mimeType: string | null;
+  fileHash: string | null;
+  storageProvider: StorageProviderValue;
+  documentNumber: string | null;
+  issueDate: Date | null;
+  expiryDate: Date | null;
+  updatedBy: string | null;
+  uploadedAt: Date;
+  reminderH30SentAt: Date | null;
+  reminderH7SentAt: Date | null;
+  reminderH1SentAt: Date | null;
 };
 
 async function lockDocumentSequence(tx: Prisma.TransactionClient, ownerId: string, documentTypeId: string) {
@@ -28,12 +53,12 @@ export async function countActiveDocumentRecords(ownerId: string, documentTypeId
   });
 }
 
-export async function createUploadedDocumentTransaction(data: {
+export async function reserveUploadedDocumentTransaction(data: {
   docId: string;
   ownerId: string;
   documentTypeId: string;
   title: string;
-  prepareFile: (sequence: number) => Promise<PreparedDocumentFile>;
+  buildFile: (sequence: number) => PreparedDocumentFile;
   fileSize: bigint;
   mimeType: string | null;
   fileHash: string;
@@ -52,12 +77,13 @@ export async function createUploadedDocumentTransaction(data: {
     const existingCount = await tx.documentRecord.count({
       where: { ownerId: data.ownerId, documentTypeId: data.documentTypeId },
     });
-    const { fileName, filePath } = await data.prepareFile(existingCount + 1);
-    const replacedDocumentIds: string[] = [];
+    const { fileName, uploadPath } = data.buildFile(existingCount + 1);
+    const replacedDocuments: ReplacedDocumentSnapshot[] = [];
 
     if (!data.allowMultiple) {
       const activeDocs = await tx.documentRecord.findMany({
         where: { ownerId: data.ownerId, documentTypeId: data.documentTypeId, isCurrent: true, deletedAt: null },
+        select: { id: true, status: true },
       });
 
       if (activeDocs.length > 0) {
@@ -66,7 +92,7 @@ export async function createUploadedDocumentTransaction(data: {
           data: { isCurrent: false, status: "REPLACED" },
         });
 
-        replacedDocumentIds.push(...activeDocs.map((doc) => doc.id));
+        replacedDocuments.push(...activeDocs);
       }
     }
 
@@ -80,7 +106,7 @@ export async function createUploadedDocumentTransaction(data: {
         isCurrent: true,
         allowMultipleSnapshot: data.allowMultiple,
         fileName,
-        filePath,
+        filePath: uploadPath,
         fileSize: data.fileSize,
         mimeType: data.mimeType,
         fileHash: data.fileHash,
@@ -107,7 +133,35 @@ export async function createUploadedDocumentTransaction(data: {
     });
     const verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
 
-    return { record: docRec, replacedDocumentIds, verificationRecipientUserIds };
+    return { record: docRec, uploadPath, replacedDocuments, verificationRecipientUserIds };
+  });
+}
+
+export async function finalizeDocumentFilePath(documentId: string, filePath: string) {
+  return prisma.documentRecord.update({
+    where: { id: documentId },
+    data: { filePath },
+  });
+}
+
+export async function abortUploadedDocumentReservation(data: {
+  docId: string;
+  replacedDocuments: ReplacedDocumentSnapshot[];
+}) {
+  return prisma.$transaction(async (tx) => {
+    await tx.verificationHistory.deleteMany({
+      where: { documentRecordId: data.docId },
+    });
+    await tx.documentRecord.delete({
+      where: { id: data.docId },
+    });
+
+    for (const doc of data.replacedDocuments) {
+      await tx.documentRecord.update({
+        where: { id: doc.id },
+        data: { status: doc.status, isCurrent: true },
+      });
+    }
   });
 }
 
@@ -134,11 +188,11 @@ export async function findDocumentRecordWithOwnerAndDocumentType(id: string) {
   });
 }
 
-export async function replaceDocumentFileTransaction(data: {
+export async function reserveReplaceDocumentFileTransaction(data: {
   documentId: string;
   ownerId: string;
   documentTypeId: string;
-  prepareFile: (sequence: number) => Promise<PreparedDocumentFile>;
+  buildFile: (sequence: number) => PreparedDocumentFile;
   fileSize: bigint;
   mimeType: string | null;
   fileHash: string;
@@ -157,7 +211,31 @@ export async function replaceDocumentFileTransaction(data: {
     const existingCount = await tx.documentRecord.count({
       where: { ownerId: data.ownerId, documentTypeId: data.documentTypeId },
     });
-    const { fileName, filePath } = await data.prepareFile(existingCount + 1);
+    const { fileName, uploadPath } = data.buildFile(existingCount + 1);
+    const verificationHistoryId = crypto.randomUUID();
+
+    const previousRecord = await tx.documentRecord.findUniqueOrThrow({
+      where: { id: data.documentId },
+      select: {
+        title: true,
+        status: true,
+        isCurrent: true,
+        fileName: true,
+        filePath: true,
+        fileSize: true,
+        mimeType: true,
+        fileHash: true,
+        storageProvider: true,
+        documentNumber: true,
+        issueDate: true,
+        expiryDate: true,
+        updatedBy: true,
+        uploadedAt: true,
+        reminderH30SentAt: true,
+        reminderH7SentAt: true,
+        reminderH1SentAt: true,
+      },
+    });
 
     const record = await tx.documentRecord.update({
       where: { id: data.documentId },
@@ -166,7 +244,7 @@ export async function replaceDocumentFileTransaction(data: {
         isCurrent: true,
         title: data.title,
         fileName,
-        filePath,
+        filePath: uploadPath,
         fileSize: data.fileSize,
         mimeType: data.mimeType,
         fileHash: data.fileHash,
@@ -185,7 +263,7 @@ export async function replaceDocumentFileTransaction(data: {
 
     await tx.verificationHistory.create({
       data: {
-        id: crypto.randomUUID(),
+        id: verificationHistoryId,
         documentRecordId: data.documentId,
         status: "PENDING",
         reviewedById: data.updatedBy,
@@ -199,6 +277,22 @@ export async function replaceDocumentFileTransaction(data: {
     });
     const verificationRecipientUserIds = adminsAndStaff.map((user) => user.id);
 
-    return { record, verificationRecipientUserIds };
+    return { record, uploadPath, previousRecord, verificationHistoryId, verificationRecipientUserIds };
+  });
+}
+
+export async function abortReplaceDocumentReservation(data: {
+  documentId: string;
+  previousRecord: PreviousDocumentFileSnapshot;
+  verificationHistoryId: string;
+}) {
+  return prisma.$transaction(async (tx) => {
+    await tx.verificationHistory.deleteMany({
+      where: { id: data.verificationHistoryId },
+    });
+    await tx.documentRecord.update({
+      where: { id: data.documentId },
+      data: data.previousRecord,
+    });
   });
 }

@@ -22,9 +22,9 @@ function getErrorMessage(error: unknown) {
 }
 
 function formatDateSegment(date: Date) {
-  const year = date.getFullYear().toString();
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const day = date.getDate().toString().padStart(2, "0");
+  const year = date.getUTCFullYear().toString();
+  const month = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+  const day = date.getUTCDate().toString().padStart(2, "0");
 
   return `${year}${month}${day}`;
 }
@@ -168,14 +168,14 @@ export async function uploadDocumentRecord(
 
   const storageProvider = getActiveStorageProviderValue();
   const documentDate = data.issueDate ? new Date(data.issueDate) : new Date();
+  const identifier = employee.nik || employee.employeeId || session.userId;
 
-  const { record, replacedDocumentIds, verificationRecipientUserIds } = await repo.createUploadedDocumentTransaction({
+  const reservedUpload = await repo.reserveUploadedDocumentTransaction({
     docId,
     ownerId: employee.id,
     documentTypeId: docType.id,
     title: data.title || docType.name,
-    prepareFile: async (sequence) => {
-      const identifier = employee.nik || employee.employeeId || session.userId;
+    buildFile: (sequence) => {
       const fileName = buildDocumentFileName({
         identifier,
         archiveCategory: docType.archiveCategory,
@@ -185,9 +185,8 @@ export async function uploadDocumentRecord(
         ext,
       });
       const uploadPath = path.join(docType.code, fileName).replace(/\\/g, "/");
-      const filePath = await storage.upload(uploadPath, buffer, data.file.type);
 
-      return { fileName, filePath };
+      return { fileName, uploadPath };
     },
     fileSize: BigInt(buffer.length),
     mimeType: data.file.type || null,
@@ -201,6 +200,21 @@ export async function uploadDocumentRecord(
     documentTypeName: docType.name,
     ownerName: employee.name,
   });
+  let record = reservedUpload.record;
+
+  try {
+    const savedPath = await storage.upload(reservedUpload.uploadPath, buffer, data.file.type);
+    record = await repo.finalizeDocumentFilePath(record.id, savedPath);
+  } catch (error) {
+    await repo.abortUploadedDocumentReservation({
+      docId,
+      replacedDocuments: reservedUpload.replacedDocuments,
+    });
+    throw error;
+  }
+
+  const replacedDocumentIds = reservedUpload.replacedDocuments.map((doc) => doc.id);
+  const verificationRecipientUserIds = reservedUpload.verificationRecipientUserIds;
 
   for (const replacedDocumentId of replacedDocumentIds) {
     await logActivity({
@@ -297,13 +311,13 @@ export async function replaceDocumentFile(
 
   const storageProvider = getActiveStorageProviderValue();
   const documentDate = data.issueDate ? new Date(data.issueDate) : doc.issueDate ?? new Date();
+  const identifier = doc.owner.nik || doc.owner.employeeId || session.userId;
 
-  const { record, verificationRecipientUserIds } = await repo.replaceDocumentFileTransaction({
+  const reservedReplace = await repo.reserveReplaceDocumentFileTransaction({
     documentId: doc.id,
     ownerId: doc.ownerId,
     documentTypeId: doc.documentTypeId,
-    prepareFile: async (sequence) => {
-      const identifier = doc.owner.nik || doc.owner.employeeId || session.userId;
+    buildFile: (sequence) => {
       const fileName = buildDocumentFileName({
         identifier,
         archiveCategory: doc.documentType.archiveCategory,
@@ -313,9 +327,8 @@ export async function replaceDocumentFile(
         ext,
       });
       const uploadPath = path.join(doc.documentType.code, fileName).replace(/\\/g, "/");
-      const filePath = await storage.upload(uploadPath, buffer, data.file.type);
 
-      return { fileName, filePath };
+      return { fileName, uploadPath };
     },
     fileSize: BigInt(buffer.length),
     mimeType: data.file.type || null,
@@ -329,6 +342,21 @@ export async function replaceDocumentFile(
     issueDate: doc.documentType.requiresIssueDate && data.issueDate ? new Date(data.issueDate) : doc.issueDate,
     expiryDate: doc.documentType.requiresExpiryDate && data.expiryDate ? new Date(data.expiryDate) : doc.expiryDate,
   });
+  let record = reservedReplace.record;
+
+  try {
+    const savedPath = await storage.upload(reservedReplace.uploadPath, buffer, data.file.type);
+    record = await repo.finalizeDocumentFilePath(record.id, savedPath);
+  } catch (error) {
+    await repo.abortReplaceDocumentReservation({
+      documentId: doc.id,
+      previousRecord: reservedReplace.previousRecord,
+      verificationHistoryId: reservedReplace.verificationHistoryId,
+    });
+    throw error;
+  }
+
+  const verificationRecipientUserIds = reservedReplace.verificationRecipientUserIds;
 
   const notificationPublish = await publishDocumentVerificationRequested({
     recipientUserIds: verificationRecipientUserIds,

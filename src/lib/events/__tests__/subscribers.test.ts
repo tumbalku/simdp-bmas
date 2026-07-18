@@ -46,6 +46,7 @@ import {
 describe("event subscribers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.createNotification.mockResolvedValue({ id: "notification-created" });
   });
 
   it("creates expiry reminder notifications inside the notification module", async () => {
@@ -66,6 +67,9 @@ describe("event subscribers", () => {
       relatedEntityType: "DOCUMENT_RECORD",
       relatedEntityId: "doc-1",
       skipDispatch: true,
+    });
+    expect(mocks.dispatchNotification).toHaveBeenCalledWith({
+      notificationId: "notification-created",
     });
   });
 

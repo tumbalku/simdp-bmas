@@ -15,17 +15,29 @@ import type { EventPayload } from "./types";
 
 const shouldDispatchCreatedNotification = Boolean(env.INNGEST_EVENT_KEY);
 
+async function createNotificationFromSubscriber(input: Parameters<typeof createNotification>[0]) {
+  const notification = await createNotification({
+    ...input,
+    skipDispatch: !shouldDispatchCreatedNotification,
+  });
+
+  if (!shouldDispatchCreatedNotification) {
+    await dispatchNotification({ notificationId: notification.id });
+  }
+
+  return notification;
+}
+
 export async function handleDocumentExpiryReminderCreated(
   data: EventPayload<typeof EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED>
 ) {
-  await createNotification({
+  await createNotificationFromSubscriber({
     userId: data.userId,
     type: NOTIFICATION_TYPE.EXPIRY_REMINDER,
     title: data.title,
     message: data.message,
     relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
     relatedEntityId: data.documentRecordId,
-    skipDispatch: !shouldDispatchCreatedNotification,
   });
 }
 
@@ -41,14 +53,13 @@ export async function handleDocumentVerificationRequested(
 
   await Promise.all(
     data.recipientUserIds.map((userId) =>
-      createNotification({
+      createNotificationFromSubscriber({
         userId,
         type: NOTIFICATION_TYPE.VERIFICATION_REQUIRED,
         title,
         message,
         relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
         relatedEntityId: data.documentRecordId,
-        skipDispatch: !shouldDispatchCreatedNotification,
       })
     )
   );
@@ -65,26 +76,24 @@ export async function handleNotificationDispatchRequested(
 }
 
 export async function handleVerificationApproved(data: EventPayload<typeof EVENT_NAMES.VERIFICATION_APPROVED>) {
-  await createNotification({
+  await createNotificationFromSubscriber({
     userId: data.userId,
     type: NOTIFICATION_TYPE.DOCUMENT_STATUS,
     title: "Dokumen Disetujui",
     message: `Dokumen ${data.documentTypeName} Anda telah disetujui.`,
     relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
     relatedEntityId: data.documentRecordId,
-    skipDispatch: !shouldDispatchCreatedNotification,
   });
 }
 
 export async function handleVerificationRejected(data: EventPayload<typeof EVENT_NAMES.VERIFICATION_REJECTED>) {
-  await createNotification({
+  await createNotificationFromSubscriber({
     userId: data.userId,
     type: NOTIFICATION_TYPE.DOCUMENT_STATUS,
     title: "Dokumen Ditolak",
     message: `Dokumen ${data.documentTypeName} Anda telah ditolak. Catatan: ${data.note}`,
     relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
     relatedEntityId: data.documentRecordId,
-    skipDispatch: !shouldDispatchCreatedNotification,
   });
 }
 
