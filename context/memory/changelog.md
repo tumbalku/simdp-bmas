@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #143: Memecah facade employee service/repository ke folder internal `services/` dan `repositories/` yang lebih terfokus, sambil mempertahankan public import `src/modules/employee/service.ts` dan `repository.ts` sebagai re-export boundary.
 - Issue #129: Menyusun dokumentasi perencanaan refaktor terkait batasan modul, peran aggregator `index.ts` (murni re-export), evolusi struktur modul besar ke subfolder terfokus, standardisasi nilai enum database dalam bahasa Inggris, serta tata cara migrasi enum database beserta legacy data mapping di `module-boundaries.md`, `file-structure.md`, dan `decisions-log.md`.
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
