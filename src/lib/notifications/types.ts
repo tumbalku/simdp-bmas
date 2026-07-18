@@ -24,14 +24,3 @@ export interface EmailProvider {
   }): Promise<void>;
 }
 
-export interface NotificationJobProvider {
-  enqueueNotification(input: {
-    notificationId: string;
-    userId: string;
-  }): Promise<void>;
-  enqueueEmail(input: {
-    to: string;
-    subject: string;
-    html: string;
-  }): Promise<void>;
-}

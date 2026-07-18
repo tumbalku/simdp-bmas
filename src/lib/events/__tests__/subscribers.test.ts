@@ -12,12 +12,6 @@ vi.mock("@/lib/notifications", () => ({
   },
 }));
 
-vi.mock("@/lib/notifications/providers/inngest-job-provider", () => ({
-  inngest: {
-    createFunction: vi.fn((config, handler) => ({ config, handler })),
-  },
-}));
-
 vi.mock("@/lib/events/inngest", () => ({
   inngest: {
     createFunction: vi.fn((config, handler) => ({ config, handler })),
