@@ -1,10 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchStatisticsCharts } from "./api";
+"use client";
 
-export function useStatisticsCharts(enabled = true) {
-  return useQuery({
-    queryKey: ["statistics", "charts"],
-    queryFn: fetchStatisticsCharts,
-    enabled,
-  });
-}
+export * from "./hooks/index";
