@@ -1,9 +1,8 @@
 import { ArrowRight, FileCheck2, ShieldCheck, UsersRound } from "lucide-react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { StatisticsDashboardPreview } from "@/modules/statistics/components/StatisticsDashboardPreview";
 import Navbar from "@/components/navigation/Navbar";
-import Link from "next/link";
 
 const features = [
   {
@@ -52,11 +51,6 @@ export default function Home() {
                 Mulai setup modul
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
-              {process.env.NODE_ENV !== "production" && (
-                <Link href="/component-preview" className={buttonVariants({ variant: "outline", size: "lg" })}>
-                  Component Preview
-                </Link>
-              )}
             </div>
           </div>
 

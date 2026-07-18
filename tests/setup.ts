@@ -210,6 +210,7 @@ export const mockPrisma = {
     updateMany: vi.fn(),
     delete: vi.fn(),
   },
+  $executeRaw: vi.fn(),
   $transaction: vi.fn().mockImplementation(async (cb) => {
     if (typeof cb === "function") {
       return cb(mockPrisma);

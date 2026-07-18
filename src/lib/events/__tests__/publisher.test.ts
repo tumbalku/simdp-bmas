@@ -41,6 +41,25 @@ describe("event publisher", () => {
     });
   });
 
+  it("rejects when Inngest publish fails", async () => {
+    vi.doMock("@/lib/env", () => ({
+      env: {
+        INNGEST_EVENT_KEY: "test-event-key",
+      },
+    }));
+    mocks.send.mockRejectedValueOnce(new Error("Inngest unavailable"));
+
+    const { EVENT_NAMES } = await import("../names");
+    const { publishEvent } = await import("../publisher");
+
+    await expect(
+      publishEvent(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, {
+        notificationId: "notification-1",
+        userId: "user-1",
+      })
+    ).rejects.toThrow("Inngest unavailable");
+  });
+
   it("dispatches events locally when Inngest is not configured", async () => {
     vi.doMock("@/lib/env", () => ({
       env: {

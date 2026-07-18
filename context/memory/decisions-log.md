@@ -83,10 +83,17 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 
 ## [2026-07-08] Format Nama File Dokumen
 - Konteks: perlu nama file yang konsisten di semua storage provider.
-- Keputusan: `{KODE-DOKUMEN}-{URUTAN}-{NIP-atau-NIK}.{ext}`. Gunakan NIP jika ada; jika pegawai tidak memiliki NIP, gunakan NIK. Contoh: `STR-1-198501012010011001.pdf`.
+- Keputusan awal: `{KODE-DOKUMEN}-{URUTAN}-{NIP-atau-NIK}.{ext}`. Gunakan NIP jika ada; jika pegawai tidak memiliki NIP, gunakan NIK. Contoh: `STR-1-198501012010011001.pdf`.
 - Alasan: mudah dibaca manusia dan konsisten antar provider.
 - Dampak ke modul: document.
 - Referensi: §16.1 PRD.
+
+## [2026-07-18] REVISED Format Nama File Dokumen
+- Konteks: format nama file perlu lebih mudah ditelusuri dari identitas pegawai, kategori arsip, kode jenis dokumen, tanggal dokumen, dan versi.
+- Keputusan: gunakan `{NIK-atau-NIP}_{KATEGORI-ARSIP}_{KODE-DOKUMEN}_{YYYYMMDD}_{VERSI}.{ext}`. Prioritas identifier adalah NIK terlebih dahulu, lalu NIP. Tanggal memakai tanggal terbit dokumen jika tersedia, fallback ke tanggal upload.
+- Contoh: `198501012010011001_PERSONAL_KTP_20260115_1.pdf`, `198501012010011001_CERTIFICATION_STR-MEDIS_20260115_2.pdf`.
+- Dampak ke modul: document upload/replace filename generation dan storage path.
+- Referensi: revisi review blocker upload filename.
 
 ## [2026-07-08] ArchiveCategory: PERSONAL/EDUCATION/EMPLOYMENT/CERTIFICATION/LEGAL
 - Konteks: PRD lama memakai `UTAMA/KONDISIONAL/PROFESI`; skema SQL baru memakai enum berbeda.

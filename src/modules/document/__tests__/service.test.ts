@@ -352,6 +352,7 @@ describe("Document Module Service", () => {
         id: "type-1",
         code: "PDF",
         name: "PDF Doc",
+        archiveCategory: "PERSONAL",
         maxSizeMb: 5,
         allowedFormats: "pdf",
         requiresDocumentNumber: false,
@@ -363,6 +364,7 @@ describe("Document Module Service", () => {
         id: "emp-1",
         userId: "user-1",
         employeeId: "empId-1",
+        nik: "198501012010011001",
         name: "John Doe",
       };
 
@@ -374,8 +376,8 @@ describe("Document Module Service", () => {
       mockPrisma.documentRecord.create.mockResolvedValue({
         id: "doc-1",
         status: "PENDING",
-        fileName: "PDF-1-empId-1.pdf",
-        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+        fileName: "198501012010011001_PERSONAL_PDF_20260115_1.pdf",
+        filePath: "uploads/PDF/198501012010011001_PERSONAL_PDF_20260115_1.pdf",
       });
 
       // Valid PDF magic bytes: %PDF (25 50 44 46)
@@ -389,13 +391,26 @@ describe("Document Module Service", () => {
         {
           documentTypeId: "type-1",
           file: mockFile,
+          issueDate: "2026-01-15",
         },
         session
       );
 
       expect(result).toBeDefined();
-      expect(storage.upload).toHaveBeenCalled();
+      expect(storage.upload).toHaveBeenCalledWith(
+        "PDF/198501012010011001_PERSONAL_PDF_20260115_1.pdf",
+        expect.any(Buffer),
+        "application/pdf"
+      );
       expect(mockPrisma.documentRecord.create).toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fileName: "198501012010011001_PERSONAL_PDF_20260115_1.pdf",
+            storageProvider: "LOCAL",
+          }),
+        })
+      );
       expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
         recipientUserIds: ["admin-1"],
         documentRecordId: "doc-1",
@@ -525,8 +540,8 @@ describe("Document Module Service", () => {
         owner: {
           id: "emp-1",
           userId: "user-1",
-          employeeId: "empId-1",
-          nik: null,
+        employeeId: "empId-1",
+          nik: "198501012010011001",
           name: "John Doe",
           employeePosition: null,
         },
@@ -534,6 +549,7 @@ describe("Document Module Service", () => {
           id: "type-1",
           code: "KTP",
           name: "KTP",
+          archiveCategory: "PERSONAL",
           maxSizeMb: 5,
           allowedFormats: "pdf",
           deletedAt: null,
@@ -552,8 +568,8 @@ describe("Document Module Service", () => {
       mockPrisma.documentRecord.update.mockResolvedValue({
         id: "doc-1",
         status: "PENDING",
-        fileName: "KTP-2-empId-1.pdf",
-        filePath: "uploads/KTP/KTP-2-empId-1.pdf",
+        fileName: "198501012010011001_PERSONAL_KTP_20260115_2.pdf",
+        filePath: "uploads/KTP/198501012010011001_PERSONAL_KTP_20260115_2.pdf",
       });
       mockPrisma.securityLog.create.mockResolvedValue({});
 
@@ -562,16 +578,24 @@ describe("Document Module Service", () => {
       });
 
       const result = await replaceDocumentFile(
-        { documentId: "doc-1", file: mockFile },
+        { documentId: "doc-1", file: mockFile, issueDate: "2026-01-15" },
         { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
       );
 
       expect(result.id).toBe("doc-1");
-      expect(storage.upload).toHaveBeenCalled();
+      expect(storage.upload).toHaveBeenCalledWith(
+        "KTP/198501012010011001_PERSONAL_KTP_20260115_2.pdf",
+        expect.any(Buffer),
+        "application/pdf"
+      );
       expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "doc-1" },
-          data: expect.objectContaining({ status: "PENDING", fileName: "KTP-2-empId-1.pdf" }),
+          data: expect.objectContaining({
+            status: "PENDING",
+            fileName: "198501012010011001_PERSONAL_KTP_20260115_2.pdf",
+            storageProvider: "LOCAL",
+          }),
         })
       );
       expect(mockPrisma.verificationHistory.create).toHaveBeenCalledWith(

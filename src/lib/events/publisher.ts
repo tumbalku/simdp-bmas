@@ -12,7 +12,8 @@ export async function publishEvent<Name extends keyof EventPayloadMap>(
     try {
       await dispatchEventLocally(name, data);
     } catch (error) {
-      console.error(`[EventBus] Failed to dispatch local event ${name}:`, error);
+      console.error("[EventBus] Failed to dispatch local event", { name, data, error });
+      throw error;
     }
     return;
   }
@@ -20,7 +21,8 @@ export async function publishEvent<Name extends keyof EventPayloadMap>(
   try {
     await inngest.send({ name, data });
   } catch (error) {
-    console.error(`[EventBus] Failed to publish event ${name}:`, error);
+    console.error("[EventBus] Failed to publish event", { name, data, error });
+    throw error;
   }
 }
 

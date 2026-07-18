@@ -67,20 +67,21 @@ docs(context): add technical standards
 Format storage path:
 
 ```txt
-{KODE-DOKUMEN}-{URUTAN}-{NIP-atau-NIK}.{ext}
+{NIK-atau-NIP}_{KATEGORI-ARSIP}_{KODE-DOKUMEN}_{YYYYMMDD}_{VERSI}.{ext}
 ```
 
 Contoh:
 
 ```txt
-STR-1-198501012010011001.pdf
-KTP-1-198501012010011001.jpg
-DIKLAT-2-198501012010011001.pdf
+198501012010011001_PERSONAL_KTP_20260115_1.pdf
+198501012010011001_EDUCATION_IJAZAH_20260115_1.pdf
+198501012010011001_CERTIFICATION_STR-MEDIS_20260115_2.pdf
 ```
 
 Aturan:
 - tidak boleh spasi;
 - hanya `[A-Za-z0-9._-]`;
+- prioritas identifier adalah NIK terlebih dahulu, lalu NIP;
 - extension lowercase;
 - maksimal 150 karakter.
 
