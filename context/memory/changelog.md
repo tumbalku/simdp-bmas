@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #173: Menambahkan fallback delivery notifikasi saat Inngest/Pusher tidak aktif, termasuk local event dispatch best-effort dan polling otomatis navbar ketika Pusher client tidak tersedia.
 - Issue #171: Menyatukan notifikasi upload/ganti dokumen ke event bus realtime sehingga notifikasi verifikasi untuk ADMIN/STAFF dibuat oleh subscriber notification dan langsung masuk jalur dispatch realtime.
 - Issue #164: Membersihkan struktur global dengan memindahkan helper umum dari `src/lib` ke `src/utils`, mengelompokkan reusable components ke `cards`, `navigation`, `providers`, dan `tables`, serta memindahkan helper UI spesifik dokumen ke modul document.
 - Issue #163: Menambahkan internal event bus berbasis Inngest untuk side effect lintas modul notification, termasuk event typed terpusat, publisher wrapper, subscriber Inngest, dan pemindahan dispatch/verification/expiry notification flow ke publish-subscribe.
