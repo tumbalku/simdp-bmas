@@ -2,6 +2,7 @@
 import { logActivity } from "@/modules/security/service";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
 import * as repository from "../repository";
+import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_VALUE, getEmployeeStatusLabel } from "../constants";
 import { mapEmployeeSummary } from "../mappers";
 import {
   buildEmployeeDirectoryWhere,
@@ -56,8 +57,8 @@ export async function exportEmployeeDirectoryCsv(
     employee.nik,
     employee.user?.email,
     employee.user?.role || "EMPLOYEE",
-    employee.status || "Aktif",
-    employee.user?.isActive === false ? "Nonaktif" : "Aktif",
+    getEmployeeStatusLabel(employee.status) || EMPLOYEE_STATUS_LABELS[EMPLOYEE_STATUS_VALUE.ACTIVE],
+    employee.user?.isActive === false ? "Nonaktif" : EMPLOYEE_STATUS_LABELS[EMPLOYEE_STATUS_VALUE.ACTIVE],
     employee.employmentStatus?.name,
     employee.employeeGroup?.name,
     employee.employeePosition?.name,

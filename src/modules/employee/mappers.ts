@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getEmployeeStatusLabel, getGenderLabel, getMaritalStatusLabel, getReligionLabel } from "./constants";
+import {
+  EMPLOYEE_STATUS_VALUE,
+  EMPLOYEE_STATUS_LABELS,
+  getEmployeeStatusLabel,
+  getGenderLabel,
+  getMaritalStatusLabel,
+  getReligionLabel,
+} from "./constants";
 
 export function toIsoDate(value: Date | string | null | undefined): string | null {
   if (!value) return null;
@@ -12,7 +19,7 @@ export function mapEmployeeSummary(employee: any) {
     employeeId: employee.employeeId,
     nik: employee.nik,
     name: employee.name,
-    status: getEmployeeStatusLabel(employee.status) || "Aktif",
+    status: getEmployeeStatusLabel(employee.status) || EMPLOYEE_STATUS_LABELS[EMPLOYEE_STATUS_VALUE.ACTIVE],
     gender: getGenderLabel(employee.gender),
     phone: employee.phone,
     email: employee.user?.email || null,
