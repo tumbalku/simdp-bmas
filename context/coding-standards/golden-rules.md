@@ -32,8 +32,8 @@ Aturan ini wajib dibaca sebelum menulis kode. Jangan dilanggar tanpa keputusan b
 7. **Aksi penting wajib audit.**
    Upload, approve/reject, hapus, ubah master data, ubah role, ubah setting, import/export sensitif wajib memanggil `logActivity()`.
 
-8. **Komunikasi API hanya REST atau Server Actions.**
-   Tidak GraphQL, tidak gRPC, tidak event bus untuk v1.
+8. **Komunikasi request-response hanya REST atau Server Actions.**
+   Tidak GraphQL dan tidak gRPC untuk v1. Event bus internal hanya boleh untuk side effect async yang sudah punya keputusan arsitektur.
 
 9. **`page.tsx` harus tipis.**
    Halaman hanya auth/role guard dan render komponen utama dari modul. Logic tampilan tidak ditulis di `page.tsx`.

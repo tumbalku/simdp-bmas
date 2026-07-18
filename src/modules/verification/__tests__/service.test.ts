@@ -2,34 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { verifyDocument, getVerificationQueue } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
-vi.mock("@/modules/notification/server", () => ({
-  NOTIFICATION_TYPE: {
-    DOCUMENT_STATUS: "DOCUMENT_STATUS",
+vi.mock("@/lib/events", () => ({
+  EVENT_NAMES: {
+    VERIFICATION_APPROVED: "verification/approved",
+    VERIFICATION_REJECTED: "verification/rejected",
   },
-  NOTIFICATION_RELATED_ENTITY_TYPE: {
-    DOCUMENT_RECORD: "DOCUMENT_RECORD",
-  },
-  createNotification: vi.fn().mockImplementation(async (input: {
-    userId: string;
-    type: string;
-    title: string;
-    message?: string | null;
-    relatedEntityType?: string | null;
-    relatedEntityId?: string | null;
-  }) => {
-    return mockPrisma.notification.create({
-      data: {
-        id: "mock-uuid",
-        userId: input.userId,
-        type: input.type,
-        title: input.title,
-        message: input.message,
-        relatedEntityType: input.relatedEntityType,
-        relatedEntityId: input.relatedEntityId,
-      }
-    });
-  }),
+  publishEvent: vi.fn(),
 }));
+
+import { EVENT_NAMES, publishEvent } from "@/lib/events";
 
 describe("Verification Module Service", () => {
   beforeEach(() => {
@@ -79,7 +60,11 @@ describe("Verification Module Service", () => {
         })
       );
       expect(mockPrisma.verificationHistory.create).toHaveBeenCalled();
-      expect(mockPrisma.notification.create).toHaveBeenCalled();
+      expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.VERIFICATION_APPROVED, {
+        userId: "user-1",
+        documentRecordId: "doc-1",
+        documentTypeName: "Ijazah",
+      });
     });
 
     it("should throw error when rejecting without note or note too short", async () => {
@@ -106,6 +91,12 @@ describe("Verification Module Service", () => {
 
       const result = await verifyDocument("doc-1", "REJECTED", "File blur dan tidak terbaca", "staff-1", "Staff User", "STAFF");
       expect(result.status).toBe("REJECTED");
+      expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.VERIFICATION_REJECTED, {
+        userId: "user-1",
+        documentRecordId: "doc-1",
+        documentTypeName: "Ijazah",
+        note: "File blur dan tidak terbaca",
+      });
       expect(mockPrisma.verificationHistory.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ status: "REJECTED", reviewNote: "File blur dan tidak terbaca" }),

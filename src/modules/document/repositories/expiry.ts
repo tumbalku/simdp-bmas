@@ -1,4 +1,3 @@
-import { NOTIFICATION_RELATED_ENTITY_TYPE, NOTIFICATION_TYPE } from "@/modules/notification";
 import { prisma } from "./common";
 
 export async function findExpiredApprovedDocuments(now: Date) {
@@ -42,30 +41,12 @@ export async function findDocumentsToRemind(h30Date: Date, h7Date: Date, h1Date:
   });
 }
 
-export async function createNotificationAndUpdateReminder(data: {
-  notificationId: string;
-  userId: string;
-  title: string;
-  message: string;
-  relatedEntityId: string;
+export async function updateReminderSentAt(data: {
   documentRecordId: string;
   reminderField: "reminderH30SentAt" | "reminderH7SentAt" | "reminderH1SentAt";
 }) {
-  return prisma.$transaction([
-    prisma.notification.create({
-      data: {
-        id: data.notificationId,
-        userId: data.userId,
-        type: NOTIFICATION_TYPE.EXPIRY_REMINDER,
-        title: data.title,
-        message: data.message,
-        relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
-        relatedEntityId: data.relatedEntityId,
-      },
-    }),
-    prisma.documentRecord.update({
-      where: { id: data.documentRecordId },
-      data: { [data.reminderField]: new Date() },
-    }),
-  ]);
+  return prisma.documentRecord.update({
+    where: { id: data.documentRecordId },
+    data: { [data.reminderField]: new Date() },
+  });
 }

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { jobProvider } from "@/lib/notifications";
+import { EVENT_NAMES, publishEvent } from "@/lib/events";
 import {
   mapNotificationRelatedEntityTypeLegacyToCanonical,
   mapNotificationTypeToCanonical,
@@ -37,5 +37,5 @@ export async function enqueueNotificationDispatch(input: {
   notificationId: string;
   userId: string;
 }) {
-  await jobProvider.enqueueNotification(input);
+  await publishEvent(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, input);
 }

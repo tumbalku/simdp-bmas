@@ -15,6 +15,15 @@ import {
 import { mockPrisma } from "../../../../tests/setup";
 import { storage } from "@/lib/storage";
 
+vi.mock("@/lib/events", () => ({
+  EVENT_NAMES: {
+    DOCUMENT_EXPIRY_REMINDER_CREATED: "document/expiry-reminder.created",
+  },
+  publishEvent: vi.fn(),
+}));
+
+import { EVENT_NAMES, publishEvent } from "@/lib/events";
+
 // Mock storage
 vi.mock("@/lib/storage", () => ({
   storage: {
@@ -838,7 +847,14 @@ describe("Document Module Service", () => {
           data: { status: "EXPIRED" },
         })
       );
-      expect(mockPrisma.notification.create).toHaveBeenCalled();
+      expect(publishEvent).toHaveBeenCalledWith(
+        EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED,
+        expect.objectContaining({
+          userId: "user-1",
+          documentRecordId: "doc-remind-h30",
+          reminderStage: "H30",
+        })
+      );
     });
   });
 });
