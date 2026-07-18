@@ -37,6 +37,11 @@ import { Separator } from "@/components/ui/separator";
 import { PAGINATION, ROUTES } from "@/constants";
 
 import { getVerificationQueue as getQueueAction } from "@/modules/verification/actions";
+import {
+  formatEmployeeIdentifier,
+  formatVerificationQueueDate,
+  getVerificationQueueErrorMessage,
+} from "./VerificationQueueFormatters";
 
 /* -------------------------------------------------------------------------- */
 /*  Types                                                                     */
@@ -87,26 +92,6 @@ type ViewMode = "grid" | "list";
 /* -------------------------------------------------------------------------- */
 /*  Helper                                                                    */
 /* -------------------------------------------------------------------------- */
-
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(iso));
-}
-
-function getErrorMessage(error: unknown, fallback = "Terjadi kesalahan.") {
-  return error instanceof Error ? error.message : fallback;
-}
-
-function formatEmployeeIdentifier(
-  employeeId: string | null,
-  nik: string | null
-) {
-  if (employeeId) return `NIP. ${employeeId}`;
-  if (nik) return `NIK. ${nik}`;
-  return "ID belum diset";
-}
 
 /* -------------------------------------------------------------------------- */
 /*  Main Component                                                             */
@@ -176,7 +161,7 @@ export function VerificationQueueView({
         setItems(result.data);
         setPagination(result.meta.pagination);
       } catch (error: unknown) {
-        setError(getErrorMessage(error, "Terjadi kesalahan saat memuat data."));
+        setError(getVerificationQueueErrorMessage(error, "Terjadi kesalahan saat memuat data."));
       } finally {
         setIsLoading(false);
       }
@@ -348,7 +333,7 @@ export function VerificationQueueView({
       header: "Diunggah",
       headClassName: "hidden sm:table-cell",
       cellClassName: "hidden whitespace-nowrap text-muted-foreground sm:table-cell",
-      cell: (item) => formatDate(item.uploadedAt),
+      cell: (item) => formatVerificationQueueDate(item.uploadedAt),
     },
     {
       key: "action",
@@ -570,7 +555,7 @@ export function VerificationQueueView({
                             </div>
                           )}
                           <div className="text-xs text-muted-foreground">
-                            Diunggah {formatDate(item.uploadedAt)}
+                            Diunggah {formatVerificationQueueDate(item.uploadedAt)}
                           </div>
                         </div>
 

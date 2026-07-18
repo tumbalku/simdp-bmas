@@ -50,26 +50,20 @@ import {
   EMPLOYEE_CATEGORY_COPY,
   EMPLOYEE_CATEGORY_TYPE_CONFIG,
   EMPLOYEE_CATEGORY_TYPE_OPTIONS,
-  type EmployeeCategoryType,
   type EmployeeCategoryTypeConfig,
 } from "@/modules/employee/constants";
 
-export type CategoryMasterData = {
-  id: string;
-  name: string;
-  parentId?: string | null;
-};
+import {
+  buildHierarchy,
+  getParentOptions,
+  setTypeItems,
+  type CategoriesData,
+  type CategoryMasterData,
+  type CategoryType,
+  type HierarchyItem,
+} from "./MasterDataCategoryHelpers";
 
-type CategoryType = EmployeeCategoryType;
-
-type CategoriesData = {
-  employmentStatuses: CategoryMasterData[];
-  employeeGroups: CategoryMasterData[];
-  professionGroups: CategoryMasterData[];
-  employeePositions: CategoryMasterData[];
-  employeeRanks: CategoryMasterData[];
-  workplaces: CategoryMasterData[];
-};
+export type { CategoryMasterData } from "./MasterDataCategoryHelpers";
 
 type EditingItem = {
   id: string;
@@ -82,10 +76,6 @@ type DeleteTarget = {
   id: string;
   name: string;
   type: CategoryType;
-};
-
-type HierarchyItem = CategoryMasterData & {
-  children: CategoryMasterData[];
 };
 
 type HierarchyCardProps = {
@@ -124,59 +114,6 @@ const TYPE_OPTIONS = EMPLOYEE_CATEGORY_TYPE_OPTIONS;
 const COPY = EMPLOYEE_CATEGORY_COPY;
 const CATEGORY_CARD_CLASS =
   "flex h-[28rem] flex-col overflow-hidden border-muted-foreground/10 shadow-sm md:h-[calc(100vh-14rem)] md:min-h-[24rem] md:max-h-[36rem]";
-
-function getTypeItems(data: CategoriesData, type: CategoryType) {
-  switch (type) {
-    case "STATUS":
-      return data.employmentStatuses;
-    case "GROUP":
-      return data.employeeGroups;
-    case "PROFESSION":
-      return data.professionGroups;
-    case "POSITION":
-      return data.employeePositions;
-    case "RANK":
-      return data.employeeRanks;
-    case "WORKPLACE":
-      return data.workplaces;
-  }
-}
-
-function getParentOptions(data: CategoriesData, type: CategoryType) {
-  const parentType = TYPE_CONFIG[type].parentType;
-  return parentType ? getTypeItems(data, parentType) : [];
-}
-
-function setTypeItems(
-  data: CategoriesData,
-  type: CategoryType,
-  updater: (items: CategoryMasterData[]) => CategoryMasterData[]
-): CategoriesData {
-  switch (type) {
-    case "STATUS":
-      return { ...data, employmentStatuses: updater(data.employmentStatuses) };
-    case "GROUP":
-      return { ...data, employeeGroups: updater(data.employeeGroups) };
-    case "PROFESSION":
-      return { ...data, professionGroups: updater(data.professionGroups) };
-    case "POSITION":
-      return { ...data, employeePositions: updater(data.employeePositions) };
-    case "RANK":
-      return { ...data, employeeRanks: updater(data.employeeRanks) };
-    case "WORKPLACE":
-      return { ...data, workplaces: updater(data.workplaces) };
-  }
-}
-
-function buildHierarchy(
-  parents: CategoryMasterData[],
-  children: CategoryMasterData[]
-): HierarchyItem[] {
-  return parents.map((parent) => ({
-    ...parent,
-    children: children.filter((child) => child.parentId === parent.id),
-  }));
-}
 
 function CategoryCardHeader({
   title,
