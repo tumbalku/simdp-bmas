@@ -18,6 +18,12 @@ vi.mock("@/lib/notifications/providers/inngest-job-provider", () => ({
   },
 }));
 
+vi.mock("@/lib/events/inngest", () => ({
+  inngest: {
+    createFunction: vi.fn((config, handler) => ({ config, handler })),
+  },
+}));
+
 vi.mock("@/modules/notification", () => ({
   NOTIFICATION_RELATED_ENTITY_TYPE: {
     DOCUMENT_RECORD: "DOCUMENT_RECORD",
@@ -65,6 +71,7 @@ describe("event subscribers", () => {
       message: "Dokumen akan kedaluwarsa.",
       relatedEntityType: "DOCUMENT_RECORD",
       relatedEntityId: "doc-1",
+      skipDispatch: true,
     });
   });
 
@@ -96,6 +103,7 @@ describe("event subscribers", () => {
       message: "Pegawai Sil telah mengunggah dokumen baru: STR",
       relatedEntityType: "DOCUMENT_RECORD",
       relatedEntityId: "doc-1",
+      skipDispatch: true,
     });
     expect(mocks.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({

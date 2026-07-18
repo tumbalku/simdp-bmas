@@ -16,6 +16,10 @@ import {
   useNavbarNotifications,
   type NavbarNotification,
 } from "@/modules/notification/hooks"
+import {
+  NOTIFICATION_RELATED_ENTITY_TYPE,
+  NOTIFICATION_TYPE,
+} from "@/modules/notification"
 
 const notificationCopy = defaultDictionary.navbar.notifications
 
@@ -155,10 +159,9 @@ function NotificationRow({
 }
 
 function getNotificationHref(notification: NavbarNotification) {
-  const type = notification.relatedEntityType?.toUpperCase()
   if (!notification.relatedEntityId) return null
-  if (type === "DOCUMENT" || type === "DOCUMENT_RECORD") {
-    if (notification.type === "VERIFICATION_REQUIRED") {
+  if (notification.relatedEntityType === NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD) {
+    if (notification.type === NOTIFICATION_TYPE.VERIFICATION_REQUIRED) {
       return routeTo.verificationDetail(notification.relatedEntityId)
     }
 

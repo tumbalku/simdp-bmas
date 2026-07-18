@@ -126,6 +126,30 @@ describe("Notification Module Service", () => {
         userId: "user-1",
       });
     });
+
+    it("should persist notification without enqueueing dispatch when requested", async () => {
+      const input = {
+        userId: "user-1",
+        type: "DOCUMENT_STATUS",
+        title: "Test Title",
+        skipDispatch: true,
+      };
+
+      mockPrisma.notification.create.mockResolvedValue({
+        id: "mock-uuid",
+        ...input,
+        message: null,
+        relatedEntityType: null,
+        relatedEntityId: null,
+        createdAt: new Date(),
+        isRead: false,
+      });
+
+      await createNotification(input);
+
+      expect(mockPrisma.notification.create).toHaveBeenCalled();
+      expect(publishEvent).not.toHaveBeenCalled();
+    });
   });
 
   describe("dispatchNotification", () => {

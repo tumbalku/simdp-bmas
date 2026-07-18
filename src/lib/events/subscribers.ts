@@ -1,5 +1,6 @@
 import { emailProvider } from "@/lib/notifications";
-import { inngest } from "@/lib/notifications/providers/inngest-job-provider";
+import { env } from "@/lib/env";
+import { inngest } from "@/lib/events/inngest";
 import {
   NOTIFICATION_RELATED_ENTITY_TYPE,
   NOTIFICATION_TYPE,
@@ -12,6 +13,8 @@ import {
 import { EVENT_NAMES } from "./names";
 import type { EventPayload } from "./types";
 
+const shouldDispatchCreatedNotification = Boolean(env.INNGEST_EVENT_KEY);
+
 export async function handleDocumentExpiryReminderCreated(
   data: EventPayload<typeof EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED>
 ) {
@@ -22,6 +25,7 @@ export async function handleDocumentExpiryReminderCreated(
     message: data.message,
     relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
     relatedEntityId: data.documentRecordId,
+    skipDispatch: !shouldDispatchCreatedNotification,
   });
 }
 
@@ -44,6 +48,7 @@ export async function handleDocumentVerificationRequested(
         message,
         relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
         relatedEntityId: data.documentRecordId,
+        skipDispatch: !shouldDispatchCreatedNotification,
       })
     )
   );
@@ -67,6 +72,7 @@ export async function handleVerificationApproved(data: EventPayload<typeof EVENT
     message: `Dokumen ${data.documentTypeName} Anda telah disetujui.`,
     relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
     relatedEntityId: data.documentRecordId,
+    skipDispatch: !shouldDispatchCreatedNotification,
   });
 }
 
@@ -78,6 +84,7 @@ export async function handleVerificationRejected(data: EventPayload<typeof EVENT
     message: `Dokumen ${data.documentTypeName} Anda telah ditolak. Catatan: ${data.note}`,
     relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD,
     relatedEntityId: data.documentRecordId,
+    skipDispatch: !shouldDispatchCreatedNotification,
   });
 }
 

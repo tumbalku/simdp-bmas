@@ -1,5 +1,5 @@
 import { env } from "@/lib/env";
-import { inngest } from "@/lib/notifications/providers/inngest-job-provider";
+import { inngest } from "@/lib/events/inngest";
 
 import { EVENT_NAMES } from "./names";
 import type { EventPayload, EventPayloadMap } from "./types";

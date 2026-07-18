@@ -3,9 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   dispatchNotification: vi.fn(),
   send: vi.fn(),
+  env: {
+    INNGEST_EVENT_KEY: "test-event-key" as string | undefined,
+  },
 }));
 
-vi.mock("@/lib/notifications/providers/inngest-job-provider", () => ({
+vi.mock("@/lib/env", () => ({
+  env: mocks.env,
+}));
+
+vi.mock("@/lib/events/inngest", () => ({
   inngest: {
     send: mocks.send,
   },
@@ -15,15 +22,10 @@ describe("event publisher", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+    mocks.env.INNGEST_EVENT_KEY = "test-event-key";
   });
 
   it("publishes typed events through the shared Inngest client", async () => {
-    vi.doMock("@/lib/env", () => ({
-      env: {
-        INNGEST_EVENT_KEY: "test-event-key",
-      },
-    }));
-
     const { EVENT_NAMES } = await import("../names");
     const { publishEvent } = await import("../publisher");
 
@@ -42,11 +44,6 @@ describe("event publisher", () => {
   });
 
   it("rejects when Inngest publish fails", async () => {
-    vi.doMock("@/lib/env", () => ({
-      env: {
-        INNGEST_EVENT_KEY: "test-event-key",
-      },
-    }));
     mocks.send.mockRejectedValueOnce(new Error("Inngest unavailable"));
 
     const { EVENT_NAMES } = await import("../names");
@@ -61,11 +58,7 @@ describe("event publisher", () => {
   });
 
   it("dispatches events locally when Inngest is not configured", async () => {
-    vi.doMock("@/lib/env", () => ({
-      env: {
-        INNGEST_EVENT_KEY: undefined,
-      },
-    }));
+    mocks.env.INNGEST_EVENT_KEY = undefined;
     vi.doMock("../subscribers", () => ({
       handleDocumentExpiryReminderCreated: vi.fn(),
       handleDocumentVerificationRequested: vi.fn(),
