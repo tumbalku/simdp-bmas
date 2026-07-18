@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
-import { getVerificationDocumentDetailAction } from "@/modules/verification/actions";
+import { getVerificationDocumentDetailAction } from "@/modules/verification";
 import { VerificationDetailView } from "@/modules/verification/components/VerificationDetailView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileX } from "lucide-react";

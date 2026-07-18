@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants";
-import { getCurrentAccountSettingsAction } from "@/modules/auth/actions";
+import { getCurrentAccountSettingsAction } from "@/modules/auth";
 import { UserSettingsPageView } from "@/modules/auth/components/UserSettingsPageView";
 
 export const dynamic = "force-dynamic";

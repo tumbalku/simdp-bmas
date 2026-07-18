@@ -20,6 +20,33 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@/modules/*/actions",
+                "@/modules/*/constants",
+                "@/modules/*/repositories",
+                "@/modules/*/repositories/**",
+                "@/modules/*/schema",
+                "@/modules/*/service",
+                "@/modules/*/services",
+                "@/modules/*/services/**",
+                "@/modules/*/target-rules",
+                "@/modules/*/types",
+              ],
+              message: "Import modul lain melalui public API root '@/modules/<module>'.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

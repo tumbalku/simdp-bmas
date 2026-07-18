@@ -4,8 +4,8 @@ import { DocumentTypeFormPage } from "@/components/shared/DocumentTypeFormPage";
 import { PAGINATION } from "@/constants";
 import { requireAuth } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { getDocumentTypeForAdminEdit } from "@/modules/document/service";
-import { getMasterDataList } from "@/modules/employee/service";
+import { getDocumentTypeForAdminEdit } from "@/modules/document/server";
+import { getMasterDataList } from "@/modules/employee/server";
 
 export const dynamic = "force-dynamic";
 

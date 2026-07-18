@@ -8,8 +8,8 @@ import {
   verifyDocument,
   getVerificationHistory as getHistoryService,
   getVerificationDocumentDetail,
-} from "@/modules/verification/service";
-import { generateDownloadUrl } from "@/modules/document/service";
+} from "../service";
+import { generateDownloadUrl } from "@/modules/document/server";
 import { findUserWithEmployeeById } from "../repositories/common";
 
 const verifyDocumentSchema = z

@@ -13,7 +13,7 @@ import {
   type ReviewInfoField,
   type ReviewStatusConfig,
 } from "@/components/shared/document-review";
-import { getDocumentPreviewUrlAction } from "@/modules/document/actions";
+import { getDocumentPreviewUrlAction } from "@/modules/document";
 import { DownloadDocumentButton } from "@/modules/document/components/DownloadDocumentButton";
 
 type DocumentDetail = {

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getEmployeeStatistics } from "@/modules/statistics/actions";
+import { getEmployeeStatistics } from "@/modules/statistics";
 import { EmployeeDashboardView } from "@/modules/statistics/components/EmployeeDashboardView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";

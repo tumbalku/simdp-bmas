@@ -1,7 +1,7 @@
 import { PAGINATION } from "@/constants";
 import { requireAuth } from "@/lib/auth";
 import { DocumentTypeFormPage } from "@/components/shared/DocumentTypeFormPage";
-import { getMasterDataList } from "@/modules/employee/service";
+import { getMasterDataList } from "@/modules/employee/server";
 
 export const dynamic = "force-dynamic";
 

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { changePasswordAction } from "@/modules/auth/actions";
+import { changePasswordAction } from "@/modules/auth";
 
 type ChangePasswordForm = {
   currentPassword: string;

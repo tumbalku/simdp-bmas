@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getDocumentRecordsWithPagination } from "@/modules/document/service";
+import { getDocumentRecordsWithPagination } from "@/modules/document/server";
 import { MasterDataDocumentsView } from "@/modules/document/components/MasterDataDocumentsView";
 import { PAGINATION } from "@/constants";
 

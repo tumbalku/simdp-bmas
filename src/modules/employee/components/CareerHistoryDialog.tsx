@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Briefcase, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { addCareerHistoryAction } from "@/modules/employee/actions";
+import { addCareerHistoryAction } from "@/modules/employee";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

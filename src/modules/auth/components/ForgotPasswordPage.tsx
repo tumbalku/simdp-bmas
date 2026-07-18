@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthCardShell } from "./AuthCardShell";
-import { forgotPasswordAction } from "@/modules/auth/actions";
+import { forgotPasswordAction } from "@/modules/auth";
 import { id as defaultDictionary } from "@/i18n/dictionaries/id";
 
 const forgotPasswordCopy = defaultDictionary.auth.forgotPassword;

@@ -24,11 +24,11 @@ vi.mock("@/lib/auth", () => ({
   requireAuth: mocks.requireAuth,
 }));
 
-vi.mock("@/modules/employee/service", () => ({
+vi.mock("@/modules/employee/server", () => ({
   getActorDisplayName: mocks.getActorDisplayName,
 }));
 
-vi.mock("@/modules/document/service", () => ({
+vi.mock("../service", () => ({
   getDocumentRecordsForSession: mocks.getDocumentRecordsForSession,
   getDocumentRecordDetailForSession: mocks.getDocumentRecordDetailForSession,
   getAvailableDocumentTypes: mocks.getAvailableDocumentTypes,

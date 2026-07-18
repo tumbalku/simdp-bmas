@@ -1,4 +1,4 @@
-import { DOCUMENT_STATUS_LABELS, type DocumentStatus } from "@/modules/document/constants";
+import { DOCUMENT_STATUS_LABELS, type DocumentStatus } from "@/modules/document";
 
 export const VERIFICATION_STATUS_LABELS = DOCUMENT_STATUS_LABELS;
 

@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import path from "path";
 import { requireAuth } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
-import { getLocalStreamDocument } from "@/modules/document/service";
+import { getLocalStreamDocument } from "@/modules/document/server";
 
 const SAFE_INLINE_MIME_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"]);
 

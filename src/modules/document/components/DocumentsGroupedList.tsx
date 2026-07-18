@@ -23,8 +23,8 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DATE_FORMATS, DATE_LOCALE, routeTo } from "@/constants";
 import { DocumentUploadForm } from "@/modules/document/components/DocumentUploadForm";
-import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document/constants";
-import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document/types";
+import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document";
+import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 
 const statusConfig: Record<
   string,

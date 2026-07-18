@@ -45,13 +45,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { crudMasterDataAction } from "@/modules/employee/actions";
+import { crudMasterDataAction } from "@/modules/employee";
 import {
   EMPLOYEE_CATEGORY_COPY,
   EMPLOYEE_CATEGORY_TYPE_CONFIG,
   EMPLOYEE_CATEGORY_TYPE_OPTIONS,
   type EmployeeCategoryTypeConfig,
-} from "@/modules/employee/constants";
+} from "@/modules/employee";
 
 import {
   buildHierarchy,

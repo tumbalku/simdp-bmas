@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { importEmployeesAction } from "@/modules/employee/actions";
+import { importEmployeesAction } from "@/modules/employee";
 
 type ImportResult = {
   importedCount: number;

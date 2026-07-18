@@ -1,4 +1,4 @@
-import { EMPLOYEE_CATEGORY_TYPE_CONFIG, type EmployeeCategoryType } from "@/modules/employee/constants";
+import { EMPLOYEE_CATEGORY_TYPE_CONFIG, type EmployeeCategoryType } from "@/modules/employee";
 
 export type CategoryMasterData = { id: string; name: string; parentId?: string | null; };
 export type CategoryType = EmployeeCategoryType;

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { successResponse, errorResponse, validationErrorResponse } from "@/lib/api-response";
-import { loginUser } from "@/modules/auth/service";
+import { loginUser } from "@/modules/auth/server";
 import { setAuthCookies } from "@/lib/auth";
 
 const loginSchema = z.object({

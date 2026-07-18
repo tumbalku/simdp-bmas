@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { matchesDocumentTypeTarget } from "@/modules/document/target-rules";
+import { matchesDocumentTypeTarget } from "@/modules/document";
 import {
   findApprovedVerificationHistoriesSince,
   findDashboardDocumentRecords,

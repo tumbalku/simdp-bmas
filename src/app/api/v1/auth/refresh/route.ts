@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { rotateSession } from "@/modules/auth/service";
+import { rotateSession } from "@/modules/auth/server";
 import { setAuthCookies } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {

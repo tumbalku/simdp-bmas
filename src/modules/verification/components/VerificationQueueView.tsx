@@ -36,7 +36,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { PAGINATION, ROUTES } from "@/constants";
 
-import { getVerificationQueue as getQueueAction } from "@/modules/verification/actions";
+import { getVerificationQueue as getQueueAction } from "@/modules/verification";
 import {
   formatEmployeeIdentifier,
   formatVerificationQueueDate,

@@ -1,6 +1,6 @@
 import crypto from "crypto";
-import { logActivity } from "@/modules/security/service";
-import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import { logActivity } from "@/modules/security/server";
+import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repository";
 
 export async function processExpiredDocumentsAndReminders() {
@@ -64,7 +64,7 @@ export async function processExpiredDocumentsAndReminders() {
     if (!doc.expiryDate) continue;
     const docTime = doc.expiryDate.getTime();
 
-    const { enqueueNotificationDispatch } = await import("@/modules/notification/service");
+    const { enqueueNotificationDispatch } = await import("@/modules/notification/server");
 
     if (docTime === h30Date.getTime() && !doc.reminderH30SentAt) {
       const notificationId = crypto.randomUUID();

@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { crudEmployeeAction } from "@/modules/employee/actions";
+import { crudEmployeeAction } from "@/modules/employee";
 import {
   EDUCATION_OPTIONS,
   EMPLOYEE_STATUS_OPTIONS,
@@ -36,7 +36,7 @@ import {
   mapGenderLegacyToCanonical,
   mapMaritalStatusLegacyToCanonical,
   mapReligionLegacyToCanonical,
-} from "@/modules/employee/constants";
+} from "@/modules/employee";
 import { ROLE_LABELS } from "@/constants/roles";
 
 /* -------------------------------------------------------------------------- */

@@ -1,6 +1,6 @@
 import { serve } from "inngest/next";
 import { inngest } from "@/lib/notifications/providers/inngest-job-provider";
-import { dispatchNotification } from "@/modules/notification/service";
+import { dispatchNotification } from "@/modules/notification/server";
 import { emailProvider } from "@/lib/notifications";
 
 const notificationDispatchFn = inngest.createFunction(

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import crypto from "crypto";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { env } from "@/lib/env";
-import { processExpiredDocumentsAndReminders } from "@/modules/document/service";
+import { processExpiredDocumentsAndReminders } from "@/modules/document/server";
 
 export async function GET(request: NextRequest) {
   try {

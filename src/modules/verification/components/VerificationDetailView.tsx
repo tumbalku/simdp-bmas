@@ -50,8 +50,8 @@ import { DATE_FORMATS, DATE_LOCALE } from "@/constants";
 import {
   getVerificationDocumentPreviewUrlAction,
   verifyDocumentAction,
-} from "@/modules/verification/actions";
-import { VERIFICATION_STATUS_LABELS } from "@/modules/verification/constants";
+} from "@/modules/verification";
+import { VERIFICATION_STATUS_LABELS } from "@/modules/verification";
 
 type DocumentDetail = {
   id: string;

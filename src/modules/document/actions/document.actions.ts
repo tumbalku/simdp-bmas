@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { handleActionError } from "@/lib/errors";
-import { getActorDisplayName } from "@/modules/employee/service";
+import { getActorDisplayName } from "@/modules/employee/server";
 import {
   handleDocumentTypeCrud,
   softDeleteDocument,
@@ -18,7 +18,7 @@ import {
   getDocumentRecordsWithPagination,
   getDocumentTypesWithPagination,
   replaceDocumentFile,
-} from "@/modules/document/service";
+} from "../service";
 import {
   crudDocumentTypeSchema,
   uploadDocumentSchema,

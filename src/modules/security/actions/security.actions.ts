@@ -2,7 +2,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { getSecurityLogs } from "@/modules/security/service";
+import { getSecurityLogs } from "../service";
 
 export async function getSecurityLog(filter: {
   page?: number;

@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getStatisticsChartsData } from "@/modules/statistics/service";
+import { getStatisticsChartsData } from "@/modules/statistics/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { AppError } from "@/lib/errors";
 

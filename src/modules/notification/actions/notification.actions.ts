@@ -7,7 +7,7 @@ import {
   getUnreadNotificationCount as getUnreadCountService,
   markNotificationRead,
   markAllNotificationsRead,
-} from "@/modules/notification/service";
+} from "../service";
 
 export async function getNotifications(filter?: { page?: number; pageSize?: number; isRead?: boolean }) {
   try {

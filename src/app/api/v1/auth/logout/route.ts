@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
-import { logoutUser } from "@/modules/auth/service";
+import { logoutUser } from "@/modules/auth/server";
 import { clearAuthCookies, getSession } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {

@@ -12,7 +12,7 @@ import {
   loginUser,
   requestPasswordReset,
   resetPasswordWithToken,
-} from "@/modules/auth/service";
+} from "../service";
 import { cookies, headers } from "next/headers";
 import { findRefreshTokenByIdAndUserId, findUserWithEmployeeById } from "../repositories/common";
 

@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { logoutAction } from "@/modules/auth/actions"
+import { logoutAction } from "@/modules/auth"
 import { ROLE_LABELS, ROUTES, getRoleBadgeStyle } from "@/constants"
 import { id as defaultDictionary } from "@/i18n/dictionaries/id"
 

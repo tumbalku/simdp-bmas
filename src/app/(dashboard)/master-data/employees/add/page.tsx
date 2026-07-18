@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getMasterDataList } from "@/modules/employee/service";
+import { getMasterDataList } from "@/modules/employee/server";
 import { MasterDataEmployeeForm } from "@/modules/employee/components/MasterDataEmployeeForm";
 
 export const dynamic = "force-dynamic";

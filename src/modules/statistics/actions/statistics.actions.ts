@@ -2,7 +2,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { getDashboardStats, getEmployeeStats } from "@/modules/statistics/service";
+import { getDashboardStats, getEmployeeStats } from "../service";
 
 export async function getStatistics(filter: { workplaceId?: string }) {
   try {

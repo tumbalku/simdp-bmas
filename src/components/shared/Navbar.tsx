@@ -14,7 +14,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { getSessionProfileAction } from "@/modules/auth/actions"
+import { getSessionProfileAction } from "@/modules/auth"
 import type { UserRole } from "@/constants/roles"
 import { getNavItemsByRole, type NavItem } from "@/config/nav"
 import { APP, ROUTES } from "@/constants"

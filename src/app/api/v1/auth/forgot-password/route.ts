@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { successResponse, validationErrorResponse, errorResponse } from "@/lib/api-response";
-import { requestPasswordReset } from "@/modules/auth/service";
+import { requestPasswordReset } from "@/modules/auth/server";
 
 const forgotPasswordSchema = z.object({
   email: z.email("Format email tidak valid"),

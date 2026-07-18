@@ -19,7 +19,7 @@ vi.mock("@/lib/auth", () => ({
   requireAuth: mocks.requireAuth,
 }));
 
-vi.mock("@/modules/employee/service", () => ({
+vi.mock("../service", () => ({
   getEmployeeDirectory: mocks.getEmployeeDirectory,
   getEmployeeDirectoryWithPagination: mocks.getEmployeeDirectoryWithPagination,
   getEmployeeDetail: mocks.getEmployeeDetail,

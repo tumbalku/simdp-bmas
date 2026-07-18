@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { verifyDocument, getVerificationQueue } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
-vi.mock("@/modules/notification/service", () => ({
+vi.mock("@/modules/notification/server", () => ({
+  NOTIFICATION_TYPE: {
+    DOCUMENT_STATUS: "DOCUMENT_STATUS",
+  },
+  NOTIFICATION_RELATED_ENTITY_TYPE: {
+    DOCUMENT_RECORD: "DOCUMENT_RECORD",
+  },
   createNotification: vi.fn().mockImplementation(async (input: {
     userId: string;
     type: string;

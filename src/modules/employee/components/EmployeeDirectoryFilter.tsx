@@ -22,7 +22,7 @@ import {
   EDUCATION_OPTIONS,
   EMPLOYEE_STATUS_OPTIONS,
   MARITAL_STATUS_OPTIONS,
-} from "@/modules/employee/constants";
+} from "@/modules/employee";
 
 export type EmployeeDirectoryFilterValues = {
   search: string;

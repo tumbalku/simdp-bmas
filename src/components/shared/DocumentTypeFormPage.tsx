@@ -23,8 +23,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { ROUTES } from "@/constants";
-import { crudDocumentTypeAction } from "@/modules/document/actions";
-import { ARCHIVE_CATEGORY_OPTIONS } from "@/modules/document/constants";
+import { crudDocumentTypeAction } from "@/modules/document";
+import { ARCHIVE_CATEGORY_OPTIONS } from "@/modules/document";
 
 type MasterDataOption = { id: string; name: string };
 type EmployeeGroupOption = MasterDataOption & { employmentStatusId: string | null };

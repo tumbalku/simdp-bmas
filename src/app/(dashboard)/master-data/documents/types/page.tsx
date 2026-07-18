@@ -1,7 +1,7 @@
 import { PAGINATION } from "@/constants";
 import { requireAuth } from "@/lib/auth";
 import { DocumentTypesPageView } from "@/modules/document/components/DocumentTypesPageView";
-import { getDocumentTypesWithPagination } from "@/modules/document/service";
+import { getDocumentTypesWithPagination } from "@/modules/document/server";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import crypto from "crypto";
-import { logActivity } from "@/modules/security/service";
-import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/constants";
+import { logActivity } from "@/modules/security/server";
+import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import { AppError } from "@/lib/errors";
 import { mapDocumentType, mapDocumentTypeFormInitialData, mapDocumentTypeSummary } from "../mappers";
 import * as repo from "../repository";
