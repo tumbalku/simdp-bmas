@@ -42,6 +42,9 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Format nama file upload/ganti dokumen kini mengikuti `{NIK-atau-NIP}_{KATEGORI-ARSIP}_{KODE-DOKUMEN}_{YYYYMMDD}_{VERSI}.{ext}` dengan prioritas identifier NIK.
+- Review P2: sequence nama file upload/ganti dokumen kini direservasi dalam Prisma transaction dengan advisory lock per pegawai dan jenis dokumen untuk mencegah overwrite pada upload concurrent.
+- Review blocker Event Bus & Notification: metadata `DocumentRecord.storageProvider` kini mengikuti provider aktif, `publishEvent()` tidak lagi menelan error, dan flow upload/verifikasi mencatat status publish notifikasi di audit metadata.
 - Issue #177: Mengarahkan notifikasi `VERIFICATION_REQUIRED` ke halaman `/verification/[id]` sementara notifikasi status dokumen tetap menuju `/documents/[id]`.
 - Issue #175: Menghilangkan warning Base UI uncontrolled `FieldControl` pada form upload/ganti dokumen dengan menjadikan field metadata sebagai controlled inputs.
 - SIMDP-TEST-007 (#38): Addressing API route and test suite review gaps. This includes fixing Windows-only path separator assertions in `storage.test.ts`, standardizing login password minimum length to 8 characters, introducing standard `AppError` typed class to handle file upload/download service-level errors cleanly in route handlers, removing `eslint-disable @typescript-eslint/no-explicit-any` comments across route handlers, adding timing-safe comparisons to the cron secret authorization header, and adding complete integration/unit tests for auth logout/forgot-password/reset-password, document upload/download, and cross-employee admin/staff access.

@@ -257,17 +257,21 @@ describe("Document Module Repository", () => {
     });
 
     it("should replace current records and return verifier recipients when uploading single-current document", async () => {
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
       mockPrisma.documentRecord.findMany.mockResolvedValue([{ id: "old-doc" }]);
       mockPrisma.documentRecord.create.mockResolvedValue({ id: "doc-1" });
       mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }, { id: "staff-1" }]);
+      const prepareFile = vi.fn().mockResolvedValue({
+        fileName: "sk.pdf",
+        filePath: "uploads/sk.pdf",
+      });
 
       const result = await createUploadedDocumentTransaction({
         docId: "doc-1",
         ownerId: "emp-1",
         documentTypeId: "type-1",
         title: "SK Pangkat",
-        fileName: "sk.pdf",
-        filePath: "uploads/sk.pdf",
+        prepareFile,
         fileSize: BigInt(10),
         mimeType: "application/pdf",
         fileHash: "hash",
@@ -281,6 +285,11 @@ describe("Document Module Repository", () => {
         ownerName: "Sil",
       });
 
+      expect(mockPrisma.$executeRaw).toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.count).toHaveBeenCalledWith({
+        where: { ownerId: "emp-1", documentTypeId: "type-1" },
+      });
+      expect(prepareFile).toHaveBeenCalledWith(1);
       expect(mockPrisma.documentRecord.updateMany).toHaveBeenCalledWith({
         where: { ownerId: "emp-1", documentTypeId: "type-1", isCurrent: true },
         data: { isCurrent: false, status: "REPLACED" },

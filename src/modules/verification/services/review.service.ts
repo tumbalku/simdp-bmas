@@ -4,6 +4,10 @@ import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repositories/common";
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export async function verifyDocument(
   id: string,
   decision: "APPROVED" | "REJECTED",
@@ -28,19 +32,32 @@ export async function verifyDocument(
     reviewNote: note,
   });
 
-  if (decision === "APPROVED") {
-    await publishEvent(EVENT_NAMES.VERIFICATION_APPROVED, {
-      userId: doc.owner.userId,
+  let notificationPublish:
+    | { ok: true }
+    | { ok: false; errorMessage: string } = { ok: true };
+
+  try {
+    if (decision === "APPROVED") {
+      await publishEvent(EVENT_NAMES.VERIFICATION_APPROVED, {
+        userId: doc.owner.userId,
+        documentRecordId: id,
+        documentTypeName: doc.documentType.name,
+      });
+    } else {
+      await publishEvent(EVENT_NAMES.VERIFICATION_REJECTED, {
+        userId: doc.owner.userId,
+        documentRecordId: id,
+        documentTypeName: doc.documentType.name,
+        note: note ?? "",
+      });
+    }
+  } catch (error) {
+    console.error("[Verification] Failed to publish verification result notification event", {
       documentRecordId: id,
-      documentTypeName: doc.documentType.name,
+      decision,
+      error,
     });
-  } else {
-    await publishEvent(EVENT_NAMES.VERIFICATION_REJECTED, {
-      userId: doc.owner.userId,
-      documentRecordId: id,
-      documentTypeName: doc.documentType.name,
-      note: note ?? "",
-    });
+    notificationPublish = { ok: false, errorMessage: getErrorMessage(error) };
   }
 
   await logActivity({
@@ -51,7 +68,7 @@ export async function verifyDocument(
       decision === "APPROVED" ? SECURITY_EVENT_TYPE.DOCUMENT_APPROVED : SECURITY_EVENT_TYPE.DOCUMENT_REJECTED,
     resource: `DocumentRecord:${id}`,
     status: SECURITY_LOG_STATUS.SUCCESS,
-    metadata: { reviewNote: note },
+    metadata: { reviewNote: note, notificationPublish },
   });
 
   return {

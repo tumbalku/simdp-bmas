@@ -103,5 +103,33 @@ describe("Verification Module Service", () => {
         })
       );
     });
+
+    it("should still audit verification when notification publish fails", async () => {
+      const doc = {
+        id: "doc-1",
+        owner: { userId: "user-1" },
+        documentType: { name: "Ijazah" },
+      };
+      mockPrisma.documentRecord.findFirst.mockResolvedValue(doc);
+      mockPrisma.documentRecord.update.mockResolvedValue({ id: "doc-1", status: "APPROVED" });
+      vi.mocked(publishEvent).mockRejectedValueOnce(new Error("Inngest unavailable"));
+
+      const result = await verifyDocument("doc-1", "APPROVED", undefined, "staff-1", "Staff User", "STAFF");
+
+      expect(result.status).toBe("APPROVED");
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            resource: "DocumentRecord:doc-1",
+            metadata: expect.objectContaining({
+              notificationPublish: {
+                ok: false,
+                errorMessage: "Inngest unavailable",
+              },
+            }),
+          }),
+        })
+      );
+    });
   });
 });

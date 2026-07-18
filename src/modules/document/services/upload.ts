@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import path from "path";
+import { env } from "@/lib/env";
 import { EVENT_NAMES, publishEvent } from "@/lib/events";
 import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/server";
@@ -9,6 +10,65 @@ import { AppError } from "@/lib/errors";
 import * as repo from "../repository";
 import { matchesDocumentTypeTarget } from "../target-rules";
 import { STORAGE_PROVIDER_VALUE } from "../constants";
+
+function getActiveStorageProviderValue() {
+  if (env.STORAGE_PROVIDER === "supabase") return STORAGE_PROVIDER_VALUE.SUPABASE;
+  if (env.STORAGE_PROVIDER === "s3") return STORAGE_PROVIDER_VALUE.S3;
+  return STORAGE_PROVIDER_VALUE.LOCAL;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
+function formatDateSegment(date: Date) {
+  const year = date.getFullYear().toString();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+
+  return `${year}${month}${day}`;
+}
+
+function sanitizeFileNameSegment(value: string) {
+  return value.replace(/[^A-Za-z0-9._-]/g, "-");
+}
+
+function buildDocumentFileName(input: {
+  identifier: string;
+  archiveCategory: string;
+  documentTypeCode: string;
+  date: Date;
+  sequence: number;
+  ext: string;
+}) {
+  const identifier = sanitizeFileNameSegment(input.identifier);
+  const archiveCategory = sanitizeFileNameSegment(input.archiveCategory);
+  const documentTypeCode = sanitizeFileNameSegment(input.documentTypeCode);
+  const date = formatDateSegment(input.date);
+
+  return `${identifier}_${archiveCategory}_${documentTypeCode}_${date}_${input.sequence}.${input.ext}`;
+}
+
+async function publishDocumentVerificationRequested(input: {
+  recipientUserIds: string[];
+  documentRecordId: string;
+  documentTypeName: string;
+  ownerName: string;
+  action: "UPLOADED" | "REPLACED";
+}) {
+  try {
+    await publishEvent(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, input);
+    return { ok: true as const };
+  } catch (error) {
+    console.error("[DocumentUpload] Failed to publish verification notification event", {
+      documentRecordId: input.documentRecordId,
+      action: input.action,
+      error,
+    });
+
+    return { ok: false as const, errorMessage: getErrorMessage(error) };
+  }
+}
 
 function validateFileFormat(buffer: Buffer, allowedFormatsStr: string): string {
   const allowed = allowedFormatsStr.toLowerCase().split(",").map((f) => f.trim());
@@ -103,32 +163,36 @@ export async function uploadDocumentRecord(
   // Calculate SHA-256 hash
   const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
-  // 5. Sequence count for unique name
-  const existingCount = await repo.countDocumentRecords(employee.id, docType.id);
-  const sequence = existingCount + 1;
-
-  // File path format: {KODE-DOKUMEN}/{KODE-DOKUMEN}-{URUTAN}-{IDENTIFIER}.{ext}
-  const identifier = employee.employeeId || employee.nik || session.userId;
-  const fileName = `${docType.code}-${sequence}-${identifier}.${ext}`;
-  const uploadPath = path.join(docType.code, fileName).replace(/\\/g, "/");
-
-  // 6. Upload via storage provider
-  const savedPath = await storage.upload(uploadPath, buffer, data.file.type);
-
-  // 7. Write record to DB
+  // 5. Write record to DB and reserve filename sequence under a per-owner/type lock.
   const docId = crypto.randomUUID();
+
+  const storageProvider = getActiveStorageProviderValue();
+  const documentDate = data.issueDate ? new Date(data.issueDate) : new Date();
 
   const { record, replacedDocumentIds, verificationRecipientUserIds } = await repo.createUploadedDocumentTransaction({
     docId,
     ownerId: employee.id,
     documentTypeId: docType.id,
     title: data.title || docType.name,
-    fileName,
-    filePath: savedPath,
+    prepareFile: async (sequence) => {
+      const identifier = employee.nik || employee.employeeId || session.userId;
+      const fileName = buildDocumentFileName({
+        identifier,
+        archiveCategory: docType.archiveCategory,
+        documentTypeCode: docType.code,
+        date: documentDate,
+        sequence,
+        ext,
+      });
+      const uploadPath = path.join(docType.code, fileName).replace(/\\/g, "/");
+      const filePath = await storage.upload(uploadPath, buffer, data.file.type);
+
+      return { fileName, filePath };
+    },
     fileSize: BigInt(buffer.length),
     mimeType: data.file.type || null,
     fileHash,
-    storageProvider: STORAGE_PROVIDER_VALUE.LOCAL,
+    storageProvider,
     documentNumber: data.documentNumber || null,
     issueDate: data.issueDate ? new Date(data.issueDate) : null,
     expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
@@ -150,6 +214,14 @@ export async function uploadDocumentRecord(
     });
   }
 
+  const notificationPublish = await publishDocumentVerificationRequested({
+    recipientUserIds: verificationRecipientUserIds,
+    documentRecordId: record.id,
+    documentTypeName: docType.name,
+    ownerName: employee.name,
+    action: "UPLOADED",
+  });
+
   await logActivity({
     actorId: session.userId,
     actorName: employee.name,
@@ -158,15 +230,12 @@ export async function uploadDocumentRecord(
     resource: `DocumentRecord:${docId}`,
     ipAddress,
     status: SECURITY_LOG_STATUS.SUCCESS,
-    metadata: { fileName, documentTypeId: docType.id },
-  });
-
-  await publishEvent(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
-    recipientUserIds: verificationRecipientUserIds,
-    documentRecordId: record.id,
-    documentTypeName: docType.name,
-    ownerName: employee.name,
-    action: "UPLOADED",
+    metadata: {
+      fileName: record.fileName,
+      documentTypeId: docType.id,
+      storageProvider,
+      notificationPublish,
+    },
   });
 
   return {
@@ -222,21 +291,33 @@ export async function replaceDocumentFile(
 
   const ext = validateFileFormat(buffer, doc.documentType.allowedFormats);
   const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
-  const existingCount = await repo.countDocumentRecords(doc.ownerId, doc.documentTypeId);
-  const sequence = existingCount + 1;
-  const identifier = doc.owner.employeeId || doc.owner.nik || session.userId;
-  const fileName = `${doc.documentType.code}-${sequence}-${identifier}.${ext}`;
-  const uploadPath = path.join(doc.documentType.code, fileName).replace(/\\/g, "/");
-  const savedPath = await storage.upload(uploadPath, buffer, data.file.type);
+
+  const storageProvider = getActiveStorageProviderValue();
+  const documentDate = data.issueDate ? new Date(data.issueDate) : doc.issueDate ?? new Date();
 
   const { record, verificationRecipientUserIds } = await repo.replaceDocumentFileTransaction({
     documentId: doc.id,
-    fileName,
-    filePath: savedPath,
+    ownerId: doc.ownerId,
+    documentTypeId: doc.documentTypeId,
+    prepareFile: async (sequence) => {
+      const identifier = doc.owner.nik || doc.owner.employeeId || session.userId;
+      const fileName = buildDocumentFileName({
+        identifier,
+        archiveCategory: doc.documentType.archiveCategory,
+        documentTypeCode: doc.documentType.code,
+        date: documentDate,
+        sequence,
+        ext,
+      });
+      const uploadPath = path.join(doc.documentType.code, fileName).replace(/\\/g, "/");
+      const filePath = await storage.upload(uploadPath, buffer, data.file.type);
+
+      return { fileName, filePath };
+    },
     fileSize: BigInt(buffer.length),
     mimeType: data.file.type || null,
     fileHash,
-    storageProvider: STORAGE_PROVIDER_VALUE.LOCAL,
+    storageProvider,
     updatedBy: session.userId,
     documentTypeName: doc.documentType.name,
     ownerName: doc.owner.name,
@@ -244,6 +325,14 @@ export async function replaceDocumentFile(
     documentNumber: doc.documentType.requiresDocumentNumber ? data.documentNumber || null : doc.documentNumber,
     issueDate: doc.documentType.requiresIssueDate && data.issueDate ? new Date(data.issueDate) : doc.issueDate,
     expiryDate: doc.documentType.requiresExpiryDate && data.expiryDate ? new Date(data.expiryDate) : doc.expiryDate,
+  });
+
+  const notificationPublish = await publishDocumentVerificationRequested({
+    recipientUserIds: verificationRecipientUserIds,
+    documentRecordId: record.id,
+    documentTypeName: doc.documentType.name,
+    ownerName: doc.owner.name,
+    action: "REPLACED",
   });
 
   await logActivity({
@@ -257,17 +346,11 @@ export async function replaceDocumentFile(
     metadata: {
       action: "replace_file",
       documentTypeId: doc.documentTypeId,
-      fileName,
+      fileName: record.fileName,
       previousFilePath: doc.filePath,
+      storageProvider,
+      notificationPublish,
     },
-  });
-
-  await publishEvent(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
-    recipientUserIds: verificationRecipientUserIds,
-    documentRecordId: record.id,
-    documentTypeName: doc.documentType.name,
-    ownerName: doc.owner.name,
-    action: "REPLACED",
   });
 
   return {

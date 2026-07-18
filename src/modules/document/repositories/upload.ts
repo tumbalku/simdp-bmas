@@ -1,7 +1,20 @@
 import crypto from "crypto";
+import type { Prisma } from "@prisma/client";
 import type { StorageProviderValue } from "../constants";
 import { prisma } from "./common";
 import { documentTypeTargetInclude } from "./document-types";
+
+type PreparedDocumentFile = {
+  fileName: string;
+  filePath: string;
+};
+
+async function lockDocumentSequence(tx: Prisma.TransactionClient, ownerId: string, documentTypeId: string) {
+  // Serialize filename sequence reservation for one employee/document type pair.
+  await tx.$executeRaw`
+    SELECT pg_advisory_xact_lock(hashtext(${ownerId}), hashtext(${documentTypeId}))
+  `;
+}
 
 export async function countDocumentRecords(ownerId: string, documentTypeId: string) {
   return prisma.documentRecord.count({
@@ -20,8 +33,7 @@ export async function createUploadedDocumentTransaction(data: {
   ownerId: string;
   documentTypeId: string;
   title: string;
-  fileName: string;
-  filePath: string;
+  prepareFile: (sequence: number) => Promise<PreparedDocumentFile>;
   fileSize: bigint;
   mimeType: string | null;
   fileHash: string;
@@ -37,6 +49,13 @@ export async function createUploadedDocumentTransaction(data: {
   const replacedDocumentIds: string[] = [];
   let verificationRecipientUserIds: string[] = [];
   const record = await prisma.$transaction(async (tx) => {
+    await lockDocumentSequence(tx, data.ownerId, data.documentTypeId);
+
+    const existingCount = await tx.documentRecord.count({
+      where: { ownerId: data.ownerId, documentTypeId: data.documentTypeId },
+    });
+    const { fileName, filePath } = await data.prepareFile(existingCount + 1);
+
     if (!data.allowMultiple) {
       const activeDocs = await tx.documentRecord.findMany({
         where: { ownerId: data.ownerId, documentTypeId: data.documentTypeId, isCurrent: true, deletedAt: null },
@@ -61,8 +80,8 @@ export async function createUploadedDocumentTransaction(data: {
         status: "PENDING",
         isCurrent: true,
         allowMultipleSnapshot: data.allowMultiple,
-        fileName: data.fileName,
-        filePath: data.filePath,
+        fileName,
+        filePath,
         fileSize: data.fileSize,
         mimeType: data.mimeType,
         fileHash: data.fileHash,
@@ -120,8 +139,9 @@ export async function findDocumentRecordWithOwnerAndDocumentType(id: string) {
 
 export async function replaceDocumentFileTransaction(data: {
   documentId: string;
-  fileName: string;
-  filePath: string;
+  ownerId: string;
+  documentTypeId: string;
+  prepareFile: (sequence: number) => Promise<PreparedDocumentFile>;
   fileSize: bigint;
   mimeType: string | null;
   fileHash: string;
@@ -136,14 +156,21 @@ export async function replaceDocumentFileTransaction(data: {
 }) {
   let verificationRecipientUserIds: string[] = [];
   return prisma.$transaction(async (tx) => {
+    await lockDocumentSequence(tx, data.ownerId, data.documentTypeId);
+
+    const existingCount = await tx.documentRecord.count({
+      where: { ownerId: data.ownerId, documentTypeId: data.documentTypeId },
+    });
+    const { fileName, filePath } = await data.prepareFile(existingCount + 1);
+
     const record = await tx.documentRecord.update({
       where: { id: data.documentId },
       data: {
         status: "PENDING",
         isCurrent: true,
         title: data.title,
-        fileName: data.fileName,
-        filePath: data.filePath,
+        fileName,
+        filePath,
         fileSize: data.fileSize,
         mimeType: data.mimeType,
         fileHash: data.fileHash,
