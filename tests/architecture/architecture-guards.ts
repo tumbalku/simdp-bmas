@@ -21,7 +21,9 @@ const SOURCE_EXTENSIONS = new Set([".ts", ".tsx"]);
 const LEGACY_EMPLOYEE_STATUS_STRINGS = ["Aktif", "Pensiun", "Tubel"] as const;
 const LABEL_LAYER_PATTERNS = [
   /\/components\//,
+  /\/constants\//,
   /\/constants\.ts$/,
+  /\/mappers\//,
   /\/mappers\.ts$/,
   /\/dictionaries\//,
   /\/i18n\//,
