@@ -10,6 +10,165 @@ import type {
   StatisticsUploadTrendItem,
 } from "./types";
 
+export function findDashboardEmployees(filter: { workplaceId?: string }) {
+  return prisma.employee.findMany({
+    where: {
+      deletedAt: null,
+      workplaceId: filter.workplaceId || undefined,
+    },
+    include: {
+      employeePosition: { select: { professionGroupId: true } },
+      documentRecords: {
+        where: {
+          status: "APPROVED",
+          deletedAt: null,
+        },
+        select: {
+          documentTypeId: true,
+        },
+      },
+    },
+  });
+}
+
+export function findMandatoryDocumentTypesForStatistics() {
+  return prisma.documentType.findMany({
+    where: {
+      isMandatory: true,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      employmentStatuses: { select: { employmentStatusId: true } },
+      employeeGroups: { select: { employeeGroupId: true } },
+      employeePositions: { select: { employeePositionId: true } },
+      professionGroups: { select: { professionGroupId: true } },
+      employeeRanks: { select: { employeeRankId: true } },
+      workplaces: { select: { workplaceId: true } },
+    },
+  });
+}
+
+function workplaceOwnerWhere(workplaceId?: string) {
+  return workplaceId
+    ? {
+        workplaceId,
+        deletedAt: null,
+      }
+    : {
+        deletedAt: null,
+      };
+}
+
+export function groupDocumentRecordsByStatus(filter: { workplaceId?: string }) {
+  return prisma.documentRecord.groupBy({
+    by: ["status"],
+    where: {
+      deletedAt: null,
+      owner: workplaceOwnerWhere(filter.workplaceId),
+    },
+    _count: {
+      _all: true,
+    },
+  });
+}
+
+export function findDashboardDocumentRecords(filter: { workplaceId?: string }) {
+  return prisma.documentRecord.findMany({
+    where: {
+      deletedAt: null,
+      owner: workplaceOwnerWhere(filter.workplaceId),
+    },
+    select: {
+      uploadedAt: true,
+      documentType: {
+        select: {
+          archiveCategory: true,
+        },
+      },
+    },
+  });
+}
+
+export function findApprovedVerificationHistoriesSince(input: {
+  startOfPeriod: Date;
+  workplaceId?: string;
+}) {
+  return prisma.verificationHistory.findMany({
+    where: {
+      status: "APPROVED",
+      reviewedAt: {
+        gte: input.startOfPeriod,
+      },
+      documentRecord: {
+        deletedAt: null,
+        owner: workplaceOwnerWhere(input.workplaceId),
+      },
+    },
+    select: {
+      reviewedAt: true,
+    },
+  });
+}
+
+export function findUserWithEmployeeById(userId: string) {
+  return prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    include: { employee: true },
+  });
+}
+
+export function countEmployeeDocumentsByStatus(input: {
+  employeeId: string;
+  status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+}) {
+  return prisma.documentRecord.count({
+    where: { ownerId: input.employeeId, status: input.status, deletedAt: null },
+  });
+}
+
+export function findExpiringEmployeeDocuments(input: {
+  employeeId: string;
+  now: Date;
+  until: Date;
+}) {
+  return prisma.documentRecord.findMany({
+    where: {
+      ownerId: input.employeeId,
+      deletedAt: null,
+      status: "APPROVED",
+      expiryDate: {
+        gt: input.now,
+        lte: input.until,
+      },
+    },
+    orderBy: { expiryDate: "asc" },
+    include: {
+      documentType: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
+
+export function findRecentEmployeeUploads(employeeId: string) {
+  return prisma.documentRecord.findMany({
+    where: { ownerId: employeeId, deletedAt: null },
+    orderBy: { uploadedAt: "desc" },
+    take: 5,
+    include: {
+      documentType: {
+        select: {
+          name: true,
+          archiveCategory: true,
+        },
+      },
+    },
+  });
+}
+
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
 const GENDER_KEYS = ["Laki-laki", "Perempuan", "Belum Diisi"] as const;
 

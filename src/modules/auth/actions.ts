@@ -3,7 +3,6 @@
 
 import { z } from "zod";
 import { requireAuth, getSession, clearAuthCookies, setAuthCookies } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import {
   changePassword,
   getCurrentUserAccount,
@@ -15,6 +14,7 @@ import {
   resetPasswordWithToken,
 } from "@/modules/auth/service";
 import { cookies, headers } from "next/headers";
+import { findRefreshTokenByIdAndUserId, findUserWithEmployeeById } from "./repositories/common";
 
 /* -------------------------------------------------------------------------- */
 /*  Schemas                                                                     */
@@ -210,10 +210,7 @@ export async function changePasswordAction(data: unknown) {
     const { currentPassword, newPassword } = parsed.data;
 
     // Fetch user for actor name
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
+    const user = await findUserWithEmployeeById(session.userId);
 
     const actorName = user?.employee?.name || user?.email || "User";
 
@@ -278,9 +275,7 @@ export async function revokeSessionAction(tokenId: string) {
     const session = await requireAuth();
 
     // Check ownership
-    const tokenRecord = await prisma.refreshToken.findFirst({
-      where: { id: tokenId, userId: session.userId },
-    });
+    const tokenRecord = await findRefreshTokenByIdAndUserId(tokenId, session.userId);
 
     if (!tokenRecord) {
       return {
@@ -292,10 +287,7 @@ export async function revokeSessionAction(tokenId: string) {
       };
     }
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
+    const user = await findUserWithEmployeeById(session.userId);
     const actorName = user?.employee?.name || user?.email || "User";
 
     const success = await revokeSession(session.userId, tokenId, actorName, session.role);
@@ -326,10 +318,7 @@ export async function revokeAllSessionsAction() {
   try {
     const session = await requireAuth();
 
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
+    const user = await findUserWithEmployeeById(session.userId);
     const actorName = user?.employee?.name || user?.email || "User";
 
     const success = await revokeAllSessions(session.userId, actorName, session.role);
@@ -386,10 +375,7 @@ export async function getSessionProfileAction() {
     if (!session) {
       return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "User belum login" } };
     }
-    const user = await prisma.user.findFirst({
-      where: { id: session.userId },
-      include: { employee: true },
-    });
+    const user = await findUserWithEmployeeById(session.userId);
     if (!user) {
       return { ok: false as const, error: { code: "NOT_FOUND", message: "User tidak ditemukan" } };
     }

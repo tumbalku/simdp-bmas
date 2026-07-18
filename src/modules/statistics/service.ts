@@ -1,45 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/lib/prisma";
 import { matchesDocumentTypeTarget } from "@/modules/document/target-rules";
-import { getStatisticsChartsData as getStatsChartsRepo } from "./repository";
+import {
+  countEmployeeDocumentsByStatus,
+  findApprovedVerificationHistoriesSince,
+  findDashboardDocumentRecords,
+  findDashboardEmployees,
+  findExpiringEmployeeDocuments,
+  findMandatoryDocumentTypesForStatistics,
+  findRecentEmployeeUploads,
+  findUserWithEmployeeById,
+  getStatisticsChartsData as getStatsChartsRepo,
+  groupDocumentRecordsByStatus,
+} from "./repository";
 
 export async function getDashboardStats(filter: { workplaceId?: string }) {
   // 1. Fetch active employees matching filter
-  const employees = await prisma.employee.findMany({
-    where: {
-      deletedAt: null,
-      workplaceId: filter.workplaceId || undefined,
-    },
-    include: {
-      employeePosition: { select: { professionGroupId: true } },
-      documentRecords: {
-        where: {
-          status: "APPROVED",
-          deletedAt: null,
-        },
-        select: {
-          documentTypeId: true,
-        },
-      },
-    },
-  });
+  const employees = await findDashboardEmployees(filter);
 
   // 2. Fetch mandatory document types
-  const mandatoryTypes = await prisma.documentType.findMany({
-    where: {
-      isMandatory: true,
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      employmentStatuses: { select: { employmentStatusId: true } },
-      employeeGroups: { select: { employeeGroupId: true } },
-      employeePositions: { select: { employeePositionId: true } },
-      professionGroups: { select: { professionGroupId: true } },
-      employeeRanks: { select: { employeeRankId: true } },
-      workplaces: { select: { workplaceId: true } },
-    },
-  });
+  const mandatoryTypes = await findMandatoryDocumentTypesForStatistics();
 
   // Calculate compliance count
   let compliantEmployeesCount = 0;
@@ -56,23 +35,7 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
     employees.length > 0 ? parseFloat(((compliantEmployeesCount / employees.length) * 100).toFixed(1)) : 100.0;
 
   // 3. Count documents by status
-  const docsStatusCount = await prisma.documentRecord.groupBy({
-    by: ["status"],
-    where: {
-      deletedAt: null,
-      owner: filter.workplaceId
-        ? {
-            workplaceId: filter.workplaceId,
-            deletedAt: null,
-          }
-        : {
-            deletedAt: null,
-          },
-    },
-    _count: {
-      _all: true,
-    },
-  });
+  const docsStatusCount = await groupDocumentRecordsByStatus(filter);
 
   const documentsByStatus = {
     PENDING: 0,
@@ -89,27 +52,7 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
   });
 
   // 4. Count documents by category & fetch upload dates for trend
-  const docsList = await prisma.documentRecord.findMany({
-    where: {
-      deletedAt: null,
-      owner: filter.workplaceId
-        ? {
-            workplaceId: filter.workplaceId,
-            deletedAt: null,
-          }
-        : {
-            deletedAt: null,
-          },
-    },
-    select: {
-      uploadedAt: true,
-      documentType: {
-        select: {
-          archiveCategory: true,
-        },
-      },
-    },
-  });
+  const docsList = await findDashboardDocumentRecords(filter);
 
   const documentsByCategory = {
     PERSONAL: 0,
@@ -129,27 +72,9 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
   const now = new Date();
   const startOfPeriod = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-  const verifiedDocs = await prisma.verificationHistory.findMany({
-    where: {
-      status: "APPROVED",
-      reviewedAt: {
-        gte: startOfPeriod,
-      },
-      documentRecord: {
-        deletedAt: null,
-        owner: filter.workplaceId
-          ? {
-              workplaceId: filter.workplaceId,
-              deletedAt: null,
-            }
-          : {
-              deletedAt: null,
-            },
-      },
-    },
-    select: {
-      reviewedAt: true,
-    },
+  const verifiedDocs = await findApprovedVerificationHistoriesSince({
+    startOfPeriod,
+    workplaceId: filter.workplaceId,
   });
 
   const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
@@ -194,10 +119,7 @@ export async function getDashboardStats(filter: { workplaceId?: string }) {
 
 export async function getEmployeeStats(userId: string) {
   // Get employee profile
-  const user = await prisma.user.findFirst({
-    where: { id: userId, deletedAt: null },
-    include: { employee: true },
-  });
+  const user = await findUserWithEmployeeById(userId);
 
   if (!user || !user.employee) {
     return {
@@ -215,60 +137,24 @@ export async function getEmployeeStats(userId: string) {
   const now = new Date();
 
   // Count by status type-safely
-  const pendingCount = await prisma.documentRecord.count({
-    where: { ownerId: employeeId, status: "PENDING", deletedAt: null },
-  });
-  const approvedCount = await prisma.documentRecord.count({
-    where: { ownerId: employeeId, status: "APPROVED", deletedAt: null },
-  });
-  const rejectedCount = await prisma.documentRecord.count({
-    where: { ownerId: employeeId, status: "REJECTED", deletedAt: null },
-  });
-  const expiredCount = await prisma.documentRecord.count({
-    where: { ownerId: employeeId, status: "EXPIRED", deletedAt: null },
-  });
+  const pendingCount = await countEmployeeDocumentsByStatus({ employeeId, status: "PENDING" });
+  const approvedCount = await countEmployeeDocumentsByStatus({ employeeId, status: "APPROVED" });
+  const rejectedCount = await countEmployeeDocumentsByStatus({ employeeId, status: "REJECTED" });
+  const expiredCount = await countEmployeeDocumentsByStatus({ employeeId, status: "EXPIRED" });
 
-  const totalSubmitted = await prisma.documentRecord.count({
-    where: { ownerId: employeeId, deletedAt: null },
-  });
+  const totalSubmitted = await countEmployeeDocumentsByStatus({ employeeId });
 
   // Expiring in 30 days
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-  const expiringDocuments = await prisma.documentRecord.findMany({
-    where: {
-      ownerId: employeeId,
-      deletedAt: null,
-      status: "APPROVED",
-      expiryDate: {
-        gt: now,
-        lte: thirtyDaysFromNow,
-      },
-    },
-    orderBy: { expiryDate: "asc" },
-    include: {
-      documentType: {
-        select: {
-          name: true,
-        },
-      },
-    },
+  const expiringDocuments = await findExpiringEmployeeDocuments({
+    employeeId,
+    now,
+    until: thirtyDaysFromNow,
   });
 
   // Recent uploads
-  const recentUploads = await prisma.documentRecord.findMany({
-    where: { ownerId: employeeId, deletedAt: null },
-    orderBy: { uploadedAt: "desc" },
-    take: 5,
-    include: {
-      documentType: {
-        select: {
-          name: true,
-          archiveCategory: true,
-        },
-      },
-    },
-  });
+  const recentUploads = await findRecentEmployeeUploads(employeeId);
 
   return {
     totalSubmitted,

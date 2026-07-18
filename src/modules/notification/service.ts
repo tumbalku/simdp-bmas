@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { realtimeProvider, emailProvider, jobProvider } from "@/lib/notifications";
 import {
@@ -8,6 +7,7 @@ import {
   mapNotificationRelatedEntityTypeLegacyToCanonical,
   mapNotificationTypeToCanonical,
 } from "./constants";
+import * as repo from "./repositories/common";
 
 export async function getNotifications(
   userId: string,
@@ -24,17 +24,12 @@ export async function getNotifications(
     where.isRead = filter.isRead;
   }
 
-  const [items, unreadCount] = await prisma.$transaction([
-    prisma.notification.findMany({
-      where,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.notification.count({
-      where: { userId, isRead: false },
-    }),
-  ]);
+  const [items, unreadCount] = await repo.findNotificationsWithUnreadCount({
+    userId,
+    page,
+    pageSize,
+    where,
+  });
 
   const mappedData = items.map((n) => ({
     id: n.id,
@@ -56,33 +51,23 @@ export async function getNotifications(
 }
 
 export async function getUnreadNotificationCount(userId: string) {
-  const unreadCount = await prisma.notification.count({
-    where: { userId, isRead: false },
-  });
+  const unreadCount = await repo.countUnreadNotifications(userId);
 
   return { unreadCount };
 }
 
 export async function markNotificationRead(notificationId: string, userId: string) {
-  const notif = await prisma.notification.findFirst({
-    where: { id: notificationId, userId },
-  });
+  const notif = await repo.findNotificationForUser(notificationId, userId);
 
   if (!notif) return false;
 
-  await prisma.notification.update({
-    where: { id: notificationId },
-    data: { isRead: true },
-  });
+  await repo.markNotificationAsRead(notificationId);
 
   return true;
 }
 
 export async function markAllNotificationsRead(userId: string) {
-  await prisma.notification.updateMany({
-    where: { userId, isRead: false },
-    data: { isRead: true },
-  });
+  await repo.markUnreadNotificationsAsRead(userId);
 
   return true;
 }
@@ -96,16 +81,14 @@ export async function createNotification(input: {
   relatedEntityId?: string | null;
 }) {
   const id = crypto.randomUUID();
-  const notif = await prisma.notification.create({
-    data: {
-      id,
-      userId: input.userId,
-      type: mapNotificationTypeToCanonical(input.type),
-      title: input.title,
-      message: input.message || null,
-      relatedEntityType: mapNotificationRelatedEntityTypeLegacyToCanonical(input.relatedEntityType),
-      relatedEntityId: input.relatedEntityId || null,
-    },
+  const notif = await repo.createNotificationRecord({
+    id,
+    userId: input.userId,
+    type: mapNotificationTypeToCanonical(input.type),
+    title: input.title,
+    message: input.message || null,
+    relatedEntityType: mapNotificationRelatedEntityTypeLegacyToCanonical(input.relatedEntityType),
+    relatedEntityId: input.relatedEntityId || null,
   });
 
   await enqueueNotificationDispatch({
@@ -127,9 +110,7 @@ export async function dispatchNotification(input: {
   notificationId: string;
   email?: string;
 }) {
-  const notification = await prisma.notification.findUnique({
-    where: { id: input.notificationId },
-  });
+  const notification = await repo.findNotificationById(input.notificationId);
 
   if (!notification) {
     throw new Error(`Notification with ID ${input.notificationId} not found.`);
@@ -148,10 +129,7 @@ export async function dispatchNotification(input: {
   });
 
   // 2. Send email notification if recipient email exists or input email is provided
-  const user = await prisma.user.findUnique({
-    where: { id: notification.userId },
-    include: { employee: true },
-  });
+  const user = await repo.findUserWithEmployeeById(notification.userId);
 
   const recipientEmail = input.email || user?.email;
   if (recipientEmail) {
@@ -167,16 +145,10 @@ export async function dispatchNotification(input: {
       notification.relatedEntityType === NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD &&
       notification.relatedEntityId
     ) {
-      const doc = await prisma.documentRecord.findUnique({
-        where: { id: notification.relatedEntityId },
-        include: { documentType: true, owner: true },
-      });
+      const doc = await repo.findDocumentWithTypeAndOwnerById(notification.relatedEntityId);
 
       if (doc && (doc.status === "APPROVED" || doc.status === "REJECTED")) {
-        const history = await prisma.verificationHistory.findFirst({
-          where: { documentRecordId: doc.id },
-          orderBy: { reviewedAt: "desc" },
-        });
+        const history = await repo.findLatestVerificationHistory(doc.id);
 
         html = await renderDocumentStatusEmail({
           ownerName: doc.owner.name,
