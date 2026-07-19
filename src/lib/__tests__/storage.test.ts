@@ -130,7 +130,7 @@ describe("storage provider helpers", () => {
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
         json: vi.fn().mockResolvedValue({
-          signedURL: "/storage/v1/object/sign/employee-documents/KK/file.pdf?token=abc",
+          signedURL: "/object/sign/employee-documents/KK/file.pdf?token=abc",
         }),
       });
       vi.stubGlobal("fetch", fetchMock);

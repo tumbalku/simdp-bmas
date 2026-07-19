@@ -133,6 +133,10 @@ class SupabaseStorageProvider implements IStorageProvider {
       throw new Error("Respons signed URL Supabase Storage tidak valid");
     }
 
+    if (signedUrl.startsWith("/object/")) {
+      return `${this.baseUrl}/storage/v1${signedUrl}`;
+    }
+
     return signedUrl.startsWith("http") ? signedUrl : `${this.baseUrl}${signedUrl}`;
   }
 
