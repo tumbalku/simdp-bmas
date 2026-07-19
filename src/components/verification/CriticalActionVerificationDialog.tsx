@@ -168,10 +168,8 @@ export function CriticalActionVerificationDialog({
               Ketik frasa berikut untuk konfirmasi.
             </Label>
             <div
-              className="max-w-full select-none overflow-x-auto rounded-md bg-muted px-2 py-1.5"
-              onCopy={(event) => event.preventDefault()}
-              onCut={(event) => event.preventDefault()}
-              onContextMenu={(event) => event.preventDefault()}
+              className="max-w-full select-all overflow-x-auto rounded-md bg-muted px-2 py-1.5"
+              aria-label="Frasa konfirmasi"
             >
               <code className="whitespace-nowrap break-normal font-mono text-xs font-semibold text-foreground">
                 {confirmationPhrase}
@@ -181,7 +179,7 @@ export function CriticalActionVerificationDialog({
               id="critical-action-phrase"
               value={phraseInput}
               onChange={(event) => setPhraseInput(event.target.value)}
-              placeholder="Ketik manual frasa di atas"
+              placeholder="Ketik atau tempel frasa di atas"
               className="h-9 font-mono text-xs"
               autoFocus
               aria-invalid={phraseInput.length > 0 && !phraseMatches}
