@@ -36,6 +36,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { PAGINATION, ROUTES } from "@/constants";
 
+import { ARCHIVE_CATEGORY_OPTIONS } from "@/modules/document";
 import { getVerificationQueue as getQueueAction } from "@/modules/verification";
 import {
   formatEmployeeIdentifier,
@@ -59,6 +60,7 @@ type QueueItem = {
   documentType: {
     id: string;
     name: string;
+    archiveCategory: string;
   };
   title: string | null;
   documentNumber: string | null;
@@ -117,6 +119,9 @@ export function VerificationQueueView({
   const [documentTypeId, setDocumentTypeId] = useState(
     () => searchParams.get("documentTypeId") ?? ""
   );
+  const [archiveCategory, setArchiveCategory] = useState(
+    () => searchParams.get("archiveCategory") ?? ""
+  );
   const [page, setPage] = useState(initialPagination.page);
   const [rowsPerPage, setRowsPerPage] = useState(() =>
     searchParams.get("limit") ?? String(initialPagination.pageSize)
@@ -139,6 +144,7 @@ export function VerificationQueueView({
         page?: number;
         search?: string;
         documentTypeId?: string;
+        archiveCategory?: string;
         pageSize?: number;
       }
     ) => {
@@ -150,6 +156,8 @@ export function VerificationQueueView({
           search: (overrides?.search ?? search) || undefined,
           documentTypeId:
             (overrides?.documentTypeId ?? documentTypeId) || undefined,
+          archiveCategory:
+            (overrides?.archiveCategory ?? archiveCategory) || undefined,
           pageSize: overrides?.pageSize ?? Number(rowsPerPage),
         });
         if (!result.ok) {
@@ -166,7 +174,7 @@ export function VerificationQueueView({
         setIsLoading(false);
       }
     },
-    [page, search, documentTypeId, rowsPerPage]
+    [page, search, documentTypeId, archiveCategory, rowsPerPage]
   );
 
   /* ------------------------------------------------------------------------ */
@@ -179,6 +187,7 @@ export function VerificationQueueView({
       limit = rowsPerPage,
       nextSearch = search,
       nextDocumentTypeId = documentTypeId,
+      nextArchiveCategory = archiveCategory,
       nextViewMode = viewMode
     ) => {
       const params = new URLSearchParams();
@@ -186,11 +195,12 @@ export function VerificationQueueView({
       params.set("limit", limit);
       if (nextSearch.trim()) params.set("search", nextSearch.trim());
       if (nextDocumentTypeId) params.set("documentTypeId", nextDocumentTypeId);
+      if (nextArchiveCategory) params.set("archiveCategory", nextArchiveCategory);
       if (nextViewMode === "grid") params.set("view", nextViewMode);
 
       return `${ROUTES.verification}?${params.toString()}`;
     },
-    [documentTypeId, rowsPerPage, search, viewMode]
+    [archiveCategory, documentTypeId, rowsPerPage, search, viewMode]
   );
 
   const applyFilters = useCallback(
@@ -198,48 +208,59 @@ export function VerificationQueueView({
       nextPage = PAGINATION.defaultPage,
       nextSearch = search,
       nextDocumentTypeId = documentTypeId,
+      nextArchiveCategory = archiveCategory,
       nextRowsPerPage = rowsPerPage,
       nextViewMode = viewMode,
     }: {
       nextPage?: number;
       nextSearch?: string;
       nextDocumentTypeId?: string;
+      nextArchiveCategory?: string;
       nextRowsPerPage?: string;
       nextViewMode?: ViewMode;
     } = {}) => {
       setPage(nextPage);
       setSearch(nextSearch);
       setDocumentTypeId(nextDocumentTypeId);
+      setArchiveCategory(nextArchiveCategory);
       setRowsPerPage(nextRowsPerPage);
       setViewMode(nextViewMode);
       router.push(
-        buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextDocumentTypeId, nextViewMode)
+        buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextDocumentTypeId, nextArchiveCategory, nextViewMode)
       );
       startTransition(() => {
         fetchQueue({
           page: nextPage,
           search: nextSearch,
           documentTypeId: nextDocumentTypeId,
+          archiveCategory: nextArchiveCategory,
           pageSize: Number(nextRowsPerPage),
         });
       });
     },
-    [buildPageUrl, documentTypeId, fetchQueue, router, rowsPerPage, search, startTransition, viewMode]
+    [archiveCategory, buildPageUrl, documentTypeId, fetchQueue, router, rowsPerPage, search, startTransition, viewMode]
   );
 
   const handleViewModeChange = useCallback(
     (nextViewMode: ViewMode) => {
       setViewMode(nextViewMode);
-      router.replace(buildPageUrl(page, rowsPerPage, search, documentTypeId, nextViewMode), {
+      router.replace(buildPageUrl(page, rowsPerPage, search, documentTypeId, archiveCategory, nextViewMode), {
         scroll: false,
       });
     },
-    [buildPageUrl, documentTypeId, page, router, rowsPerPage, search]
+    [archiveCategory, buildPageUrl, documentTypeId, page, router, rowsPerPage, search]
   );
 
   const handleDocumentTypeChange = useCallback(
     (value: string | null) => {
       setDocumentTypeId(!value || value === "all" ? "" : value);
+    },
+    []
+  );
+
+  const handleArchiveCategoryChange = useCallback(
+    (value: string | null) => {
+      setArchiveCategory(!value || value === "all" ? "" : value);
     },
     []
   );
@@ -270,6 +291,7 @@ export function VerificationQueueView({
       nextPage: PAGINATION.defaultPage,
       nextSearch: "",
       nextDocumentTypeId: "",
+      nextArchiveCategory: "",
       nextRowsPerPage: String(PAGINATION.defaultPageSize),
     });
   }, [applyFilters]);
@@ -422,6 +444,16 @@ export function VerificationQueueView({
             })),
           ],
         }}
+        secondaryFilter={{
+          value: archiveCategory || "all",
+          onValueChange: handleArchiveCategoryChange,
+          placeholder: "Semua kategori arsip",
+          ariaLabel: "Kategori arsip",
+          options: [
+            { value: "all", label: "Semua kategori arsip" },
+            ...ARCHIVE_CATEGORY_OPTIONS,
+          ],
+        }}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />
@@ -473,19 +505,19 @@ export function VerificationQueueView({
           <CardContent className="flex min-h-[280px] items-center justify-center text-center">
             <div className="max-w-md space-y-3">
               <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10">
-                {search || documentTypeId ? (
+                {search || documentTypeId || archiveCategory ? (
                   <Search className="size-7 text-muted-foreground" />
                 ) : (
                   <CheckCircle2 className="size-7 text-success" />
                 )}
               </div>
               <p className="text-base font-semibold text-foreground">
-                {search || documentTypeId
+                {search || documentTypeId || archiveCategory
                   ? "Tidak ada hasil"
                   : "Semua Selesai!"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {search || documentTypeId
+                {search || documentTypeId || archiveCategory
                   ? "Coba ubah kata kunci atau filter."
                   : "Tidak ada dokumen yang perlu diverifikasi saat ini. Anda telah menyelesaikan semua tugas Anda."}
               </p>

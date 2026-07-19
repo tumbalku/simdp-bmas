@@ -15,6 +15,7 @@ type PageProps = {
     limit?: string;
     search?: string;
     documentTypeId?: string;
+    archiveCategory?: string;
   }>;
 };
 
@@ -33,6 +34,7 @@ export default async function VerificationPage({ searchParams }: PageProps) {
       pageSize,
       search: params?.search,
       documentTypeId: params?.documentTypeId,
+      archiveCategory: params?.archiveCategory,
     }),
     getDocumentTypeOptionsAction(),
   ]);

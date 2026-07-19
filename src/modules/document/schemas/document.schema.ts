@@ -38,12 +38,16 @@ export const documentRecordsQuerySchema = z.object({
   archiveView: z.enum(["active", "archived"]).optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED", "EXPIRED", "REPLACED"]).optional(),
   search: z.string().optional(),
+  documentTypeId: z.string().optional(),
+  archiveCategory: z.enum(["PERSONAL", "EDUCATION", "EMPLOYMENT", "CERTIFICATION", "LEGAL"]).optional(),
 });
 
 export const documentRecordsWithPaginationQuerySchema = z.object({
   archiveView: z.enum(["active", "archived"]).optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED", "EXPIRED", "REPLACED"]).optional(),
   search: z.string().optional(),
+  documentTypeId: z.string().optional(),
+  archiveCategory: z.enum(["PERSONAL", "EDUCATION", "EMPLOYMENT", "CERTIFICATION", "LEGAL"]).optional(),
   page: z.number().int().positive().optional(),
   limit: z.number().int().positive().max(100).optional(),
 });

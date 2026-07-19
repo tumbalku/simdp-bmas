@@ -90,7 +90,7 @@ export function DocumentStatusEmail({
         React.createElement(
           Text,
           { style: { fontSize: "12px", color: "#94a3b8", textAlign: "center" } },
-          "Ini adalah email otomatis dari SIMDP RSUD Bahteramas. Mohon tidak membalas email ini."
+          "Ini adalah email otomatis dari SiCantIK RSUD Bahteramas. Mohon tidak membalas email ini."
         )
       )
     )

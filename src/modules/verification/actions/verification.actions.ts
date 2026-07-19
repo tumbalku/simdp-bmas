@@ -36,6 +36,7 @@ export async function getVerificationQueue(filter: {
   pageSize?: number;
   search?: string;
   documentTypeId?: string;
+  archiveCategory?: string;
   workplaceId?: string;
 }) {
   try {

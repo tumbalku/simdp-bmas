@@ -414,7 +414,7 @@ export function MasterDataEmployeeForm({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Akun nonaktif tidak bisa login ke SIMDP.
+                Akun nonaktif tidak bisa login ke SiCantIK.
               </p>
             </div>
 

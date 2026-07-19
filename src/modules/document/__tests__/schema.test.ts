@@ -56,6 +56,8 @@ describe("Document Module Schemas", () => {
     it("should validate status filter and search query", () => {
       const result = documentRecordsQuerySchema.safeParse({
         status: "APPROVED",
+        documentTypeId: "type-1",
+        archiveCategory: "CERTIFICATION",
         search: "contract",
       });
       expect(result.success).toBe(true);

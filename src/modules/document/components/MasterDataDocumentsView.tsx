@@ -25,7 +25,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { DATE_FORMATS, DATE_LOCALE, PAGINATION, ROUTES, routeTo } from "@/constants";
-import { DOCUMENT_STATUS_OPTIONS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document";
+import {
+  ARCHIVE_CATEGORY_OPTIONS,
+  DOCUMENT_STATUS_OPTIONS,
+  DOCUMENT_STATUS_VARIANTS,
+  type DocumentTypeOption,
+} from "@/modules/document";
 import {
   permanentDeleteDocumentAction,
   restoreDocumentAction,
@@ -66,6 +71,7 @@ type MasterDataDocumentsViewProps = {
   documents: DocumentRecord[];
   pagination: PaginationMeta;
   archiveView: "active" | "archived";
+  documentTypes: DocumentTypeOption[];
 };
 
 const statusConfig = Object.fromEntries(
@@ -86,16 +92,15 @@ function formatFileSize(value: number | null) {
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function MasterDataDocumentsView({ documents, pagination, archiveView }: MasterDataDocumentsViewProps) {
+export function MasterDataDocumentsView({ documents, pagination, archiveView, documentTypes }: MasterDataDocumentsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
   const [isCriticalActionDialogOpen, setIsCriticalActionDialogOpen] = useState(false);
   const [criticalActionTarget, setCriticalActionTarget] = useState<CriticalActionTarget | null>(null);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
-  const [statusFilter, setStatusFilter] = useState<string>(
-    () => searchParams.get("status") ?? "all",
-  );
+  const [documentTypeId, setDocumentTypeId] = useState(() => searchParams.get("documentTypeId") ?? "");
+  const [archiveCategory, setArchiveCategory] = useState(() => searchParams.get("archiveCategory") ?? "");
   const [rowsPerPage, setRowsPerPage] = useState(() =>
     String(pagination.limit || PAGINATION.defaultPageSize),
   );
@@ -122,8 +127,9 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
     params.set("page", page.toString());
     params.set("limit", limit);
     if (isArchiveView) params.set("archiveView", "archived");
-    if (search) params.set("search", search);
-    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (search.trim()) params.set("search", search.trim());
+    if (documentTypeId) params.set("documentTypeId", documentTypeId);
+    if (archiveCategory) params.set("archiveCategory", archiveCategory);
     if (nextViewMode === "grid") params.set("view", nextViewMode);
     return `${ROUTES.masterDataDocuments}?${params.toString()}`;
   };
@@ -133,10 +139,19 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
     params.set("page", String(PAGINATION.defaultPage));
     params.set("limit", rowsPerPage);
     if (nextArchiveView === "archived") params.set("archiveView", "archived");
-    if (search) params.set("search", search);
-    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (search.trim()) params.set("search", search.trim());
+    if (documentTypeId) params.set("documentTypeId", documentTypeId);
+    if (archiveCategory) params.set("archiveCategory", archiveCategory);
     if (viewMode === "grid") params.set("view", "grid");
     return `${ROUTES.masterDataDocuments}?${params.toString()}`;
+  };
+
+  const handleDocumentTypeChange = (value: string | null) => {
+    setDocumentTypeId(!value || value === "all" ? "" : value);
+  };
+
+  const handleArchiveCategoryChange = (value: string | null) => {
+    setArchiveCategory(!value || value === "all" ? "" : value);
   };
 
   const handleViewModeChange = (nextViewMode: ViewMode) => {
@@ -167,7 +182,8 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
   const handleResetFilter = () => {
     const defaultLimit = String(PAGINATION.defaultPageSize);
     setSearch("");
-    setStatusFilter("all");
+    setDocumentTypeId("");
+    setArchiveCategory("");
     setRowsPerPage(defaultLimit);
     const params = new URLSearchParams();
     params.set("page", String(PAGINATION.defaultPage));
@@ -440,21 +456,31 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
       />
 
       <DocumentSearchFilter
-        description="Cari dokumen berdasarkan nama file, pemilik, atau status."
+        description="Cari berdasarkan nama pegawai, nama file, atau jenis dokumen."
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Nama file, pemilik..."
+        searchPlaceholder="Cari nama pegawai..."
         primaryFilter={{
-          value: statusFilter,
-          onValueChange: (value) => setStatusFilter(value || "all"),
-          placeholder: "Semua Status",
-          ariaLabel: "Status dokumen",
+          value: documentTypeId || "all",
+          onValueChange: handleDocumentTypeChange,
+          placeholder: "Semua jenis dokumen",
+          ariaLabel: "Jenis dokumen",
           options: [
-            { value: "all", label: "Semua Status" },
-            ...DOCUMENT_STATUS_OPTIONS.map((option) => ({
-              value: option.value,
-              label: option.label,
+            { value: "all", label: "Semua jenis dokumen" },
+            ...documentTypes.map((documentType) => ({
+              value: documentType.id,
+              label: documentType.name,
             })),
+          ],
+        }}
+        secondaryFilter={{
+          value: archiveCategory || "all",
+          onValueChange: handleArchiveCategoryChange,
+          placeholder: "Semua kategori arsip",
+          ariaLabel: "Kategori arsip",
+          options: [
+            { value: "all", label: "Semua kategori arsip" },
+            ...ARCHIVE_CATEGORY_OPTIONS,
           ],
         }}
         onApply={handleFilter}

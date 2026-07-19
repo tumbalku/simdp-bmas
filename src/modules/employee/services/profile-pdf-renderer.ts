@@ -376,8 +376,8 @@ export function renderEmployeeProfilePdfHtml(
       <div class="brand">
         <div class="brand-mark">S</div>
         <div>
-          <h1 class="brand-title">SIMDP</h1>
-          <div class="brand-subtitle">Sistem Manajemen Dokumen Pegawai RSUD Bahteramas</div>
+          <h1 class="brand-title">SiCantIK</h1>
+          <div class="brand-subtitle">Sistem Pencatatan Informasi Kepegawaian RSUD Bahteramas</div>
         </div>
       </div>
       <div class="doc-kicker">
@@ -413,7 +413,7 @@ export function renderEmployeeProfilePdfHtml(
 
     <div class="footer-bar">
       <span>Dicetak ${escapeHtml(generatedAt)}</span>
-      <div class="footer-right">Dokumen SIMDP</div>
+      <div class="footer-right">Dokumen SiCantIK</div>
     </div>
   </main>
 </body>

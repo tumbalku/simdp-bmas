@@ -2,7 +2,7 @@ import type { Dictionary } from "../types";
 
 export const id = {
   app: {
-    name: "SIMDP",
+    name: "SiCantIK",
     organization: "RSUD Bahteramas",
   },
   nav: {
@@ -38,7 +38,7 @@ export const id = {
   },
   auth: {
     login: {
-      eyebrow: "Masuk SIMDP",
+      eyebrow: "Masuk SiCantIK",
       title: "Masuk ke akun Anda",
       description: "Gunakan NIP, NIK, atau email yang terdaftar untuk mengakses dokumen pegawai.",
       helpText: "Belum bisa masuk?",
@@ -46,14 +46,14 @@ export const id = {
       identifierLabel: "NIP / NIK / Email",
       identifierPlaceholder: "Contoh: 198501012010011001 atau nama@rsud.go.id",
       passwordLabel: "Password",
-      passwordPlaceholder: "Masukkan password akun SIMDP",
+      passwordPlaceholder: "Masukkan password akun SiCantIK",
       processing: "Memproses...",
       submit: "Masuk",
     },
     forgotPassword: {
       eyebrow: "Reset akses",
       title: "Lupa password?",
-      description: "Masukkan email akun SIMDP. Jika terdaftar, instruksi pemulihan akan dikirimkan.",
+      description: "Masukkan email akun SiCantIK. Jika terdaftar, instruksi pemulihan akan dikirimkan.",
       backToLogin: "Kembali ke login",
       successMessage: "Instruksi reset password telah dikirim ke email Anda. Periksa kotak masuk atau folder spam.",
       emailLabel: "Email terdaftar",
@@ -64,7 +64,7 @@ export const id = {
     resetPassword: {
       eyebrow: "Password baru",
       title: "Buat password baru",
-      description: "Siapkan password baru minimal 8 karakter untuk mengamankan akun SIMDP Anda.",
+      description: "Siapkan password baru minimal 8 karakter untuk mengamankan akun SiCantIK Anda.",
       backToLogin: "Kembali ke login",
       tokenLabel: "Token reset",
       tokenPlaceholder: "Token dari tautan email reset password",

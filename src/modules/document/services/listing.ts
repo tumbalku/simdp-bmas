@@ -12,6 +12,16 @@ export async function getDocumentRecordsForSession(session: TokenPayload, filter
     where.status = filter.status;
   }
 
+  if (filter.documentTypeId) {
+    where.documentTypeId = filter.documentTypeId;
+  }
+
+  if (filter.archiveCategory) {
+    where.documentType = {
+      archiveCategory: filter.archiveCategory,
+    };
+  }
+
   if (filter.search) {
     where.OR = [
       { title: { contains: filter.search, mode: "insensitive" } },
@@ -40,6 +50,16 @@ export async function getDocumentRecordsWithPagination(
 
   if (filter.status) {
     where.status = filter.status;
+  }
+
+  if (filter.documentTypeId) {
+    where.documentTypeId = filter.documentTypeId;
+  }
+
+  if (filter.archiveCategory) {
+    where.documentType = {
+      archiveCategory: filter.archiveCategory,
+    };
   }
 
   if (filter.search) {

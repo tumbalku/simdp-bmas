@@ -108,7 +108,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
       <PageHeader
         eyebrow="Administrasi"
         title="Pengaturan Sistem"
-        description="Atur parameter operasional SIMDP seperti jadwal reminder, batas upload, dan masa retensi data."
+        description="Atur parameter operasional SiCantIK seperti jadwal reminder, batas upload, dan masa retensi data."
         trailing={
           <Button type="submit" disabled={isPending}>
             {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}

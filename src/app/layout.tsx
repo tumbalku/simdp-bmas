@@ -11,8 +11,8 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "SIMDP RSUD Bahteramas",
-  description: "Sistem Information Manajemen Dokumen Pegawai RSUD Bahteramas",
+  title: "SiCantIK RSUD Bahteramas",
+  description: "Sistem Pencatatan Informasi Kepegawaian RSUD Bahteramas",
 };
 
 export default function RootLayout({

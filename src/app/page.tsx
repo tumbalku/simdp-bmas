@@ -14,7 +14,7 @@ const features = [
   {
     title: "Verifikasi berbasis role",
     description:
-      "Admin, Staff, dan Employee memiliki akses berbeda sesuai aturan RBAC SIMDP.",
+      "Admin, Staff, dan Employee memiliki akses berbeda sesuai aturan RBAC SiCantIK.",
     icon: ShieldCheck,
   },
   {
@@ -33,12 +33,12 @@ export default function Home() {
         <section className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full flex-col justify-center gap-10 px-4 py-16 sm:px-6 lg:px-8">
           <div className="max-w-3xl space-y-6">
             <div className="inline-flex rounded-full border border-border bg-card px-3 py-1 text-sm font-medium text-muted-foreground shadow-sm">
-              SIMDP · RSUD Bahteramas
+              SiCantIK · RSUD Bahteramas
             </div>
 
             <div className="space-y-4">
               <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-                Sistem Informasi Manajemen Dokumen Pegawai
+                Sistem Pencatatan Informasi Kepegawaian
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
                 Scaffold awal Next.js, TypeScript, Tailwind CSS, dan shadcn/ui untuk

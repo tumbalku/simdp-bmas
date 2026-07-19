@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Menambahkan filter kategori arsip pada `/verification`, menyamakan filter `/documents` dan `/master-data/documents` dengan pola search + jenis dokumen + kategori arsip, dan mengganti branding aplikasi menjadi `SiCantIK` (`Sistem Pencatatan Informasi Kepegawaian`).
 - Issue #188: Menerapkan critical action verification yang sama pada aksi arsip, pulihkan, dan hapus permanen pegawai di halaman `/master-data/employees`.
 - Issue #173: Menambahkan fallback delivery notifikasi saat Inngest/Pusher tidak aktif, termasuk local event dispatch best-effort dan polling otomatis navbar ketika Pusher client tidak tersedia.
 - Issue #171: Menyatukan notifikasi upload/ganti dokumen ke event bus realtime sehingga notifikasi verifikasi untuk ADMIN/STAFF dibuat oleh subscriber notification dan langsung masuk jalur dispatch realtime.

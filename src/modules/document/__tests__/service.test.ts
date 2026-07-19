@@ -9,6 +9,7 @@ import {
   permanentlyDeleteDocument,
   processExpiredDocumentsAndReminders,
   getDocumentRecordsForSession,
+  getDocumentRecordsWithPagination,
   getDocumentRecordDetailForSession,
   getAvailableDocumentTypes,
 } from "../service";
@@ -79,6 +80,50 @@ describe("Document Module Service", () => {
       expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ ownerId: "emp-1", deletedAt: { not: null } }),
+        })
+      );
+    });
+
+    it("should filter owned documents by document type and archive category", async () => {
+      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1" });
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+
+      await getDocumentRecordsForSession(session, {
+        documentTypeId: "type-1",
+        archiveCategory: "CERTIFICATION",
+      });
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            ownerId: "emp-1",
+            documentTypeId: "type-1",
+            documentType: { archiveCategory: "CERTIFICATION" },
+          }),
+        })
+      );
+    });
+
+    it("should filter paginated admin document lists by document type and archive category", async () => {
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
+
+      await getDocumentRecordsWithPagination({
+        documentTypeId: "type-1",
+        archiveCategory: "LEGAL",
+        page: 2,
+        limit: 10,
+      });
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            documentTypeId: "type-1",
+            documentType: { archiveCategory: "LEGAL" },
+          }),
+          skip: 10,
+          take: 10,
         })
       );
     });
