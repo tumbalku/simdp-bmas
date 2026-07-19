@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS, getRoleBadgeStyle, routeTo, type UserRole } from "@/constants";
 import { CareerHistoryDialog } from "./CareerHistoryDialog";
+import { EmployeeProfilePdfDownloadDialog } from "./EmployeeProfilePdfDownloadDialog";
 
 type MasterDataOption = {
   id: string;
@@ -57,7 +58,7 @@ type EmployeeDetail = {
   tmtStartDate: string | null;
   tmtEndDate: string | null;
   documentCount: number;
-  documents: Array<{ id: string; title: string; status: string; uploadedAt: string | null; expiryDate: string | null; documentTypeName: string; archiveCategory: string }>;
+  documents: Array<{ id: string; title: string; status: string; documentNumber?: string | null; uploadedAt: string | null; expiryDate: string | null; documentTypeName: string; documentTypeCode?: string | null; archiveCategory: string }>;
   careerHistories: Array<{ id: string; effectiveDate: string | null; note: string | null; employmentStatus: string | null; employeePosition: string | null; workplace: string | null }>;
 };
 
@@ -110,6 +111,7 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
             icon: Pencil,
           },
         ]}
+        trailing={<EmployeeProfilePdfDownloadDialog employeeId={employee.id} employeeName={employee.name} />}
       />
 
       {/* Profil Centered Box */}

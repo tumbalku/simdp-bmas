@@ -23,7 +23,7 @@ export async function findEmployeeDetailById(id: string, tx?: PrismaClientOrTx) 
       documentRecords: {
         where: { deletedAt: null },
         orderBy: { uploadedAt: "desc" },
-        include: { documentType: { select: { name: true, archiveCategory: true } } },
+        include: { documentType: { select: { code: true, name: true, archiveCategory: true } } },
       },
     },
   });

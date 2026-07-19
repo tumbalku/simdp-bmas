@@ -7,6 +7,7 @@ import {
   getEmployeeDirectory,
   getEmployeeDirectoryWithPagination,
   getEmployeeDetail,
+  getEmployeeProfilePdfData,
   exportEmployeeDirectoryCsv,
   importFromCsv,
   addCareerHistory,
@@ -85,6 +86,62 @@ describe("Employee Module Service", () => {
         })
       );
       expect(result?.documents[0]).toEqual(expect.objectContaining({ id: "doc-1", documentTypeName: "KTP" }));
+    });
+
+    it("should build PDF profile data with selected document statuses", async () => {
+      mockPrisma.employee.findUnique.mockResolvedValue({
+        id: "emp-1",
+        employeeId: "1990",
+        nik: "7471",
+        name: "John Doe",
+        status: "ACTIVE",
+        birthDate: new Date("1990-01-01T00:00:00.000Z"),
+        joinDate: new Date("2020-01-01T00:00:00.000Z"),
+        user: { email: "john@example.com", role: "EMPLOYEE", isActive: true },
+        employmentStatus: { id: "status-1", name: "PNS" },
+        employeeGroup: { id: "group-1", name: "PNS Daerah", employmentStatusId: "status-1" },
+        employeePosition: { id: "position-1", name: "Perawat", professionGroupId: "profession-1" },
+        employeeRank: { id: "rank-1", name: "III/a" },
+        workplace: { id: "workplace-1", name: "UGD" },
+        careerHistories: [],
+        documentRecords: [
+          {
+            id: "doc-1",
+            title: "KTP Utama",
+            status: "APPROVED",
+            documentNumber: "4701/KTP/2026",
+            uploadedAt: new Date("2026-01-01T00:00:00.000Z"),
+            expiryDate: null,
+            documentType: { code: "KTP", name: "KTP", archiveCategory: "PERSONAL" },
+          },
+          {
+            id: "doc-2",
+            title: "STR",
+            status: "PENDING",
+            documentNumber: null,
+            uploadedAt: new Date("2026-02-01T00:00:00.000Z"),
+            expiryDate: null,
+            documentType: { code: "STR", name: "STR", archiveCategory: "CERTIFICATION" },
+          },
+        ],
+      });
+
+      const result = await getEmployeeProfilePdfData("emp-1", {
+        includeProfile: true,
+        documentStatuses: ["APPROVED"],
+      });
+
+      expect(result?.employee).toEqual(expect.objectContaining({ id: "emp-1", name: "John Doe" }));
+      expect(result?.documents).toHaveLength(1);
+      expect(result?.documents[0]).toEqual(
+        expect.objectContaining({
+          id: "doc-1",
+          documentNumber: "4701/KTP/2026",
+          documentTypeCode: "KTP",
+          archiveCategory: "PERSONAL",
+          status: "APPROVED",
+        })
+      );
     });
 
     it("should apply advanced employee directory filters to paginated query", async () => {

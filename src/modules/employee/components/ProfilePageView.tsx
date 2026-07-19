@@ -6,6 +6,7 @@ import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DATE_FORMATS, DATE_LOCALE, ROLE_LABELS } from "@/constants";
+import { EmployeeProfilePdfDownloadDialog } from "@/modules/employee/components/EmployeeProfilePdfDownloadDialog";
 import { ProfileEditDialog } from "@/modules/employee/components/ProfileEditDialog";
 
 type NamedRecord = {
@@ -13,6 +14,7 @@ type NamedRecord = {
 } | null;
 
 type ProfileData = {
+  id: string;
   employeeId: string | null;
   nik: string | null;
   name: string;
@@ -107,16 +109,19 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
         title="Profil Pegawai"
         description="Lihat dan perbarui data pribadi yang aman dikelola mandiri."
         trailing={
-          <ProfileEditDialog
-            initialData={{
-              phone: profile.phone || "",
-              address: profile.address || "",
-              birthPlace: profile.birthPlace || "",
-              birthDate: formatDateInput(profile.birthDate),
-              religion: profile.religion || "",
-              maritalStatus: profile.maritalStatus || "",
-            }}
-          />
+          <>
+            <ProfileEditDialog
+              initialData={{
+                phone: profile.phone || "",
+                address: profile.address || "",
+                birthPlace: profile.birthPlace || "",
+                birthDate: formatDateInput(profile.birthDate),
+                religion: profile.religion || "",
+                maritalStatus: profile.maritalStatus || "",
+              }}
+            />
+            <EmployeeProfilePdfDownloadDialog employeeId={profile.id} employeeName={profile.name} />
+          </>
         }
       />
 

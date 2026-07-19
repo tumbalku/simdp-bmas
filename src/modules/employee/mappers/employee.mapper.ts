@@ -72,9 +72,11 @@ export function mapEmployeeDetail(employee: any) {
       id: doc.id,
       title: doc.title || doc.documentType?.name || "Dokumen",
       status: doc.status,
+      documentNumber: doc.documentNumber || null,
       uploadedAt: toIsoDate(doc.uploadedAt),
       expiryDate: toIsoDate(doc.expiryDate),
       documentTypeName: doc.documentType?.name || "Dokumen",
+      documentTypeCode: doc.documentType?.code || null,
       archiveCategory: doc.documentType?.archiveCategory || "PERSONAL",
     })),
   };
