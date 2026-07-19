@@ -28,7 +28,7 @@ export function UserSettingsPageView({ account }: UserSettingsPageViewProps) {
       <PageHeader
         eyebrow="Akun Saya"
         title="Pengaturan"
-        description="Kelola keamanan akun dan preferensi pribadi SIMDP."
+        description="Kelola keamanan akun dan preferensi pribadi SiCantIK."
       />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
@@ -38,7 +38,7 @@ export function UserSettingsPageView({ account }: UserSettingsPageViewProps) {
               <ShieldCheck className="size-4 text-primary" />
               Aktivitas Akun
             </CardTitle>
-            <CardDescription>Status akses dan aktivitas login terakhir akun SIMDP.</CardDescription>
+            <CardDescription>Status akses dan aktivitas login terakhir akun SiCantIK.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -54,7 +54,7 @@ export function UserSettingsPageView({ account }: UserSettingsPageViewProps) {
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {account.isActive
-                    ? "Akun dapat digunakan untuk mengakses SIMDP."
+                    ? "Akun dapat digunakan untuk mengakses SiCantIK."
                     : "Akun sedang tidak aktif. Hubungi admin jika perlu akses kembali."}
                 </p>
               </div>

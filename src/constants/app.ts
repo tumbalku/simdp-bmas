@@ -1,5 +1,5 @@
 export const APP = {
-  name: "SIMDP",
-  fullName: "Sistem Informasi Manajemen Dokumen Pegawai",
+  name: "SiCantIK",
+  fullName: "Sistem Pencatatan Informasi Kepegawaian",
   organization: "RSUD Bahteramas",
 } as const;

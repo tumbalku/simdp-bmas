@@ -67,7 +67,7 @@ export function EmployeeCsvImportDialog() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "Template-Import-Pegawai_SIMDP.csv";
+    link.download = "Template-Import-Pegawai_SiCantIK.csv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

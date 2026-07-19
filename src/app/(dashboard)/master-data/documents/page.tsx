@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getDocumentRecordsWithPagination } from "@/modules/document/server";
+import { getAvailableDocumentTypes, getDocumentRecordsWithPagination } from "@/modules/document/server";
 import { MasterDataDocumentsView } from "@/modules/document/components/MasterDataDocumentsView";
 import { PAGINATION } from "@/constants";
 
@@ -10,10 +10,19 @@ type PageProps = {
     page?: string;
     limit?: string;
     archiveView?: string;
-    status?: string;
     search?: string;
+    documentTypeId?: string;
+    archiveCategory?: string;
   }>;
 };
+
+const archiveCategories = ["PERSONAL", "EDUCATION", "EMPLOYMENT", "CERTIFICATION", "LEGAL"] as const;
+
+function parseArchiveCategory(value?: string) {
+  return archiveCategories.includes(value as (typeof archiveCategories)[number])
+    ? (value as (typeof archiveCategories)[number])
+    : undefined;
+}
 
 export default async function MasterDataDocumentsPage({ searchParams }: PageProps) {
   await requireAuth("ADMIN");
@@ -22,16 +31,28 @@ export default async function MasterDataDocumentsPage({ searchParams }: PageProp
   const page = params.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;
   const limit = params.limit ? parseInt(params.limit, 10) : PAGINATION.defaultPageSize;
   const archiveView = params.archiveView === "archived" ? "archived" : "active";
-  const status = params.status as "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED" | undefined;
   const search = params.search;
+  const documentTypeId = params.documentTypeId;
+  const archiveCategory = parseArchiveCategory(params.archiveCategory);
 
-  const result = await getDocumentRecordsWithPagination({
-    page,
-    limit,
-    archiveView,
-    status,
-    search,
-  });
+  const [result, documentTypes] = await Promise.all([
+    getDocumentRecordsWithPagination({
+      page,
+      limit,
+      archiveView,
+      search,
+      documentTypeId,
+      archiveCategory,
+    }),
+    getAvailableDocumentTypes(),
+  ]);
 
-  return <MasterDataDocumentsView documents={result.data} pagination={result.pagination} archiveView={archiveView} />;
+  return (
+    <MasterDataDocumentsView
+      documents={result.data}
+      pagination={result.pagination}
+      archiveView={archiveView}
+      documentTypes={documentTypes}
+    />
+  );
 }

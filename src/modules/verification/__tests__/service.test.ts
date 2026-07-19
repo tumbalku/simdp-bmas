@@ -26,7 +26,7 @@ describe("Verification Module Service", () => {
           documentNumber: "123",
           uploadedAt: new Date("2026-07-09T00:00:00Z"),
           owner: { id: "emp-1", name: "John Doe", workplace: { name: "Poli Anak" } },
-          documentType: { id: "type-1", name: "Ijazah" },
+          documentType: { id: "type-1", name: "Ijazah", archiveCategory: "EDUCATION" },
         },
       ];
 
@@ -37,6 +37,21 @@ describe("Verification Module Service", () => {
       expect(queue.data).toHaveLength(1);
       expect(queue.data[0].id).toBe("doc-1");
       expect(queue.meta.pagination.totalItems).toBe(1);
+    });
+
+    it("should filter queue by archive category", async () => {
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
+
+      await getVerificationQueue({ archiveCategory: "CERTIFICATION" });
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            documentType: { archiveCategory: "CERTIFICATION" },
+          }),
+        })
+      );
     });
   });
 

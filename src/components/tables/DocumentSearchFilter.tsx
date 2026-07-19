@@ -38,6 +38,7 @@ type DocumentSearchFilterProps = {
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
   primaryFilter?: SelectFilter;
+  secondaryFilter?: SelectFilter;
   onApply: () => void;
   onReset: () => void;
   title?: string;
@@ -50,12 +51,30 @@ export function DocumentSearchFilter({
   onSearchChange,
   searchPlaceholder,
   primaryFilter,
+  secondaryFilter,
   onApply,
   onReset,
 }: DocumentSearchFilterProps) {
-  const gridClassName = primaryFilter
-    ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(220px,0.8fr)_auto] lg:items-center"
-    : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:items-center";
+  const gridClassName = primaryFilter && secondaryFilter
+    ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(190px,0.8fr)_minmax(190px,0.8fr)_auto] lg:items-center"
+    : primaryFilter || secondaryFilter
+      ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(220px,0.8fr)_auto] lg:items-center"
+      : "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:items-center";
+
+  const renderSelectFilter = (filter: SelectFilter) => (
+    <Select value={filter.value} onValueChange={filter.onValueChange}>
+      <SelectTrigger className="w-full" aria-label={filter.ariaLabel}>
+        <SelectValue placeholder={filter.placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {filter.options.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 
   return (
     <Card className="border-muted-foreground/10 shadow-sm">
@@ -81,23 +100,8 @@ export function DocumentSearchFilter({
             />
           </div>
 
-          {primaryFilter ? (
-            <Select
-              value={primaryFilter.value}
-              onValueChange={primaryFilter.onValueChange}
-            >
-              <SelectTrigger className="w-full" aria-label={primaryFilter.ariaLabel}>
-                <SelectValue placeholder={primaryFilter.placeholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {primaryFilter.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : null}
+          {primaryFilter ? renderSelectFilter(primaryFilter) : null}
+          {secondaryFilter ? renderSelectFilter(secondaryFilter) : null}
 
           <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
             <Button type="button" className="gap-2" onClick={onApply}>

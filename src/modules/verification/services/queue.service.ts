@@ -7,6 +7,7 @@ export async function getVerificationQueue(filter: {
   pageSize?: number;
   search?: string;
   documentTypeId?: string;
+  archiveCategory?: string;
   workplaceId?: string;
 }) {
   const page = filter.page || PAGINATION.defaultPage;
@@ -19,6 +20,12 @@ export async function getVerificationQueue(filter: {
 
   if (filter.documentTypeId) {
     where.documentTypeId = filter.documentTypeId;
+  }
+
+  if (filter.archiveCategory) {
+    where.documentType = {
+      archiveCategory: filter.archiveCategory,
+    };
   }
 
   if (filter.workplaceId || filter.search) {
@@ -54,6 +61,7 @@ export async function getVerificationQueue(filter: {
     documentType: {
       id: doc.documentType.id,
       name: doc.documentType.name,
+      archiveCategory: doc.documentType.archiveCategory,
     },
     title: doc.title,
     documentNumber: doc.documentNumber,

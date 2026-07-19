@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Clock3, FileText, FileWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { MetricCard } from "@/components/cards/MetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
+import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -14,7 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { softDeleteDocumentAction } from "@/modules/document";
+import { ARCHIVE_CATEGORY_OPTIONS, softDeleteDocumentAction } from "@/modules/document";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 import {
@@ -32,9 +33,13 @@ type DocumentsPageViewProps = {
 
 export function DocumentsPageView({ documents, documentTypes, canUpload }: DocumentsPageViewProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<DocumentRecordListItem | null>(null);
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [documentTypeId, setDocumentTypeId] = useState(() => searchParams.get("documentTypeId") ?? "");
+  const [archiveCategory, setArchiveCategory] = useState(() => searchParams.get("archiveCategory") ?? "");
 
   const pendingCount = documents.filter((doc) => doc.status === "PENDING").length;
   const approvedCount = documents.filter((doc) => doc.status === "APPROVED").length;
@@ -44,9 +49,46 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
       doc.expiryDate && new Date(doc.expiryDate) < new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
   ).length;
 
-  const groupedDocuments = groupDocumentsByAvailableTypes(documents, documentTypes);
+  const isFilterActive = Boolean(search.trim() || documentTypeId || archiveCategory);
+  const groupedDocuments = groupDocumentsByAvailableTypes(
+    documents,
+    isFilterActive ? [] : documentTypes
+  );
 
   const isActionPending = pendingDocumentId !== null;
+
+  const buildDocumentsUrl = (
+    nextSearch = search,
+    nextDocumentTypeId = documentTypeId,
+    nextArchiveCategory = archiveCategory
+  ) => {
+    const params = new URLSearchParams();
+    if (nextSearch.trim()) params.set("search", nextSearch.trim());
+    if (nextDocumentTypeId) params.set("documentTypeId", nextDocumentTypeId);
+    if (nextArchiveCategory) params.set("archiveCategory", nextArchiveCategory);
+    const query = params.toString();
+
+    return query ? `/documents?${query}` : "/documents";
+  };
+
+  const handleDocumentTypeChange = (value: string | null) => {
+    setDocumentTypeId(!value || value === "all" ? "" : value);
+  };
+
+  const handleArchiveCategoryChange = (value: string | null) => {
+    setArchiveCategory(!value || value === "all" ? "" : value);
+  };
+
+  const handleApplyFilters = () => {
+    router.push(buildDocumentsUrl());
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setDocumentTypeId("");
+    setArchiveCategory("");
+    router.push("/documents");
+  };
 
   const openArchiveDialog = (target: DocumentRecordListItem) => {
     setArchiveTarget(target);
@@ -143,17 +185,52 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
         ))}
       </div>
 
+
+      <DocumentSearchFilter
+        description="Cari berdasarkan nama file, judul, atau jenis dokumen."
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari dokumen..."
+        primaryFilter={{
+          value: documentTypeId || "all",
+          onValueChange: handleDocumentTypeChange,
+          placeholder: "Semua jenis dokumen",
+          ariaLabel: "Jenis dokumen",
+          options: [
+            { value: "all", label: "Semua jenis dokumen" },
+            ...documentTypes.map((documentType) => ({
+              value: documentType.id,
+              label: documentType.name,
+            })),
+          ],
+        }}
+        secondaryFilter={{
+          value: archiveCategory || "all",
+          onValueChange: handleArchiveCategoryChange,
+          placeholder: "Semua kategori arsip",
+          ariaLabel: "Kategori arsip",
+          options: [
+            { value: "all", label: "Semua kategori arsip" },
+            ...ARCHIVE_CATEGORY_OPTIONS,
+          ],
+        }}
+        onApply={handleApplyFilters}
+        onReset={handleResetFilters}
+      />
+
       {groupedDocuments.length === 0 ? (
         <Card>
           <CardContent className="flex min-h-[200px] items-center justify-center text-center">
             <div className="space-y-2">
               <FileText className="mx-auto size-12 text-muted-foreground/50" />
-              <p className="text-sm font-medium text-muted-foreground">Belum ada jenis dokumen yang tersedia.</p>
-              {canUpload && (
+              <p className="text-sm font-medium text-muted-foreground">
+                {isFilterActive ? "Tidak ada dokumen yang sesuai filter." : "Belum ada jenis dokumen yang tersedia."}
+              </p>
+              {canUpload && !isFilterActive ? (
                 <p className="text-xs text-muted-foreground">
                   Jenis dokumen akan tampil di sini setelah admin mengaktifkannya untuk data kepegawaian Anda.
                 </p>
-              )}
+              ) : null}
             </div>
           </CardContent>
         </Card>

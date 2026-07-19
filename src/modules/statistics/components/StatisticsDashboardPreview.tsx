@@ -52,7 +52,7 @@ export function StatisticsDashboardPreview() {
           id="statistics-preview-title"
           className="text-2xl font-bold tracking-tight text-balance"
         >
-          Fondasi chart Tremor untuk statistik SIMDP
+          Fondasi chart Tremor untuk statistik SiCantIK
         </h2>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
           Preview ini memakai data contoh agar wrapper chart, token warna, dan

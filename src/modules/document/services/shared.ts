@@ -2,6 +2,8 @@ export type DocumentListFilter = {
   archiveView?: "active" | "archived";
   status?: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "REPLACED";
   search?: string;
+  documentTypeId?: string;
+  archiveCategory?: "PERSONAL" | "EDUCATION" | "EMPLOYMENT" | "CERTIFICATION" | "LEGAL";
   page?: number;
   limit?: number;
 };

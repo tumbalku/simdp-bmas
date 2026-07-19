@@ -2,7 +2,7 @@ import type { Dictionary } from "../types";
 
 export const en = {
   app: {
-    name: "SIMDP",
+    name: "SiCantIK",
     organization: "RSUD Bahteramas",
   },
   nav: {
@@ -38,7 +38,7 @@ export const en = {
   },
   auth: {
     login: {
-      eyebrow: "Sign in to SIMDP",
+      eyebrow: "Sign in to SiCantIK",
       title: "Sign in to your account",
       description: "Use your registered NIP, NIK, or email to access employee documents.",
       helpText: "Having trouble signing in?",
@@ -46,14 +46,14 @@ export const en = {
       identifierLabel: "NIP / NIK / Email",
       identifierPlaceholder: "Example: 198501012010011001 or name@rsud.go.id",
       passwordLabel: "Password",
-      passwordPlaceholder: "Enter your SIMDP account password",
+      passwordPlaceholder: "Enter your SiCantIK account password",
       processing: "Processing...",
       submit: "Sign in",
     },
     forgotPassword: {
       eyebrow: "Reset access",
       title: "Forgot your password?",
-      description: "Enter your SIMDP account email. If registered, recovery instructions will be sent.",
+      description: "Enter your SiCantIK account email. If registered, recovery instructions will be sent.",
       backToLogin: "Back to login",
       successMessage: "Password reset instructions have been sent to your email. Check your inbox or spam folder.",
       emailLabel: "Registered email",
@@ -64,7 +64,7 @@ export const en = {
     resetPassword: {
       eyebrow: "New password",
       title: "Create a new password",
-      description: "Prepare a new password with at least 8 characters to secure your SIMDP account.",
+      description: "Prepare a new password with at least 8 characters to secure your SiCantIK account.",
       backToLogin: "Back to login",
       tokenLabel: "Reset token",
       tokenPlaceholder: "Token from the password reset email link",
