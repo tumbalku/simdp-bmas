@@ -21,6 +21,7 @@
 
 ## In Progress
 
+- [ ] [#188](https://github.com/tumbalku/simdp-bmas/issues/188) Generic critical action verification dialog
 - [ ] [#186](https://github.com/tumbalku/simdp-bmas/issues/186) Export detail profil pegawai ke PDF
 - [ ] [#184](https://github.com/tumbalku/simdp-bmas/issues/184) Address review findings for document upload and notification dispatch
 - [ ] [#180](https://github.com/tumbalku/simdp-bmas/issues/180) Clean up notification dispatch and navbar realtime lifecycle

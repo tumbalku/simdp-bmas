@@ -40,7 +40,26 @@ export async function restoreDocument(documentId: string, session: TokenPayload)
 
   if (!doc) throw new Error("Dokumen tidak ditemukan");
 
-  await repo.restoreDocumentRecord(documentId);
+  if (!doc.deletedAt) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Dokumen ini sudah aktif dan tidak perlu dipulihkan.",
+      400
+    );
+  }
+
+  if (!doc.documentType.allowMultiple) {
+    const activeDocument = await repo.findActiveDocumentRecordByOwnerAndType(doc.ownerId, doc.documentTypeId);
+    if (activeDocument) {
+      throw new AppError(
+        "CONFLICT",
+        `Dokumen tidak bisa dipulihkan karena pegawai ini sudah memiliki dokumen aktif untuk jenis yang sama: "${activeDocument.fileName}". Arsipkan atau hapus permanen dokumen aktif tersebut terlebih dahulu.`,
+        409
+      );
+    }
+  }
+
+  await repo.restoreDocumentRecord(documentId, doc.documentType.allowMultiple);
 
   await logActivity({
     actorId: session.userId,

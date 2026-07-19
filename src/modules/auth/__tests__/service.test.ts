@@ -6,6 +6,7 @@ import {
   logoutUser,
   requestPasswordReset,
   resetPasswordWithToken,
+  verifyCurrentPassword,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 import * as argon2 from "argon2";
@@ -236,6 +237,34 @@ describe("Auth Module Service", () => {
           }),
         })
       );
+    });
+   });
+
+  describe("verifyCurrentPassword", () => {
+    it("should reject verification when the user is not found", async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+
+      const success = await verifyCurrentPassword("missing-user", "password-123");
+
+      expect(success).toBe(false);
+    });
+
+    it("should reject verification when the password is wrong", async () => {
+      const passwordHash = await argon2.hash("correct-password-123");
+      mockPrisma.user.findFirst.mockResolvedValue({ id: "user-1", passwordHash });
+
+      const success = await verifyCurrentPassword("user-1", "wrong-password-123");
+
+      expect(success).toBe(false);
+    });
+
+    it("should accept verification when the password matches", async () => {
+      const passwordHash = await argon2.hash("correct-password-123");
+      mockPrisma.user.findFirst.mockResolvedValue({ id: "user-1", passwordHash });
+
+      const success = await verifyCurrentPassword("user-1", "correct-password-123");
+
+      expect(success).toBe(true);
     });
   });
 });

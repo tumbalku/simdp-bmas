@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Archive, Eye, FileText, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
 import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
@@ -12,17 +13,7 @@ import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -55,6 +46,13 @@ type DocumentRecord = {
   archiveCategory: string;
   ownerName: string;
   ownerEmployeeId: string | null;
+};
+
+type CriticalDocumentAction = "archive" | "permanent-delete" | "restore";
+
+type CriticalActionTarget = {
+  doc: DocumentRecord;
+  action: CriticalDocumentAction;
 };
 
 type PaginationMeta = {
@@ -91,8 +89,9 @@ function formatFileSize(value: number | null) {
 export function MasterDataDocumentsView({ documents, pagination, archiveView }: MasterDataDocumentsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+  const [isCriticalActionDialogOpen, setIsCriticalActionDialogOpen] = useState(false);
+  const [criticalActionTarget, setCriticalActionTarget] = useState<CriticalActionTarget | null>(null);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [statusFilter, setStatusFilter] = useState<string>(
     () => searchParams.get("status") ?? "all",
@@ -104,6 +103,19 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
     searchParams.get("view") === "grid" ? "grid" : "list",
   );
   const isArchiveView = archiveView === "archived";
+  const isActionPending = pendingDocumentId !== null;
+
+  const openCriticalActionDialog = (target: CriticalActionTarget) => {
+    setCriticalActionTarget(target);
+    setIsCriticalActionDialogOpen(true);
+  };
+
+  const handleCriticalActionDialogOpenChange = (open: boolean) => {
+    setIsCriticalActionDialogOpen(open);
+    if (!open) {
+      window.setTimeout(() => setCriticalActionTarget(null), 200);
+    }
+  };
 
   const buildPageUrl = (page: number, limit = rowsPerPage, nextViewMode = viewMode) => {
     const params = new URLSearchParams();
@@ -164,9 +176,9 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
     router.push(`${ROUTES.masterDataDocuments}?${params.toString()}`);
   };
 
-  const handleArchiveAction = (doc: DocumentRecord) => {
+  const handleArchiveAction = async (doc: DocumentRecord) => {
     setPendingDocumentId(doc.id);
-    startTransition(async () => {
+    try {
       const result = isArchiveView
         ? await restoreDocumentAction(doc.id)
         : await softDeleteDocumentAction(doc.id);
@@ -175,33 +187,100 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
         toast.success(
           isArchiveView
             ? `Dokumen "${doc.title}" berhasil dipulihkan.`
-            : `Dokumen "${doc.title}" berhasil diarsipkan.`,
+            : `Dokumen "${doc.title}" berhasil dihapus.`,
         );
         router.refresh();
-        setPendingDocumentId(null);
-        return;
+        return result;
       }
 
       toast.error(result.error.message);
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Aksi dokumen gagal dijalankan.";
+      toast.error(message);
+      return { ok: false as const, error: { message } };
+    } finally {
       setPendingDocumentId(null);
-    });
+    }
   };
 
-  const handlePermanentDeleteAction = (doc: DocumentRecord) => {
+  const handlePermanentDeleteAction = async (doc: DocumentRecord) => {
     setPendingDocumentId(doc.id);
-    startTransition(async () => {
+    try {
       const result = await permanentDeleteDocumentAction(doc.id);
 
       if (result.ok) {
         toast.success(`Dokumen "${doc.title}" berhasil dihapus permanen.`);
         router.refresh();
-        setPendingDocumentId(null);
-        return;
+        return result;
       }
 
       toast.error(result.error.message);
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Aksi hapus permanen gagal dijalankan.";
+      toast.error(message);
+      return { ok: false as const, error: { message } };
+    } finally {
       setPendingDocumentId(null);
-    });
+    }
+  };
+
+  const buildCriticalActionDialogProps = (target: CriticalActionTarget) => {
+    if (target.action === "permanent-delete") {
+      return {
+        title: "Verifikasi hapus permanen dokumen",
+        description: "Tindakan ini membutuhkan verifikasi berlapis sebelum file arsip dihapus permanen.",
+        actionLabel: "Hapus Permanen",
+        tone: "destructive" as const,
+        icon: <Trash2 className="size-4" />,
+        targetLabel: "file arsip",
+        targetValue: target.doc.fileName,
+        confirmationPhrase: target.doc.fileName,
+        impacts: [
+          "Metadata dokumen akan dihapus permanen dari database.",
+          "File fisik di storage ikut dihapus dan tidak bisa dipulihkan dari sistem.",
+          "Notifikasi terkait dokumen ini akan dibersihkan.",
+        ],
+        onConfirm: () => handlePermanentDeleteAction(target.doc),
+      };
+    }
+
+    if (target.action === "restore") {
+      return {
+        title: "Verifikasi pulihkan dokumen",
+        description: "Tindakan ini membutuhkan verifikasi sebelum dokumen arsip dikembalikan ke daftar aktif.",
+        actionLabel: "Pulihkan Dokumen",
+        tone: "success" as const,
+        icon: <RotateCcw className="size-4" />,
+        targetLabel: "file arsip",
+        targetValue: target.doc.fileName,
+        confirmationPhrase: target.doc.fileName,
+        impacts: [
+          "Dokumen akan kembali muncul di daftar aktif.",
+          "Metadata arsip dipulihkan tanpa mengubah file fisik di storage.",
+          "Aktivitas pemulihan akan dicatat di audit log.",
+        ],
+        onConfirm: () => handleArchiveAction(target.doc),
+      };
+    }
+
+    return {
+      title: "Verifikasi hapus dokumen aktif",
+      description: "Tindakan ini membutuhkan verifikasi sebelum dokumen dihapus.",
+      actionLabel: "Hapus",
+      tone: "destructive" as const,
+      icon: <Trash2 className="size-4" />,
+      targetLabel: "dokumen aktif",
+      targetValue: target.doc.fileName,
+      confirmationPhrase: target.doc.fileName,
+      impacts: [
+        "Dokumen akan terhapus.",
+        "Harus menghubungi ADMIN jika tidak sengaja menghapus dokumen.",
+        "Aktivitas penghapusan akan dicatat di audit.",
+      ],
+      onConfirm: () => handleArchiveAction(target.doc),
+    };
   };
 
   const renderDocumentActions = (doc: DocumentRecord) => (
@@ -216,73 +295,38 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
         </Link>
       ) : null}
       {isArchiveView ? (
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button
-                variant="destructive"
-                size="xs"
-                disabled={isPending && pendingDocumentId === doc.id}
-              />
-            }
-          >
-            <Trash2 className="size-3.5" />
-            <span className="hidden md:inline">Hapus permanen</span>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Hapus permanen dokumen?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {`Dokumen "${doc.title}" akan dihapus permanen dari database beserta file fisik storage dan notifikasi terkait. Aksi ini tidak dapat dibatalkan.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Batal</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                onClick={() => handlePermanentDeleteAction(doc)}
-              >
-                Hapus Permanen
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      ) : null}
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={
-            <Button
-              variant={isArchiveView ? "outline" : "destructive"}
-              size="xs"
-              disabled={isPending && pendingDocumentId === doc.id}
-            />
-          }
+        <Button
+          variant="destructive"
+          size="xs"
+          disabled={isActionPending}
+          onClick={() => openCriticalActionDialog({ doc, action: "permanent-delete" })}
         >
-          {isArchiveView ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
-          <span className="hidden md:inline">{isArchiveView ? "Pulihkan" : "Hapus"}</span>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isArchiveView ? "Pulihkan dokumen?" : "Arsipkan dokumen?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {isArchiveView
-                ? `Dokumen "${doc.title}" akan dikembalikan ke daftar aktif.`
-                : `Dokumen "${doc.title}" akan dipindahkan ke arsip. File fisik belum dihapus sampai aksi hapus permanen dijalankan.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              variant={isArchiveView ? "default" : "destructive"}
-              onClick={() => handleArchiveAction(doc)}
-            >
-              {isArchiveView ? "Pulihkan" : "Arsipkan"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <Trash2 className="size-3.5" />
+          <span className="hidden md:inline">Hapus permanen</span>
+        </Button>
+      ) : null}
+      {isArchiveView ? (
+        <Button
+          variant="outline"
+          size="xs"
+          className="border-success/30 text-success hover:bg-success/10 hover:text-success"
+          disabled={isActionPending}
+          onClick={() => openCriticalActionDialog({ doc, action: "restore" })}
+        >
+          <RotateCcw className="size-3.5" />
+          <span className="hidden md:inline">Pulihkan</span>
+        </Button>
+      ) : (
+        <Button
+          variant="destructive"
+          size="xs"
+          disabled={isActionPending}
+          onClick={() => openCriticalActionDialog({ doc, action: "archive" })}
+        >
+          <Trash2 className="size-3.5" />
+          <span className="hidden md:inline">Hapus</span>
+        </Button>
+      )}
     </div>
   );
 
@@ -376,6 +420,10 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
       Menampilkan {documents.length} dari {pagination.total} dokumen {isArchiveView ? "arsip" : "aktif"}.
     </p>
   );
+
+  const criticalActionDialogProps = criticalActionTarget
+    ? buildCriticalActionDialogProps(criticalActionTarget)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -561,6 +609,16 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView }: 
           </div>
         </div>
       )}
+
+      {criticalActionDialogProps ? (
+        <CriticalActionVerificationDialog
+          open={isCriticalActionDialogOpen}
+          onOpenChange={handleCriticalActionDialogOpenChange}
+          isPending={isActionPending}
+          onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
+          {...criticalActionDialogProps}
+        />
+      ) : null}
     </div>
   );
 }

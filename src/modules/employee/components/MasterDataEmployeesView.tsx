@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Archive, Eye, FileDown, Pencil, RotateCcw, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
+import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
@@ -15,17 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -34,6 +24,7 @@ import {
 } from "@/components/ui/pagination";
 import { PAGINATION } from "@/constants";
 import { routeTo } from "@/constants/routes";
+import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { crudEmployeeAction } from "@/modules/employee";
 import {
   EmployeeDirectoryFilter,
@@ -43,6 +34,12 @@ import {
 import { EmployeeCsvImportDialog } from "./EmployeeCsvImportDialog";
 
 type ViewMode = "grid" | "list";
+type CriticalEmployeeAction = "archive" | "restore" | "permanent-delete";
+
+type CriticalEmployeeActionTarget = {
+  action: CriticalEmployeeAction;
+  employee: EmployeeSummary;
+};
 
 type EmployeeSummary = {
   id: string;
@@ -120,8 +117,9 @@ export function MasterDataEmployeesView({
 }: MasterDataEmployeesViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
   const [pendingEmployeeId, setPendingEmployeeId] = useState<string | null>(null);
+  const [isCriticalActionDialogOpen, setIsCriticalActionDialogOpen] = useState(false);
+  const [criticalActionTarget, setCriticalActionTarget] = useState<CriticalEmployeeActionTarget | null>(null);
   const [filters, setFilters] = useState(() =>
     getInitialFilterValues(searchParams),
   );
@@ -234,9 +232,9 @@ export function MasterDataEmployeesView({
     router.push(buildPageUrl(PAGINATION.defaultPage, resetFilters));
   };
 
-  const handleArchiveAction = (employee: EmployeeSummary) => {
+  const handleArchiveAction = async (employee: EmployeeSummary) => {
     setPendingEmployeeId(employee.id);
-    startTransition(async () => {
+    try {
       const result = await crudEmployeeAction(isArchiveView ? "RESTORE" : "DELETE", employee.id);
 
       if (result.ok) {
@@ -246,30 +244,119 @@ export function MasterDataEmployeesView({
             : `Pegawai "${employee.name}" berhasil diarsipkan.`,
         );
         router.refresh();
-        setPendingEmployeeId(null);
-        return;
       }
 
-      toast.error(result.error.message);
+      if (!result.ok) {
+        toast.error(result.error.message);
+      }
+
+      return result;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Aksi pegawai gagal dijalankan.");
+      return false;
+    } finally {
       setPendingEmployeeId(null);
-    });
+    }
   };
 
-  const handlePermanentDeleteAction = (employee: EmployeeSummary) => {
+  const handlePermanentDeleteAction = async (employee: EmployeeSummary) => {
     setPendingEmployeeId(employee.id);
-    startTransition(async () => {
+    try {
       const result = await crudEmployeeAction("PERMANENT_DELETE", employee.id);
 
       if (result.ok) {
         toast.success(`Pegawai "${employee.name}" berhasil dihapus permanen.`);
         router.refresh();
-        setPendingEmployeeId(null);
-        return;
       }
 
-      toast.error(result.error.message);
+      if (!result.ok) {
+        toast.error(result.error.message);
+      }
+
+      return result;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Aksi pegawai gagal dijalankan.");
+      return false;
+    } finally {
       setPendingEmployeeId(null);
-    });
+    }
+  };
+
+  const buildCriticalActionDialogProps = (target: CriticalEmployeeActionTarget) => {
+    const employeeName = target.employee.name;
+    const identifier = target.employee.employeeId || target.employee.nik || target.employee.email || target.employee.id;
+    const confirmationPhrase = `${employeeName} (${identifier})`;
+
+    if (target.action === "restore") {
+      return {
+        title: "Verifikasi pulihkan pegawai",
+        description: "Tindakan ini membutuhkan verifikasi sebelum pegawai arsip dikembalikan ke daftar aktif.",
+        actionLabel: "Pulihkan Pegawai",
+        targetLabel: "pegawai",
+        targetValue: confirmationPhrase,
+        confirmationPhrase,
+        tone: "success" as const,
+        icon: <RotateCcw className="size-4" />,
+        impacts: [
+          "Pegawai akan kembali muncul di daftar aktif.",
+          "Akun terkait akan dipulihkan sesuai data pegawai.",
+          "Aktivitas pemulihan akan dicatat di audit log.",
+        ],
+        onConfirm: () => handleArchiveAction(target.employee),
+      };
+    }
+
+    if (target.action === "permanent-delete") {
+      return {
+        title: "Verifikasi hapus permanen pegawai",
+        description: "Tindakan ini membutuhkan verifikasi sebelum data pegawai dihapus permanen.",
+        actionLabel: "Hapus Permanen",
+        targetLabel: "pegawai",
+        targetValue: confirmationPhrase,
+        confirmationPhrase,
+        tone: "destructive" as const,
+        icon: <Trash2 className="size-4" />,
+        impacts: [
+          "Data pegawai akan dihapus permanen dari database.",
+          "Relasi akun, sesi, riwayat karier, dokumen, verifikasi, dan notifikasi terkait ikut terdampak.",
+          "Aksi ini tidak dapat dibatalkan dan akan dicatat di audit log.",
+        ],
+        onConfirm: () => handlePermanentDeleteAction(target.employee),
+      };
+    }
+
+    return {
+      title: "Verifikasi arsipkan pegawai",
+      description: "Tindakan ini membutuhkan verifikasi sebelum pegawai dipindahkan ke arsip.",
+      actionLabel: "Arsipkan Pegawai",
+      targetLabel: "pegawai",
+      targetValue: confirmationPhrase,
+      confirmationPhrase,
+      tone: "destructive" as const,
+      icon: <Trash2 className="size-4" />,
+      impacts: [
+        "Pegawai akan dipindahkan ke arsip dan tidak tampil di daftar aktif.",
+        "Akun terkait akan dinonaktifkan.",
+        "Aktivitas arsip akan dicatat di audit log.",
+      ],
+      onConfirm: () => handleArchiveAction(target.employee),
+    };
+  };
+
+  const criticalActionDialogProps = criticalActionTarget
+    ? buildCriticalActionDialogProps(criticalActionTarget)
+    : null;
+
+  const openCriticalActionDialog = (target: CriticalEmployeeActionTarget) => {
+    setCriticalActionTarget(target);
+    setIsCriticalActionDialogOpen(true);
+  };
+
+  const handleCriticalActionDialogOpenChange = (open: boolean) => {
+    setIsCriticalActionDialogOpen(open);
+    if (!open) {
+      window.setTimeout(() => setCriticalActionTarget(null), 200);
+    }
   };
 
   const renderEmployeeActions = (emp: EmployeeSummary) => (
@@ -293,75 +380,47 @@ export function MasterDataEmployeesView({
         </>
       ) : null}
       {isArchiveView ? (
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button
-                variant="destructive"
-                size="xs"
-                disabled={isPending && pendingEmployeeId === emp.id}
-              />
-            }
-          >
-            <Trash2 className="size-3.5" />
-            <span className="hidden md:inline">Hapus permanen</span>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Hapus permanen pegawai?</AlertDialogTitle>
-              <AlertDialogDescription>
-                {`Pegawai "${emp.name}" akan dihapus permanen dari database beserta relasi akun, sesi, riwayat karier, dokumen, verifikasi, dan notifikasi. Aksi ini tidak dapat dibatalkan.`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Batal</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                onClick={() => handlePermanentDeleteAction(emp)}
-              >
-                Hapus Permanen
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      ) : null}
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={
-            <Button
-              variant={isArchiveView ? "outline" : "destructive"}
-              size="xs"
-              disabled={isPending && pendingEmployeeId === emp.id}
-            />
-          }
+        <Button
+          variant="destructive"
+          size="xs"
+          disabled={pendingEmployeeId === emp.id}
+          onClick={() => openCriticalActionDialog({ action: "permanent-delete", employee: emp })}
         >
-          {isArchiveView ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
-          <span className="hidden md:inline">{isArchiveView ? "Pulihkan" : "Hapus"}</span>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isArchiveView ? "Pulihkan pegawai?" : "Arsipkan pegawai?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {isArchiveView
-                ? `Pegawai "${emp.name}" akan dikembalikan ke daftar aktif.`
-                : `Pegawai "${emp.name}" akan dipindahkan ke arsip dan akun terkait dinonaktifkan.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              variant={isArchiveView ? "default" : "destructive"}
-              onClick={() => handleArchiveAction(emp)}
-            >
-              {isArchiveView ? "Pulihkan" : "Arsipkan"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <Trash2 className="size-3.5" />
+          <span className="hidden md:inline">Hapus permanen</span>
+        </Button>
+      ) : null}
+      <Button
+        variant={isArchiveView ? "outline" : "destructive"}
+        size="xs"
+        className={isArchiveView ? "border-success/30 text-success hover:bg-success/10 hover:text-success" : undefined}
+        disabled={pendingEmployeeId === emp.id}
+        onClick={() => openCriticalActionDialog({ action: isArchiveView ? "restore" : "archive", employee: emp })}
+      >
+        {isArchiveView ? <RotateCcw className="size-3.5" /> : <Trash2 className="size-3.5" />}
+        <span className="hidden md:inline">{isArchiveView ? "Pulihkan" : "Hapus"}</span>
+      </Button>
     </div>
   );
+
+  const verificationDialog = criticalActionDialogProps ? (
+    <CriticalActionVerificationDialog
+      open={isCriticalActionDialogOpen}
+      onOpenChange={handleCriticalActionDialogOpenChange}
+      title={criticalActionDialogProps.title}
+      description={criticalActionDialogProps.description}
+      actionLabel={criticalActionDialogProps.actionLabel}
+      targetLabel={criticalActionDialogProps.targetLabel}
+      targetValue={criticalActionDialogProps.targetValue}
+      confirmationPhrase={criticalActionDialogProps.confirmationPhrase}
+      impacts={criticalActionDialogProps.impacts}
+      tone={criticalActionDialogProps.tone}
+      icon={criticalActionDialogProps.icon}
+      isPending={pendingEmployeeId === criticalActionTarget?.employee.id}
+      onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
+      onConfirm={criticalActionDialogProps.onConfirm}
+    />
+  ) : null;
 
   const employeeColumns: DataTableColumn<EmployeeSummary>[] = [
     {
@@ -454,6 +513,8 @@ export function MasterDataEmployeesView({
 
   return (
     <div className="space-y-6">
+      {verificationDialog}
+
       <PageHeader
         title="Data Pegawai"
         description="Kelola direktori pegawai, akun, unit kerja, dan ringkasan dokumen."

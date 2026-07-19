@@ -104,3 +104,12 @@ export async function changePassword(
 
   return true;
 }
+
+
+export async function verifyCurrentPassword(userId: string, password: string): Promise<boolean> {
+  const user = await repo.findUserById(userId);
+
+  if (!user) return false;
+
+  return argon2.verify(user.passwordHash, password);
+}

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Clock3, FileText, FileWarning, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Clock3, FileText, FileWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { MetricCard } from "@/components/cards/MetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
+import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -14,6 +15,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { softDeleteDocumentAction } from "@/modules/document";
+import { verifyCurrentPasswordAction } from "@/modules/auth";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 import {
   archiveCategoryIcons,
@@ -30,8 +32,9 @@ type DocumentsPageViewProps = {
 
 export function DocumentsPageView({ documents, documentTypes, canUpload }: DocumentsPageViewProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState<DocumentRecordListItem | null>(null);
 
   const pendingCount = documents.filter((doc) => doc.status === "PENDING").length;
   const approvedCount = documents.filter((doc) => doc.status === "APPROVED").length;
@@ -43,20 +46,39 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
 
   const groupedDocuments = groupDocumentsByAvailableTypes(documents, documentTypes);
 
-  const handleArchive = (document: DocumentRecordListItem) => {
+  const isActionPending = pendingDocumentId !== null;
+
+  const openArchiveDialog = (target: DocumentRecordListItem) => {
+    setArchiveTarget(target);
+    setIsArchiveDialogOpen(true);
+  };
+
+  const handleArchiveDialogOpenChange = (open: boolean) => {
+    setIsArchiveDialogOpen(open);
+    if (!open) {
+      window.setTimeout(() => setArchiveTarget(null), 200);
+    }
+  };
+
+  const handleArchive = async (document: DocumentRecordListItem) => {
     setPendingDocumentId(document.id);
-    startTransition(async () => {
+    try {
       const result = await softDeleteDocumentAction(document.id);
       if (result.ok) {
-        toast.success(`Dokumen "${document.title}" berhasil diarsipkan.`);
+        toast.success(`Dokumen "${document.title}" berhasil dihapus.`);
         router.refresh();
-        setPendingDocumentId(null);
-        return;
+        return result;
       }
 
       toast.error(result.error.message);
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Aksi hapus dokumen gagal dijalankan.";
+      toast.error(message);
+      return { ok: false as const, error: { message } };
+    } finally {
       setPendingDocumentId(null);
-    });
+    }
   };
 
   const documentMetricCards = [
@@ -164,8 +186,8 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
                           <DocumentList
                             documents={group.documents}
                             documentTypes={documentTypes}
-                            pendingDocumentId={isPending ? pendingDocumentId : null}
-                            onArchive={handleArchive}
+                            pendingDocumentId={pendingDocumentId}
+                            onArchive={openArchiveDialog}
                           />
                         </AccordionContent>
                       </AccordionItem>
@@ -204,8 +226,8 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
                           <DocumentList
                             documents={group.documents}
                             documentTypes={documentTypes}
-                            pendingDocumentId={isPending ? pendingDocumentId : null}
-                            onArchive={handleArchive}
+                            pendingDocumentId={pendingDocumentId}
+                            onArchive={openArchiveDialog}
                           />
                         </AccordionContent>
                       </AccordionItem>
@@ -217,6 +239,29 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
           </div>
         </div>
       )}
+
+      {archiveTarget ? (
+        <CriticalActionVerificationDialog
+          open={isArchiveDialogOpen}
+          onOpenChange={handleArchiveDialogOpenChange}
+          title="Verifikasi hapus dokumen"
+          description="Tindakan ini membutuhkan verifikasi sebelum dokumen dihapus."
+          actionLabel="Hapus"
+          targetLabel="dokumen aktif"
+          targetValue={archiveTarget.fileName}
+          confirmationPhrase={archiveTarget.fileName}
+          impacts={[
+            "Dokumen akan terhapus.",
+            "Harus menghubungi ADMIN jika tidak sengaja menghapus dokumen.",
+            "Aktivitas penghapusan akan dicatat di audit.",
+          ]}
+          tone="destructive"
+          icon={<Trash2 className="size-4" />}
+          isPending={isActionPending}
+          onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
+          onConfirm={() => handleArchive(archiveTarget)}
+        />
+      ) : null}
     </div>
   );
 }
