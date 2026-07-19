@@ -21,16 +21,40 @@ export async function softDeleteDocumentRecord(id: string) {
 export async function findDocumentRecordWithDeletedWithOwner(id: string) {
   return prisma.documentRecord.findUnique({
     where: { id },
-    include: { owner: true },
+    include: {
+      owner: true,
+      documentType: {
+        select: {
+          allowMultiple: true,
+        },
+      },
+    },
   });
 }
 
-export async function restoreDocumentRecord(id: string) {
+export async function findActiveDocumentRecordByOwnerAndType(ownerId: string, documentTypeId: string) {
+  return prisma.documentRecord.findFirst({
+    where: {
+      ownerId,
+      documentTypeId,
+      deletedAt: null,
+      isCurrent: true,
+    },
+    select: {
+      id: true,
+      title: true,
+      fileName: true,
+    },
+  });
+}
+
+export async function restoreDocumentRecord(id: string, allowMultipleSnapshot: boolean) {
   return prisma.documentRecord.update({
     where: { id },
     data: {
       deletedAt: null,
       isCurrent: true,
+      allowMultipleSnapshot,
     },
   });
 }

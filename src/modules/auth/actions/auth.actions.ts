@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 import { requireAuth, getSession, clearAuthCookies, setAuthCookies } from "@/lib/auth";
+import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import {
   changePassword,
   getCurrentUserAccount,
@@ -12,6 +13,7 @@ import {
   loginUser,
   requestPasswordReset,
   resetPasswordWithToken,
+  verifyCurrentPassword,
 } from "../service";
 import { cookies, headers } from "next/headers";
 import { findRefreshTokenByIdAndUserId, findUserWithEmployeeById } from "../repositories/common";
@@ -54,6 +56,39 @@ const changePasswordSchema = z
     message: "Password baru harus berbeda dari password saat ini",
     path: ["newPassword"],
   });
+
+const verifyCurrentPasswordSchema = z.object({
+  password: z.string().min(1, "Password wajib diisi"),
+});
+
+const PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS = 10 * 60 * 1000;
+const PASSWORD_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
+
+const passwordVerificationAttempts = new Map<string, { count: number; firstAttemptAt: number }>();
+
+function getPasswordVerificationThrottle(key: string) {
+  const now = Date.now();
+  const current = passwordVerificationAttempts.get(key);
+
+  if (!current || now - current.firstAttemptAt > PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS) {
+    const next = { count: 0, firstAttemptAt: now };
+    passwordVerificationAttempts.set(key, next);
+    return next;
+  }
+
+  return current;
+}
+
+function recordPasswordVerificationFailure(key: string) {
+  const current = getPasswordVerificationThrottle(key);
+  current.count += 1;
+  passwordVerificationAttempts.set(key, current);
+  return current.count;
+}
+
+function clearPasswordVerificationThrottle(key: string) {
+  passwordVerificationAttempts.delete(key);
+}
 
 /* -------------------------------------------------------------------------- */
 /*  loginAction                                                                 */
@@ -245,6 +280,95 @@ export async function changePasswordAction(data: unknown) {
   }
 }
 
+export async function verifyCurrentPasswordAction(data: unknown) {
+  try {
+    const session = await requireAuth();
+    const headersList = await headers();
+    const ipAddress = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const throttleKey = `${session.userId}:${ipAddress}`;
+    const throttle = getPasswordVerificationThrottle(throttleKey);
+    const user = await findUserWithEmployeeById(session.userId);
+    const actorName = user?.employee?.name || user?.email || "User";
+
+    if (throttle.count >= PASSWORD_VERIFICATION_MAX_FAILED_ATTEMPTS) {
+      await logActivity({
+        actorId: session.userId,
+        actorName,
+        actorRole: session.role,
+        eventType: SECURITY_EVENT_TYPE.AUTH_PASSWORD_VERIFICATION_FAILED,
+        resource: `User:${session.userId}`,
+        status: SECURITY_LOG_STATUS.FAILED,
+        metadata: { reason: "RATE_LIMITED", ipAddress },
+      });
+
+      return {
+        ok: false as const,
+        error: {
+          code: "RATE_LIMITED",
+          message: "Terlalu banyak percobaan verifikasi password. Coba lagi beberapa menit lagi.",
+        },
+      };
+    }
+
+    const parsed = verifyCurrentPasswordSchema.safeParse(data);
+
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: parsed.error.issues[0]?.message ?? "Input tidak valid.",
+          details: parsed.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
+        },
+      };
+    }
+
+    const isValid = await verifyCurrentPassword(session.userId, parsed.data.password);
+
+    if (!isValid) {
+      const failedAttemptCount = recordPasswordVerificationFailure(throttleKey);
+
+      await logActivity({
+        actorId: session.userId,
+        actorName,
+        actorRole: session.role,
+        eventType: SECURITY_EVENT_TYPE.AUTH_PASSWORD_VERIFICATION_FAILED,
+        resource: `User:${session.userId}`,
+        status: SECURITY_LOG_STATUS.FAILED,
+        metadata: { reason: "PASSWORD_MISMATCH", failedAttemptCount, ipAddress },
+      });
+
+      return {
+        ok: false as const,
+        error: { code: "UNAUTHENTICATED", message: "Password tidak sesuai." },
+      };
+    }
+
+    clearPasswordVerificationThrottle(throttleKey);
+
+    await logActivity({
+      actorId: session.userId,
+      actorName,
+      actorRole: session.role,
+      eventType: SECURITY_EVENT_TYPE.AUTH_PASSWORD_VERIFICATION_SUCCESS,
+      resource: `User:${session.userId}`,
+      status: SECURITY_LOG_STATUS.SUCCESS,
+      metadata: { ipAddress },
+    });
+
+    return { ok: true as const, data: { verified: true } };
+  } catch (error: any) {
+    console.error("verifyCurrentPasswordAction error:", error);
+    return {
+      ok: false as const,
+      error: {
+        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+      },
+    };
+  }
+}
+
 export async function getCurrentAccountSettingsAction() {
   try {
     const session = await requireAuth();
@@ -396,3 +520,4 @@ export async function getSessionProfileAction() {
     return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan internal" } };
   }
 }
+

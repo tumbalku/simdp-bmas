@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #188: Menerapkan critical action verification yang sama pada aksi arsip, pulihkan, dan hapus permanen pegawai di halaman `/master-data/employees`.
 - Issue #173: Menambahkan fallback delivery notifikasi saat Inngest/Pusher tidak aktif, termasuk local event dispatch best-effort dan polling otomatis navbar ketika Pusher client tidak tersedia.
 - Issue #171: Menyatukan notifikasi upload/ganti dokumen ke event bus realtime sehingga notifikasi verifikasi untuk ADMIN/STAFF dibuat oleh subscriber notification dan langsung masuk jalur dispatch realtime.
 - Issue #164: Membersihkan struktur global dengan memindahkan helper umum dari `src/lib` ke `src/utils`, mengelompokkan reusable components ke `cards`, `navigation`, `providers`, dan `tables`, serta memindahkan helper UI spesifik dokumen ke modul document.
@@ -20,6 +21,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #188: Menambahkan fondasi komponen generic critical action verification di `src/components/verification/`, memakai pola konfirmasi ringkas ala GitHub dengan frasa target, verifikasi password akun, audit verifikasi, dan throttle percobaan gagal untuk aksi krusial non-spesifik delete.
 - Issue #186: Menambahkan export PDF detail profil pegawai berbasis `puppeteer-core` dan `@sparticuz/chromium`, termasuk tombol Download di detail pegawai admin dan `/profile`, dialog pilihan konten, serta template PDF profil + metadata dokumen.
 - Issue #149: Menambahkan Vitest architecture guard untuk mencegah import repository lintas modul, `fetch()` langsung di Client Component, dan legacy hardcoded status pegawai di layer non-label.
 - Issue #141, #142: Menetapkan taxonomy `SecurityLog.eventType` sebagai typed constants TypeScript, lalu memigrasikan `SecurityLog.status` dan `actorRole` ke Prisma enum canonical uppercase dengan legacy mapping untuk `Public`/`System`.
@@ -43,6 +45,8 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Issue #188: Menstabilkan lifecycle modal critical verification agar target aksi tidak di-unmount langsung saat dialog ditutup, mencegah runtime `Node.insertBefore` pada portal dialog.
+- Issue #188: Memperbaiki restore dokumen arsip agar jenis dokumen `allowMultiple=true` dapat dipulihkan walaupun sudah ada dokumen aktif lain untuk pegawai dan jenis yang sama, sambil tetap menjaga blokir konflik untuk `allowMultiple=false`.
 - Issue #184: Memperbaiki temuan review upload/notification terbaru, termasuk mock integration upload, format tanggal filename berbasis UTC, upload storage di luar transaksi DB, fallback dispatch lokal saat Inngest nonaktif, dan error boundary per dokumen pada cron reminder expiry.
 - Menghapus legacy `NotificationJobProvider`/`InngestJobProvider`/`NoopJobProvider` yang tidak lagi dipakai agar event bus menjadi satu jalur resmi untuk job notification/email.
 - Issues #180, #181: Membersihkan lifecycle notification realtime/polling, mengurangi dispatch sinkron pada local subscriber, memindahkan Inngest client ke event layer, memakai constants canonical untuk routing notifikasi, memperkuat guard replace dokumen, dan memperbaiki matching reminder expiry berbasis range tanggal.

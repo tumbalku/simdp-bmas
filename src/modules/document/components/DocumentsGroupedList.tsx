@@ -17,7 +17,6 @@ import {
   User,
 } from "lucide-react";
 
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -257,34 +256,15 @@ export function DocumentList({
                 <span className="hidden md:inline">Detail</span>
               </Link>
               <DocumentReplaceAction document={document} documentTypes={documentTypes} />
-              <AlertDialog>
-                <AlertDialogTrigger
-                  render={
-                    <Button
-                      variant="destructive"
-                      size="xs"
-                      disabled={pendingDocumentId === document.id}
-                    />
-                  }
-                >
-                  <Trash2 className="size-3.5" />
-                  <span className="hidden md:inline">Hapus</span>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Arsipkan dokumen?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {`Dokumen "${document.title}" akan dipindahkan ke arsip. Admin dapat melihat dan mengelolanya dari Master Data Dokumen.`}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction variant="destructive" onClick={() => onArchive(document)}>
-                      Arsipkan
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button
+                variant="destructive"
+                size="xs"
+                disabled={pendingDocumentId === document.id}
+                onClick={() => onArchive(document)}
+              >
+                <Trash2 className="size-3.5" />
+                <span className="hidden md:inline">Hapus</span>
+              </Button>
             </div>
           </div>
         );

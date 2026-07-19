@@ -836,8 +836,16 @@ describe("Document Module Service", () => {
 
   describe("restoreDocument", () => {
     it("should allow ADMIN to restore document", async () => {
-      const doc = { id: "doc-1", owner: { name: "John" } };
+      const doc = {
+        id: "doc-1",
+        ownerId: "emp-1",
+        documentTypeId: "type-1",
+        deletedAt: new Date("2026-07-17T00:00:00.000Z"),
+        owner: { name: "John" },
+        documentType: { allowMultiple: false },
+      };
       mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
+      mockPrisma.documentRecord.findFirst.mockResolvedValue(null);
 
       const session = { userId: "admin-1", role: "ADMIN", employeeId: null };
       const success = await restoreDocument("doc-1", session);
@@ -845,7 +853,57 @@ describe("Document Module Service", () => {
       expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "doc-1" },
-          data: { deletedAt: null, isCurrent: true },
+          data: { deletedAt: null, isCurrent: true, allowMultipleSnapshot: false },
+        })
+      );
+    });
+
+    it("should reject restore for single-document types when an active document already exists", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "archived-doc",
+        ownerId: "emp-1",
+        documentTypeId: "type-1",
+        deletedAt: new Date("2026-07-17T00:00:00.000Z"),
+        owner: { name: "John" },
+        documentType: { allowMultiple: false },
+      });
+      mockPrisma.documentRecord.findFirst.mockResolvedValue({
+        id: "active-doc",
+        title: "KTP aktif",
+        fileName: "KTP-active.pdf",
+      });
+
+      await expect(
+        restoreDocument("archived-doc", { userId: "admin-1", role: "ADMIN", employeeId: null })
+      ).rejects.toThrow("Dokumen tidak bisa dipulihkan");
+
+      expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
+    });
+
+    it("should allow restore for multi-document types even when another active document exists", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({
+        id: "archived-doc",
+        ownerId: "emp-1",
+        documentTypeId: "type-1",
+        deletedAt: new Date("2026-07-17T00:00:00.000Z"),
+        owner: { name: "John" },
+        documentType: { allowMultiple: true },
+      });
+      mockPrisma.documentRecord.update.mockResolvedValue({ id: "archived-doc", deletedAt: null });
+      mockPrisma.securityLog.create.mockResolvedValue({});
+
+      const success = await restoreDocument("archived-doc", {
+        userId: "admin-1",
+        role: "ADMIN",
+        employeeId: null,
+      });
+
+      expect(success).toBe(true);
+      expect(mockPrisma.documentRecord.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "archived-doc" },
+          data: { deletedAt: null, isCurrent: true, allowMultipleSnapshot: true },
         })
       );
     });
