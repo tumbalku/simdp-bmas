@@ -46,9 +46,9 @@ const services = [
 ];
 
 const highlights = [
-  { value: "1", label: "pusat data pegawai", icon: FileCheck2 },
-  { value: "3", label: "role akses terarah", icon: ShieldCheck },
-  { value: "24/7", label: "riwayat siap ditelusuri", icon: CalendarDays },
+  { value: "1", label: "Data pegawai", icon: FileCheck2 },
+  { value: "3", label: "Role akses", icon: ShieldCheck },
+  { value: "24/7", label: "Riwayat data", icon: CalendarDays },
 ];
 
 const faqItems = [
@@ -117,18 +117,18 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="hero-reveal [animation-delay:420ms] mx-auto mt-10 grid w-full max-w-2xl grid-cols-3 justify-items-center gap-3 rounded-xl border border-border bg-card/90 p-3 shadow-lg backdrop-blur-sm sm:gap-6 sm:p-4 lg:col-span-2 lg:mt-0">
+            <div className="hero-reveal [animation-delay:420ms] mx-auto mt-10 grid w-full max-w-2xl grid-cols-3 justify-items-center gap-1.5 overflow-hidden rounded-xl border border-border bg-card/90 p-2 shadow-lg backdrop-blur-sm sm:gap-6 sm:p-4 lg:col-span-2 lg:mt-0">
               {highlights.map((item) => {
                 const Icon = item.icon;
 
                 return (
-                  <div key={item.label} className="flex items-center justify-center gap-2 sm:gap-3">
-                    <div className="hidden rounded-full bg-accent p-2 text-accent-foreground sm:block">
-                      <Icon className="size-4" aria-hidden="true" />
+                  <div key={item.label} className="flex min-w-0 flex-col items-center justify-center gap-1 text-center sm:flex-row sm:gap-3 sm:text-left">
+                    <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent p-1.5 text-accent-foreground sm:size-8 sm:p-2">
+                      <Icon className="size-3.5 sm:size-4" aria-hidden="true" />
                     </div>
-                    <div>
-                      <p className="text-lg font-bold tracking-tight sm:text-2xl">{item.value}</p>
-                      <p className="text-[10px] leading-4 text-muted-foreground sm:text-xs">{item.label}</p>
+                    <div className="min-w-0">
+                      <p className="text-base font-bold tracking-tight sm:text-2xl">{item.value}</p>
+                      <p className="whitespace-nowrap text-[9px] leading-4 text-muted-foreground sm:text-xs">{item.label}</p>
                     </div>
                   </div>
                 );
