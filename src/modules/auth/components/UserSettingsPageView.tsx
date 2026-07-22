@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ROLE_LABELS, type UserRole } from "@/constants";
 import { ChangePasswordDialog } from "@/modules/auth/components/ChangePasswordDialog";
 import { SessionManagementPanel, type SessionListItem } from "@/modules/auth/components/SessionManagementPanel";
+import { TwoFactorPanel } from "@/modules/auth/components/TwoFactorPanel";
 
 type UserSettingsAccount = {
   email: string;
@@ -15,6 +16,7 @@ type UserSettingsAccount = {
   employeeName: string | null;
   employeeId: string | null;
   nik: string | null;
+  twoFactorEnabled: boolean;
 };
 
 type UserSettingsPageViewProps = {
@@ -115,6 +117,8 @@ export function UserSettingsPageView({ account, sessions }: UserSettingsPageView
           </CardContent>
         </Card>
       </div>
+
+      <TwoFactorPanel enabled={account.twoFactorEnabled} />
 
       <Card className="border-muted-foreground/10 shadow-sm">
         <CardHeader>

@@ -191,6 +191,9 @@ export function findCurrentUserAccount(userId: string) {
       role: true,
       isActive: true,
       lastLoginAt: true,
+      twoFactor: {
+        select: { enabled: true },
+      },
       employee: {
         select: {
           name: true,
@@ -199,5 +202,48 @@ export function findCurrentUserAccount(userId: string) {
         },
       },
     },
+  });
+}
+
+export function findUserTwoFactor(userId: string) {
+  return prisma.userTwoFactor.findUnique({ where: { userId } });
+}
+
+export function upsertUserTwoFactor(input: {
+  userId: string;
+  secretEncrypted: string;
+  recoveryCodeHashes: string[];
+  enabled: boolean;
+}) {
+  return prisma.userTwoFactor.upsert({
+    where: { userId: input.userId },
+    create: {
+      id: crypto.randomUUID(),
+      userId: input.userId,
+      secretEncrypted: input.secretEncrypted,
+      recoveryCodeHashes: input.recoveryCodeHashes,
+      enabled: input.enabled,
+    },
+    update: {
+      secretEncrypted: input.secretEncrypted,
+      recoveryCodeHashes: input.recoveryCodeHashes,
+      enabled: input.enabled,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export function updateUserTwoFactor(userId: string, input: {
+  recoveryCodeHashes?: string[];
+  enabled?: boolean;
+  emailOtpHash?: string | null;
+  emailOtpExpiresAt?: Date | null;
+  emailOtpSentAt?: Date | null;
+  emailOtpAttempts?: number;
+  emailOtpLockedUntil?: Date | null;
+}) {
+  return prisma.userTwoFactor.update({
+    where: { userId },
+    data: { ...input, updatedAt: new Date() },
   });
 }

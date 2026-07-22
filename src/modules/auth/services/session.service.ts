@@ -20,7 +20,8 @@ export async function loginUser(
   identifier: string,
   password: string,
   ipAddress?: string | null,
-  userAgent?: string | null
+  userAgent?: string | null,
+  options?: { createSession?: boolean },
 ): Promise<LoginResult | null> {
   const normalizedIpAddress = normalizeLoginIpAddress(ipAddress);
   const isNumeric = (str: string) => /^\d+$/.test(str);
@@ -83,6 +84,12 @@ export async function loginUser(
   }
 
   const employeeId = user.employee?.id || null;
+  if (options?.createSession === false) {
+    return {
+      user: { id: user.id, email: user.email, role: user.role, employeeId },
+      refreshTokenPlain: "",
+    };
+  }
   const activeTokens = await repo.findActiveRefreshTokensByUserId(user.id);
 
   if (activeTokens.length > 0) {
@@ -133,6 +140,49 @@ export async function loginUser(
     },
     refreshTokenPlain,
   };
+}
+
+export async function createSessionForAuthenticatedUser(
+  user: LoginResult["user"],
+  ipAddress?: string | null,
+  userAgent?: string | null,
+): Promise<LoginResult> {
+  const activeTokens = await repo.findActiveRefreshTokensByUserId(user.id);
+  if (activeTokens.length > 0) {
+    await repo.revokeActiveRefreshTokensByUserId(user.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.email,
+      actorRole: user.role,
+      eventType: SECURITY_EVENT_TYPE.AUTH_FORCE_LOGOUT_OTHERS,
+      resource: `User:${user.id}`,
+      ipAddress: normalizeLoginIpAddress(ipAddress),
+      status: SECURITY_LOG_STATUS.SUCCESS,
+      metadata: { revokedCount: activeTokens.length },
+    });
+  }
+
+  const refreshTokenPlain = generateRefreshToken();
+  await repo.createRefreshToken({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    token: hashRefreshToken(refreshTokenPlain),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    userAgent,
+    ipAddress: normalizeLoginIpAddress(ipAddress),
+  });
+  await repo.updateUserLastLoginAt(user.id);
+  await logActivity({
+    actorId: user.id,
+    actorName: user.email,
+    actorRole: user.role,
+    eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
+    resource: `User:${user.id}`,
+    ipAddress: normalizeLoginIpAddress(ipAddress),
+    status: SECURITY_LOG_STATUS.SUCCESS,
+  });
+
+  return { user, refreshTokenPlain };
 }
 
 export async function rotateSession(

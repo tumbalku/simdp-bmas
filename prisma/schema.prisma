@@ -103,6 +103,7 @@ model User {
 
   employee            Employee?
   refreshTokens       RefreshToken[]
+  twoFactor           UserTwoFactor?
   passwordResetTokens PasswordResetToken[]
   notifications       Notification[]
 
@@ -130,6 +131,23 @@ model User {
   revokedDocumentVerifications DocumentVerification[]  @relation("DocumentVerificationRevokedBy")
   securityLogs                 SecurityLog[]           @relation("SecurityLogActor")
   updatedSystemSettings        SystemSetting[]         @relation("SystemSettingUpdatedBy")
+}
+
+model UserTwoFactor {
+  id                   String   @id
+  userId               String   @unique
+  secretEncrypted      String
+  recoveryCodeHashes   Json
+  enabled              Boolean  @default(false)
+  emailOtpHash         String?
+  emailOtpExpiresAt    DateTime?
+  emailOtpSentAt       DateTime?
+  emailOtpAttempts     Int      @default(0)
+  emailOtpLockedUntil  DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {

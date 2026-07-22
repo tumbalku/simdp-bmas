@@ -2,8 +2,16 @@
 "use server";
 
 import { z } from "zod";
-import { requireAuth, getSession, clearAuthCookies, setAuthCookies } from "@/lib/auth";
-import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import {
+  requireAuth,
+  getSession,
+  clearAuthCookies,
+  setAuthCookies,
+  setTwoFactorChallengeCookie,
+  getTwoFactorChallengeUserId,
+  clearTwoFactorChallengeCookie,
+} from "@/lib/auth";
+import { logActivity, SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import {
   changePassword,
   getActiveSessions,
@@ -14,10 +22,19 @@ import {
   revokeAllSessions,
   logoutUser,
   loginUser,
+  createSessionForAuthenticatedUser,
   requestPasswordReset,
   resetPasswordWithToken,
   verifyCurrentPassword,
 } from "../service";
+import {
+  beginTwoFactorSetup,
+  confirmTwoFactorSetup,
+  disableTwoFactor,
+  isTwoFactorEnabled,
+  sendTwoFactorEmailCode,
+  verifyTwoFactorToken,
+} from "../services/two-factor.service";
 import { cookies, headers } from "next/headers";
 import { findRefreshTokenByIdAndUserId, findUserWithEmployeeById } from "../repositories/common";
 
@@ -68,10 +85,30 @@ const revokeSessionSchema = z.object({
   tokenId: z.string().min(1, "ID sesi wajib diisi"),
 });
 
+const twoFactorTokenSchema = z.object({ token: z.string().regex(/^\s*[A-Za-z0-9 -]{6,20}\s*$/, "Kode 2FA tidak valid") });
+
 const PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS = 10 * 60 * 1000;
 const PASSWORD_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
+const TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS = 10 * 60 * 1000;
+const TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
 
 const passwordVerificationAttempts = new Map<string, { count: number; firstAttemptAt: number }>();
+const twoFactorVerificationAttempts = new Map<string, { count: number; firstAttemptAt: number }>();
+
+function isTwoFactorRateLimited(userId: string) {
+  const current = twoFactorVerificationAttempts.get(userId);
+  if (!current || Date.now() - current.firstAttemptAt > TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS) return false;
+  return current.count >= TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS;
+}
+
+function recordTwoFactorFailure(userId: string) {
+  const current = twoFactorVerificationAttempts.get(userId);
+  const next = !current || Date.now() - current.firstAttemptAt > TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS
+    ? { count: 1, firstAttemptAt: Date.now() }
+    : { ...current, count: current.count + 1 };
+  twoFactorVerificationAttempts.set(userId, next);
+  return next.count;
+}
 
 function getPasswordVerificationThrottle(key: string) {
   const now = Date.now();
@@ -132,7 +169,7 @@ export async function loginAction(data: unknown) {
       };
     }
 
-    const result = await loginUser(identifier, password, ipAddress, userAgent);
+    const result = await loginUser(identifier, password, ipAddress, userAgent, { createSession: false });
 
     if (!result) {
       return {
@@ -144,12 +181,13 @@ export async function loginAction(data: unknown) {
       };
     }
 
-    await setAuthCookies(
-      result.user.id,
-      result.user.role,
-      result.user.employeeId,
-      result.refreshTokenPlain
-    );
+    if (await isTwoFactorEnabled(result.user.id)) {
+      await setTwoFactorChallengeCookie(result.user.id);
+      return { ok: true as const, data: { requiresTwoFactor: true } };
+    }
+
+    const session = await createSessionForAuthenticatedUser(result.user, ipAddress, userAgent);
+    await setAuthCookies(session.user.id, session.user.role, session.user.employeeId, session.refreshTokenPlain);
 
     return { ok: true as const, data: { user: result.user } };
   } catch (error: any) {
@@ -158,6 +196,109 @@ export async function loginAction(data: unknown) {
       ok: false as const,
       error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan. Coba beberapa saat lagi." },
     };
+  }
+}
+
+export async function verifyTwoFactorLoginAction(data: unknown) {
+  const parsed = twoFactorTokenSchema.safeParse(data);
+  if (!parsed.success) return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Kode 2FA tidak valid." } };
+
+  try {
+    const userId = await getTwoFactorChallengeUserId();
+    if (!userId) {
+      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
+    }
+    if (isTwoFactorRateLimited(userId)) return { ok: false as const, error: { code: "RATE_LIMITED", message: "Terlalu banyak percobaan 2FA. Coba lagi 10 menit kemudian." } };
+    if (!(await verifyTwoFactorToken(userId, parsed.data.token))) {
+      const count = recordTwoFactorFailure(userId);
+      await logActivity({ actorId: userId, actorName: "User", actorRole: SECURITY_ACTOR_ROLE.PUBLIC, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_CHALLENGE_FAILED, resource: `User:${userId}`, status: SECURITY_LOG_STATUS.FAILED, metadata: { attempt: count } });
+      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
+    }
+    twoFactorVerificationAttempts.delete(userId);
+
+    const user = await findUserWithEmployeeById(userId);
+    if (!user || !user.isActive || user.deletedAt) {
+      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Akun tidak tersedia." } };
+    }
+
+    const session = await createSessionForAuthenticatedUser(
+      { id: user.id, email: user.email, role: user.role, employeeId: user.employee?.id ?? null },
+      (await headers()).get("x-forwarded-for"),
+      (await headers()).get("user-agent"),
+    );
+    await setAuthCookies(session.user.id, session.user.role, session.user.employeeId, session.refreshTokenPlain);
+    await clearTwoFactorChallengeCookie();
+    await logActivity({ actorId: user.id, actorName: user.employee?.name || user.email, actorRole: user.role, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_SUCCESS, resource: `User:${user.id}`, status: SECURITY_LOG_STATUS.SUCCESS });
+    return { ok: true as const, data: { user: session.user } };
+  } catch (error: any) {
+    console.error("verifyTwoFactorLoginAction error:", error);
+    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan. Coba lagi." } };
+  }
+}
+
+export async function sendTwoFactorEmailCodeAction() {
+  try {
+    const userId = await getTwoFactorChallengeUserId();
+    if (!userId) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Sesi verifikasi 2FA sudah kedaluwarsa." } };
+    const user = await findUserWithEmployeeById(userId);
+    if (!user) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Akun tidak tersedia." } };
+
+    const result = await sendTwoFactorEmailCode(userId, user.email);
+    if (!result.sent) {
+      const message = result.reason === "COOLDOWN"
+        ? `Tunggu ${result.retryAfterSeconds} detik sebelum meminta kode baru.`
+        : result.reason === "EMAIL_NOT_CONFIGURED"
+          ? "Pengiriman email belum dikonfigurasi. Hubungi administrator."
+          : "2FA belum aktif pada akun ini.";
+      return { ok: false as const, error: { code: result.reason, message } };
+    }
+
+    await logActivity({ actorId: userId, actorName: user.employee?.name || user.email, actorRole: SECURITY_ACTOR_ROLE.PUBLIC, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_EMAIL_SENT, resource: `User:${userId}`, status: SECURITY_LOG_STATUS.SUCCESS, metadata: { expiresInSeconds: result.expiresInSeconds } });
+    return { ok: true as const, data: { maskedEmail: result.maskedEmail, expiresInSeconds: result.expiresInSeconds } };
+  } catch (error: any) {
+    console.error("sendTwoFactorEmailCodeAction error:", error);
+    return { ok: false as const, error: { code: "EMAIL_SEND_FAILED", message: "Kode email gagal dikirim. Coba lagi nanti." } };
+  }
+}
+
+export async function beginTwoFactorSetupAction() {
+  try {
+    const session = await requireAuth();
+    const account = await getCurrentUserAccount(session.userId);
+    if (!account) return { ok: false as const, error: { code: "NOT_FOUND", message: "Akun tidak ditemukan." } };
+    const setup = await beginTwoFactorSetup(session.userId, account.email);
+    if (!setup) return { ok: false as const, error: { code: "CONFLICT", message: "2FA sudah aktif pada akun ini." } };
+    return { ok: true as const, data: setup };
+  } catch {
+    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Setup 2FA gagal." } };
+  }
+}
+
+export async function confirmTwoFactorSetupAction(data: unknown) {
+  const parsed = twoFactorTokenSchema.safeParse(data);
+  if (!parsed.success) return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Kode 2FA tidak valid." } };
+  try {
+    const session = await requireAuth();
+    const account = await getCurrentUserAccount(session.userId);
+    const result = await confirmTwoFactorSetup(session.userId, parsed.data.token, account?.employeeName || account?.email || "User", session.role);
+    if (!result) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah." } };
+    return { ok: true as const, data: result };
+  } catch {
+    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Konfirmasi 2FA gagal." } };
+  }
+}
+
+export async function disableTwoFactorAction(data: unknown) {
+  const parsed = twoFactorTokenSchema.safeParse(data);
+  if (!parsed.success) return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Kode 2FA tidak valid." } };
+  try {
+    const session = await requireAuth();
+    if (!(await verifyTwoFactorToken(session.userId, parsed.data.token))) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah." } };
+    const account = await getCurrentUserAccount(session.userId);
+    await disableTwoFactor(session.userId, account?.employeeName || account?.email || "User", session.role);
+    return { ok: true as const, data: { disabled: true } };
+  } catch {
+    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "2FA gagal dinonaktifkan." } };
   }
 }
 

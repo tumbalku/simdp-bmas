@@ -21,6 +21,12 @@ function isSmtpConfigured() {
   return Boolean(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS && env.EMAIL_FROM);
 }
 
+export function isEmailProviderConfigured() {
+  if (env.EMAIL_PROVIDER === "resend") return isResendConfigured();
+  if (env.EMAIL_PROVIDER === "smtp") return isSmtpConfigured();
+  return false;
+}
+
 export function createEmailProvider(): EmailProvider {
   if (env.EMAIL_PROVIDER === "resend") {
     if (isResendConfigured()) return new ResendEmailProvider();
