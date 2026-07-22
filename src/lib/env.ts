@@ -59,6 +59,10 @@ const envSchema = z
       .min(1, "REFRESH_TOKEN_SECRET wajib diisi"),
     CRON_SECRET: z.string().min(1, "CRON_SECRET wajib diisi"),
 
+    GOOGLE_CLIENT_ID: optionalString,
+    GOOGLE_CLIENT_SECRET: optionalString,
+    GOOGLE_OAUTH_REDIRECT_URI: optionalUrl,
+
     EMAIL_PROVIDER: emailProviderSchema,
     RESEND_API_KEY: optionalString,
     EMAIL_FROM: optionalString,
