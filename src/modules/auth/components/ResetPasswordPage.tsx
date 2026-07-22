@@ -27,18 +27,44 @@ export function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
     const form = e.currentTarget;
-    const token = (form.elements.namedItem("token") as HTMLInputElement).value;
     const newPassword = (form.elements.namedItem("newPassword") as HTMLInputElement).value;
     const confirmPassword = (form.elements.namedItem("confirmPassword") as HTMLInputElement).value;
 
     startTransition(async () => {
-      const result = await resetPasswordAction({ token, newPassword, confirmPassword });
+      const result = await resetPasswordAction({ token: tokenFromUrl, newPassword, confirmPassword });
       if (!result.ok) {
         setError(result.error.message);
         return;
       }
       router.push("/login?reset=success");
     });
+  }
+
+  if (!tokenFromUrl) {
+    return (
+      <AuthCardShell
+        eyebrow={resetPasswordCopy.eyebrow}
+        title={resetPasswordCopy.missingTokenTitle}
+        description={resetPasswordCopy.missingTokenDescription}
+        icon={<KeyRound className="size-5" aria-hidden="true" />}
+        footer={
+          <Button
+            render={<Link href="/forgot-password" />}
+            nativeButton={false}
+            variant="link"
+            className="h-auto p-0"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            {resetPasswordCopy.requestNewLink}
+          </Button>
+        }
+      >
+        <Alert variant="destructive" className="py-3">
+          <AlertCircle className="size-4" />
+          <AlertDescription>{resetPasswordCopy.missingTokenAlert}</AlertDescription>
+        </Alert>
+      </AuthCardShell>
+    );
   }
 
   return (
@@ -66,23 +92,6 @@ export function ResetPasswordPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : null}
-
-        <div className="space-y-2">
-          <Label htmlFor="token">{resetPasswordCopy.tokenLabel}</Label>
-          <Input
-            id="token"
-            name="token"
-            type="text"
-            placeholder={resetPasswordCopy.tokenPlaceholder}
-            defaultValue={tokenFromUrl}
-            className="h-10"
-            disabled={isPending}
-            required
-          />
-          <p className="text-xs text-muted-foreground">
-            {resetPasswordCopy.tokenHelp}
-          </p>
-        </div>
 
         <div className="space-y-2">
           <Label htmlFor="newPassword">{resetPasswordCopy.newPasswordLabel}</Label>

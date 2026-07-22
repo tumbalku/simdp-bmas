@@ -10,6 +10,24 @@ const optionalUrl = z.preprocess(
   z.string().url().optional(),
 );
 
+const optionalNumber = z.preprocess((value) => {
+  if (value === "" || value === undefined || value === null) return undefined;
+  if (typeof value === "number") return value;
+  return Number(value);
+}, z.number().int().positive().optional());
+
+const optionalBoolean = z.preprocess((value) => {
+  if (value === "" || value === undefined || value === null) return undefined;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return Boolean(value);
+}, z.boolean().optional());
+
+const emailProviderSchema = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["noop", "resend", "smtp"]).default("noop"),
+);
+
 const envSchema = z
   .object({
     NODE_ENV: z
@@ -41,8 +59,14 @@ const envSchema = z
       .min(1, "REFRESH_TOKEN_SECRET wajib diisi"),
     CRON_SECRET: z.string().min(1, "CRON_SECRET wajib diisi"),
 
+    EMAIL_PROVIDER: emailProviderSchema,
     RESEND_API_KEY: optionalString,
     EMAIL_FROM: optionalString,
+    SMTP_HOST: optionalString,
+    SMTP_PORT: optionalNumber,
+    SMTP_SECURE: optionalBoolean,
+    SMTP_USER: optionalString,
+    SMTP_PASS: optionalString,
     PUSHER_APP_ID: optionalString,
     PUSHER_KEY: optionalString,
     PUSHER_SECRET: optionalString,

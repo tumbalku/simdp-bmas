@@ -180,17 +180,7 @@ export async function forgotPasswordAction(data: unknown) {
 
   try {
     const { email } = parsed.data;
-    const success = await requestPasswordReset(email);
-
-    if (!success) {
-      return {
-        ok: false as const,
-        error: {
-          code: "REQUEST_ERROR",
-          message: "Email tidak ditemukan atau tidak aktif.",
-        },
-      };
-    }
+    await requestPasswordReset(email);
 
     return { ok: true as const, data: { success: true } };
   } catch (error: any) {

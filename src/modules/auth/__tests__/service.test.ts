@@ -1,4 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+const notificationMocks = vi.hoisted(() => ({
+  sendEmail: vi.fn(),
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  emailProvider: {
+    sendEmail: notificationMocks.sendEmail,
+  },
+}));
+
 import {
   changePassword,
   getActiveSessions,
@@ -209,20 +219,84 @@ describe("Auth Module Service", () => {
   });
 
   describe("requestPasswordReset", () => {
-    it("should return null for non-existent email", async () => {
+    it("should return false, hash audit resource, and not send email for non-existent email", async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
       const result = await requestPasswordReset("wrong@example.com");
-      expect(result).toBeNull();
+      expect(result).toBe(false);
+      expect(notificationMocks.sendEmail).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+            resource: expect.stringMatching(/^EmailHash:/),
+            status: "FAILED",
+          }),
+        })
+      );
+      expect(mockPrisma.securityLog.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            resource: expect.stringContaining("wrong@example.com"),
+          }),
+        })
+      );
     });
 
-    it("should create reset token for valid email and return raw token", async () => {
+    it("should create reset token for valid email and send reset link to matched user email", async () => {
       const user = { id: "user-1", email: "test@example.com", role: "EMPLOYEE", employee: { name: "Emp" } };
       mockPrisma.user.findFirst.mockResolvedValue(user);
+      mockPrisma.passwordResetToken.create.mockResolvedValue({ id: "reset-token-1" });
+      notificationMocks.sendEmail.mockResolvedValue(undefined);
 
-      const token = await requestPasswordReset("test@example.com");
-      expect(token).not.toBeNull();
+      const result = await requestPasswordReset("test@example.com");
+      const sendEmailInput = notificationMocks.sendEmail.mock.calls[0]?.[0];
+      const token = sendEmailInput?.text.match(/token=(prt_[a-f0-9]+)/)?.[1];
+
+      expect(result).toBe(true);
+      expect(token).toBeDefined();
       expect(token?.startsWith("prt_")).toBe(true);
-      expect(mockPrisma.passwordResetToken.create).toHaveBeenCalled();
+      expect(mockPrisma.passwordResetToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: "user-1",
+          token: expect.not.stringContaining(token!),
+          expiresAt: expect.any(Date),
+        }),
+      });
+      expect(notificationMocks.sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "test@example.com",
+          subject: "Reset password akun SIMDP",
+          html: expect.stringContaining(`/reset-password?token=${token}`),
+          text: expect.stringContaining(`/reset-password?token=${token}`),
+        })
+      );
+    });
+
+    it("should invalidate reset token and audit failure when email delivery fails", async () => {
+      const user = { id: "user-1", email: "test@example.com", role: "EMPLOYEE", employee: { name: "Emp" } };
+      mockPrisma.user.findFirst.mockResolvedValue(user);
+      mockPrisma.passwordResetToken.create.mockResolvedValue({ id: "reset-token-1" });
+      mockPrisma.passwordResetToken.update.mockResolvedValue({ id: "reset-token-1" });
+      notificationMocks.sendEmail.mockRejectedValue(new Error("provider down"));
+
+      const result = await requestPasswordReset("test@example.com");
+
+      expect(result).toBe(false);
+      expect(mockPrisma.passwordResetToken.update).toHaveBeenCalledWith({
+        where: { id: expect.any(String) },
+        data: { usedAt: expect.any(Date) },
+      });
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorId: "user-1",
+            eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+            resource: "User:user-1",
+            status: "FAILED",
+            metadata: { reason: "EMAIL_DELIVERY_FAILED" },
+          }),
+        })
+      );
     });
   });
 

@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #198/#199: Membuat flow forgot password mengirim email reset password nyata lewat provider email terpilih ke email User yang cocok, serta membuat response UI forgot password tetap generik untuk mencegah email enumeration.
 - Memperbarui workflow branch utama: feature branch normal dibuat dari `development`, PR normal menargetkan `development`, dan `main` hanya untuk hasil final yang disetujui user.
 - Issue #196: Memperluas rate limiting API v1 ke endpoint auth publik/session, upload/download dokumen, export, statistik, cron internal, dan realtime Pusher memakai helper `enforceApiRateLimit()`.
 - Issue #64: Menambahkan rate limiting login gagal 5 kali per 15 menit per IP pada server action dan REST login, serta mengganti audit cabut sesi menjadi event `AUTH_SESSION_REVOKED`.
@@ -25,6 +26,8 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #199: Menambahkan opsi `EMAIL_PROVIDER` (`noop`, `resend`, `smtp`) dan provider SMTP berbasis Nodemailer tanpa menghapus Resend.
+- Issue #198/#199: Menambahkan unit test pengiriman email reset password, binding token ke `userId`, invalidasi token saat delivery gagal, dan response server action forgot password yang tidak membocorkan status email.
 - Issue #196: Menambahkan event audit `API_RATE_LIMIT_CHECK` untuk request yang terkena limit, kategori limit API per endpoint, dan unit test helper rate limit.
 - Issue #64: Menambahkan panel manajemen sesi di `/settings` untuk melihat sesi refresh aktif, mencabut sesi tertentu, dan mencabut semua sesi akun dengan audit log.
 - Issue #188: Menambahkan fondasi komponen generic critical action verification di `src/components/verification/`, memakai pola konfirmasi ringkas ala GitHub dengan frasa target, verifikasi password akun, audit verifikasi, dan throttle percobaan gagal untuk aksi krusial non-spesifik delete.
