@@ -13,16 +13,12 @@ export class ResendEmailProvider implements EmailProvider {
   }
 
   async sendEmail(input: { to: string; subject: string; html: string; text?: string }): Promise<void> {
-    try {
-      await this.resend.emails.send({
-        from: this.from,
-        to: input.to,
-        subject: input.subject,
-        html: input.html,
-        text: input.text,
-      });
-    } catch (error) {
-      console.error("[ResendEmailProvider] sendEmail error:", error);
-    }
+    await this.resend.emails.send({
+      from: this.from,
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+      text: input.text,
+    });
   }
 }

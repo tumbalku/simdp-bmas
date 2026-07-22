@@ -142,7 +142,7 @@ Flow:
 2. Server validasi email.
 3. Jika email ada, buat `PasswordResetToken` satu-pakai.
 4. Token expired 1 jam.
-5. Kirim link reset via email.
+5. Kirim link reset via email ke `User.email` yang cocok. Link memakai `NEXT_PUBLIC_APP_URL` dan query `?token=<raw-token>`, sedangkan token yang tersimpan di database tetap hash.
 6. Response harus generik agar tidak membocorkan apakah email terdaftar.
 
 ## 9. Reset Password

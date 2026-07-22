@@ -64,9 +64,10 @@ export type Dictionary = {
       title: string;
       description: string;
       backToLogin: string;
-      tokenLabel: string;
-      tokenPlaceholder: string;
-      tokenHelp: string;
+      missingTokenTitle: string;
+      missingTokenDescription: string;
+      missingTokenAlert: string;
+      requestNewLink: string;
       newPasswordLabel: string;
       newPasswordPlaceholder: string;
       confirmPasswordLabel: string;

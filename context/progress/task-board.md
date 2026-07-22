@@ -20,6 +20,8 @@
 
 ## In Progress
 
+- [ ] [#199](https://github.com/tumbalku/simdp-bmas/issues/199) Add selectable SMTP email provider
+- [ ] [#198](https://github.com/tumbalku/simdp-bmas/issues/198) Implement real forgot password email delivery
 - [ ] [#196](https://github.com/tumbalku/simdp-bmas/issues/196) Apply rate limiting across API v1 endpoints
 - [ ] [#64](https://github.com/tumbalku/simdp-bmas/issues/64) SIMDP-ROADMAP-005: Fase 5 - Security & Hardening (slice: rate limiting dan session management)
 - [ ] [#188](https://github.com/tumbalku/simdp-bmas/issues/188) Generic critical action verification dialog

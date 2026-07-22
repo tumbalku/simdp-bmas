@@ -257,7 +257,9 @@ Membuat password reset token satu-kali pakai jika email terdaftar, dan mengirimk
 - Database:
   - Membuat record baru di `PasswordResetToken` (expires dalam 1 jam, `usedAt = null`).
 - Notification:
-  - Memicu pengiriman email berisi link token reset password ke email tujuan.
+  - Memicu pengiriman email berisi link reset password ke `User.email` yang cocok melalui provider email terpilih (`noop`, `resend`, atau `smtp`).
+  - Link reset memakai `${NEXT_PUBLIC_APP_URL}/reset-password?token=<raw-token>`.
+  - Token yang tersimpan di database tetap hash; raw token hanya dikirim melalui email reset.
 - Audit:
   - Mencatat event `AUTH_PASSWORD_RESET_REQUESTED` (actorId = user ID yang ditemukan, atau null jika email tidak terdaftar).
 

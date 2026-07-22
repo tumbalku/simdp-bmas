@@ -130,6 +130,13 @@ export function createPasswordResetToken(input: {
   });
 }
 
+export function markPasswordResetTokenUsed(id: string) {
+  return prisma.passwordResetToken.update({
+    where: { id },
+    data: { usedAt: new Date() },
+  });
+}
+
 export function findUnusedPasswordResetTokenWithUser(token: string) {
   return prisma.passwordResetToken.findFirst({
     where: { token, usedAt: null },

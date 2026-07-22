@@ -44,9 +44,26 @@ Catatan rate limiting:
 
 | Variable | Required | Keterangan |
 |---|:---:|---|
+| `EMAIL_PROVIDER` | Optional | `noop`, `resend`, atau `smtp`. Default `noop`. |
 | `RESEND_API_KEY` | Jika Resend | API key email. |
-| `EMAIL_FROM` | Jika Resend | Email pengirim. Default: `onboarding@resend.dev`. |
+| `EMAIL_FROM` | Jika Resend/SMTP | Email pengirim. Default contoh development: `onboarding@resend.dev`. |
+| `SMTP_HOST` | Jika SMTP | Host SMTP, misalnya `smtp.gmail.com`. |
+| `SMTP_PORT` | Jika SMTP | Port SMTP, misalnya `587`. |
+| `SMTP_SECURE` | Jika SMTP | `true` untuk port 465, `false` untuk port 587/STARTTLS. |
+| `SMTP_USER` | Jika SMTP | Username SMTP. Untuk Gmail biasanya alamat Gmail. |
+| `SMTP_PASS` | Jika SMTP | Password SMTP/App Password. Secret. |
 | `NEXT_PUBLIC_APP_URL` | Yes | URL aplikasi untuk link email. Public, boleh prefix `NEXT_PUBLIC_`. |
+
+Email provider selection:
+- `EMAIL_PROVIDER=noop` tidak mengirim email keluar dan hanya menulis warning development.
+- `EMAIL_PROVIDER=resend` memakai Resend jika `RESEND_API_KEY` dan `EMAIL_FROM` terisi; jika tidak lengkap, fallback aman ke Noop.
+- `EMAIL_PROVIDER=smtp` memakai SMTP jika `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, dan `EMAIL_FROM` terisi; jika tidak lengkap, fallback aman ke Noop.
+- Untuk Gmail SMTP, gunakan Google App Password, bukan password akun biasa.
+
+Forgot password:
+- Link reset password dibentuk dari `NEXT_PUBLIC_APP_URL` + `/reset-password?token=<raw-token>`.
+- Raw token hanya dikirim lewat provider email dan tidak disimpan di database atau audit log.
+- Jika delivery email gagal, token reset yang baru dibuat langsung di-invalidasi dan response publik tetap generik.
 
 ## Realtime / Pusher
 
