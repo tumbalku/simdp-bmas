@@ -293,6 +293,7 @@ describe("Auth Integration API", () => {
 
       const req = new NextRequest("http://localhost/api/v1/auth/reset-password", {
         method: "POST",
+        headers: { "x-forwarded-for": "203.0.113.99" },
         body: JSON.stringify({
           token: "valid-token",
           password: "password123",

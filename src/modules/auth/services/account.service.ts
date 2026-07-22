@@ -16,6 +16,7 @@ export async function getCurrentUserAccount(userId: string) {
     employeeName: user.employee?.name ?? null,
     employeeId: user.employee?.employeeId ?? null,
     nik: user.employee?.nik ?? null,
+    twoFactorEnabled: user.twoFactor?.enabled ?? false,
   };
 }
 

@@ -32,6 +32,11 @@ export const mockPrisma = {
     delete: vi.fn(),
     deleteMany: vi.fn(),
   },
+  userTwoFactor: {
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
+  },
   refreshToken: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
