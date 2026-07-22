@@ -5,6 +5,8 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Memperbarui workflow branch utama: feature branch normal dibuat dari `development`, PR normal menargetkan `development`, dan `main` hanya untuk hasil final yang disetujui user.
+- Issue #64: Menambahkan rate limiting login gagal 5 kali per 15 menit per IP pada server action dan REST login, serta mengganti audit cabut sesi menjadi event `AUTH_SESSION_REVOKED`.
 - Menambahkan filter kategori arsip pada `/verification`, menyamakan filter `/documents` dan `/master-data/documents` dengan pola search + jenis dokumen + kategori arsip, dan mengganti branding aplikasi menjadi `SiCantIK` (`Sistem Pencatatan Informasi Kepegawaian`).
 - Issue #188: Menerapkan critical action verification yang sama pada aksi arsip, pulihkan, dan hapus permanen pegawai di halaman `/master-data/employees`.
 - Issue #173: Menambahkan fallback delivery notifikasi saat Inngest/Pusher tidak aktif, termasuk local event dispatch best-effort dan polling otomatis navbar ketika Pusher client tidak tersedia.
@@ -22,6 +24,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #64: Menambahkan panel manajemen sesi di `/settings` untuk melihat sesi refresh aktif, mencabut sesi tertentu, dan mencabut semua sesi akun dengan audit log.
 - Issue #188: Menambahkan fondasi komponen generic critical action verification di `src/components/verification/`, memakai pola konfirmasi ringkas ala GitHub dengan frasa target, verifikasi password akun, audit verifikasi, dan throttle percobaan gagal untuk aksi krusial non-spesifik delete.
 - Issue #186: Menambahkan export PDF detail profil pegawai berbasis `puppeteer-core` dan `@sparticuz/chromium`, termasuk tombol Download di detail pegawai admin dan `/profile`, dialog pilihan konten, serta template PDF profil + metadata dokumen.
 - Issue #149: Menambahkan Vitest architecture guard untuk mencegah import repository lintas modul, `fetch()` langsung di Client Component, dan legacy hardcoded status pegawai di layer non-label.

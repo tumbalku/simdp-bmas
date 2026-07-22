@@ -13,5 +13,5 @@ export default async function SettingsPage() {
     redirect(ROUTES.login);
   }
 
-  return <UserSettingsPageView account={result.data} />;
+  return <UserSettingsPageView account={result.data.account} sessions={result.data.sessions} />;
 }

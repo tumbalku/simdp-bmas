@@ -2,6 +2,12 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-22] Branch Utama `main` dan `development`
+- Konteks: workflow SIMDP perlu memisahkan branch final dari branch eksperimen/iterasi.
+- Keputusan: `main` menjadi branch final/stable yang tidak berubah kecuali pekerjaan sudah benar-benar final dan user menyetujui release. `development` menjadi branch integrasi aktif untuk eksperimen, iterasi, dan feature branch harian.
+- Alasan: menjaga `main` tetap stabil sambil memberi ruang iterasi yang lebih bebas di `development`.
+- Dampak ke workflow: feature branch normal dibuat dari `development` dan PR normal menargetkan `development`; merge `development` ke `main` hanya dilakukan saat user menyatakan hasilnya final.
+
 ## [2026-07-18] SecurityLog Event Taxonomy dan Actor/Status Enum
 - Konteks: `SecurityLog.status` dan `actorRole` masih string bebas, sedangkan `eventType` punya banyak event append-only dari auth, dokumen, employee, settings, dan cron.
 - Keputusan: `SecurityLog.status` dan `SecurityLog.actorRole` memakai Prisma enum canonical uppercase. `SecurityLog.eventType` tetap string tetapi dikontrol typed constants TypeScript dan dokumentasi taxonomy.

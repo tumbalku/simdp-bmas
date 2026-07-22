@@ -4,7 +4,6 @@
 
 - [ ] [#62](https://github.com/tumbalku/simdp-bmas/issues/62) SIMDP-ROADMAP-003: Fase 3 — Admin & Master Data
 - [ ] [#63](https://github.com/tumbalku/simdp-bmas/issues/63) SIMDP-ROADMAP-004: Fase 4 — Statistik & Dashboard
-- [ ] [#64](https://github.com/tumbalku/simdp-bmas/issues/64) SIMDP-ROADMAP-005: Fase 5 — Security & Hardening
 - [ ] [#65](https://github.com/tumbalku/simdp-bmas/issues/65) SIMDP-ROADMAP-006: Fase 6 — Polish UI/UX
 
 ### UI Implementation Queue
@@ -21,6 +20,7 @@
 
 ## In Progress
 
+- [ ] [#64](https://github.com/tumbalku/simdp-bmas/issues/64) SIMDP-ROADMAP-005: Fase 5 - Security & Hardening (slice: rate limiting dan session management)
 - [ ] [#188](https://github.com/tumbalku/simdp-bmas/issues/188) Generic critical action verification dialog
 - [ ] [#186](https://github.com/tumbalku/simdp-bmas/issues/186) Export detail profil pegawai ke PDF
 - [ ] [#184](https://github.com/tumbalku/simdp-bmas/issues/184) Address review findings for document upload and notification dispatch

@@ -2,7 +2,7 @@
 
 This file is the project-level instruction file for Antigravity and other coding agents working in SIMDP.
 
-SIMDP is a Next.js + TypeScript employee document management system for RSUD Bahteramas. Treat this repository as a company project: small scoped tasks, issue-first workflow, feature branches, verification before PR, and no unreviewed direct changes to `main`.
+SIMDP is a Next.js + TypeScript employee document management system for RSUD Bahteramas. Treat this repository as a company project: small scoped tasks, issue-first workflow, feature branches, verification before PR, and no unreviewed direct changes to protected branches.
 
 ## 1. Operating roles
 
@@ -15,18 +15,26 @@ SIMDP is a Next.js + TypeScript employee document management system for RSUD Bah
 
 Always follow this order unless the user explicitly says otherwise:
 
-1. Start from clean, synced `main`.
+1. Start from clean, synced `development`.
 2. Create or use a GitHub issue for the task.
 3. Create a feature branch for one task only.
 4. Read the required context before editing.
 5. Implement only the requested scope.
 6. Run the relevant verification commands.
 7. Ask for review before commit/PR unless the user has already approved that action.
-8. Open a PR linked to the issue.
+8. Open a PR linked to the issue, targeting `development` unless the user explicitly says the work is final for `main`.
 9. User approves/merges on GitHub.
-10. After merge, sync `main` and clean up the feature branch.
+10. After merge, sync `development` and clean up the feature branch.
+
+Branch policy:
+
+- `main` is the final/stable branch. Do not change `main` unless the work is truly final and explicitly approved for release.
+- `development` is the active integration branch for experiments, iteration, and day-to-day feature work.
+- Feature branches are created from `development` and normally merge back into `development`.
+- When `development` is truly final, the user decides when it is merged into `main`.
 
 Do not push directly to `main`.
+Do not push directly to `development` unless the user explicitly approves it.
 Do not merge PRs automatically.
 Do not approve GitHub PRs on behalf of the user.
 

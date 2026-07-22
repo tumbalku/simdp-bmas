@@ -48,6 +48,20 @@ export function findActiveRefreshTokensByUserId(userId: string) {
   });
 }
 
+export function findActiveRefreshTokenSessionsByUserId(userId: string) {
+  return prisma.refreshToken.findMany({
+    where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      userAgent: true,
+      ipAddress: true,
+      createdAt: true,
+      expiresAt: true,
+    },
+  });
+}
+
 export function revokeActiveRefreshTokensByUserId(userId: string) {
   return prisma.refreshToken.updateMany({
     where: { userId, revokedAt: null },

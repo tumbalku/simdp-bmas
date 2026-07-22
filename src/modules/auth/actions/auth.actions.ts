@@ -6,7 +6,10 @@ import { requireAuth, getSession, clearAuthCookies, setAuthCookies } from "@/lib
 import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import {
   changePassword,
+  getActiveSessions,
   getCurrentUserAccount,
+  isLoginRateLimited,
+  logRateLimitedLoginAttempt,
   revokeSession,
   revokeAllSessions,
   logoutUser,
@@ -61,6 +64,10 @@ const verifyCurrentPasswordSchema = z.object({
   password: z.string().min(1, "Password wajib diisi"),
 });
 
+const revokeSessionSchema = z.object({
+  tokenId: z.string().min(1, "ID sesi wajib diisi"),
+});
+
 const PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS = 10 * 60 * 1000;
 const PASSWORD_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
 
@@ -113,6 +120,18 @@ export async function loginAction(data: unknown) {
     const userAgent = headersList.get("user-agent") || null;
 
     const { identifier, password } = parsed.data;
+    if (await isLoginRateLimited(ipAddress)) {
+      await logRateLimitedLoginAttempt(ipAddress);
+
+      return {
+        ok: false as const,
+        error: {
+          code: "RATE_LIMITED",
+          message: "Terlalu banyak percobaan login gagal. Coba lagi 15 menit kemudian.",
+        },
+      };
+    }
+
     const result = await loginUser(identifier, password, ipAddress, userAgent);
 
     if (!result) {
@@ -381,7 +400,9 @@ export async function getCurrentAccountSettingsAction() {
       };
     }
 
-    return { ok: true as const, data: account };
+    const sessions = await getActiveSessions(session.userId);
+
+    return { ok: true as const, data: { account, sessions } };
   } catch (error: any) {
     console.error("getCurrentAccountSettingsAction error:", error);
     return {
@@ -397,9 +418,20 @@ export async function getCurrentAccountSettingsAction() {
 export async function revokeSessionAction(tokenId: string) {
   try {
     const session = await requireAuth();
+    const parsed = revokeSessionSchema.safeParse({ tokenId });
+
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: parsed.error.issues[0]?.message ?? "Input tidak valid.",
+        },
+      };
+    }
 
     // Check ownership
-    const tokenRecord = await findRefreshTokenByIdAndUserId(tokenId, session.userId);
+    const tokenRecord = await findRefreshTokenByIdAndUserId(parsed.data.tokenId, session.userId);
 
     if (!tokenRecord) {
       return {
@@ -414,7 +446,7 @@ export async function revokeSessionAction(tokenId: string) {
     const user = await findUserWithEmployeeById(session.userId);
     const actorName = user?.employee?.name || user?.email || "User";
 
-    const success = await revokeSession(session.userId, tokenId, actorName, session.role);
+    const success = await revokeSession(session.userId, parsed.data.tokenId, actorName, session.role);
     if (!success) {
       return {
         ok: false as const,
@@ -455,6 +487,8 @@ export async function revokeAllSessionsAction() {
         },
       };
     }
+
+    await clearAuthCookies();
 
     return { ok: true as const, data: { success: true } };
   } catch (error: any) {

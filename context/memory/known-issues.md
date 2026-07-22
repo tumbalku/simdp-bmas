@@ -9,6 +9,7 @@ File ini mencatat technical debt, known bug, dan hal yang sengaja belum dikerjak
 
 ## Active
 
+- [DEBT] Rate limiting login pada slice #64 memakai query `SecurityLog` sebagai store terpusat. Jika volume login tinggi, evaluasi store khusus seperti Redis atau tabel rate-limit ringkas agar query audit append-only tidak menjadi jalur panas.
 - [TODO] Script `npm test` belum tersedia; testing framework akan dipasang saat pekerjaan test setup dimulai.
 - [DEBT] `npm audit --audit-level=moderate` masih melaporkan advisory PostCSS dari dependency internal Next.js 15.5.20. `npm audit fix --force` tidak dipakai karena menyarankan downgrade/breaking change; evaluasi ulang saat Next.js 15 mendapat patch atau saat project memutuskan upgrade major.
 - [DEBT] `npm audit --audit-level=moderate` juga melaporkan advisory `@hono/node-server` dari dependency internal Prisma 7 dev tooling. `npm audit fix --force` menyarankan downgrade/breaking change ke Prisma 6.x, jadi belum dipakai.
