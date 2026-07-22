@@ -10,6 +10,7 @@ import {
   hasRolePermission,
   getSession,
   requireAuth,
+  ACCESS_TOKEN_TTL_SECONDS,
 } from "@/lib/auth";
 import { mockCookieStore } from "../../../tests/setup";
 
@@ -25,6 +26,14 @@ describe("auth library helpers", () => {
       expect(verified?.userId).toBe(payload.userId);
       expect(verified?.role).toBe(payload.role);
       expect(verified?.employeeId).toBe(payload.employeeId);
+    });
+
+    it("should use a 30-minute access token lifetime", async () => {
+      const token = await signAccessToken({ userId: "user-1", role: "EMPLOYEE" });
+      const [, payload] = token.split(".");
+      const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { iat: number; exp: number };
+
+      expect(decoded.exp - decoded.iat).toBe(ACCESS_TOKEN_TTL_SECONDS);
     });
 
     it("should return null for invalid tokens", async () => {
@@ -85,7 +94,7 @@ describe("auth library helpers", () => {
         1,
         "access_token",
         expect.any(String),
-        expect.objectContaining({ httpOnly: true, path: "/" })
+        expect.objectContaining({ httpOnly: true, path: "/", maxAge: ACCESS_TOKEN_TTL_SECONDS })
       );
       expect(mockCookieStore.set).toHaveBeenNthCalledWith(
         2,

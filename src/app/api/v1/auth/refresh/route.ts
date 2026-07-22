@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { rotateSession } from "@/modules/auth/server";
-import { setAuthCookies } from "@/lib/auth";
+import { clearAuthCookies, setAuthCookies } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
     const refreshToken = request.cookies.get("refresh_token")?.value;
 
     if (!refreshToken) {
+      await clearAuthCookies();
       return errorResponse("UNAUTHENTICATED", "Cookie refresh token tidak ada", undefined, 401);
     }
 
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
     const result = await rotateSession(refreshToken, ipAddress, userAgent);
 
     if (!result) {
+      await clearAuthCookies();
       return errorResponse("SESSION_EXPIRED", "Sesi telah kadaluwarsa, silakan login kembali", undefined, 401);
     }
 

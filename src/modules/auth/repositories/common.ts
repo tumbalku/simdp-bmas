@@ -119,6 +119,13 @@ export function revokeRefreshTokenById(id: string) {
   });
 }
 
+export function revokeRefreshTokenForRotation(id: string) {
+  return prisma.refreshToken.updateMany({
+    where: { id, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
 export function createPasswordResetToken(input: {
   id: string;
   userId: string;

@@ -6,6 +6,7 @@ import type { UserRole } from "@/constants/roles";
 import { AppError } from "./errors";
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
+export const ACCESS_TOKEN_TTL_SECONDS = 30 * 60;
 
 export interface TokenPayload {
   userId: string;
@@ -17,7 +18,7 @@ export async function signAccessToken(payload: TokenPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("15m")
+    .setExpirationTime(`${ACCESS_TOKEN_TTL_SECONDS}s`)
     .sign(JWT_SECRET);
 }
 
@@ -91,7 +92,7 @@ export async function setAuthCookies(
     secure: env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 15 * 60, // 15 mins
+    maxAge: ACCESS_TOKEN_TTL_SECONDS,
   });
 
   cookieStore.set("refresh_token", refreshTokenPlain, {

@@ -208,7 +208,19 @@ export async function rotateSession(
 
   const user = refreshTokenRecord.user;
 
-  await repo.revokeRefreshTokenById(refreshTokenRecord.id);
+  const revokedToken = await repo.revokeRefreshTokenForRotation(refreshTokenRecord.id);
+  if (revokedToken.count !== 1) {
+    await logActivity({
+      actorName: "System",
+      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+      eventType: SECURITY_EVENT_TYPE.AUTH_REFRESH_FAILED,
+      resource: "SessionRotation",
+      ipAddress,
+      status: SECURITY_LOG_STATUS.FAILED,
+      metadata: { reason: "Refresh token sudah dipakai atau direvoke" },
+    });
+    return null;
+  }
 
   const newRefreshTokenPlain = generateRefreshToken();
   const newHashedToken = hashRefreshToken(newRefreshTokenPlain);
