@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PAGINATION } from "@/constants/pagination";
 import {
+  SECURITY_EVENT_TYPE,
+  SECURITY_LOG_STATUS,
   normalizeSecurityActorRole,
   normalizeSecurityLogStatus,
 } from "../constants";
@@ -74,4 +76,13 @@ export async function getSecurityLogs(filter: {
       },
     },
   };
+}
+
+export function countRecentFailedLoginAttemptsByIp(ipAddress: string, since: Date) {
+  return repo.countRecentFailedLoginAttemptsByIp({
+    ipAddress,
+    since,
+    eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
+    status: SECURITY_LOG_STATUS.FAILED,
+  });
 }

@@ -75,7 +75,7 @@ Gunakan checklist ini sebelum menganggap fitur selesai atau sebelum membuka PR.
 Sebelum PR:
 
 - [ ] Issue terkait sudah ada.
-- [ ] Branch dibuat dari `main` terbaru.
+- [ ] Branch dibuat dari `development` terbaru, kecuali user eksplisit meminta release/final branch dari `main`.
 - [ ] Scope PR kecil dan sesuai issue.
 - [ ] Tidak ada file rahasia ikut ter-commit.
 - [ ] PR description punya summary, test plan, dan linked issue.

@@ -43,3 +43,21 @@ export function findSecurityLogsWithCount(input: {
     prisma.securityLog.count({ where: input.where }),
   ]);
 }
+
+export function countRecentFailedLoginAttemptsByIp(input: {
+  ipAddress: string;
+  since: Date;
+  eventType: string;
+  status: SecurityLogStatus;
+}) {
+  return prisma.securityLog.count({
+    where: {
+      ipAddress: input.ipAddress,
+      eventType: input.eventType,
+      status: input.status,
+      timestamp: {
+        gte: input.since,
+      },
+    },
+  });
+}

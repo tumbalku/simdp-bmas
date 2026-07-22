@@ -19,6 +19,18 @@ export async function getCurrentUserAccount(userId: string) {
   };
 }
 
+export async function getActiveSessions(userId: string) {
+  const sessions = await repo.findActiveRefreshTokenSessionsByUserId(userId);
+
+  return sessions.map((session) => ({
+    id: session.id,
+    userAgent: session.userAgent,
+    ipAddress: session.ipAddress,
+    createdAt: session.createdAt,
+    expiresAt: session.expiresAt,
+  }));
+}
+
 export async function revokeSession(
   userId: string,
   tokenId: string,
@@ -35,7 +47,7 @@ export async function revokeSession(
     actorId: userId,
     actorName,
     actorRole,
-    eventType: SECURITY_EVENT_TYPE.AUTH_REFRESH_FAILED,
+    eventType: SECURITY_EVENT_TYPE.AUTH_SESSION_REVOKED,
     resource: `RefreshToken:${tokenId}`,
     status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: { action: "revoke_session" },

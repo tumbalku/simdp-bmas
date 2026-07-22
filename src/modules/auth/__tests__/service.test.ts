@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   changePassword,
+  getActiveSessions,
+  isLoginRateLimited,
   loginUser,
   rotateSession,
   logoutUser,
@@ -14,6 +16,64 @@ import * as argon2 from "argon2";
 describe("Auth Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe("login rate limiting", () => {
+    it("should rate limit after five failed attempts per IP from security logs", async () => {
+      mockPrisma.securityLog.count.mockResolvedValue(5);
+
+      await expect(isLoginRateLimited("192.0.2.55")).resolves.toBe(true);
+
+      expect(mockPrisma.securityLog.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          ipAddress: "192.0.2.55",
+          eventType: "AUTH_LOGIN_FAILED",
+          status: "FAILED",
+          timestamp: { gte: expect.any(Date) },
+        }),
+      });
+    });
+
+    it("should keep rate limit state even after a successful login", async () => {
+      mockPrisma.securityLog.count.mockResolvedValue(5);
+
+      await expect(isLoginRateLimited("192.0.2.55")).resolves.toBe(true);
+    });
+  });
+
+  describe("getActiveSessions", () => {
+    it("should return active refresh token session metadata", async () => {
+      const createdAt = new Date("2026-07-22T01:00:00.000Z");
+      const expiresAt = new Date("2026-07-29T01:00:00.000Z");
+
+      mockPrisma.refreshToken.findMany.mockResolvedValue([
+        {
+          id: "token-1",
+          userAgent: "Mozilla/5.0 Chrome",
+          ipAddress: "127.0.0.1",
+          createdAt,
+          expiresAt,
+        },
+      ]);
+
+      const sessions = await getActiveSessions("user-1");
+
+      expect(sessions).toEqual([
+        {
+          id: "token-1",
+          userAgent: "Mozilla/5.0 Chrome",
+          ipAddress: "127.0.0.1",
+          createdAt,
+          expiresAt,
+        },
+      ]);
+      expect(mockPrisma.refreshToken.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "user-1", revokedAt: null, expiresAt: { gt: expect.any(Date) } },
+          orderBy: { createdAt: "desc" },
+        })
+      );
+    });
   });
 
   describe("loginUser", () => {

@@ -57,7 +57,7 @@ Jika tindakan berisiko, mes harus berhenti dan meminta keputusan user.
 ```txt
 User memberi task
   ↓
-mes sync main + buat/cek issue
+mes sync development + buat/cek issue
   ↓
 mes buat feature branch
   ↓
@@ -73,8 +73,19 @@ mes beri verdict: APPROVE / REQUEST CHANGES / HOLD
   ↓
 user approve/merge di GitHub
   ↓
-mes sync main + cleanup branch
+mes sync development + cleanup branch
 ```
+
+## Branch Utama
+
+SIMDP memakai dua branch utama:
+
+| Branch | Fungsi | Aturan |
+|---|---|---|
+| `main` | Branch final/stable | Tidak boleh berubah kecuali pekerjaan sudah benar-benar final dan user menyetujui release ke `main`. |
+| `development` | Branch integrasi aktif | Tempat eksperimen, iterasi, dan penggabungan feature branch sampai siap final. |
+
+Feature branch normal dibuat dari `development` dan PR normal ditargetkan ke `development`. Merge dari `development` ke `main` hanya dilakukan saat user menyatakan hasilnya sudah final.
 
 ## Context yang Wajib Dibaca Agent
 
@@ -140,6 +151,7 @@ Contoh yang tidak boleh dilakukan tanpa instruksi:
 - mengubah arsitektur tanpa ADR/context update;
 - mengubah `.env` asli;
 - push/merge langsung ke `main`;
+- push/merge langsung ke `development` tanpa instruksi user;
 - menjalankan destructive command.
 
 ## Penggunaan Antigravity `agent-skills`

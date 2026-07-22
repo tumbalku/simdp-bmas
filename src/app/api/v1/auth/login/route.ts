@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { successResponse, errorResponse, validationErrorResponse } from "@/lib/api-response";
-import { loginUser } from "@/modules/auth/server";
+import { isLoginRateLimited, loginUser, logRateLimitedLoginAttempt } from "@/modules/auth/server";
 import { setAuthCookies } from "@/lib/auth";
 
 const loginSchema = z.object({
@@ -21,6 +21,11 @@ export async function POST(request: NextRequest) {
     const { identifier, password } = parsed.data;
     const ipAddress = request.headers.get("x-forwarded-for") || null;
     const userAgent = request.headers.get("user-agent") || null;
+
+    if (await isLoginRateLimited(ipAddress)) {
+      await logRateLimitedLoginAttempt(ipAddress);
+      return errorResponse("RATE_LIMITED", "Terlalu banyak percobaan login gagal. Coba lagi 15 menit kemudian.", undefined, 429);
+    }
 
     const result = await loginUser(identifier, password, ipAddress, userAgent);
 

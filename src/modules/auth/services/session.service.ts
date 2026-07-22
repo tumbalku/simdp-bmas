@@ -4,6 +4,7 @@ import { generateRefreshToken, hashRefreshToken } from "@/lib/auth";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repositories/common";
+import { normalizeLoginIpAddress } from "./login-rate-limit.service";
 
 export interface LoginResult {
   user: {
@@ -21,6 +22,7 @@ export async function loginUser(
   ipAddress?: string | null,
   userAgent?: string | null
 ): Promise<LoginResult | null> {
+  const normalizedIpAddress = normalizeLoginIpAddress(ipAddress);
   const isNumeric = (str: string) => /^\d+$/.test(str);
   let userId: string | null = null;
 
@@ -43,7 +45,7 @@ export async function loginUser(
       actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
       eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `UserIdentifier:${identifier}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "User tidak ditemukan" },
     });
@@ -58,7 +60,7 @@ export async function loginUser(
       actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
       eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `User:${userId}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "User tidak aktif atau terhapus" },
     });
@@ -73,7 +75,7 @@ export async function loginUser(
       actorRole: user.role,
       eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `User:${user.id}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "Password salah" },
     });
@@ -91,7 +93,7 @@ export async function loginUser(
       actorRole: user.role,
       eventType: SECURITY_EVENT_TYPE.AUTH_FORCE_LOGOUT_OTHERS,
       resource: `User:${user.id}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { revokedCount: activeTokens.length },
     });
@@ -118,7 +120,7 @@ export async function loginUser(
     actorRole: user.role,
     eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
     resource: `User:${user.id}`,
-    ipAddress,
+    ipAddress: normalizedIpAddress,
     status: SECURITY_LOG_STATUS.SUCCESS,
   });
 

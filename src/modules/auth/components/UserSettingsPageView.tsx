@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS, type UserRole } from "@/constants";
 import { ChangePasswordDialog } from "@/modules/auth/components/ChangePasswordDialog";
+import { SessionManagementPanel, type SessionListItem } from "@/modules/auth/components/SessionManagementPanel";
 
 type UserSettingsAccount = {
   email: string;
@@ -18,9 +19,10 @@ type UserSettingsAccount = {
 
 type UserSettingsPageViewProps = {
   account: UserSettingsAccount;
+  sessions: SessionListItem[];
 };
 
-export function UserSettingsPageView({ account }: UserSettingsPageViewProps) {
+export function UserSettingsPageView({ account, sessions }: UserSettingsPageViewProps) {
   const roleLabel = account.role in ROLE_LABELS ? ROLE_LABELS[account.role as UserRole] : account.role;
 
   return (
@@ -113,6 +115,19 @@ export function UserSettingsPageView({ account }: UserSettingsPageViewProps) {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-muted-foreground/10 shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <ShieldCheck className="size-4 text-primary" />
+            Manajemen Sesi
+          </CardTitle>
+          <CardDescription>Lihat dan cabut sesi login aktif pada akun ini.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SessionManagementPanel sessions={sessions} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
