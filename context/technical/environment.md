@@ -42,6 +42,14 @@ Catatan rate limiting:
 
 ## Email & App URL
 
+## Google OAuth/OIDC
+
+| Variable | Required | Keterangan |
+|---|:---:|---|
+| `GOOGLE_CLIENT_ID` | Jika Google login | OAuth client ID dari Google Cloud Console. |
+| `GOOGLE_CLIENT_SECRET` | Jika Google login | OAuth client secret, server-side only. |
+| `GOOGLE_OAUTH_REDIRECT_URI` | Jika Google login | Callback URI, misalnya `http://localhost:3000/api/v1/auth/google/callback`. |
+
 | Variable | Required | Keterangan |
 |---|:---:|---|
 | `EMAIL_PROVIDER` | Optional | `noop`, `resend`, atau `smtp`. Default `noop`. |
