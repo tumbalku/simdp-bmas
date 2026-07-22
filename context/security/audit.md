@@ -78,6 +78,7 @@ Catatan rate limiting:
 - `API_RATE_LIMIT_CHECK` dicatat oleh helper `enforceApiRateLimit()` hanya saat request API v1 terkena limit.
 - `resource` memakai format `RateLimit:<CATEGORY>:<hash>` agar key mentah user/IP tidak tersimpan langsung.
 - `metadata` hanya menyimpan kategori, limit, window, dan alasan aman (`RATE_LIMITED`).
+- Verifikasi QR dokumen memakai kategori rate limit `DOCUMENT_VERIFY`. Halaman publik menampilkan data aman dari `DocumentVerification`; penerbitan PDF profil tetap diaudit sebagai `EMPLOYEE_EXPORTED` dengan metadata kode verifikasi publik.
 
 ## 4. Event Types Wajib dari PRD
 

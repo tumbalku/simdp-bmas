@@ -16,6 +16,7 @@ export const API_RATE_LIMIT_CATEGORY = {
   FILE_UPLOAD: "FILE_UPLOAD",
   FILE_DOWNLOAD: "FILE_DOWNLOAD",
   EXPORT: "EXPORT",
+  DOCUMENT_VERIFY: "DOCUMENT_VERIFY",
   INTERNAL: "INTERNAL",
   STATISTICS_READ: "STATISTICS_READ",
 } as const;
@@ -40,6 +41,7 @@ export const API_RATE_LIMIT_CONFIG: Record<ApiRateLimitCategory, ApiRateLimitCon
   FILE_UPLOAD: { limit: 10, windowMs: 15 * 60 * 1000 },
   FILE_DOWNLOAD: { limit: 60, windowMs: 60 * 1000 },
   EXPORT: { limit: 10, windowMs: 15 * 60 * 1000 },
+  DOCUMENT_VERIFY: { limit: 60, windowMs: 60 * 1000 },
   INTERNAL: { limit: 30, windowMs: 60 * 1000 },
   STATISTICS_READ: { limit: 120, windowMs: 60 * 1000 },
 };

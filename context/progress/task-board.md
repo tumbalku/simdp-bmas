@@ -20,6 +20,7 @@
 
 ## In Progress
 
+- [ ] [#201](https://github.com/tumbalku/simdp-bmas/issues/201) Add QR code verification for downloaded employee profile
 - [ ] [#199](https://github.com/tumbalku/simdp-bmas/issues/199) Add selectable SMTP email provider
 - [ ] [#198](https://github.com/tumbalku/simdp-bmas/issues/198) Implement real forgot password email delivery
 - [ ] [#196](https://github.com/tumbalku/simdp-bmas/issues/196) Apply rate limiting across API v1 endpoints

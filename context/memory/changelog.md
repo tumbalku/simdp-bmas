@@ -26,6 +26,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #201: Menambahkan fondasi verifikasi dokumen publik berbasis QR Code untuk PDF profil pegawai, termasuk tabel `DocumentVerification`, URL `/verify-document?code=...`, endpoint API verifikasi rate-limited, QR pada export PDF profile, dan penyimpanan hash PDF hasil generate.
 - Issue #199: Menambahkan opsi `EMAIL_PROVIDER` (`noop`, `resend`, `smtp`) dan provider SMTP berbasis Nodemailer tanpa menghapus Resend.
 - Issue #198/#199: Menambahkan unit test pengiriman email reset password, binding token ke `userId`, invalidasi token saat delivery gagal, dan response server action forgot password yang tidak membocorkan status email.
 - Issue #196: Menambahkan event audit `API_RATE_LIMIT_CHECK` untuk request yang terkena limit, kategori limit API per endpoint, dan unit test helper rate limit.
