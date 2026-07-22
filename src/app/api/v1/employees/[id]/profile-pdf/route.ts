@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
 import { AppError } from "@/lib/errors";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { DOCUMENT_STATUS_OPTIONS, type DocumentStatus } from "@/modules/document";
 import {
   getActorDisplayName,
@@ -68,6 +69,12 @@ function buildDocumentStatuses(documents: "none" | "all" | "status", status: Doc
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireAuth();
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id } = await params;
 
     if (session.role === "EMPLOYEE" && session.employeeId !== id) {

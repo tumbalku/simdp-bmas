@@ -2,6 +2,13 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-22] API v1 Rate Limiting Coverage
+- Konteks: slice security hardening perlu memastikan endpoint API v1 tidak hanya login yang dibatasi, tetapi juga endpoint upload, download, export, statistik, realtime, dan cron internal.
+- Keputusan: SIMDP memakai helper server-only `enforceApiRateLimit()` dengan kategori limit per jenis endpoint. Counter sementara memakai bucket in-memory per proses, sedangkan `SecurityLog` hanya mencatat event `API_RATE_LIMIT_CHECK` saat request terkena 429. `resource` tetap memakai hash berdasarkan kategori + user/IP agar key mentah tidak terekspos.
+- Alasan: menjaga scope tetap kecil tanpa menambah dependency/store baru, menghindari audit log menjadi hot path untuk setiap request, tetap memberi audit trail untuk percobaan yang dibatasi, dan memungkinkan limit per kategori yang berbeda.
+- Batasan: counter in-memory bersifat per proses/runtime dan belum global antar instance. Endpoint provider-managed Inngest tidak memakai generic limiter sebelum verifikasi provider untuk menghindari DoS terhadap webhook valid. Evaluasi Redis atau tabel rate-limit khusus saat traffic meningkat.
+- Referensi: #196.
+
 ## [2026-07-22] Branch Utama `main` dan `development`
 - Konteks: workflow SIMDP perlu memisahkan branch final dari branch eksperimen/iterasi.
 - Keputusan: `main` menjadi branch final/stable yang tidak berubah kecuali pekerjaan sudah benar-benar final dan user menyetujui release. `development` menjadi branch integrasi aktif untuk eksperimen, iterasi, dan feature branch harian.

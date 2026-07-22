@@ -3,10 +3,16 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
 import { uploadDocumentRecord } from "@/modules/document/server";
 import { AppError } from "@/lib/errors";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.FILE_UPLOAD, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     const formData = await request.formData();
     const documentTypeId = formData.get("documentTypeId") as string;

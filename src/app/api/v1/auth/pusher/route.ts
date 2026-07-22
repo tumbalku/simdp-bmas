@@ -5,6 +5,7 @@ import { z } from "zod";
 import { errorResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 
 const pusherAuthSchema = z.object({
   socket_id: z.string().min(1),
@@ -51,6 +52,11 @@ function canSubscribeToChannel(channelName: string, session: { userId: string; r
 export async function POST(request: NextRequest) {
   try {
     const session = await requireAuth();
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.REALTIME_AUTH, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     if (!isPusherConfigured()) {
       return errorResponse("PROVIDER_NOT_CONFIGURED", "Provider realtime belum dikonfigurasi.", undefined, 501);

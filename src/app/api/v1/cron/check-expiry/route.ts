@@ -2,10 +2,14 @@ import { NextRequest } from "next/server";
 import crypto from "crypto";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { env } from "@/lib/env";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { processExpiredDocumentsAndReminders } from "@/modules/document/server";
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.INTERNAL);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const authHeader = request.headers.get("authorization");
     let headerSecret = null;
     if (authHeader && authHeader.startsWith("Bearer ")) {
