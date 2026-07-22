@@ -52,7 +52,7 @@ Server
   -> jika berhasil:
        1. revoke semua RefreshToken aktif milik user
        2. log AUTH_FORCE_LOGOUT_OTHERS jika ada token lama
-       3. buat access token JWT 15 menit
+       3. buat access token JWT 30 menit
        4. buat refresh token random 256-bit
        5. simpan hash refresh token SHA-256 ke DB
        6. set access_token dan refresh_token ke httpOnly cookie
@@ -74,7 +74,7 @@ Setiap gagal login wajib dicatat ke `SecurityLog` dengan status `FAILED`.
 ## 5. Access Token
 
 - Jenis: JWT.
-- Masa berlaku: 15 menit.
+- Masa berlaku: 30 menit.
 - Storage client: httpOnly cookie.
 - Isi token minimal:
   - `userId`
@@ -82,6 +82,8 @@ Setiap gagal login wajib dicatat ke `SecurityLog` dengan status `FAILED`.
   - `employeeId` jika ada
 
 Access token dipakai middleware untuk inject context request.
+
+Selama layout dashboard terbuka, client memanggil `POST /api/v1/auth/refresh` secara otomatis setiap 20 menit dan ketika tab kembali aktif setelah sedikitnya 15 menit. Request refresh memakai guard promise agar request bersamaan dari komponen yang sama tidak menduplikasi rotasi token. Jika refresh token tidak valid atau expired, cookie auth dihapus dan user diarahkan ke halaman login. Kegagalan jaringan sementara tidak langsung menghapus sesi; refresh berikutnya akan mencoba kembali.
 
 ## 6. Refresh Token
 

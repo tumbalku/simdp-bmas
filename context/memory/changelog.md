@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #207: Mengubah access token menjadi 30 menit, menambahkan automatic refresh pada dashboard dengan guard concurrency dan visibility resume, serta menghapus cookie auth saat refresh session tidak valid.
 - Issue #198/#199: Membuat flow forgot password mengirim email reset password nyata lewat provider email terpilih ke email User yang cocok, serta membuat response UI forgot password tetap generik untuk mencegah email enumeration.
 - Memperbarui workflow branch utama: feature branch normal dibuat dari `development`, PR normal menargetkan `development`, dan `main` hanya untuk hasil final yang disetujui user.
 - Issue #196: Memperluas rate limiting API v1 ke endpoint auth publik/session, upload/download dokumen, export, statistik, cron internal, dan realtime Pusher memakai helper `enforceApiRateLimit()`.

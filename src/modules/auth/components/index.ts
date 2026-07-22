@@ -7,3 +7,4 @@ export * from "./ResetPasswordPage";
 export * from "./ChangePasswordDialog";
 export * from "./SessionManagementPanel";
 export * from "./UserSettingsPageView";
+export * from "./AuthSessionRefresh";

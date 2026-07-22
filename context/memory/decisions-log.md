@@ -2,6 +2,13 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-23] Automatic Access-Token Refresh
+- Konteks: access token 15 menit sebelumnya membuat user aktif dipaksa login ulang karena endpoint refresh belum dipanggil otomatis dari dashboard.
+- Keputusan: access token berlaku 30 menit. Client dashboard menjalankan refresh session setiap 20 menit dan saat tab kembali aktif setelah 15 menit, sedangkan refresh token tetap httpOnly dan dirotasi server-side. Guard promise mencegah duplicate refresh request dalam satu browser context, dan rotasi database memakai conditional update agar token hanya dapat dipakai sekali secara atomik.
+- Alasan: memberi margin sebelum access token expired, mempertahankan secret/token agar tidak masuk JavaScript storage, dan mencegah dua request refresh memakai token lama secara bersamaan.
+- Batasan: refresh token saat ini tetap memiliki masa berlaku 7 hari sejak setiap rotasi sesuai perilaku session service yang sudah ada. Kegagalan jaringan sementara dicoba ulang pada interval berikutnya; hanya response 401 yang mengakhiri sesi.
+- Referensi: #207.
+
 ## [2026-07-22] API v1 Rate Limiting Coverage
 - Konteks: slice security hardening perlu memastikan endpoint API v1 tidak hanya login yang dibatasi, tetapi juga endpoint upload, download, export, statistik, realtime, dan cron internal.
 - Keputusan: SIMDP memakai helper server-only `enforceApiRateLimit()` dengan kategori limit per jenis endpoint. Counter sementara memakai bucket in-memory per proses, sedangkan `SecurityLog` hanya mencatat event `API_RATE_LIMIT_CHECK` saat request terkena 429. `resource` tetap memakai hash berdasarkan kategori + user/IP agar key mentah tidak terekspos.

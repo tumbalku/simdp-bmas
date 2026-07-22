@@ -186,20 +186,51 @@ describe("Auth Module Service", () => {
       };
 
       mockPrisma.refreshToken.findFirst.mockResolvedValue(record);
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await rotateSession("old-token-plain");
       expect(result).not.toBeNull();
       expect(result?.user.id).toBe("user-1");
 
       // Verify old token was revoked
-      expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith(
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: "token-record-1" },
+          where: { id: "token-record-1", revokedAt: null },
           data: { revokedAt: expect.any(Date) },
         })
       );
       // Verify new token was created
       expect(mockPrisma.refreshToken.create).toHaveBeenCalled();
+    });
+
+    it("should reject a refresh token when another request rotated it first", async () => {
+      const record = {
+        id: "token-record-1",
+        userId: "user-1",
+        expiresAt: new Date(Date.now() + 100000),
+        user: {
+          id: "user-1",
+          email: "test@example.com",
+          role: "EMPLOYEE",
+          employee: { id: "emp-1", name: "Test Employee" },
+        },
+      };
+
+      mockPrisma.refreshToken.findFirst.mockResolvedValue(record);
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await rotateSession("already-rotated-token");
+
+      expect(result).toBeNull();
+      expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "AUTH_REFRESH_FAILED",
+            status: "FAILED",
+          }),
+        })
+      );
     });
   });
 

@@ -30,6 +30,10 @@ export function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("google_2fa") === "1") setRequiresTwoFactor(true);
 
+    if (params.get("session_expired") === "1") {
+      setError("Sesi Anda telah berakhir. Silakan login kembali.");
+    }
+
     const oauthError = params.get("oauth_error");
     if (oauthError) {
       const messages: Record<string, string> = {

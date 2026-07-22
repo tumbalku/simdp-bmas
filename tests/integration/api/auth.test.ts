@@ -87,6 +87,7 @@ describe("Auth Integration API", () => {
       expect(res.status).toBe(401);
       const body = await res.json();
       expect(body.error.code).toBe("UNAUTHENTICATED");
+      expect(mockCookieStore.set).toHaveBeenCalledWith("access_token", "", expect.objectContaining({ maxAge: 0 }));
     });
 
     it("should rotate session when cookie is present", async () => {
@@ -102,6 +103,7 @@ describe("Auth Integration API", () => {
         },
       };
       mockPrisma.refreshToken.findFirst.mockResolvedValue(record);
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
       const req = new NextRequest("http://localhost/api/v1/auth/refresh", {
         method: "POST",
@@ -115,6 +117,19 @@ describe("Auth Integration API", () => {
       const body = await res.json();
       expect(body.ok).toBe(true);
       expect(mockCookieStore.set).toHaveBeenCalledTimes(2);
+    });
+
+    it("should clear cookies when the refresh token is expired or revoked", async () => {
+      mockPrisma.refreshToken.findFirst.mockResolvedValue(null);
+
+      const req = new NextRequest("http://localhost/api/v1/auth/refresh", {
+        method: "POST",
+        headers: { Cookie: "refresh_token=expired-token" },
+      });
+      const res = await refreshPost(req);
+
+      expect(res.status).toBe(401);
+      expect(mockCookieStore.set).toHaveBeenCalledWith("refresh_token", "", expect.objectContaining({ maxAge: 0 }));
     });
   });
 
