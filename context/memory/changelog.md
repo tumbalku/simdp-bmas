@@ -6,6 +6,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 
 ### Changed
 - Memperbarui workflow branch utama: feature branch normal dibuat dari `development`, PR normal menargetkan `development`, dan `main` hanya untuk hasil final yang disetujui user.
+- Issue #196: Memperluas rate limiting API v1 ke endpoint auth publik/session, upload/download dokumen, export, statistik, cron internal, dan realtime Pusher memakai helper `enforceApiRateLimit()`.
 - Issue #64: Menambahkan rate limiting login gagal 5 kali per 15 menit per IP pada server action dan REST login, serta mengganti audit cabut sesi menjadi event `AUTH_SESSION_REVOKED`.
 - Menambahkan filter kategori arsip pada `/verification`, menyamakan filter `/documents` dan `/master-data/documents` dengan pola search + jenis dokumen + kategori arsip, dan mengganti branding aplikasi menjadi `SiCantIK` (`Sistem Pencatatan Informasi Kepegawaian`).
 - Issue #188: Menerapkan critical action verification yang sama pada aksi arsip, pulihkan, dan hapus permanen pegawai di halaman `/master-data/employees`.
@@ -24,6 +25,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #196: Menambahkan event audit `API_RATE_LIMIT_CHECK` untuk request yang terkena limit, kategori limit API per endpoint, dan unit test helper rate limit.
 - Issue #64: Menambahkan panel manajemen sesi di `/settings` untuk melihat sesi refresh aktif, mencabut sesi tertentu, dan mencabut semua sesi akun dengan audit log.
 - Issue #188: Menambahkan fondasi komponen generic critical action verification di `src/components/verification/`, memakai pola konfirmasi ringkas ala GitHub dengan frasa target, verifikasi password akun, audit verifikasi, dan throttle percobaan gagal untuk aksi krusial non-spesifik delete.
 - Issue #186: Menambahkan export PDF detail profil pegawai berbasis `puppeteer-core` dan `@sparticuz/chromium`, termasuk tombol Download di detail pegawai admin dan `/profile`, dialog pilihan konten, serta template PDF profil + metadata dokumen.

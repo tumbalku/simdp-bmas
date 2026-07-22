@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
 import { generateDownloadUrl } from "@/modules/document/server";
 import { AppError } from "@/lib/errors";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 
 export async function GET(
   request: NextRequest,
@@ -11,6 +12,11 @@ export async function GET(
   try {
     const { id } = await params;
     const session = await requireAuth();
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.FILE_DOWNLOAD, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     const url = await generateDownloadUrl(id, session);
 

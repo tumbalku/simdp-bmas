@@ -2,13 +2,19 @@ import { requireAuth } from "@/lib/auth";
 import { getStatisticsChartsData } from "@/modules/statistics/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { AppError } from "@/lib/errors";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Authenticate user with minimum role of STAFF (ADMIN and STAFF)
-    await requireAuth("STAFF");
+    const session = await requireAuth("STAFF");
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.STATISTICS_READ, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     const data = await getStatisticsChartsData();
 

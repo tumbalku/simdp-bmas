@@ -129,6 +129,7 @@ Memperbarui access token JWT yang kadaluwarsa dengan mendeteksi cookie refresh t
 |---:|---|---|
 | 401 | `UNAUTHENTICATED` | Cookie `refresh_token` tidak ada atau format salah. |
 | 401 | `SESSION_EXPIRED` | Refresh token telah kadaluwarsa, telah direvoke, atau hash-nya tidak cocok di DB. |
+| 429 | `RATE_LIMITED` | IP/user melebihi limit refresh session. |
 
 ### Validation
 
@@ -184,6 +185,7 @@ Mengakhiri sesi aktif user, merevoke refresh token terkait di database, dan meng
 | HTTP Status | Code | Condition |
 |---:|---|---|
 | 401 | `UNAUTHENTICATED` | User belum terotentikasi. |
+| 429 | `RATE_LIMITED` | IP/user melebihi limit endpoint session auth. |
 
 ### Service Boundary
 
@@ -238,6 +240,7 @@ Membuat password reset token satu-kali pakai jika email terdaftar, dan mengirimk
 | HTTP Status | Code | Condition |
 |---:|---|---|
 | 400 | `VALIDATION_ERROR` | Format email tidak valid |
+| 429 | `RATE_LIMITED` | IP melebihi limit endpoint reset password publik. |
 
 ### Validation
 
@@ -299,6 +302,7 @@ Mereset password user menggunakan token reset yang valid dan satu-kali pakai.
 |---:|---|---|
 | 400 | `VALIDATION_ERROR` | Password tidak cocok atau kurang kuat |
 | 400 | `BAD_REQUEST` | Token reset tidak valid, telah kedaluwarsa, atau sudah pernah digunakan |
+| 429 | `RATE_LIMITED` | IP melebihi limit endpoint reset password publik. |
 
 ### Validation
 

@@ -35,6 +35,11 @@ Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/
 | `REFRESH_TOKEN_SECRET` | Yes | Secret untuk hashing/derivasi refresh token. |
 | `CRON_SECRET` | Yes | Secret untuk endpoint cron internal. |
 
+Catatan rate limiting:
+- `enforceApiRateLimit()` membaca IP dari `x-forwarded-for` lalu fallback ke `x-real-ip`.
+- Production harus berjalan di belakang trusted proxy/load balancer yang menimpa header IP tersebut, bukan meneruskan nilai spoofed langsung dari client.
+- Jika deployment tidak menjamin sanitasi header IP, gunakan store/adapter rate limit di edge/proxy atau tambahkan allowlist trusted proxy sebelum mengandalkan limit per IP.
+
 ## Email & App URL
 
 | Variable | Required | Keterangan |

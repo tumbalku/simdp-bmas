@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { successResponse, validationErrorResponse, errorResponse } from "@/lib/api-response";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { requestPasswordReset } from "@/modules/auth/server";
 
 const forgotPasswordSchema = z.object({
@@ -9,6 +10,9 @@ const forgotPasswordSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.AUTH_PUBLIC);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const body = await request.json();
     const parsed = forgotPasswordSchema.safeParse(body);
 
