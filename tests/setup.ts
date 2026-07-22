@@ -179,6 +179,11 @@ export const mockPrisma = {
     updateMany: vi.fn(),
     delete: vi.fn(),
   },
+  documentVerification: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
   notification: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),

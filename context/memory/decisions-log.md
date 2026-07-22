@@ -9,6 +9,13 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Batasan: counter in-memory bersifat per proses/runtime dan belum global antar instance. Endpoint provider-managed Inngest tidak memakai generic limiter sebelum verifikasi provider untuk menghindari DoS terhadap webhook valid. Evaluasi Redis atau tabel rate-limit khusus saat traffic meningkat.
 - Referensi: #196.
 
+## [2026-07-22] QR Verification untuk PDF Profil Pegawai
+- Konteks: PDF profil pegawai yang diunduh perlu bisa dicek keasliannya oleh pihak yang menerima dokumen tanpa login ke SIMDP.
+- Keputusan: QR Code pada PDF hanya berisi URL publik `/verify-document?code=...` dengan kode random 128-bit berformat `SIMDP-` + 32 karakter hex uppercase. Detail verifikasi disimpan di tabel `DocumentVerification`; halaman publik hanya menampilkan data minimal yang aman seperti status, jenis dokumen, nama pegawai, identifier termasking, unit/jabatan, tanggal terbit, dan hash file.
+- Alasan: menghindari penyimpanan data pegawai lengkap di QR, memungkinkan dokumen dicabut/revoked di masa depan, dan memberi audit/integritas lebih baik melalui record server-side.
+- Batasan: scope awal hanya PDF profil pegawai. Verifikasi dokumen upload lain, upload ulang file untuk mencocokkan hash, expiry policy, dan revoke UI dapat dibuat sebagai issue lanjutan.
+- Referensi: #201.
+
 ## [2026-07-22] Branch Utama `main` dan `development`
 - Konteks: workflow SIMDP perlu memisahkan branch final dari branch eksperimen/iterasi.
 - Keputusan: `main` menjadi branch final/stable yang tidak berubah kecuali pekerjaan sudah benar-benar final dan user menyetujui release. `development` menjadi branch integrasi aktif untuk eksperimen, iterasi, dan feature branch harian.
