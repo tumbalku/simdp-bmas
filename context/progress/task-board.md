@@ -20,6 +20,7 @@
 
 ## In Progress
 
+- [ ] [#209](https://github.com/tumbalku/simdp-bmas/issues/209) Improve Google OAuth rate-limit UX dan naikkan limit auth publik menjadi 15
 - [ ] [#207](https://github.com/tumbalku/simdp-bmas/issues/207) Implement automatic access-token refresh dan perpanjang access token menjadi 30 menit
 - [ ] [#201](https://github.com/tumbalku/simdp-bmas/issues/201) Add QR code verification for downloaded employee profile
 - [ ] [#199](https://github.com/tumbalku/simdp-bmas/issues/199) Add selectable SMTP email provider

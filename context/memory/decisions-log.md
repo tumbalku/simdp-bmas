@@ -2,6 +2,12 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-23] Google OAuth Rate-Limit UX
+- Konteks: callback Google OAuth adalah navigasi browser, sehingga response JSON 429 tampil mentah kepada user ketika limit auth publik tercapai.
+- Keputusan: limit `AUTH_PUBLIC` menjadi 15 request per 15 menit. Endpoint Google OAuth start/callback tetap rate-limited, tetapi mengarahkan browser ke `/login?oauth_error=rate_limited` agar UI menampilkan pesan yang dapat dipahami. Endpoint API lain tetap menggunakan response JSON.
+- Alasan: satu percobaan OAuth menghasilkan request start dan callback, sementara rate limiting tetap diperlukan untuk mencegah abuse.
+- Referensi: #209.
+
 ## [2026-07-23] Automatic Access-Token Refresh
 - Konteks: access token 15 menit sebelumnya membuat user aktif dipaksa login ulang karena endpoint refresh belum dipanggil otomatis dari dashboard.
 - Keputusan: access token berlaku 30 menit. Client dashboard menjalankan refresh session setiap 20 menit dan saat tab kembali aktif setelah 15 menit, sedangkan refresh token tetap httpOnly dan dirotasi server-side. Guard promise mencegah duplicate refresh request dalam satu browser context, dan rotasi database memakai conditional update agar token hanya dapat dipakai sekali secara atomik.

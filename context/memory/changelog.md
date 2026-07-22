@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #209: Menaikkan limit auth publik menjadi 15 request per 15 menit dan mengubah rate-limit Google OAuth menjadi redirect ke login dengan pesan yang jelas.
 - Issue #207: Mengubah access token menjadi 30 menit, menambahkan automatic refresh pada dashboard dengan guard concurrency dan visibility resume, serta menghapus cookie auth saat refresh session tidak valid.
 - Issue #198/#199: Membuat flow forgot password mengirim email reset password nyata lewat provider email terpilih ke email User yang cocok, serta membuat response UI forgot password tetap generik untuk mencegah email enumeration.
 - Memperbarui workflow branch utama: feature branch normal dibuat dari `development`, PR normal menargetkan `development`, dan `main` hanya untuk hasil final yang disetujui user.
