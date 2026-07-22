@@ -23,7 +23,9 @@ function redirectToLogin(request: NextRequest, code: string) {
 
 export async function GET(request: NextRequest) {
   const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.AUTH_PUBLIC);
-  if (rateLimitResponse) return rateLimitResponse;
+  if (rateLimitResponse) {
+    return redirectToLogin(request, "rate_limited");
+  }
 
   const cookieStore = await cookies();
   const state = cookieStore.get("google_oauth_state")?.value;

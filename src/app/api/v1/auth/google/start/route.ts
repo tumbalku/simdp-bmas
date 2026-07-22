@@ -14,7 +14,9 @@ const COOKIE_OPTIONS = {
 
 export async function GET(request: NextRequest) {
   const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.AUTH_PUBLIC);
-  if (rateLimitResponse) return rateLimitResponse;
+  if (rateLimitResponse) {
+    return NextResponse.redirect(new URL("/login?oauth_error=rate_limited", request.url));
+  }
 
   if (!isGoogleOAuthConfigured()) {
     await logGoogleLoginFailure("GOOGLE_OAUTH_NOT_CONFIGURED", request.headers.get("x-forwarded-for"));

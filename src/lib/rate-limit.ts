@@ -35,7 +35,7 @@ type ApiRateLimitActor = {
 };
 
 export const API_RATE_LIMIT_CONFIG: Record<ApiRateLimitCategory, ApiRateLimitConfig> = {
-  AUTH_PUBLIC: { limit: 5, windowMs: 15 * 60 * 1000 },
+  AUTH_PUBLIC: { limit: 15, windowMs: 15 * 60 * 1000 },
   AUTH_REFRESH: { limit: 30, windowMs: 60 * 1000 },
   REALTIME_AUTH: { limit: 60, windowMs: 60 * 1000 },
   FILE_UPLOAD: { limit: 10, windowMs: 15 * 60 * 1000 },

@@ -43,6 +43,7 @@ export function LoginPage() {
         account_not_found: "Email Google belum terdaftar sebagai akun SiCantIK.",
         identity_invalid: "Identitas Google tidak dapat diverifikasi.",
         callback_failed: "Login Google gagal. Silakan coba lagi.",
+        rate_limited: "Terlalu banyak percobaan login. Silakan tunggu 15 menit sebelum mencoba login Google lagi.",
       };
       setError(messages[oauthError] ?? "Login Google gagal. Silakan coba lagi.");
     }

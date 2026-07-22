@@ -19,6 +19,13 @@ function createRequest(headers?: HeadersInit) {
 }
 
 describe("rate-limit helper", () => {
+  it("allows up to 15 public auth requests per 15-minute window", () => {
+    expect(API_RATE_LIMIT_CONFIG.AUTH_PUBLIC).toEqual({
+      limit: 15,
+      windowMs: 15 * 60 * 1000,
+    });
+  });
+
   it("uses the first forwarded IP address", () => {
     const request = createRequest({
       "x-forwarded-for": "203.0.113.10, 10.0.0.1",
