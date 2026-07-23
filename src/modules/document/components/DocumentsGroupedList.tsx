@@ -120,7 +120,8 @@ export function DocumentTypeUploadAction({
         type="button"
         size="xs"
         variant="default"
-        className="ml-auto shrink-0 whitespace-nowrap"
+        className="ml-auto size-8 shrink-0 p-0 whitespace-nowrap sm:size-auto sm:h-6 sm:px-2"
+        aria-label={`Tambah dokumen ${group.documentTypeName}`}
         disabled={isDisabled}
         onClick={(event) => {
           event.stopPropagation();
@@ -128,8 +129,8 @@ export function DocumentTypeUploadAction({
           setOpen(true);
         }}
       >
-        <Plus className="size-3.5" />
-        Tambah
+        <Plus className="size-4 sm:size-3.5" />
+        <span className="hidden sm:inline">Tambah</span>
       </Button>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
@@ -162,8 +163,15 @@ export function DocumentReplaceAction({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" size="xs" variant="outline" onClick={() => setOpen(true)}>
-        <RefreshCw className="size-3.5" />
+      <Button
+        type="button"
+        size="xs"
+        variant="outline"
+        className="size-11 p-0 md:size-auto md:h-6 md:px-2"
+        aria-label={`Ganti dokumen ${document.title}`}
+        onClick={() => setOpen(true)}
+      >
+        <RefreshCw className="size-5 md:size-3.5" />
         <span className="hidden md:inline">Ganti</span>
       </Button>
       <DialogContent className="sm:max-w-2xl">
@@ -248,21 +256,26 @@ export function DocumentList({
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Link
-                className={buttonVariants({ variant: "outline", size: "xs" })}
-                href={routeTo.documentDetail(document.id)}
+              <Button
+                render={<Link href={routeTo.documentDetail(document.id)} />}
+                nativeButton={false}
+                variant="outline"
+                size="xs"
+                className="size-11 p-0 md:size-auto md:h-6 md:px-2"
               >
-                <FileText className="size-3.5" />
+                <FileText className="size-5 md:size-3.5" />
                 <span className="hidden md:inline">Detail</span>
-              </Link>
+              </Button>
               <DocumentReplaceAction document={document} documentTypes={documentTypes} />
               <Button
                 variant="destructive"
                 size="xs"
+                className="size-11 p-0 md:size-auto md:h-6 md:px-2"
+                aria-label={`Hapus dokumen ${document.title}`}
                 disabled={pendingDocumentId === document.id}
                 onClick={() => onArchive(document)}
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 className="size-5 md:size-3.5" />
                 <span className="hidden md:inline">Hapus</span>
               </Button>
             </div>

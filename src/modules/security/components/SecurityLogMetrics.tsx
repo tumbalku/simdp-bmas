@@ -1,6 +1,9 @@
 import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
 
-import { MetricCard } from "@/components/cards/MetricCard";
+import {
+  getResponsiveMetricGridClass,
+  ResponsiveMetricCard,
+} from "@/components/cards/ResponsiveMetricCard";
 
 type SecurityLogMetricsProps = {
   totalItems: number;
@@ -10,23 +13,26 @@ type SecurityLogMetricsProps = {
 
 export function SecurityLogMetrics({ totalItems, success, failed }: SecurityLogMetricsProps) {
   return (
-      <div className="grid gap-3 md:grid-cols-3">
-        <MetricCard
+      <div className={`grid ${getResponsiveMetricGridClass(["Total log", "Berhasil", "Gagal"])} gap-3 md:grid-cols-3`}>
+        <ResponsiveMetricCard
           title="Total log"
+          compactTitle="Total"
           value={totalItems.toString()}
           description="Semua audit log sesuai filter aktif."
           icon={Activity}
           iconClassName="bg-primary/10 text-primary"
         />
-        <MetricCard
+        <ResponsiveMetricCard
           title="Berhasil"
+          compactTitle="Berhasil"
           value={success.toString()}
           description="Log berhasil pada halaman ini."
           icon={CheckCircle2}
           iconClassName="bg-success/10 text-success"
         />
-        <MetricCard
+        <ResponsiveMetricCard
           title="Gagal"
+          compactTitle="Gagal"
           value={failed.toString()}
           description="Log gagal pada halaman ini."
           icon={AlertTriangle}

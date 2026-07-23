@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/utils";
 
-type MetricCardProps = {
+export type MetricCardProps = {
   title: string;
   value: ReactNode;
   description: ReactNode;

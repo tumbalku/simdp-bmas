@@ -17,22 +17,24 @@ export default async function Page({ searchParams }: PageProps) {
   await requireAuth();
   const params = await searchParams;
 
-  const [documentsResult, documentTypesResult] = await Promise.all([
+  const [documentsResult, allDocumentsResult, documentTypesResult] = await Promise.all([
     getDocumentRecordsAction({
       search: params?.search,
       documentTypeId: params?.documentTypeId,
       archiveCategory: params?.archiveCategory,
     }),
+    getDocumentRecordsAction(),
     getDocumentTypeOptionsAction(),
   ]);
 
-  if (!documentsResult.ok || !documentTypesResult.ok) {
+  if (!documentsResult.ok || !allDocumentsResult.ok || !documentTypesResult.ok) {
     redirect("/login");
   }
 
   return (
     <DocumentsPageView
       documents={documentsResult.data}
+      allDocuments={allDocumentsResult.data}
       documentTypes={documentTypesResult.data}
       canUpload={true}
     />

@@ -4,7 +4,11 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Clock3, FileText, FileWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { MetricCard } from "@/components/cards/MetricCard";
+import { DocumentCompletenessProgress } from "@/components/cards/DocumentCompletenessProgress";
+import {
+  getResponsiveMetricGridClass,
+  ResponsiveMetricCard,
+} from "@/components/cards/ResponsiveMetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
@@ -16,6 +20,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ARCHIVE_CATEGORY_OPTIONS, softDeleteDocumentAction } from "@/modules/document";
+import { calculateMandatoryDocumentCompleteness } from "@/modules/document";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 import {
@@ -27,11 +32,12 @@ import {
 
 type DocumentsPageViewProps = {
   documents: DocumentRecordListItem[];
+  allDocuments: DocumentRecordListItem[];
   documentTypes: DocumentTypeOption[];
   canUpload: boolean;
 };
 
-export function DocumentsPageView({ documents, documentTypes, canUpload }: DocumentsPageViewProps) {
+export function DocumentsPageView({ documents, allDocuments, documentTypes, canUpload }: DocumentsPageViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
@@ -48,6 +54,10 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
     (doc) =>
       doc.expiryDate && new Date(doc.expiryDate) < new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
   ).length;
+  const mandatoryDocumentCompleteness = calculateMandatoryDocumentCompleteness({
+    documentTypes,
+    documents: allDocuments,
+  });
 
   const isFilterActive = Boolean(search.trim() || documentTypeId || archiveCategory);
   const groupedDocuments = groupDocumentsByAvailableTypes(
@@ -126,6 +136,7 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
   const documentMetricCards = [
     {
       title: "Total dokumen",
+      compactTitle: "Total",
       value: documents.length,
       description: "Semua status dokumen aktif",
       icon: FileText,
@@ -133,6 +144,7 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
     },
     {
       title: "Menunggu verifikasi",
+      compactTitle: "Menunggu",
       value: pendingCount,
       description: "Butuh review staf",
       icon: Clock3,
@@ -141,6 +153,7 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
     },
     {
       title: "Aktif disetujui",
+      compactTitle: "Aktif",
       value: approvedCount,
       description: "Dokumen valid aktif",
       icon: ShieldCheck,
@@ -149,6 +162,7 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
     },
     {
       title: "Dokumen ditolak",
+      compactTitle: "Ditolak",
       value: rejectedCount,
       description: "Perlu tindak lanjut",
       icon: FileWarning,
@@ -179,11 +193,16 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
         </Card>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid ${getResponsiveMetricGridClass(documentMetricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4`}>
         {documentMetricCards.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
+          <ResponsiveMetricCard key={metric.title} {...metric} />
         ))}
       </div>
+
+      <DocumentCompletenessProgress
+        completed={mandatoryDocumentCompleteness.completed}
+        total={mandatoryDocumentCompleteness.total}
+      />
 
 
       <DocumentSearchFilter
@@ -284,13 +303,15 @@ export function DocumentsPageView({ documents, documentTypes, canUpload }: Docum
                     return (
                       <AccordionItem key={group.documentTypeId} value={group.documentTypeId}>
                         <div className="flex w-full items-center gap-2">
-                          <AccordionTrigger className="min-w-0 flex-1">
-                            <div className="flex min-w-0 items-center gap-3 pr-2">
-                              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                                <Icon className="size-4 text-primary" />
+                          <AccordionTrigger className="min-w-0 flex-1 overflow-hidden">
+                            <div className="flex min-w-0 flex-1 items-center gap-3 pr-2">
+                              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                <Icon className="size-5 text-primary" />
                               </div>
-                              <div className="min-w-0 flex-1 text-left">
-                                <div className="truncate text-sm font-medium">{group.documentTypeName}</div>
+                              <div className="min-w-0 max-w-[10rem] flex-1 overflow-hidden text-left sm:max-w-none">
+                                <div className="block max-w-full truncate text-sm font-medium" title={group.documentTypeName}>
+                                  {group.documentTypeName}
+                                </div>
                                 <div className="text-xs text-muted-foreground">
                                   {group.documents.length} dokumen
                                 </div>

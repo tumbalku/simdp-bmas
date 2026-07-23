@@ -7,7 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MetricCard } from "@/components/cards/MetricCard";
+import {
+  getResponsiveMetricGridClass,
+  ResponsiveMetricCard,
+} from "@/components/cards/ResponsiveMetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Users, FileText, ShieldCheck, FileClock } from "lucide-react";
 import { DocumentStatusChart } from "./DocumentStatusChart";
@@ -62,6 +65,7 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
   const metricCards = [
     {
       title: "Total Pegawai",
+      compactTitle: "Pegawai",
       value: stats.totalEmployees,
       description: "Pegawai aktif terdaftar",
       icon: Users,
@@ -69,6 +73,7 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
     },
     {
       title: "Tingkat Kepatuhan",
+      compactTitle: "Patuh",
       value: `${stats.complianceRate}%`,
       description: `${stats.compliantEmployeesCount} dari ${stats.totalEmployees} pegawai patuh dokumen`,
       icon: ShieldCheck,
@@ -77,6 +82,7 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
     },
     {
       title: "Total Dokumen",
+      compactTitle: "Dokumen",
       value: totalDocuments,
       description: "Total arsip digital terunggah",
       icon: FileText,
@@ -84,6 +90,7 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
     },
     {
       title: "Antrian Verifikasi",
+      compactTitle: "Antrian",
       value: stats.documentsByStatus.PENDING,
       description: "Dokumen butuh review staf",
       icon: FileClock,
@@ -108,9 +115,9 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
       />
 
       {/* Metric Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
         {metricCards.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
+          <ResponsiveMetricCard key={metric.title} {...metric} />
         ))}
       </div>
 
