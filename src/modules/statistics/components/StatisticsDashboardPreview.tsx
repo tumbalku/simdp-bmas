@@ -10,7 +10,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MetricCard } from "@/components/cards/MetricCard";
+import {
+  getResponsiveMetricGridClass,
+  ResponsiveMetricCard,
+} from "@/components/cards/ResponsiveMetricCard";
 
 import { DonutChart } from "@/components/charts/DonutChart";
 import { SimpleBarChart } from "./StatisticsCharts";
@@ -25,12 +28,14 @@ type CountUpProps = {
 const metricCards = [
   {
     label: "Total dokumen",
+    compactTitle: "Dokumen",
     value: 512,
     description: "Dokumen terkelola",
     icon: FileCheck2,
   },
   {
     label: "Compliance rate",
+    compactTitle: "Patuh",
     value: 86.4,
     suffix: "%",
     decimals: 1,
@@ -39,6 +44,7 @@ const metricCards = [
   },
   {
     label: "Antrian verifikasi",
+    compactTitle: "Antrian",
     value: 18,
     description: "Dokumen yang menunggu review",
     icon: HeartPulse,
@@ -153,11 +159,12 @@ export function StatisticsDashboardPreview() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-4 md:grid-cols-3`}>
         {metricCards.map((metric) => (
-          <MetricCard
+          <ResponsiveMetricCard
             key={metric.label}
             title={metric.label}
+            compactTitle={metric.compactTitle}
             icon={metric.icon}
             iconClassName="bg-accent text-accent-foreground"
             value={

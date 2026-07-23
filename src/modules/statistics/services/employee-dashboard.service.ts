@@ -1,14 +1,17 @@
 import {
   countEmployeeDocumentsByStatus,
   findExpiringEmployeeDocuments,
+  findEmployeeDocumentTypeIds,
+  findEmployeeTargetProfileForStatistics,
+  findMandatoryDocumentTypesForStatistics,
   findRecentEmployeeUploads,
-  findUserWithEmployeeById,
 } from "../repository";
+import { calculateMandatoryDocumentCompleteness } from "@/modules/document";
 
 export async function getEmployeeStats(userId: string) {
-  const user = await findUserWithEmployeeById(userId);
+  const employee = await findEmployeeTargetProfileForStatistics(userId);
 
-  if (!user || !user.employee) {
+  if (!employee) {
     return {
       totalSubmitted: 0,
       approvedCount: 0,
@@ -17,11 +20,23 @@ export async function getEmployeeStats(userId: string) {
       expiringCount: 0,
       recentUploads: [],
       expiringDocuments: [],
+      mandatoryDocumentCompleted: 0,
+      mandatoryDocumentTotal: 0,
     };
   }
 
-  const employeeId = user.employee.id;
+  const employeeId = employee.id;
   const now = new Date();
+
+  const [mandatoryDocumentTypes, employeeDocumentTypeIds] = await Promise.all([
+    findMandatoryDocumentTypesForStatistics(),
+    findEmployeeDocumentTypeIds(employeeId),
+  ]);
+  const mandatoryDocumentCompleteness = calculateMandatoryDocumentCompleteness({
+    employee,
+    documentTypes: mandatoryDocumentTypes,
+    documents: employeeDocumentTypeIds,
+  });
 
   const pendingCount = await countEmployeeDocumentsByStatus({ employeeId, status: "PENDING" });
   const approvedCount = await countEmployeeDocumentsByStatus({ employeeId, status: "APPROVED" });
@@ -61,5 +76,7 @@ export async function getEmployeeStats(userId: string) {
       expiryDate: d.expiryDate!.toISOString(),
       daysRemaining: Math.ceil((d.expiryDate!.getTime() - now.getTime()) / 86_400_000),
     })),
+    mandatoryDocumentCompleted: mandatoryDocumentCompleteness.completed,
+    mandatoryDocumentTotal: mandatoryDocumentCompleteness.total,
   };
 }

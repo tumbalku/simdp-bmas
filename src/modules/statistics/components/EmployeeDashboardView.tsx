@@ -9,8 +9,12 @@ import {
   FileWarning,
   ShieldCheck,
 } from "lucide-react";
+import { DocumentCompletenessProgress } from "@/components/cards/DocumentCompletenessProgress";
 
-import { MetricCard } from "@/components/cards/MetricCard";
+import {
+  getResponsiveMetricGridClass,
+  ResponsiveMetricCard,
+} from "@/components/cards/ResponsiveMetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -59,6 +63,8 @@ type EmployeeDashboardStats = {
   rejectedCount: number;
   recentUploads: RecentUpload[];
   expiringDocuments: ExpiringDocument[];
+  mandatoryDocumentCompleted: number;
+  mandatoryDocumentTotal: number;
 };
 
 type EmployeeDashboardViewProps = {
@@ -158,6 +164,7 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
   const metricCards = [
     {
       title: "Total Dokumen",
+      compactTitle: "Total",
       value: stats.totalSubmitted,
       description: "Seluruh berkas yang pernah diunggah",
       icon: FileText,
@@ -165,6 +172,7 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
     },
     {
       title: "Menunggu Verifikasi",
+      compactTitle: "Menunggu",
       value: stats.pendingCount,
       description: "Sedang antre diperiksa Staf HRD",
       icon: Clock3,
@@ -173,6 +181,7 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
     },
     {
       title: "Disetujui",
+      compactTitle: "Aktif",
       value: stats.approvedCount,
       description: "Berkas sah dan aktif",
       icon: ShieldCheck,
@@ -181,6 +190,7 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
     },
     {
       title: "Ditolak",
+      compactTitle: "Ditolak",
       value: stats.rejectedCount,
       description: "Perlu diperbaiki dan diunggah ulang",
       icon: FileWarning,
@@ -196,11 +206,16 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
         description="Ringkasan pribadi kondisi dokumen kepegawaian Anda."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
         {metricCards.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
+          <ResponsiveMetricCard key={metric.title} {...metric} />
         ))}
       </div>
+
+      <DocumentCompletenessProgress
+        completed={stats.mandatoryDocumentCompleted}
+        total={stats.mandatoryDocumentTotal}
+      />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="border-muted-foreground/10 bg-card shadow-sm">

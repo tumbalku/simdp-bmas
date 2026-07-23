@@ -168,16 +168,30 @@ async function main() {
     prisma.documentType.create({ data: { id: "seed_type_surat_sehat", code: "SURAT-SEHAT", name: "Surat Keterangan Sehat", archiveCategory: ArchiveCategory.LEGAL, requiresIssueDate: true, requiresExpiryDate: true, allowedFormats: "pdf", maxSizeMb: 3, icon: "stethoscope" } }),
   ]);
 
-  await prisma.documentTypeEmploymentStatus.createMany({
-    data: documentTypes.flatMap((type) => [asn, nonAsn].map((status) => ({
-      id: `seed_rel_type_status_${type.id}_${status.id}`,
+  const documentTypeStatusTargets = [
+    ...[documentTypes[0], documentTypes[1], documentTypes[2]].map((type) => ({
+      documentTypeId: type.id,
+      employmentStatusId: asn.id,
+    })),
+    {
+      documentTypeId: documentTypes[3].id,
+      employmentStatusId: nonAsn.id,
+    },
+    ...documentTypes.slice(4).flatMap((type) => [asn, nonAsn].map((status) => ({
       documentTypeId: type.id,
       employmentStatusId: status.id,
     }))),
+  ];
+
+  await prisma.documentTypeEmploymentStatus.createMany({
+    data: documentTypeStatusTargets.map((target) => ({
+      id: `seed_rel_type_status_${target.documentTypeId}_${target.employmentStatusId}`,
+      ...target,
+    })),
   });
 
   await prisma.documentTypeWorkplace.createMany({
-    data: documentTypes.slice(0, 6).flatMap((type) => workplaces.slice(0, 6).map((workplace) => ({
+    data: documentTypes.slice(4, 6).flatMap((type) => workplaces.slice(0, 6).map((workplace) => ({
       id: `seed_rel_type_wp_${type.id}_${workplace.id}`,
       documentTypeId: type.id,
       workplaceId: workplace.id,

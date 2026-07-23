@@ -39,6 +39,7 @@ export function findMandatoryDocumentTypesForStatistics() {
     },
     select: {
       id: true,
+      isMandatory: true,
       employmentStatuses: { select: { employmentStatusId: true } },
       employeeGroups: { select: { employeeGroupId: true } },
       employeePositions: { select: { employeePositionId: true } },
@@ -111,10 +112,12 @@ export function findApprovedVerificationHistoriesSince(input: {
   });
 }
 
-export function findUserWithEmployeeById(userId: string) {
-  return prisma.user.findFirst({
-    where: { id: userId, deletedAt: null },
-    include: { employee: true },
+export function findEmployeeTargetProfileForStatistics(userId: string) {
+  return prisma.employee.findFirst({
+    where: { userId, deletedAt: null },
+    include: {
+      employeePosition: { select: { professionGroupId: true } },
+    },
   });
 }
 
@@ -124,6 +127,13 @@ export function countEmployeeDocumentsByStatus(input: {
 }) {
   return prisma.documentRecord.count({
     where: { ownerId: input.employeeId, status: input.status, deletedAt: null },
+  });
+}
+
+export function findEmployeeDocumentTypeIds(employeeId: string) {
+  return prisma.documentRecord.findMany({
+    where: { ownerId: employeeId, deletedAt: null },
+    select: { documentTypeId: true, status: true },
   });
 }
 

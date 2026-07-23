@@ -138,7 +138,7 @@ function OptionChecklist({
   }
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2">
       {options.map((option) => {
         const checked = selected.includes(option.id);
 
@@ -277,7 +277,7 @@ function TargetTreePreview({
 
       {selectedWorkplaces.length > 0 ? (
         <div className="rounded-lg border bg-background p-4">
-          <div className="mb-3 text-sm font-medium">Tempat Tugas/Unit Kerja</div>
+          <div className="mb-3 text-sm font-medium">Unit Kerja</div>
           <ul className="space-y-3 text-sm">{selectedWorkplaces.map((workplace) => <TreeItem key={workplace.id} label={workplace.name} />)}</ul>
         </div>
       ) : null}
@@ -507,13 +507,13 @@ export function DocumentTypeFormPage({
             )}
 
             <Tabs defaultValue="employmentStatus" className="w-full">
-              <TabsList className="flex h-auto w-full flex-wrap justify-start">
-                <TabsTrigger value="employmentStatus">Status Kepegawaian</TabsTrigger>
-                <TabsTrigger value="employeeGroup">Jenis Kepegawaian</TabsTrigger>
-                <TabsTrigger value="professionGroup">Kelompok Profesi</TabsTrigger>
-                <TabsTrigger value="employeePosition">Jabatan</TabsTrigger>
-                <TabsTrigger value="employeeRank">Pangkat/Golongan</TabsTrigger>
-                <TabsTrigger value="workplace">Tempat Tugas/Unit Kerja</TabsTrigger>
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 group-data-horizontal/tabs:h-auto sm:flex sm:flex-wrap sm:justify-start">
+                <TabsTrigger className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center text-[11px] leading-tight sm:flex-1 sm:py-1 sm:text-sm" value="employmentStatus">Status Kepegawaian</TabsTrigger>
+                <TabsTrigger className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center text-[11px] leading-tight sm:flex-1 sm:py-1 sm:text-sm" value="employeeGroup">Jenis Kepegawaian</TabsTrigger>
+                <TabsTrigger className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center text-[11px] leading-tight sm:flex-1 sm:py-1 sm:text-sm" value="professionGroup">Kelompok Profesi</TabsTrigger>
+                <TabsTrigger className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center text-[11px] leading-tight sm:flex-1 sm:py-1 sm:text-sm" value="employeePosition">Jabatan</TabsTrigger>
+                <TabsTrigger className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center text-[11px] leading-tight sm:flex-1 sm:py-1 sm:text-sm" value="employeeRank">Pangkat/Golongan</TabsTrigger>
+                <TabsTrigger className="h-auto min-w-0 whitespace-normal px-2 py-2 text-center text-[11px] leading-tight sm:flex-1 sm:py-1 sm:text-sm" value="workplace">Unit Kerja</TabsTrigger>
               </TabsList>
               <TabsContent value="employmentStatus" className="pt-3">
                 <OptionChecklist options={employmentStatuses} selected={employmentStatusIds} onToggle={handleEmploymentStatusToggle} emptyText="Belum ada master status kepegawaian." />
