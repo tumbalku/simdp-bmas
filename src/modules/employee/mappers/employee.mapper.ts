@@ -36,7 +36,7 @@ export function mapEmployeeDetail(employee: any) {
 
   return {
     ...mapEmployeeSummary(employee),
-    avatarUrl: employee.avatarUrl || null,
+    avatarUrl: employee.avatarUrl || employee.googleAvatarUrl || null,
     birthDate: toIsoDate(employee.birthDate),
     birthPlace: employee.birthPlace,
     academicDegree: employee.academicDegree,

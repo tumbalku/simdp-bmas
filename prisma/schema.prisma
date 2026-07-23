@@ -292,6 +292,7 @@ model Employee {
   name               String
   status             EmployeeStatus         @default(ACTIVE)
   avatarUrl          String?
+  googleAvatarUrl    String?
   gender             EmployeeGender?
   birthDate          DateTime?              @db.Date
   birthPlace         String?

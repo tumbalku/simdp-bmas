@@ -29,6 +29,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #216: Menambahkan upload foto profil dari avatar `/profile`, konfigurasi batas upload foto profil di `/system-settings`, fallback avatar upload → Google → inisial, dan streaming foto profil dari folder storage `profile/`.
 - Issue #212: Menambahkan malware scanning upload file dengan abstraction `scanFileBuffer`, provider default ClamAV `clamd`, fail-closed jika scanner error/unavailable, audit log untuk malware terdeteksi atau scan gagal, dan konfigurasi env ClamAV.
 - Issue #201: Menambahkan fondasi verifikasi dokumen publik berbasis QR Code untuk PDF profil pegawai, termasuk tabel `DocumentVerification`, URL `/verify-document?code=...`, endpoint API verifikasi rate-limited, QR pada export PDF profile, dan penyimpanan hash PDF hasil generate.
 - Issue #199: Menambahkan opsi `EMAIL_PROVIDER` (`noop`, `resend`, `smtp`) dan provider SMTP berbasis Nodemailer tanpa menghapus Resend.

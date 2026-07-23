@@ -28,6 +28,12 @@ const DEFAULTS = [
     description: "Batas ukuran file global jika tidak ditentukan per jenis dokumen",
   },
   {
+    key: "profile_image_max_upload_mb",
+    value: "2",
+    label: "Batas Upload Foto Profil (MB)",
+    description: "Batas ukuran file gambar untuk foto profil pegawai",
+  },
+  {
     key: "soft_delete_retention_days",
     value: "30",
     label: "Masa Retensi Sampah (Hari)",
@@ -50,6 +56,11 @@ export async function getSystemSettings() {
   }
 
   return settings;
+}
+
+export async function getSystemSettingValue(key: string, fallback: string) {
+  const settings = await getSystemSettings();
+  return settings.find((setting) => setting.key === key)?.value ?? fallback;
 }
 
 export async function updateSettings(

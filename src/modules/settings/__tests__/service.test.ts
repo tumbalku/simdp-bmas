@@ -14,6 +14,7 @@ describe("Settings Module Service", () => {
         { key: "reminder_days_h7", value: "7" },
         { key: "reminder_days_h30", value: "30" },
         { key: "default_max_upload_mb", value: "10" },
+        { key: "profile_image_max_upload_mb", value: "2" },
         { key: "soft_delete_retention_days", value: "30" },
       ];
       mockPrisma.systemSetting.findMany.mockResolvedValue(mockSettings);
@@ -50,6 +51,7 @@ describe("Settings Module Service", () => {
             expect.objectContaining({ key: "reminder_days_h7" }),
             expect.objectContaining({ key: "reminder_days_h30" }),
             expect.objectContaining({ key: "default_max_upload_mb" }),
+            expect.objectContaining({ key: "profile_image_max_upload_mb" }),
             expect.objectContaining({ key: "soft_delete_retention_days" }),
           ]),
           skipDuplicates: true,
@@ -66,6 +68,7 @@ describe("Settings Module Service", () => {
         { key: "reminder_days_h7", value: "7" },
         { key: "reminder_days_h30", value: "30" },
         { key: "default_max_upload_mb", value: "10" },
+        { key: "profile_image_max_upload_mb", value: "2" },
         { key: "soft_delete_retention_days", value: "30" },
       ]);
       const settingsList = [
@@ -95,6 +98,7 @@ describe("Settings Module Service", () => {
           { key: "reminder_days_h7", value: "7" },
           { key: "reminder_days_h30", value: "30" },
           { key: "default_max_upload_mb", value: "10" },
+          { key: "profile_image_max_upload_mb", value: "2" },
           { key: "soft_delete_retention_days", value: "30" },
         ]);
 
