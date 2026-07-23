@@ -9,6 +9,7 @@ export function createDefaultSystemSettings(
 ) {
   return prisma.systemSetting.createMany({
     data: defaults,
+    skipDuplicates: true,
   });
 }
 

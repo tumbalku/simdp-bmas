@@ -59,6 +59,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Memperbaiki penyimpanan `/system-settings` agar default `SystemSetting` yang belum lengkap otomatis di-seed sebelum update, mencegah Prisma `P2025` saat submit pengaturan sistem.
 - Issue #188: Menstabilkan lifecycle modal critical verification agar target aksi tidak di-unmount langsung saat dialog ditutup, mencegah runtime `Node.insertBefore` pada portal dialog.
 - Issue #188: Memperbaiki restore dokumen arsip agar jenis dokumen `allowMultiple=true` dapat dipulihkan walaupun sudah ada dokumen aktif lain untuk pegawai dan jenis yang sama, sambil tetap menjaga blokir konflik untuk `allowMultiple=false`.
 - Issue #184: Memperbaiki temuan review upload/notification terbaru, termasuk mock integration upload, format tanggal filename berbasis UTC, upload storage di luar transaksi DB, fallback dispatch lokal saat Inngest nonaktif, dan error boundary per dokumen pada cron reminder expiry.

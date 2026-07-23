@@ -35,11 +35,17 @@ const DEFAULTS = [
   },
 ];
 
+function getMissingDefaultSettings(settings: Array<{ key: string }>) {
+  const existingKeys = new Set(settings.map((setting) => setting.key));
+  return DEFAULTS.filter((setting) => !existingKeys.has(setting.key));
+}
+
 export async function getSystemSettings() {
   let settings = await repo.findSystemSettings();
+  const missingDefaults = getMissingDefaultSettings(settings);
 
-  if (settings.length === 0) {
-    await repo.createDefaultSystemSettings(DEFAULTS);
+  if (missingDefaults.length > 0) {
+    await repo.createDefaultSystemSettings(missingDefaults);
     settings = await repo.findSystemSettings();
   }
 
@@ -52,6 +58,8 @@ export async function updateSettings(
   actorName: string,
   actorRole: string
 ) {
+  await getSystemSettings();
+
   await repo.updateSystemSettings(settingsList, userId);
 
   await logActivity({
