@@ -83,6 +83,8 @@ Setiap gagal login wajib dicatat ke `SecurityLog` dengan status `FAILED`.
 
 Access token dipakai middleware untuk inject context request.
 
+Middleware juga menjadi defense-in-depth untuk semua top-level route dalam `src/app/(dashboard)`, termasuk `/dashboard`, `/documents`, `/master-data`, `/profile`, `/settings`, `/system-settings`, `/verification`, `/notifications`, `/security-log`, dan `/statistics`. Jika access token tidak ada/tidak valid, request ke route protected diarahkan ke `/login?next=<target>`. Guard role/RBAC dan ownership tetap wajib berada di page/server action/service melalui `requireAuth()` dan business rule server-side; middleware tidak menggantikan validasi tersebut.
+
 Selama layout dashboard terbuka, client memanggil `POST /api/v1/auth/refresh` secara otomatis setiap 20 menit dan ketika tab kembali aktif setelah sedikitnya 15 menit. Request refresh memakai guard promise agar request bersamaan dari komponen yang sama tidak menduplikasi rotasi token. Jika refresh token tidak valid atau expired, cookie auth dihapus dan user diarahkan ke halaman login. Kegagalan jaringan sementara tidak langsung menghapus sesi; refresh berikutnya akan mencoba kembali.
 
 ## 6. Refresh Token

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
+import { PROTECTED_ROUTE_PREFIXES } from "@/lib/route-protection";
 import { collectArchitectureViolations } from "./architecture-guards";
 
 describe("architecture guards", () => {
@@ -62,6 +63,19 @@ describe("architecture guards", () => {
       expect.objectContaining({ file: "src/modules/employee/service.ts", line: 1 }),
     ]);
     cleanupFixtureProject(rootDir);
+  });
+
+  it("keeps every dashboard route group covered by middleware protected prefixes", () => {
+    const dashboardRouteDir = path.join(process.cwd(), "src", "app", "(dashboard)");
+    const dashboardPrefixes = readdirSync(dashboardRouteDir)
+      .filter((entry) => {
+        const entryPath = path.join(dashboardRouteDir, entry);
+        return statSync(entryPath).isDirectory();
+      })
+      .map((entry) => `/${entry}`)
+      .sort();
+
+    expect(PROTECTED_ROUTE_PREFIXES.toSorted()).toEqual(dashboardPrefixes);
   });
 });
 

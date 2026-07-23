@@ -2,6 +2,13 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-23] Middleware Auth Coverage untuk Route Dashboard
+- Konteks: route group `(dashboard)` menghasilkan URL seperti `/documents`, `/master-data/*`, `/profile`, `/settings`, dan `/verification/*`, sementara middleware sebelumnya hanya menganggap `/dashboard` dan `/admin` sebagai protected route.
+- Keputusan: middleware memakai daftar eksplisit `PROTECTED_ROUTE_PREFIXES` yang mencerminkan seluruh top-level folder di `src/app/(dashboard)`. Route baru di group dashboard wajib tercakup oleh prefix ini; architecture guard akan gagal jika ada prefix yang luput.
+- Batasan: middleware hanya defense-in-depth untuk autentikasi umum. Guard role/RBAC dan ownership tetap wajib di page/server action/service melalui `requireAuth()` dan business rule server-side.
+- UX: request unauthenticated ke protected route diarahkan ke `/login?next=<target>` agar target tujuan tersimpan.
+- Referensi: #214.
+
 ## [2026-07-23] Malware Scanning Upload File
 - Konteks: magic-byte check memastikan tipe file, tetapi tidak mendeteksi PDF/dokumen/gambar yang disisipi malware, exploit payload, atau konten berbahaya lain.
 - Keputusan: semua upload/ganti file dokumen wajib melewati abstraction malware scanner setelah magic-byte check dan sebelum hash/storage/database reservation. Provider default aman adalah ClamAV melalui `clamd` (`MALWARE_SCANNER_PROVIDER=clamav`).
