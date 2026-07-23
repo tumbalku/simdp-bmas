@@ -1,3 +1,7 @@
+import * as fs from "fs/promises";
+import * as path from "path";
+
+import { storage } from "@/lib/storage";
 import type { DocumentStatus } from "@/modules/document";
 import { DOCUMENT_STATUS_LABELS, ARCHIVE_CATEGORY_LABELS } from "@/modules/document";
 
@@ -55,6 +59,70 @@ export type EmployeeProfilePdfData = {
   };
   documents: EmployeeProfilePdfDocument[];
 };
+
+const PROFILE_AVATAR_MIME_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+};
+
+function normalizeProfileAvatarStoragePath(avatarUrl: string) {
+  const normalized = avatarUrl
+    .split("?")[0]
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "")
+    .replace(/^uploads\//, "")
+    .replace(/^supabase\//, "")
+    .replace(/^s3\//, "");
+
+  if (!normalized.startsWith("profile/") || normalized.startsWith("../") || normalized.includes("/../")) return null;
+  return normalized;
+}
+
+function getProfileAvatarMimeType(value: string, fallback = "image/png") {
+  return PROFILE_AVATAR_MIME_TYPES[path.extname(value).toLowerCase()] ?? fallback;
+}
+
+function toDataUrl(buffer: Buffer, mimeType: string) {
+  return `data:${mimeType};base64,${buffer.toString("base64")}`;
+}
+
+async function fetchImageAsDataUrl(url: string, fallbackMimeType: string) {
+  const response = await fetch(url);
+  if (!response.ok) return null;
+
+  const mimeType = response.headers.get("content-type")?.split(";")[0] || fallbackMimeType;
+  if (!mimeType.startsWith("image/")) return null;
+
+  return toDataUrl(Buffer.from(await response.arrayBuffer()), mimeType);
+}
+
+export async function resolveEmployeeProfilePdfAvatarDataUrl(avatarUrl: string | null | undefined) {
+  if (!avatarUrl) return null;
+  if (avatarUrl.startsWith("data:image/")) return avatarUrl;
+  if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
+    return fetchImageAsDataUrl(avatarUrl, getProfileAvatarMimeType(avatarUrl));
+  }
+
+  const storagePath = normalizeProfileAvatarStoragePath(avatarUrl);
+  if (!storagePath) return null;
+
+  if (avatarUrl.startsWith("supabase/") || avatarUrl.startsWith("s3/")) {
+    const temporaryUrl = await storage.getTemporaryUrl(avatarUrl, 300);
+    return fetchImageAsDataUrl(temporaryUrl, getProfileAvatarMimeType(storagePath));
+  }
+
+  const uploadRoot = path.resolve(process.cwd(), "uploads");
+  const fullPath = path.resolve(uploadRoot, storagePath);
+  if (!fullPath.startsWith(`${uploadRoot}${path.sep}`)) return null;
+
+  try {
+    return toDataUrl(await fs.readFile(fullPath), getProfileAvatarMimeType(storagePath));
+  } catch {
+    return null;
+  }
+}
 
 function isKnownDocumentStatus(value: string): value is DocumentStatus {
   return value in DOCUMENT_STATUS_LABELS;
@@ -120,7 +188,7 @@ export async function getEmployeeProfilePdfData(
       employeePosition: employee.employeePosition?.name || null,
       employeeRank: employee.employeeRank?.name || null,
       workplace: employee.workplace?.name || null,
-      avatarUrl: employee.avatarUrl || null,
+      avatarUrl: await resolveEmployeeProfilePdfAvatarDataUrl(employee.avatarUrl || employee.googleAvatarUrl),
     },
     documents: options.includeProfile || documents.length > 0 ? documents : [],
   };

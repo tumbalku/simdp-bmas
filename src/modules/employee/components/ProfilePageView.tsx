@@ -2,11 +2,11 @@ import { Briefcase, Calendar, GraduationCap, Heart, Mail, MapPin, Phone, ShieldC
 
 import { InfoCard } from "@/components/cards/InfoCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
-import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DATE_FORMATS, DATE_LOCALE, ROLE_LABELS } from "@/constants";
 import { EmployeeProfilePdfDownloadDialog } from "@/modules/employee/components/EmployeeProfilePdfDownloadDialog";
+import { ProfileAvatarUpload } from "@/modules/employee/components/ProfileAvatarUpload";
 import { ProfileEditDialog } from "@/modules/employee/components/ProfileEditDialog";
 
 type NamedRecord = {
@@ -127,13 +127,12 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
 
       <Card className="border-muted-foreground/10 shadow-sm">
         <CardContent className="flex flex-col items-center justify-center space-y-2 text-center">
-          <Avatar size="xl" className="border shadow-sm">
-            {account.avatarUrl ? <AvatarImage src={account.avatarUrl} alt={profile.name} /> : null}
-            <AvatarFallback className="bg-primary/10 text-lg font-bold text-primary">
-              {initials}
-            </AvatarFallback>
-            {account.isActive ? <AvatarBadge className="bg-green-600 dark:bg-green-800" /> : null}
-          </Avatar>
+          <ProfileAvatarUpload
+            name={profile.name}
+            initials={initials}
+            avatarUrl={account.avatarUrl}
+            isActive={account.isActive}
+          />
           <div className="space-y-1">
             <h2 className="text-lg font-bold text-foreground">{profile.name}</h2>
             <div className="flex flex-wrap items-center justify-center gap-1.5">

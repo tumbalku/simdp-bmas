@@ -76,7 +76,7 @@ export async function resolveGoogleCallback(input: {
     expectedNonce: input.expectedNonce,
     pkceCodeVerifier: input.codeVerifier,
   });
-  const claims = tokens.claims() as { sub?: string; email?: string; email_verified?: boolean } | undefined;
+  const claims = tokens.claims() as { sub?: string; email?: string; email_verified?: boolean; picture?: string } | undefined;
 
   if (!claims?.sub || !claims.email || claims.email_verified !== true) {
     throw new Error("GOOGLE_IDENTITY_INVALID");
@@ -84,6 +84,10 @@ export async function resolveGoogleCallback(input: {
 
   const user = await repo.findUserWithEmployeeByEmail(claims.email.toLowerCase());
   if (!user || !user.isActive || user.deletedAt) throw new Error("GOOGLE_ACCOUNT_NOT_FOUND");
+
+  if (user.employee?.id && claims.picture) {
+    await repo.updateEmployeeGoogleAvatarUrl(user.employee.id, claims.picture);
+  }
 
   return {
     user: {

@@ -12,6 +12,7 @@ import {
   clearTwoFactorChallengeCookie,
 } from "@/lib/auth";
 import { logActivity, SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import { getProfileAvatarDisplayUrl } from "@/modules/employee/server";
 import {
   changePassword,
   getActiveSessions,
@@ -676,7 +677,7 @@ export async function getSessionProfileAction() {
         email: user.email,
         role: user.role,
         isActive: user.isActive,
-        avatarUrl: user.employee?.avatarUrl || null,
+        avatarUrl: getProfileAvatarDisplayUrl(user.employee?.avatarUrl) || user.employee?.googleAvatarUrl || null,
         employeeId: user.employee?.employeeId || null,
       },
     };

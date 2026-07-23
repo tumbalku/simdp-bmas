@@ -42,6 +42,13 @@ export function findUserWithEmployeeByEmail(email: string) {
   });
 }
 
+export function updateEmployeeGoogleAvatarUrl(employeeId: string, googleAvatarUrl: string) {
+  return prisma.employee.update({
+    where: { id: employeeId },
+    data: { googleAvatarUrl },
+  });
+}
+
 export function findActiveRefreshTokensByUserId(userId: string) {
   return prisma.refreshToken.findMany({
     where: { userId, revokedAt: null },
