@@ -35,9 +35,16 @@ vi.mock("@/lib/storage", () => ({
   },
 }));
 
+vi.mock("@/lib/malware-scanner", () => ({
+  scanFileBuffer: vi.fn().mockResolvedValue({ status: "CLEAN", provider: "clamav" }),
+}));
+
+import { scanFileBuffer } from "@/lib/malware-scanner";
+
 describe("Document Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(scanFileBuffer).mockResolvedValue({ status: "CLEAN", provider: "clamav" });
   });
 
   describe("document list and detail queries", () => {
@@ -453,6 +460,10 @@ describe("Document Module Service", () => {
         expect.any(Buffer),
         "application/pdf"
       );
+      expect(scanFileBuffer).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        expect.objectContaining({ fileName: "test.pdf", mimeType: "application/pdf" })
+      );
       expect(mockPrisma.documentRecord.create).toHaveBeenCalled();
       expect(mockPrisma.documentRecord.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -501,6 +512,117 @@ describe("Document Module Service", () => {
           session
         )
       ).rejects.toThrow("Format file tidak dikenal atau tidak didukung");
+    });
+
+    it("should fail closed and not store a file when malware is detected", async () => {
+      const docType = {
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+        archiveCategory: "PERSONAL",
+        maxSizeMb: 5,
+        allowedFormats: "pdf",
+        requiresDocumentNumber: false,
+        requiresIssueDate: false,
+        requiresExpiryDate: false,
+        deletedAt: null,
+      };
+      const employee = {
+        id: "emp-1",
+        userId: "user-1",
+        employeeId: "empId-1",
+        nik: "198501012010011001",
+        name: "John Doe",
+      };
+      vi.mocked(scanFileBuffer).mockResolvedValue({
+        status: "INFECTED",
+        provider: "clamav",
+        signature: "Eicar-Test-Signature",
+      });
+
+      mockPrisma.documentType.findUnique.mockResolvedValue(docType);
+      mockPrisma.employee.findUnique.mockResolvedValue(employee);
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
+
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      await expect(
+        uploadDocumentRecord(
+          { documentTypeId: "type-1", file: mockFile },
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
+          "127.0.0.1"
+        )
+      ).rejects.toThrow("Upload ditolak karena file terdeteksi berbahaya.");
+
+      expect(storage.upload).not.toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.create).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "DOCUMENT_MALWARE_DETECTED",
+            status: "FAILED",
+            resource: "DocumentUpload:type-1",
+            metadata: expect.objectContaining({ signature: "Eicar-Test-Signature" }),
+          }),
+        })
+      );
+    });
+
+    it("should fail closed and not store a file when malware scanner is unavailable", async () => {
+      const docType = {
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+        archiveCategory: "PERSONAL",
+        maxSizeMb: 5,
+        allowedFormats: "pdf",
+        requiresDocumentNumber: false,
+        requiresIssueDate: false,
+        requiresExpiryDate: false,
+        deletedAt: null,
+      };
+      const employee = {
+        id: "emp-1",
+        userId: "user-1",
+        employeeId: "empId-1",
+        nik: "198501012010011001",
+        name: "John Doe",
+      };
+      vi.mocked(scanFileBuffer).mockResolvedValue({
+        status: "ERROR",
+        provider: "clamav",
+        errorMessage: "connect ECONNREFUSED 127.0.0.1:3310",
+      });
+
+      mockPrisma.documentType.findUnique.mockResolvedValue(docType);
+      mockPrisma.employee.findUnique.mockResolvedValue(employee);
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
+
+      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00])], "test.pdf", {
+        type: "application/pdf",
+      });
+
+      await expect(
+        uploadDocumentRecord(
+          { documentTypeId: "type-1", file: mockFile },
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
+          "127.0.0.1"
+        )
+      ).rejects.toThrow("Upload belum dapat diproses karena pemeriksaan keamanan tidak tersedia. Coba lagi nanti.");
+
+      expect(storage.upload).not.toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.create).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "DOCUMENT_MALWARE_SCAN_FAILED",
+            status: "FAILED",
+            resource: "DocumentUpload:type-1",
+          }),
+        })
+      );
     });
 
     it("should reject upload when document type does not target the employee", async () => {

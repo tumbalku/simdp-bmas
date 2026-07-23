@@ -15,9 +15,16 @@ vi.mock("@/lib/storage", () => ({
   },
 }));
 
+vi.mock("@/lib/malware-scanner", () => ({
+  scanFileBuffer: vi.fn().mockResolvedValue({ status: "CLEAN", provider: "clamav" }),
+}));
+
+import { scanFileBuffer } from "@/lib/malware-scanner";
+
 describe("Documents Stream Integration API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(scanFileBuffer).mockResolvedValue({ status: "CLEAN", provider: "clamav" });
   });
 
   it("should return 401 if unauthenticated", async () => {

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import path from "path";
 import { env } from "@/lib/env";
 import { EVENT_NAMES, publishEvent } from "@/lib/events";
+import { scanFileBuffer, type MalwareScanResult } from "@/lib/malware-scanner";
 import { storage } from "@/lib/storage";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
@@ -99,6 +100,81 @@ function validateFileFormat(buffer: Buffer, allowedFormatsStr: string): string {
   return detectedExt;
 }
 
+async function logMalwareScanFailure(input: {
+  session: TokenPayload;
+  actorName: string;
+  resource: string;
+  ipAddress?: string | null;
+  documentTypeId: string;
+  fileName: string;
+  mimeType?: string | null;
+  fileSize: number;
+  result: Extract<MalwareScanResult, { status: "INFECTED" | "ERROR" }>;
+}) {
+  await logActivity({
+    actorId: input.session.userId,
+    actorName: input.actorName,
+    actorRole: input.session.role,
+    eventType:
+      input.result.status === "INFECTED"
+        ? SECURITY_EVENT_TYPE.DOCUMENT_MALWARE_DETECTED
+        : SECURITY_EVENT_TYPE.DOCUMENT_MALWARE_SCAN_FAILED,
+    resource: input.resource,
+    ipAddress: input.ipAddress,
+    status: SECURITY_LOG_STATUS.FAILED,
+    metadata: {
+      documentTypeId: input.documentTypeId,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      fileSize: input.fileSize,
+      scannerProvider: input.result.provider,
+      ...(input.result.status === "INFECTED"
+        ? { signature: input.result.signature }
+        : { errorMessage: input.result.errorMessage }),
+    },
+  });
+}
+
+async function enforceMalwareScan(input: {
+  buffer: Buffer;
+  originalFileName: string;
+  mimeType?: string | null;
+  session: TokenPayload;
+  actorName: string;
+  resource: string;
+  ipAddress?: string | null;
+  documentTypeId: string;
+}) {
+  const result = await scanFileBuffer(input.buffer, {
+    fileName: input.originalFileName,
+    mimeType: input.mimeType,
+  });
+
+  if (result.status === "CLEAN") return;
+
+  await logMalwareScanFailure({
+    session: input.session,
+    actorName: input.actorName,
+    resource: input.resource,
+    ipAddress: input.ipAddress,
+    documentTypeId: input.documentTypeId,
+    fileName: input.originalFileName,
+    mimeType: input.mimeType,
+    fileSize: input.buffer.length,
+    result,
+  });
+
+  if (result.status === "INFECTED") {
+    throw new AppError("MALWARE_DETECTED", "Upload ditolak karena file terdeteksi berbahaya.", 422);
+  }
+
+  throw new AppError(
+    "MALWARE_SCAN_UNAVAILABLE",
+    "Upload belum dapat diproses karena pemeriksaan keamanan tidak tersedia. Coba lagi nanti.",
+    503,
+  );
+}
+
 export async function uploadDocumentRecord(
   data: {
     documentTypeId: string;
@@ -159,6 +235,17 @@ export async function uploadDocumentRecord(
 
   // Validate magic bytes
   const ext = validateFileFormat(buffer, docType.allowedFormats);
+
+  await enforceMalwareScan({
+    buffer,
+    originalFileName: data.file.name,
+    mimeType: data.file.type || null,
+    session,
+    actorName: employee.name,
+    resource: `DocumentUpload:${docType.id}`,
+    ipAddress,
+    documentTypeId: docType.id,
+  });
 
   // Calculate SHA-256 hash
   const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
@@ -307,6 +394,18 @@ export async function replaceDocumentFile(
   }
 
   const ext = validateFileFormat(buffer, doc.documentType.allowedFormats);
+
+  await enforceMalwareScan({
+    buffer,
+    originalFileName: data.file.name,
+    mimeType: data.file.type || null,
+    session,
+    actorName: doc.owner.name,
+    resource: `DocumentRecord:${doc.id}`,
+    ipAddress,
+    documentTypeId: doc.documentTypeId,
+  });
+
   const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
 
   const storageProvider = getActiveStorageProviderValue();

@@ -35,6 +35,17 @@ Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/
 | `REFRESH_TOKEN_SECRET` | Yes | Secret untuk hashing/derivasi refresh token. |
 | `CRON_SECRET` | Yes | Secret untuk endpoint cron internal. |
 
+## Malware Scanning
+
+| Variable | Required | Keterangan |
+|---|:---:|---|
+| `MALWARE_SCANNER_PROVIDER` | Yes | Provider scanner. Default aman saat ini: `clamav`. |
+| `CLAMAV_HOST` | Yes | Host service `clamd`. Default development: `127.0.0.1`. |
+| `CLAMAV_PORT` | Yes | Port service `clamd`. Default: `3310`. |
+| `CLAMAV_TIMEOUT_MS` | Yes | Timeout scan per file dalam milidetik. Default: `10000`. |
+
+Upload file menerapkan kebijakan **fail closed**: jika ClamAV tidak tersedia, timeout, atau mengembalikan error, file tidak diterima sebagai dokumen aktif dan user diminta mencoba lagi nanti. Magic-byte check tetap berjalan sebelum malware scanning.
+
 Catatan rate limiting:
 - `enforceApiRateLimit()` membaca IP dari `x-forwarded-for` lalu fallback ke `x-real-ip`.
 - Production harus berjalan di belakang trusted proxy/load balancer yang menimpa header IP tersebut, bukan meneruskan nilai spoofed langsung dari client.
@@ -100,6 +111,10 @@ STORAGE_PROVIDER="local"
 JWT_SECRET="dev-change-me"
 REFRESH_TOKEN_SECRET="dev-change-me-too"
 CRON_SECRET="dev-cron-secret"
+MALWARE_SCANNER_PROVIDER="clamav"
+CLAMAV_HOST="127.0.0.1"
+CLAMAV_PORT="3310"
+CLAMAV_TIMEOUT_MS="10000"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
