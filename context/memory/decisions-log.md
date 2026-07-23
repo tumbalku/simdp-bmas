@@ -2,6 +2,13 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-23] Malware Scanning Upload File
+- Konteks: magic-byte check memastikan tipe file, tetapi tidak mendeteksi PDF/dokumen/gambar yang disisipi malware, exploit payload, atau konten berbahaya lain.
+- Keputusan: semua upload/ganti file dokumen wajib melewati abstraction malware scanner setelah magic-byte check dan sebelum hash/storage/database reservation. Provider default aman adalah ClamAV melalui `clamd` (`MALWARE_SCANNER_PROVIDER=clamav`).
+- Kebijakan: fail closed. Jika scanner mendeteksi malware, timeout, error, atau unavailable, file tidak boleh disimpan sebagai dokumen aktif. Event `DOCUMENT_MALWARE_DETECTED` atau `DOCUMENT_MALWARE_SCAN_FAILED` dicatat ke SecurityLog tanpa menyimpan isi file atau secret.
+- Alasan: menjaga server-side validation sebagai sumber kebenaran dan mencegah file valid secara tipe tetapi berbahaya masuk ke storage dokumen pegawai.
+- Referensi: #212.
+
 ## [2026-07-23] Google OAuth Rate-Limit UX
 - Konteks: callback Google OAuth adalah navigasi browser, sehingga response JSON 429 tampil mentah kepada user ketika limit auth publik tercapai.
 - Keputusan: limit `AUTH_PUBLIC` menjadi 15 request per 15 menit. Endpoint Google OAuth start/callback tetap rate-limited, tetapi mengarahkan browser ke `/login?oauth_error=rate_limited` agar UI menampilkan pesan yang dapat dipahami. Endpoint API lain tetap menggunakan response JSON.

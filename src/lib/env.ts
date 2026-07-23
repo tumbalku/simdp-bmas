@@ -28,6 +28,11 @@ const emailProviderSchema = z.preprocess(
   z.enum(["noop", "resend", "smtp"]).default("noop"),
 );
 
+const malwareScannerProviderSchema = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["clamav"]).default("clamav"),
+);
+
 const envSchema = z
   .object({
     NODE_ENV: z
@@ -58,6 +63,11 @@ const envSchema = z
       .string()
       .min(1, "REFRESH_TOKEN_SECRET wajib diisi"),
     CRON_SECRET: z.string().min(1, "CRON_SECRET wajib diisi"),
+
+    MALWARE_SCANNER_PROVIDER: malwareScannerProviderSchema,
+    CLAMAV_HOST: optionalString.default("127.0.0.1"),
+    CLAMAV_PORT: optionalNumber.default(3310),
+    CLAMAV_TIMEOUT_MS: optionalNumber.default(10000),
 
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
