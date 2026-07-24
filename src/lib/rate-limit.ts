@@ -3,6 +3,10 @@ import type { NextRequest } from "next/server";
 
 import { errorResponse } from "@/lib/api-response";
 import {
+  claimSharedRateLimitLimitedLog,
+  incrementSharedRateLimitBucket,
+} from "@/lib/rate-limit-store";
+import {
   logActivity,
   SECURITY_ACTOR_ROLE,
   SECURITY_EVENT_TYPE,
@@ -46,35 +50,6 @@ export const API_RATE_LIMIT_CONFIG: Record<ApiRateLimitCategory, ApiRateLimitCon
   STATISTICS_READ: { limit: 120, windowMs: 60 * 1000 },
 };
 
-type RateLimitBucket = {
-  count: number;
-  resetAt: number;
-  limitedLoggedAt?: number;
-};
-
-const buckets = new Map<string, RateLimitBucket>();
-
-function getBucket(key: string, windowMs: number, now: number) {
-  const existing = buckets.get(key);
-  if (existing && existing.resetAt > now) {
-    return existing;
-  }
-
-  const bucket: RateLimitBucket = { count: 0, resetAt: now + windowMs };
-  buckets.set(key, bucket);
-  return bucket;
-}
-
-function cleanupExpiredBuckets(now: number) {
-  if (buckets.size < 1000) return;
-
-  for (const [key, bucket] of buckets.entries()) {
-    if (bucket.resetAt <= now) {
-      buckets.delete(key);
-    }
-  }
-}
-
 export function getClientIp(request: Request) {
   // Deployment must ensure these headers are set by a trusted proxy and not
   // directly spoofable by clients. See context/technical/environment.md.
@@ -99,24 +74,26 @@ function buildRateLimitKey(category: ApiRateLimitCategory, ipAddress: string, ac
 export async function enforceApiRateLimit(
   request: NextRequest | Request,
   category: ApiRateLimitCategory,
-  actor?: ApiRateLimitActor
+  actor?: ApiRateLimitActor,
 ) {
   const config = API_RATE_LIMIT_CONFIG[category];
   const now = Date.now();
   const ipAddress = getClientIp(request);
   const key = buildRateLimitKey(category, ipAddress, actor);
   const resource = buildRateLimitResource(category, key);
-  const bucket = getBucket(resource, config.windowMs, now);
-  const isLimited = bucket.count >= config.limit;
 
-  if (!isLimited) {
-    bucket.count += 1;
-    cleanupExpiredBuckets(now);
+  const bucket = await incrementSharedRateLimitBucket({
+    key: resource,
+    category,
+    windowMs: config.windowMs,
+    now: new Date(now),
+  });
+
+  if (bucket.count <= config.limit) {
     return null;
   }
 
-  if (!bucket.limitedLoggedAt || bucket.limitedLoggedAt + config.windowMs <= now) {
-    bucket.limitedLoggedAt = now;
+  if (await claimSharedRateLimitLimitedLog(resource, new Date(now))) {
     await logActivity({
       actorId: actor?.actorId ?? null,
       actorName: actor?.actorName ?? (actor?.actorId ? "User" : "System"),
@@ -140,8 +117,8 @@ export async function enforceApiRateLimit(
     undefined,
     429,
     {
-      retryAfterSeconds: Math.ceil(config.windowMs / 1000),
+      retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt.getTime() - now) / 1000)),
       category,
-    }
+    },
   );
 }

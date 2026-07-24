@@ -41,7 +41,7 @@ export async function loginUser(
   }
 
   if (!userId) {
-    registerFailedLoginAttempt(ipAddress);
+    await registerFailedLoginAttempt(ipAddress);
     await logActivity({
       actorName: "System",
       actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
@@ -57,7 +57,7 @@ export async function loginUser(
   const user = await repo.findActiveUserWithEmployee(userId);
 
   if (!user) {
-    registerFailedLoginAttempt(ipAddress);
+    await registerFailedLoginAttempt(ipAddress);
     await logActivity({
       actorName: "System",
       actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
@@ -72,7 +72,7 @@ export async function loginUser(
 
   const isPasswordMatch = await argon2.verify(user.passwordHash, password);
   if (!isPasswordMatch) {
-    registerFailedLoginAttempt(ipAddress);
+    await registerFailedLoginAttempt(ipAddress);
     await logActivity({
       actorId: user.id,
       actorName: user.employee?.name || user.email,

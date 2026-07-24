@@ -576,3 +576,16 @@ model SystemSetting {
 
   updatedByUser User? @relation("SystemSettingUpdatedBy", fields: [updatedBy], references: [id])
 }
+
+model RateLimitBucket {
+  key             String   @id
+  category        String
+  count           Int      @default(0)
+  resetAt         DateTime
+  limitedLoggedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category, resetAt], map: "idx_ratelimitbucket_category_reset")
+  @@index([resetAt], map: "idx_ratelimitbucket_reset")
+}
