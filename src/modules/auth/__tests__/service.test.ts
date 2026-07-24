@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import crypto from "crypto";
 const notificationMocks = vi.hoisted(() => ({
   sendEmail: vi.fn(),
 }));
@@ -26,26 +27,54 @@ import * as argon2 from "argon2";
 describe("Auth Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([
+      {
+        key: "RateLimit:AUTH_LOGIN_FAILED:test",
+        category: "AUTH_LOGIN_FAILED",
+        count: 1,
+        resetAt: new Date(Date.now() + 15 * 60 * 1000),
+        limitedLoggedAt: null,
+      },
+    ]);
+    vi.mocked(mockPrisma.rateLimitBucket.findUnique).mockResolvedValue(null);
+    vi.mocked(mockPrisma.rateLimitBucket.updateMany).mockResolvedValue({ count: 1 });
   });
 
   describe("login rate limiting", () => {
-    it("should rate limit after five failed attempts per IP from security logs", async () => {
-      mockPrisma.securityLog.count.mockResolvedValue(5);
+    it("should rate limit after five failed attempts per IP from shared rate-limit buckets", async () => {
+      const expectedKey = crypto
+        .createHash("sha256")
+        .update("AUTH_LOGIN_FAILED:192.0.2.55")
+        .digest("hex")
+        .slice(0, 24);
+
+      mockPrisma.rateLimitBucket.findUnique.mockResolvedValue({
+        key: expectedKey,
+        category: "AUTH_LOGIN_FAILED",
+        count: 5,
+        resetAt: new Date(Date.now() + 15 * 60 * 1000),
+        limitedLoggedAt: null,
+      });
 
       await expect(isLoginRateLimited("192.0.2.55")).resolves.toBe(true);
 
-      expect(mockPrisma.securityLog.count).toHaveBeenCalledWith({
-        where: expect.objectContaining({
-          ipAddress: "192.0.2.55",
-          eventType: "AUTH_LOGIN_FAILED",
-          status: "FAILED",
-          timestamp: { gte: expect.any(Date) },
-        }),
+      expect(mockPrisma.rateLimitBucket.findUnique).toHaveBeenCalledWith({
+        where: { key: expectedKey },
       });
     });
 
     it("should keep rate limit state even after a successful login", async () => {
-      mockPrisma.securityLog.count.mockResolvedValue(5);
+      mockPrisma.rateLimitBucket.findUnique.mockResolvedValue({
+        key: crypto
+          .createHash("sha256")
+          .update("AUTH_LOGIN_FAILED:192.0.2.55")
+          .digest("hex")
+          .slice(0, 24),
+        category: "AUTH_LOGIN_FAILED",
+        count: 5,
+        resetAt: new Date(Date.now() + 15 * 60 * 1000),
+        limitedLoggedAt: null,
+      });
 
       await expect(isLoginRateLimited("192.0.2.55")).resolves.toBe(true);
     });

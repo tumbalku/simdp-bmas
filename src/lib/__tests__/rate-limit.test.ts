@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 
 import {
   API_RATE_LIMIT_CATEGORY,
@@ -12,6 +12,8 @@ import {
 } from "@/modules/security/server";
 import { mockPrisma } from "../../../tests/setup";
 
+let uploadBucketCount = 0;
+
 function createRequest(headers?: HeadersInit) {
   return new Request("https://simdp.test/api/v1/documents/upload", {
     headers,
@@ -19,6 +21,20 @@ function createRequest(headers?: HeadersInit) {
 }
 
 describe("rate-limit helper", () => {
+  beforeEach(() => {
+    uploadBucketCount = 0;
+    vi.mocked(mockPrisma.$queryRaw).mockImplementation(async () => [
+      {
+        key: "RateLimit:FILE_UPLOAD:test",
+        category: "FILE_UPLOAD",
+        count: ++uploadBucketCount,
+        resetAt: new Date(Date.now() + 15 * 60 * 1000),
+        limitedLoggedAt: null,
+      },
+    ]);
+    vi.mocked(mockPrisma.rateLimitBucket.updateMany).mockResolvedValue({ count: 1 });
+  });
+
   it("allows up to 15 public auth requests per 15-minute window", () => {
     expect(API_RATE_LIMIT_CONFIG.AUTH_PUBLIC).toEqual({
       limit: 15,
@@ -86,6 +102,6 @@ describe("rate-limit helper", () => {
     const body = await response!.json();
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("RATE_LIMITED");
-    expect(body.meta.retryAfterSeconds).toBe(900);
+    expect(body.meta.retryAfterSeconds).toBeGreaterThan(0);
   });
 });

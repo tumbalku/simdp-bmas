@@ -189,6 +189,11 @@ export const mockPrisma = {
     create: vi.fn(),
     update: vi.fn(),
   },
+  rateLimitBucket: {
+    findUnique: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   notification: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -222,6 +227,7 @@ export const mockPrisma = {
     delete: vi.fn(),
   },
   $executeRaw: vi.fn(),
+  $queryRaw: vi.fn(),
   $transaction: vi.fn().mockImplementation(async (cb) => {
     if (typeof cb === "function") {
       return cb(mockPrisma);
