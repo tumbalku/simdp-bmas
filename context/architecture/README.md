@@ -23,7 +23,7 @@ Subfolder `diagrams/` berisi berkas diagram PlantUML resmi proyek SIMDP, dipisah
 - `diagrams/erd/` — entity relationship diagram untuk data model.
 - `diagrams/notes/` — catatan istilah, konvensi, dan glossary diagram.
 
-Seluruh daftar lengkap diagram beserta deskripsinya ada di [`diagrams/README.md`](diagrams/README.md).
+Seluruh panduan visual lengkap, penjelasan alur sistem untuk pembaca non-teknis, beserta daftar diagram SVG ter-embed dapat diakses pada **[Panduan Visual & Master Diagram SIMDP (`diagrams/README.md`)](diagrams/README.md)**.
 
 Ringkasan subfolder diagram saat ini:
 
