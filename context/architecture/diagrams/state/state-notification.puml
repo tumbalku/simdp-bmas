@@ -1,0 +1,44 @@
+@startuml state-notification
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - State Diagram: Lifecycle Notifikasi In-App
+
+[*] --> DIBUAT : Sistem / Service membuat notifikasi\n(NotificationService.create())
+
+DIBUAT --> TERKIRIM : Notifikasi berhasil ditulis\nke tabel Notification di DB\n(isRead = false)
+
+TERKIRIM --> DIBACA : User membuka notifikasi\ndi halaman / panel notifikasi\n(PATCH /api/v1/notifications/:id/read\n→ isRead = true)
+
+DIBACA --> [*] : Notifikasi tetap tersimpan\ndi DB untuk riwayat
+
+note right of DIBUAT
+  Pemicu notifikasi:
+  - Upload dokumen berhasil (DOCUMENT_STATUS)
+  - Dokumen disetujui / ditolak (DOCUMENT_VERIFICATION)
+  - Reminder H-30 / H-7 / H-1 (EXPIRY_REMINDER)
+  - Dokumen kadaluarsa otomatis (EXPIRY_REMINDER)
+  - Dokumen butuh verifikasi (VERIFICATION_REQUIRED)
+  - Informasi umum sistem (INFO)
+end note
+
+note right of TERKIRIM
+  Field relevan:
+  - isRead = false
+  - relatedEntityType = "DocumentRecord" (jika ada)
+  - relatedEntityId = id entitas terkait
+  Notifikasi ditampilkan sebagai
+  "belum dibaca" di UI user.
+end note
+
+note right of DIBACA
+  isRead = true.
+  Notifikasi tidak dihapus secara otomatis.
+  Riwayat notifikasi tetap tampil
+  di panel notifikasi user.
+  Tidak ada soft delete untuk notifikasi
+  di v1 (baca-saja setelah dibaca).
+end note
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml sequence-public-verification
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Sequence: Verifikasi Dokumen Publik (Public Document Verification)
+
+autonumber
+
+actor "Publik / Pihak Luar" as Public
+participant "PublicController\n(/api/v1/public/verify/*)" as Ctrl
+participant "DocumentVerificationService" as Svc
+database "PostgreSQL" as DB
+
+note over Public, DB
+  DocumentVerification adalah fitur QR/link verifikasi publik
+  untuk memverifikasi keabsahan profil/sertifikat pegawai
+  tanpa memerlukan login ke sistem.
+end note
+
+Public -> Ctrl : GET /api/v1/public/verify/{code}
+activate Ctrl
+
+Ctrl -> Svc : verifyPublicCode(code)
+activate Svc
+
+Svc -> DB : SELECT DocumentVerification\nWHERE code = :code
+DB --> Svc : record
+
+alt code not found
+    Svc --> Ctrl : { valid: false, reason: "Kode tidak ditemukan" }
+    Ctrl --> Public : 404 { valid: false }
+end
+
+alt revokedAt IS NOT NULL
+    Svc --> Ctrl : { valid: false, reason: "Dokumen telah dicabut" }
+    Ctrl --> Public : 200 { valid: false, revokeReason }
+end
+
+alt expiresAt < NOW()
+    Svc --> Ctrl : { valid: false, reason: "Verifikasi telah kadaluarsa" }
+    Ctrl --> Public : 200 { valid: false }
+end
+
+Svc -> DB : SELECT Employee, User details\nWHERE id = subjectEmployeeId
+DB --> Svc : Employee profile data
+
+Svc --> Ctrl : {\n  valid: true,\n  employee: { name, employeeId, nik },\n  issuedAt, expiresAt\n}
+deactivate Svc
+
+Ctrl --> Public : 200 {\n  valid: true,\n  data: verificationResult\n}
+deactivate Ctrl
+
+@enduml

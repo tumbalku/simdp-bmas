@@ -1,0 +1,55 @@
+@startuml component-frontend-backend-flow
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Component: Frontend & Backend Data Flow
+
+package "Frontend (Browser)" {
+    [RSC Page / Layout] as RSCPage
+    [Client Component] as CC
+    [hooks.ts (TanStack Query)] as Hooks
+    [api.ts (fetch wrapper)] as APIClient
+}
+
+package "Next.js Server" {
+    [Server Action\n(actions.ts)] as SA
+    [Route Handler\n(/api/v1/*)] as RH
+    [Middleware\n(middleware.ts)] as MW
+}
+
+package "Module Service Layer" {
+    [service.ts] as Service
+}
+
+database "PostgreSQL\n(via Prisma)" as DB
+database "File Storage\n(IStorageProvider)" as Storage
+
+RSCPage --> SA : invoke (forms, mutations)
+RSCPage --> Service : direct call (SSR data fetch)
+CC --> Hooks : trigger query/mutation
+Hooks --> APIClient : call
+APIClient --> RH : HTTPS fetch
+RH --> MW : protected by
+MW --> RH : allows or 401
+
+SA --> Service : calls
+RH --> Service : calls
+Service --> DB
+Service --> Storage : upload/download
+
+note right of MW
+  JWT validation.
+  Redirects unauthenticated
+  requests to /login.
+  Does NOT replace RBAC
+  in service layer.
+end note
+
+note right of RSCPage
+  RSC = React Server Component.
+  Can call service.ts directly.
+  No client hooks needed.
+end note
+
+@enduml

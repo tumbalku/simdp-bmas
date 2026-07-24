@@ -1,0 +1,56 @@
+@startuml activity-reminder-expiry
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityFontSize 12
+
+title SIMDP - Activity Diagram: Cron Reminder & Auto Expiry Dokumen
+
+start
+
+:Vercel Cron trigger harian;
+:POST /api/v1/cron/reminder;
+
+partition "H-30 Reminder" {
+    :Query DocumentRecord WHERE:\n- status = APPROVED\n- isCurrent = true\n- expiryDate BETWEEN TODAY dan TODAY+30\n- reminderH30SentAt IS NULL;
+    
+    if (Ada dokumen?) then (Ya)
+        :Kirim notifikasi in-app & email ke masing-masing owner;
+        :UPDATE reminderH30SentAt = NOW();
+    endif
+}
+
+partition "H-7 Reminder" {
+    :Query DocumentRecord WHERE:\n- status = APPROVED\n- expiryDate BETWEEN TODAY dan TODAY+7\n- reminderH7SentAt IS NULL;
+    
+    if (Ada dokumen?) then (Ya)
+        :Kirim notifikasi in-app & email;
+        :UPDATE reminderH7SentAt = NOW();
+    endif
+}
+
+partition "H-1 Reminder" {
+    :Query DocumentRecord WHERE:\n- status = APPROVED\n- expiryDate = TOMORROW\n- reminderH1SentAt IS NULL;
+    
+    if (Ada dokumen?) then (Ya)
+        :Kirim notifikasi in-app & email;
+        :UPDATE reminderH1SentAt = NOW();
+    endif
+}
+
+:POST /api/v1/cron/expiry;
+
+partition "Auto Expiry" {
+    :Query DocumentRecord WHERE:\n- status IN (PENDING, APPROVED)\n- isCurrent = true\n- expiryDate < TODAY;
+    
+    if (Ada dokumen kadaluarsa?) then (Ya)
+        :UPDATE DocumentRecord SET status = EXPIRED;
+        :Kirim notifikasi in-app ke owner:\n"Dokumen Anda telah kadaluarsa";
+    endif
+}
+
+:Log SecurityLog (CRON_COMPLETED);
+:Return 200 OK - Summary;
+
+stop
+
+@enduml

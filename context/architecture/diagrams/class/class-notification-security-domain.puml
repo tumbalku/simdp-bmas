@@ -1,0 +1,92 @@
+@startuml class-notification-security-domain
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Class Diagram: Notification, Security & Settings Domain
+
+enum NotificationType {
+    DOCUMENT_STATUS
+    DOCUMENT_VERIFICATION
+    EXPIRY_REMINDER
+    VERIFICATION_REQUIRED
+    INFO
+}
+
+enum SecurityLogStatus {
+    SUCCESS
+    FAILED
+}
+
+enum SecurityActorRole {
+    ADMIN
+    STAFF
+    EMPLOYEE
+    PUBLIC
+    SYSTEM
+}
+
+class Notification {
+    +String id
+    +String userId
+    +NotificationType type
+    +String title
+    +String message
+    +Boolean isRead
+    +String relatedEntityType
+    +String relatedEntityId
+    +DateTime createdAt
+    --
+    +markAsRead(): void
+}
+
+class SecurityLog {
+    +String id
+    +DateTime timestamp
+    +String actorId
+    +String actorName
+    +SecurityActorRole actorRole
+    +String eventType
+    +String resource
+    +String ipAddress
+    +SecurityLogStatus status
+    +Json metadata
+}
+
+note right of SecurityLog
+  APPEND-ONLY:
+  Tidak ada operasi UPDATE atau DELETE
+  pada tabel SecurityLog.
+end note
+
+class SystemSetting {
+    +String key <<PK>>
+    +String value
+    +String label
+    +String description
+    +DateTime updatedAt
+}
+
+note right of SystemSetting
+  Key yang ada:
+  - reminder_days_h1 (default: 1)
+  - reminder_days_h7 (default: 7)
+  - reminder_days_h30 (default: 30)
+  - default_max_upload_mb
+  - soft_delete_retention_days
+end note
+
+class RateLimitBucket {
+    +String key <<PK>>
+    +String category
+    +Int count
+    +DateTime resetAt
+    +DateTime limitedLoggedAt
+}
+
+note right of RateLimitBucket
+  Max 5 login gagal / 15 menit / IP
+  Category: "login", "forgot-password"
+end note
+
+@enduml

@@ -1,0 +1,232 @@
+@startuml ERD_SIMDP
+
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+
+title SIMDP - Entity Relationship Diagram (PostgreSQL / Prisma Database Schema)
+
+entity "User" as user {
+    * id : String <<PK>>
+    --
+    * email : String <<UNIQUE>>
+    * passwordHash : String
+    * role : Role (ADMIN, STAFF, EMPLOYEE)
+    * isActive : Boolean = true
+    lastLoginAt : DateTime
+    * createdAt : DateTime
+    * updatedAt : DateTime
+    deletedAt : DateTime
+}
+
+entity "RefreshToken" as refreshToken {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK>>
+    * token : String <<UNIQUE>>
+    userAgent : String
+    ipAddress : String
+    * expiresAt : DateTime
+    revokedAt : DateTime
+    * createdAt : DateTime
+}
+
+entity "PasswordResetToken" as passwordResetToken {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK>>
+    * token : String <<UNIQUE>>
+    * expiresAt : DateTime
+    usedAt : DateTime
+    * createdAt : DateTime
+}
+
+entity "Employee" as employee {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK, UNIQUE>>
+    employeeId : String [NIP] <<UNIQUE>>
+    nik : String [NIK] <<UNIQUE>>
+    * name : String
+    * status : EmployeeStatus (ACTIVE, RETIRED, STUDY_ASSIGNMENT)
+    avatarUrl : String
+    gender : EmployeeGender
+    birthDate : Date
+    birthPlace : String
+    phone : String
+    address : String
+    employmentStatusId : String <<FK>>
+    employeeGroupId : String <<FK>>
+    employeePositionId : String <<FK>>
+    employeeRankId : String <<FK>>
+    workplaceId : String <<FK>>
+    * createdAt : DateTime
+    * updatedAt : DateTime
+    deletedAt : DateTime
+}
+
+entity "EmploymentStatus" as employmentStatus {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+}
+
+entity "EmployeeGroup" as employeeGroup {
+    * id : String <<PK>>
+    --
+    * name : String
+    * employmentStatusId : String <<FK>>
+}
+
+entity "ProfessionGroup" as professionGroup {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+}
+
+entity "EmployeePosition" as employeePosition {
+    * id : String <<PK>>
+    --
+    * name : String
+    * professionGroupId : String <<FK>>
+}
+
+entity "EmployeeRank" as employeeRank {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+}
+
+entity "Workplace" as workplace {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+}
+
+entity "EmployeeCareerHistory" as careerHistory {
+    * id : String <<PK>>
+    --
+    * employeeId : String <<FK>>
+    employmentStatusId : String <<FK>>
+    employeeGroupId : String <<FK>>
+    employeePositionId : String <<FK>>
+    employeeRankId : String <<FK>>
+    workplaceId : String <<FK>>
+    * effectiveDate : Date
+    endDate : Date
+    note : String
+    * createdAt : DateTime
+}
+
+entity "DocumentType" as documentType {
+    * id : String <<PK>>
+    --
+    * code : String <<UNIQUE>>
+    * name : String
+    * archiveCategory : ArchiveCategory
+    * isMandatory : Boolean
+    * allowMultiple : Boolean
+    * requiresExpiryDate : Boolean
+    * requiresIssueDate : Boolean
+    * requiresDocumentNumber : Boolean
+    * allowedFormats : String
+    * maxSizeMb : Float
+    deletedAt : DateTime
+}
+
+entity "DocumentRecord" as documentRecord {
+    * id : String <<PK>>
+    --
+    * ownerId : String <<FK>>
+    * documentTypeId : String <<FK>>
+    title : String
+    * status : DocumentStatus (PENDING, APPROVED, REJECTED, EXPIRED, REPLACED)
+    * isCurrent : Boolean = true
+    * allowMultipleSnapshot : Boolean = false
+    * fileName : String
+    * filePath : String
+    fileSize : BigInt
+    mimeType : String
+    fileHash : String
+    * storageProvider : StorageProvider (LOCAL, SUPABASE, S3)
+    documentNumber : String
+    issueDate : Date
+    expiryDate : Date
+    reminderH30SentAt : DateTime
+    reminderH7SentAt : DateTime
+    reminderH1SentAt : DateTime
+    * uploadedAt : DateTime
+    * updatedAt : DateTime
+    deletedAt : DateTime
+}
+
+entity "VerificationHistory" as verificationHistory {
+    * id : String <<PK>>
+    --
+    * documentRecordId : String <<FK>>
+    * status : DocumentStatus
+    reviewedById : String <<FK>>
+    reviewNote : String
+    * reviewedAt : DateTime
+}
+
+entity "Notification" as notification {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK>>
+    * type : NotificationType
+    * title : String
+    message : String
+    * isRead : Boolean = false
+    relatedEntityType : String
+    relatedEntityId : String
+    * createdAt : DateTime
+}
+
+entity "SecurityLog" as securityLog {
+    * id : String <<PK>>
+    --
+    * timestamp : DateTime
+    actorId : String <<FK>>
+    * actorName : String
+    * actorRole : SecurityActorRole
+    * eventType : String
+    * resource : String
+    ipAddress : String
+    * status : SecurityLogStatus (SUCCESS, FAILED)
+    metadata : Json
+}
+
+entity "SystemSetting" as systemSetting {
+    * key : String <<PK>>
+    --
+    * value : String
+    label : String
+    description : String
+    updatedAt : DateTime
+}
+
+' Relationships (Crow's Foot notation)
+user ||--o| employee : "has profile"
+user ||--o{ refreshToken : "owns"
+user ||--o{ passwordResetToken : "requests"
+user ||--o{ notification : "receives"
+user ||--o{ securityLog : "performs"
+
+employee }|--o| employmentStatus : "assigned status"
+employee }|--o| employeeGroup : "assigned group"
+employee }|--o| employeePosition : "assigned position"
+employee }|--o| employeeRank : "assigned rank"
+employee }|--o| workplace : "assigned workplace"
+employee ||--o{ careerHistory : "logs career"
+
+employmentStatus ||--o{ employeeGroup : "contains"
+professionGroup ||--o{ employeePosition : "categorizes"
+
+employee ||--o{ documentRecord : "owns documents"
+documentType ||--o{ documentRecord : "categorizes"
+documentRecord ||--o{ verificationHistory : "tracks reviews"
+user ||--o{ verificationHistory : "reviews"
+
+@enduml

@@ -1,0 +1,40 @@
+@startuml use-case-staff
+skinparam actorStyle stickman
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Use Case: Staf Kepegawaian (Staff / Verifikator)
+
+actor employee as "Pegawai (Employee)"
+actor staff as "Staf Kepegawaian (Staff)"
+staff --|> employee
+
+rectangle "Fitur Tambahan Staf" {
+    usecase UC_ViewPending as "Lihat Antrean Verifikasi\n(Semua Dokumen PENDING)"
+    usecase UC_ReviewDoc as "Tinjau File & Metadata Dokumen"
+    usecase UC_Approve as "Approve Dokumen\n(Set APPROVED)"
+    usecase UC_Reject as "Reject Dokumen\n(Set REJECTED + Review Note)"
+    usecase UC_MonitorExpiry as "Monitor Dokumen Mendekati Kadaluarsa"
+    usecase UC_ManageEmployee as "Kelola Data Pegawai\n(Tambah / Edit / Non-aktifkan)"
+    usecase UC_ManageCareer as "Kelola Riwayat Karir Pegawai\n(Mutasi / Promosi)"
+    usecase UC_ExportEmployee as "Export Data Pegawai\n(CSV / Excel)"
+    usecase UC_ViewStats as "Lihat Dashboard Statistik\n(Read-only Aggregate)"
+}
+
+staff --> UC_ViewPending
+staff --> UC_ReviewDoc
+staff --> UC_Approve
+staff --> UC_Reject
+staff --> UC_MonitorExpiry
+staff --> UC_ManageEmployee
+staff --> UC_ManageCareer
+staff --> UC_ExportEmployee
+staff --> UC_ViewStats
+
+UC_ViewPending ..> UC_ReviewDoc : "<<include>>"
+UC_ReviewDoc ..> UC_Approve : "<<extend>>"
+UC_ReviewDoc ..> UC_Reject : "<<extend>>"
+UC_Reject ..> UC_Approve : mutually exclusive
+
+@enduml

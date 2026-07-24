@@ -1,0 +1,37 @@
+@startuml state-document-record
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - State Diagram: DocumentRecord Lifecycle
+
+[*] --> PENDING : Pegawai unggah dokumen\n(POST /api/v1/documents/upload)
+
+PENDING --> APPROVED : Staf / Admin approve\n(VerificationHistory dibuat)
+
+PENDING --> REJECTED : Staf / Admin reject\n(reviewNote wajib, VerificationHistory dibuat)
+
+APPROVED --> EXPIRED : Cron job harian\n(expiryDate < TODAY)
+
+REJECTED --> PENDING : Pegawai upload ulang dokumen baru\n(re-submit)
+
+APPROVED --> REPLACED : Dokumen baru diunggah\n(DB Trigger: handle_document_replacement)\n[hanya jika allowMultiple = false]
+
+PENDING --> REPLACED : Dokumen baru diunggah\nsaat masih pending\n[hanya jika allowMultiple = false]
+
+note right of REPLACED
+  Status terminal untuk snapshot lama.
+  isCurrent = false.
+  Riwayat tetap tersimpan di VerificationHistory.
+end note
+
+note right of EXPIRED
+  Riwayat APPROVED sebelumnya
+  tetap tersimpan di VerificationHistory.
+  Pegawai perlu upload dokumen baru.
+end note
+
+EXPIRED --> [*] : Soft delete (deletedAt)\n(Admin only, bukan proses otomatis)
+REPLACED --> [*] : Soft delete
+REJECTED --> [*] : Soft delete
+
+@enduml

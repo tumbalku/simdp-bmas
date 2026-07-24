@@ -1,0 +1,34 @@
+@startuml state-refresh-token
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - State Diagram: RefreshToken Lifecycle
+
+[*] --> ACTIVE : Login sukses\n(INSERT RefreshToken dengan hash)
+
+ACTIVE --> REVOKED : Logout eksplisit\n(POST /api/v1/auth/logout)
+
+ACTIVE --> REVOKED : Login baru (single-device enforcement)\n(Semua token lama di-revoke saat login)
+
+ACTIVE --> ROTATED : Refresh token berhasil\n(token lama revoke, token baru dibuat)
+
+ROTATED --> [*] : Token lama tercatat\nrevokedAt IS NOT NULL
+
+ACTIVE --> EXPIRED : expiresAt < NOW()\n(tidak diperpanjang = 7 hari tidak aktif)
+
+REVOKED --> [*] : Record tetap ada di DB\n(untuk audit trail)
+
+EXPIRED --> [*] : Record tetap ada di DB
+
+note right of ACTIVE
+  Hanya satu token ACTIVE per user
+  karena single-device enforcement.
+end note
+
+note right of ROTATED
+  Saat refresh berhasil:
+  1. Token lama di-revoke (revokedAt = NOW())
+  2. Token baru di-insert (ACTIVE)
+end note
+
+@enduml

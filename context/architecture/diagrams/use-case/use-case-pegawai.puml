@@ -1,0 +1,32 @@
+@startuml use-case-pegawai
+skinparam actorStyle stickman
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Use Case: Pegawai (Employee)
+
+actor employee as "Pegawai (Employee)"
+
+rectangle "Fitur Khusus Pegawai" {
+    usecase UC_ViewProfile as "Lihat Profil & Data Diri Saya"
+    usecase UC_UploadDoc as "Unggah Dokumen\n(POST /api/v1/documents/upload)"
+    usecase UC_ViewDoc as "Lihat & Unduh Dokumen Saya"
+    usecase UC_UpdateDoc as "Perbarui Dokumen\n(Re-upload untuk Rejected / Expired)"
+    usecase UC_ViewNotif as "Lihat Notifikasi In-App"
+    usecase UC_MarkRead as "Tandai Notifikasi Dibaca"
+
+    usecase UC_AutoReplace as "Snapshot Lama Otomatis REPLACED\n(DB Trigger, bukan User Action)"
+}
+
+employee --> UC_ViewProfile
+employee --> UC_UploadDoc
+employee --> UC_ViewDoc
+employee --> UC_UpdateDoc
+employee --> UC_ViewNotif
+employee --> UC_MarkRead
+
+UC_UploadDoc ..> UC_AutoReplace : "<<extend>>\n(Jika allowMultiple = false)"
+UC_UpdateDoc ..> UC_UploadDoc : "<<include>>"
+
+@enduml

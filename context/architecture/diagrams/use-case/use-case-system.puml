@@ -1,0 +1,40 @@
+@startuml use-case-system
+skinparam actorStyle stickman
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Use Case: Sistem / Cron Job (Automated)
+
+actor system as "Sistem / Vercel Cron"
+
+rectangle "Fitur Otomasi Sistem" {
+    usecase UC_CronExpiry as "Update Status Dokumen Kadaluarsa\n(Set EXPIRED)\nPOST /api/v1/cron/expiry"
+    usecase UC_CronReminderH30 as "Kirim Reminder H-30\nSebelum Kadaluarsa"
+    usecase UC_CronReminderH7 as "Kirim Reminder H-7\nSebelum Kadaluarsa"
+    usecase UC_CronReminderH1 as "Kirim Reminder H-1\nSebelum Kadaluarsa"
+    usecase UC_SendNotif as "Kirim In-App Notification"
+    usecase UC_SendEmail as "Kirim Email Notification"
+}
+
+system --> UC_CronExpiry
+system --> UC_CronReminderH30
+system --> UC_CronReminderH7
+system --> UC_CronReminderH1
+
+UC_CronExpiry ..> UC_SendNotif : "<<include>>"
+UC_CronReminderH30 ..> UC_SendNotif : "<<include>>"
+UC_CronReminderH30 ..> UC_SendEmail : "<<include>>"
+UC_CronReminderH7 ..> UC_SendNotif : "<<include>>"
+UC_CronReminderH7 ..> UC_SendEmail : "<<include>>"
+UC_CronReminderH1 ..> UC_SendNotif : "<<include>>"
+UC_CronReminderH1 ..> UC_SendEmail : "<<include>>"
+
+note right of UC_CronReminderH30
+  Guard: reminderH30SentAt IS NULL
+  Guard: reminderH7SentAt IS NULL
+  Guard: reminderH1SentAt IS NULL
+  (masing-masing hanya dikirim sekali per tahap)
+end note
+
+@enduml

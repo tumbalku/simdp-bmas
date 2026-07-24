@@ -1,0 +1,166 @@
+@startuml sequence-master-data-admin
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Sequence: Pengelolaan Master Data oleh Admin\n(Create / Update / Soft Delete / Restore)
+
+autonumber
+
+actor "Admin (Browser)" as Admin
+participant "MasterDataController\n(/api/v1/master/*)" as Ctrl
+participant "MasterDataService" as Svc
+participant "SecurityService\n(logActivity)" as Sec
+database "PostgreSQL" as DB
+
+== Skenario 1: Tambah Data Master (Create) — Sukses ==
+
+Admin -> Ctrl : POST /api/v1/master/{entity}\n{ nama, kode, ... }
+activate Ctrl
+
+Ctrl -> Ctrl : verifyJWT(cookie: access_token)
+Ctrl -> Ctrl : checkRole(role must be ADMIN)
+
+alt Role bukan ADMIN
+    Ctrl --> Admin : 403 Forbidden
+    deactivate Ctrl
+end
+
+Ctrl -> Svc : createMasterData({ entity, payload })
+activate Svc
+
+Svc -> Svc : validateZod(payload)
+
+alt Input tidak valid
+    Svc --> Ctrl : throw ValidationError
+    Ctrl --> Admin : 400 Bad Request { errors per field }
+    deactivate Svc
+    deactivate Ctrl
+end
+
+Svc -> DB : SELECT WHERE nama = payload.nama\n(cek duplikat)
+DB --> Svc : null (tidak ada duplikat)
+
+Svc -> DB : INSERT INTO {entity_table}\n(id, nama, createdAt)
+DB --> Svc : record baru
+
+Svc -> Sec : logActivity(MASTER_DATA_CREATED,\n{ entity, id, nama })
+Svc --> Ctrl : MasterData DTO
+deactivate Svc
+
+Ctrl --> Admin : 201 Created { data: MasterData }
+deactivate Ctrl
+
+== Skenario 2: Ubah Data Master (Update) — Sukses ==
+
+Admin -> Ctrl : PATCH /api/v1/master/{entity}/{id}\n{ nama: "Nama Baru" }
+activate Ctrl
+
+Ctrl -> Ctrl : verifyJWT() + checkRole(ADMIN)
+Ctrl -> Svc : updateMasterData({ entity, id, payload })
+activate Svc
+
+Svc -> Svc : validateZod(payload)
+Svc -> DB : SELECT WHERE id = :id\n(cek data exist & tidak terhapus)
+DB --> Svc : record yang ada
+
+Svc -> DB : SELECT WHERE nama = payload.nama\nAND id != :id\n(cek duplikat nama lain)
+
+alt Nama sudah dipakai data lain
+    DB --> Svc : record lain ditemukan
+    Svc --> Ctrl : throw ConflictError
+    Ctrl --> Admin : 409 Conflict "Nama sudah digunakan"
+    deactivate Svc
+    deactivate Ctrl
+end
+
+DB --> Svc : null (aman)
+Svc -> DB : UPDATE {entity_table}\nSET nama = :nama, updatedAt = NOW()
+DB --> Svc : record terbaru
+
+Svc -> Sec : logActivity(MASTER_DATA_UPDATED,\n{ entity, id, perubahan })
+Svc --> Ctrl : MasterData DTO
+deactivate Svc
+
+Ctrl --> Admin : 200 OK { data: MasterData }
+deactivate Ctrl
+
+== Skenario 3: Hapus Data Master (Soft Delete) — Gagal karena Relasi Aktif ==
+
+Admin -> Ctrl : DELETE /api/v1/master/{entity}/{id}
+activate Ctrl
+
+Ctrl -> Ctrl : verifyJWT() + checkRole(ADMIN)
+Ctrl -> Svc : deleteMasterData({ entity, id })
+activate Svc
+
+Svc -> DB : SELECT FROM {related_tables}\nWHERE {entity_fk} = :id\nAND deletedAt IS NULL\n(cek apakah masih direferensikan)
+DB --> Svc : 3 record relasi aktif ditemukan
+
+Svc --> Ctrl : throw ConflictError\n"Data masih digunakan oleh 3 record aktif"
+deactivate Svc
+
+Ctrl --> Admin : 409 Conflict\n"Data tidak bisa dihapus:\nmasih digunakan"
+deactivate Ctrl
+
+== Skenario 4: Hapus Data Master (Soft Delete) — Berhasil ==
+
+Admin -> Ctrl : DELETE /api/v1/master/{entity}/{id}
+activate Ctrl
+
+Ctrl -> Ctrl : verifyJWT() + checkRole(ADMIN)
+Ctrl -> Svc : deleteMasterData({ entity, id })
+activate Svc
+
+Svc -> DB : SELECT FROM related_tables\n(cek relasi aktif)
+DB --> Svc : null (tidak ada relasi aktif)
+
+Svc -> DB : UPDATE {entity_table}\nSET deletedAt = NOW()\nWHERE id = :id
+note right of DB
+  Soft delete: data tidak dihapus permanen.
+  Tersimpan di DB dengan deletedAt terisi.
+  Bisa dipulihkan (restore) oleh Admin.
+end note
+DB --> Svc : OK
+
+Svc -> Sec : logActivity(MASTER_DATA_DELETED, { entity, id })
+Svc --> Ctrl : { success: true }
+deactivate Svc
+
+Ctrl --> Admin : 200 OK "Data berhasil dihapus"
+deactivate Ctrl
+
+== Skenario 5: Pulihkan Data Terhapus (Restore) ==
+
+Admin -> Ctrl : POST /api/v1/master/{entity}/{id}/restore
+activate Ctrl
+
+Ctrl -> Ctrl : verifyJWT() + checkRole(ADMIN)
+Ctrl -> Svc : restoreMasterData({ entity, id })
+activate Svc
+
+Svc -> DB : SELECT WHERE id = :id\nAND deletedAt IS NOT NULL
+DB --> Svc : record terhapus ditemukan
+
+Svc -> DB : SELECT WHERE nama = record.nama\nAND deletedAt IS NULL\n(cek duplikat di data aktif)
+
+alt Nama sudah ada di data aktif
+    DB --> Svc : konflik duplikat ditemukan
+    Svc --> Ctrl : throw ConflictError
+    Ctrl --> Admin : 409 Conflict\n"Nama sudah ada di data aktif.\nUbah nama sebelum dipulihkan."
+    deactivate Svc
+    deactivate Ctrl
+end
+
+DB --> Svc : null (aman)
+Svc -> DB : UPDATE {entity_table}\nSET deletedAt = NULL\nWHERE id = :id
+DB --> Svc : record aktif kembali
+
+Svc -> Sec : logActivity(MASTER_DATA_RESTORED, { entity, id })
+Svc --> Ctrl : MasterData DTO
+deactivate Svc
+
+Ctrl --> Admin : 200 OK { data: MasterData }\n"Data berhasil dipulihkan"
+deactivate Ctrl
+
+@enduml

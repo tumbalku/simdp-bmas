@@ -1,0 +1,65 @@
+@startuml activity-upload-document
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityFontSize 12
+
+title SIMDP - Activity Diagram: Upload Dokumen Pegawai
+
+start
+
+:Pegawai membuka halaman Upload Dokumen;
+:Pilih DocumentType dari daftar yang sesuai profil;
+:Pilih file dari perangkat;
+
+partition "Validasi Client-Side" {
+    if (Format file sesuai allowedFormats?) then (Tidak)
+        :Tampilkan error: format tidak didukung;
+        stop
+    endif
+    if (Ukuran file <= maxSizeMb?) then (Tidak)
+        :Tampilkan error: file terlalu besar;
+        stop
+    endif
+}
+
+:Submit form -> POST /api/v1/documents/upload;
+
+partition "Server: Auth & Validasi" {
+    :Middleware verifikasi JWT;
+    if (Token valid?) then (Tidak)
+        :Return 401 Unauthorized;
+        stop
+    endif
+    :Validasi Zod schema (documentTypeId wajib);
+    :Verifikasi kepemilikan: employee hanya upload milik sendiri;
+    :Baca DocumentType dari DB (maxSizeMb, allowedFormats, allowMultiple);
+    :Verifikasi MIME type dari isi file (bukan hanya ekstensi);
+    if (Validasi lolos semua?) then (Tidak)
+        :Return 400 Bad Request;
+        stop
+    endif
+}
+
+partition "Server: Simpan File & Metadata" {
+    :Hitung SHA-256 hash file;
+    :Generate filePath standar;
+    :Upload file via IStorageProvider.upload();
+    :INSERT DocumentRecord (status=PENDING, isCurrent=true);
+    
+    note right
+      DB Trigger: handle_document_replacement()
+      Jika allowMultiple = false:
+      - Cari dokumen isCurrent=true sebelumnya
+      - Set status=REPLACED, isCurrent=false
+    end note
+    
+    :Log SecurityLog (DOCUMENT_UPLOADED);
+    :Kirim Notifikasi in-app ke pegawai\n"Dokumen berhasil diunggah, menunggu verifikasi";
+}
+
+:Return 201 Created - DocumentRecord DTO;
+:Halaman menampilkan status PENDING;
+
+stop
+
+@enduml

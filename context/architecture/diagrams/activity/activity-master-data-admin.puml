@@ -1,0 +1,196 @@
+@startuml activity-master-data-admin
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityFontSize 12
+skinparam swimlaneBorderThickness 1
+
+title SIMDP - Activity Diagram: Pengelolaan Master Data oleh Admin\n(CRUD + Restore + Audit Log — dengan Swimlane)
+
+|Admin (Browser)|
+start
+
+:Buka halaman Master Data;
+:Pilih kategori data master\n(mis. Jenis Dokumen, Status Kepegawaian,\nUnit Kerja, Jabatan, Pangkat, dll.);
+:Pilih aksi: TAMBAH / UBAH / HAPUS / PULIHKAN;
+
+|Admin (Browser)|
+fork
+
+    ' ================================
+    ' TAMBAH DATA
+    ' ================================
+    :Klik tombol "Tambah";
+    :Isi form data baru;
+    :Klik "Simpan";
+
+    |Server (Route Handler)|
+    :Terima permintaan POST;
+    :Verifikasi JWT & cek role ADMIN;
+
+    if (Role bukan ADMIN?) then (Ya)
+        :Kembalikan 403 Forbidden;
+        |Admin (Browser)|
+        :Tampilkan pesan "Akses ditolak";
+        stop
+    endif
+
+    :Validasi input dengan Zod Schema;
+
+    if (Input tidak valid?) then (Ya)
+        :Kembalikan 400 Bad Request\n(pesan error per field);
+        |Admin (Browser)|
+        :Tampilkan error di form;
+        stop
+    endif
+
+    |Service (MasterDataService)|
+    :Cek apakah data dengan nama / kode yang sama sudah ada;
+
+    if (Data duplikat ditemukan?) then (Ya)
+        :Kembalikan error konflik;
+        |Admin (Browser)|
+        :Tampilkan pesan "Data sudah ada";
+        stop
+    endif
+
+    |Repository & Database|
+    :INSERT record baru ke tabel master\n(dengan id, nama, createdAt);
+
+    |Service (MasterDataService)|
+    :logActivity(MASTER_DATA_CREATED, { entity, id, nama });
+
+    |Admin (Browser)|
+    :Tampilkan konfirmasi "Data berhasil ditambahkan";
+
+fork again
+
+    ' ================================
+    ' UBAH DATA
+    ' ================================
+    :Klik ikon "Edit" pada data yang dipilih;
+    :Ubah nilai yang diinginkan di form;
+    :Klik "Simpan Perubahan";
+
+    |Server (Route Handler)|
+    :Terima permintaan PATCH/:id;
+    :Verifikasi JWT & cek role ADMIN;
+    :Validasi input dengan Zod Schema;
+
+    if (Input tidak valid?) then (Ya)
+        :Kembalikan 400 Bad Request;
+        |Admin (Browser)|
+        :Tampilkan error di form;
+        stop
+    endif
+
+    |Service (MasterDataService)|
+    :Cek apakah data target ditemukan (findById);
+
+    if (Data tidak ditemukan?) then (Ya)
+        :Kembalikan 404 Not Found;
+        |Admin (Browser)|
+        :Tampilkan "Data tidak ditemukan";
+        stop
+    endif
+
+    :Cek apakah perubahan memengaruhi\ndata aktif yang berelasi\n(mis. DocumentType dipakai di DocumentRecord aktif);
+
+    if (Ada relasi aktif yang terdampak?) then (Ya)
+        note right
+          Peringatan ini bersifat informatif,
+          perubahan tetap bisa disimpan.
+        end note
+        :Tampilkan peringatan dampak\n(tetap lanjutkan setelah konfirmasi);
+    endif
+
+    |Repository & Database|
+    :UPDATE record di tabel master\n(updatedAt diperbarui);
+
+    |Service (MasterDataService)|
+    :logActivity(MASTER_DATA_UPDATED, { entity, id, perubahan });
+
+    |Admin (Browser)|
+    :Tampilkan konfirmasi "Data berhasil diperbarui";
+
+fork again
+
+    ' ================================
+    ' HAPUS (SOFT DELETE)
+    ' ================================
+    :Klik ikon "Hapus" pada data yang dipilih;
+    :Konfirmasi dialog "Yakin ingin menghapus?";
+
+    |Server (Route Handler)|
+    :Terima permintaan DELETE/:id;
+    :Verifikasi JWT & cek role ADMIN;
+
+    |Service (MasterDataService)|
+    :Cek apakah data masih direferensikan\noleh record lain yang aktif\n(mis. Employee masih menggunakan Jabatan ini);
+
+    if (Masih direferensikan record aktif?) then (Ya)
+        :Kembalikan 409 Conflict\n"Data masih digunakan, tidak dapat dihapus";
+        |Admin (Browser)|
+        :Tampilkan pesan "Tidak bisa dihapus:\ndata masih digunakan";
+        stop
+    endif
+
+    |Repository & Database|
+    :SET deletedAt = SEKARANG\n(soft delete, data tidak benar-benar terhapus);
+
+    |Service (MasterDataService)|
+    :logActivity(MASTER_DATA_DELETED, { entity, id });
+
+    |Admin (Browser)|
+    :Tampilkan konfirmasi "Data berhasil dihapus";
+    :Data tidak lagi tampil di daftar aktif;
+
+fork again
+
+    ' ================================
+    ' PULIHKAN (RESTORE)
+    ' ================================
+    :Buka filter "Tampilkan data terhapus";
+    :Klik "Pulihkan" pada data yang dipilih;
+
+    |Server (Route Handler)|
+    :Terima permintaan POST/:id/restore;
+    :Verifikasi JWT & cek role ADMIN;
+
+    |Service (MasterDataService)|
+    :Cek apakah data memang dalam kondisi terhapus\n(deletedAt IS NOT NULL);
+
+    if (Data tidak dalam kondisi terhapus?) then (Ya)
+        :Kembalikan 400 Bad Request;
+        |Admin (Browser)|
+        :Tampilkan "Data tidak perlu dipulihkan";
+        stop
+    endif
+
+    :Cek apakah data dengan nama yang sama\nsudah ada dalam kondisi aktif\n(mencegah duplikat setelah restore);
+
+    if (Nama sudah ada di data aktif?) then (Ya)
+        :Kembalikan 409 Conflict\n"Nama duplikat, ubah dulu sebelum dipulihkan";
+        |Admin (Browser)|
+        :Tampilkan pesan konflik duplikat;
+        stop
+    endif
+
+    |Repository & Database|
+    :SET deletedAt = NULL\n(data kembali aktif);
+
+    |Service (MasterDataService)|
+    :logActivity(MASTER_DATA_RESTORED, { entity, id });
+
+    |Admin (Browser)|
+    :Tampilkan konfirmasi "Data berhasil dipulihkan";
+    :Data kembali muncul di daftar aktif;
+
+end fork
+
+|Admin (Browser)|
+:Halaman di-refresh, daftar data terbaru ditampilkan;
+
+stop
+
+@enduml
