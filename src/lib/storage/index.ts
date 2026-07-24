@@ -157,16 +157,20 @@ class SupabaseStorageProvider implements IStorageProvider {
   }
 }
 
-// Stub for S3 to support compilation if selected.
+// Stub for S3 is not implemented yet. Throw error to fail-fast.
 class S3StorageProvider implements IStorageProvider {
   async upload(filePath: string, buffer: Buffer): Promise<string> {
-    return `s3/${filePath}?size=${buffer.length}`;
+    void buffer;
+    void filePath;
+    throw new Error("S3StorageProvider belum diimplementasikan. Harap gunakan local atau supabase storage provider.");
   }
   async getTemporaryUrl(filePath: string): Promise<string> {
-    return `https://s3.placeholder/${filePath}`;
+    void filePath;
+    throw new Error("S3StorageProvider belum diimplementasikan. Harap gunakan local atau supabase storage provider.");
   }
   async delete(filePath: string): Promise<void> {
     void filePath;
+    throw new Error("S3StorageProvider belum diimplementasikan. Harap gunakan local atau supabase storage provider.");
   }
 }
 

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { EVENT_NAMES, publishEvent } from "@/lib/events";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import { AppError } from "@/lib/errors";
 import * as repo from "../repositories/common";
 
 function getErrorMessage(error: unknown) {
@@ -16,6 +17,11 @@ export async function verifyDocument(
   reviewerName: string,
   reviewerRole: string
 ) {
+  // Hanya STAFF dan ADMIN yang berhak memverifikasi dokumen (RBAC gate di service layer)
+  if (reviewerRole !== "STAFF" && reviewerRole !== "ADMIN") {
+    throw new AppError("FORBIDDEN", "Anda tidak memiliki akses untuk memverifikasi dokumen.", 403);
+  }
+
   const doc = await repo.findDocumentForVerification(id);
 
   if (!doc) throw new Error("Dokumen tidak ditemukan atau sudah dihapus");

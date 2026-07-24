@@ -34,7 +34,7 @@ import {
 import {
   permanentDeleteDocumentAction,
   restoreDocumentAction,
-  softDeleteDocumentAction,
+  adminSoftDeleteDocumentAction,
 } from "@/modules/document";
 
 type ViewMode = "grid" | "list";
@@ -197,7 +197,7 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
     try {
       const result = isArchiveView
         ? await restoreDocumentAction(doc.id)
-        : await softDeleteDocumentAction(doc.id);
+        : await adminSoftDeleteDocumentAction(doc.id);
 
       if (result.ok) {
         toast.success(

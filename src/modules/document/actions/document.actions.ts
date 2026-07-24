@@ -218,7 +218,7 @@ export async function softDeleteDocumentAction(id: string) {
   try {
     const session = await requireAuth();
 
-    const success = await softDeleteDocument(id, session);
+    const success = await softDeleteDocument(id, session, { mode: "self" });
 
     revalidatePath("/documents");
     revalidatePath("/master-data/documents");
@@ -227,6 +227,23 @@ export async function softDeleteDocumentAction(id: string) {
   } catch (error: any) {
     console.error("softDeleteDocumentAction error:", error);
     return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED" });
+  }
+}
+
+export async function adminSoftDeleteDocumentAction(id: string) {
+  try {
+    const session = await requireAuth("ADMIN");
+    const actorName = await getActorDisplayName(session.userId, "Admin");
+
+    const success = await softDeleteDocument(id, session, { mode: "admin", actorName });
+
+    revalidatePath("/documents");
+    revalidatePath("/master-data/documents");
+
+    return { ok: true as const, data: { success } };
+  } catch (error: any) {
+    console.error("adminSoftDeleteDocumentAction error:", error);
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
 

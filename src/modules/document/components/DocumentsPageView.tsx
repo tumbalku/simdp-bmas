@@ -35,9 +35,10 @@ type DocumentsPageViewProps = {
   allDocuments: DocumentRecordListItem[];
   documentTypes: DocumentTypeOption[];
   canUpload: boolean;
+  currentRole: string;
 };
 
-export function DocumentsPageView({ documents, allDocuments, documentTypes, canUpload }: DocumentsPageViewProps) {
+export function DocumentsPageView({ documents, allDocuments, documentTypes, canUpload, currentRole }: DocumentsPageViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
@@ -279,12 +280,13 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
                       <AccordionItem value="documents" className="border-b-0">
                         <AccordionTrigger className="text-xs font-medium hover:no-underline">Lihat daftar dokumen</AccordionTrigger>
                         <AccordionContent className="pb-0">
-                          <DocumentList
-                            documents={group.documents}
-                            documentTypes={documentTypes}
-                            pendingDocumentId={pendingDocumentId}
-                            onArchive={openArchiveDialog}
-                          />
+                        <DocumentList
+                          documents={group.documents}
+                          documentTypes={documentTypes}
+                          pendingDocumentId={pendingDocumentId}
+                          onArchive={openArchiveDialog}
+                          currentRole={currentRole}
+                        />
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
@@ -326,6 +328,7 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
                             documentTypes={documentTypes}
                             pendingDocumentId={pendingDocumentId}
                             onArchive={openArchiveDialog}
+                            currentRole={currentRole}
                           />
                         </AccordionContent>
                       </AccordionItem>
