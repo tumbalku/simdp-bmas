@@ -14,7 +14,7 @@ type PageProps = {
 };
 
 export default async function Page({ searchParams }: PageProps) {
-  await requireAuth();
+  const session = await requireAuth();
   const params = await searchParams;
 
   const [documentsResult, allDocumentsResult, documentTypesResult] = await Promise.all([
@@ -37,6 +37,7 @@ export default async function Page({ searchParams }: PageProps) {
       allDocuments={allDocumentsResult.data}
       documentTypes={documentTypesResult.data}
       canUpload={true}
+      currentRole={session.role}
     />
   );
 }

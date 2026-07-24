@@ -45,13 +45,30 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error("Document upload route error:", error);
     if (error instanceof AppError) {
-      return errorResponse(error.code, error.message, error.details, error.status);
+      const message =
+        error.code === "UNAUTHENTICATED"
+          ? "User belum login"
+          : error.code === "FORBIDDEN"
+            ? "Akses ditolak."
+            : error.code === "VALIDATION_ERROR"
+              ? "Input dokumen tidak valid."
+              : error.code === "NOT_FOUND"
+                ? "Sumber data tidak ditemukan."
+                : error.code === "PAYLOAD_TOO_LARGE"
+                  ? "Ukuran file melebihi batas yang diizinkan."
+                  : "Terjadi kesalahan saat upload dokumen.";
+      return errorResponse(error.code, message, error.details, error.status);
     }
     if (error instanceof Error) {
       if (error.message === "UNAUTHENTICATED") {
         return errorResponse("UNAUTHENTICATED", "User belum login", undefined, 401);
       }
-      return errorResponse("INTERNAL_ERROR", error.message, undefined, 500);
+      return errorResponse(
+        "INTERNAL_ERROR",
+        "Terjadi kesalahan internal saat upload dokumen.",
+        undefined,
+        500,
+      );
     }
     return errorResponse("INTERNAL_ERROR", "Terjadi kesalahan internal", undefined, 500);
   }

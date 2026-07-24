@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DATE_FORMATS, DATE_LOCALE, routeTo } from "@/constants";
 import { DocumentUploadForm } from "@/modules/document/components/DocumentUploadForm";
@@ -206,11 +206,13 @@ export function DocumentList({
   documentTypes,
   pendingDocumentId,
   onArchive,
+  currentRole,
 }: {
   documents: DocumentRecordListItem[];
   documentTypes: DocumentTypeOption[];
   pendingDocumentId: string | null;
   onArchive: (document: DocumentRecordListItem) => void;
+  currentRole: string;
 }) {
   if (documents.length === 0) {
     return (
@@ -225,6 +227,9 @@ export function DocumentList({
       {documents.map((document) => {
         const config = statusConfig[document.status] ?? statusConfig.PENDING;
         const Icon = config.icon;
+        const canArchive =
+          currentRole === "EMPLOYEE" &&
+          (document.status === "PENDING" || document.status === "REJECTED");
         return (
           <div
             key={document.id}
@@ -267,17 +272,19 @@ export function DocumentList({
                 <span className="hidden md:inline">Detail</span>
               </Button>
               <DocumentReplaceAction document={document} documentTypes={documentTypes} />
-              <Button
-                variant="destructive"
-                size="xs"
-                className="size-11 p-0 md:size-auto md:h-6 md:px-2"
-                aria-label={`Hapus dokumen ${document.title}`}
-                disabled={pendingDocumentId === document.id}
-                onClick={() => onArchive(document)}
-              >
-                <Trash2 className="size-5 md:size-3.5" />
-                <span className="hidden md:inline">Hapus</span>
-              </Button>
+              {canArchive ? (
+                <Button
+                  variant="destructive"
+                  size="xs"
+                  className="size-11 p-0 md:size-auto md:h-6 md:px-2"
+                  aria-label={`Hapus dokumen ${document.title}`}
+                  disabled={pendingDocumentId === document.id}
+                  onClick={() => onArchive(document)}
+                >
+                  <Trash2 className="size-5 md:size-3.5" />
+                  <span className="hidden md:inline">Hapus</span>
+                </Button>
+              ) : null}
             </div>
           </div>
         );

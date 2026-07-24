@@ -30,7 +30,7 @@ const emailProviderSchema = z.preprocess(
 
 const malwareScannerProviderSchema = z.preprocess(
   (value) => (value === "" ? undefined : value),
-  z.enum(["clamav"]).default("clamav"),
+  z.enum(["noop", "clamav"]).default("clamav"),
 );
 
 const envSchema = z
@@ -126,6 +126,14 @@ const envSchema = z
           });
         }
       }
+    }
+
+    if (env.MALWARE_SCANNER_PROVIDER === "noop" && env.NODE_ENV === "production") {
+      context.addIssue({
+        code: "custom",
+        path: ["MALWARE_SCANNER_PROVIDER"],
+        message: "MALWARE_SCANNER_PROVIDER=noop tidak diizinkan di lingkungan production",
+      });
     }
   });
 
