@@ -1,0 +1,48 @@
+@startuml deployment-overview
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Deployment Overview Diagram
+
+node "Developer Machine" {
+    [Next.js Dev Server\n(npm run dev)] as DevServer
+    database "Local File Storage\n(uploads/)" as LocalStorage
+    database "Local PostgreSQL\n(or Supabase Remote)" as LocalDB
+}
+
+node "Vercel (Production)" {
+    [Next.js Serverless Functions\n(App Router + API Routes)] as VercelApp
+    [Vercel Cron Jobs] as VercelCron
+}
+
+node "Supabase (Production)" {
+    database "PostgreSQL Database" as SupabaseDB
+    [Supabase Storage (optional)] as SupabaseStorage
+}
+
+node "AWS S3 (optional)" {
+    [S3 Bucket\n(File Documents)] as S3
+}
+
+node "Email Provider (Production)" {
+    [SMTP / SendGrid / Resend] as EmailProvider
+}
+
+note right of VercelApp
+  Environment Variables:
+  - DATABASE_URL
+  - JWT_SECRET
+  - STORAGE_PROVIDER (local|supabase|s3)
+  - NEXT_PUBLIC_APP_URL
+end note
+
+DevServer --> LocalDB : Prisma (dev)
+DevServer --> LocalStorage : local upload (dev)
+
+VercelApp --> SupabaseDB : Prisma (prod)
+VercelApp --> SupabaseStorage : IStorageProvider (supabase)
+VercelApp --> S3 : IStorageProvider (s3)
+VercelApp --> EmailProvider : SMTP / REST API
+VercelCron --> VercelApp : POST /api/v1/cron/expiry\nPOST /api/v1/cron/reminder
+
+@enduml

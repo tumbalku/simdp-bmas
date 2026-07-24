@@ -1,0 +1,71 @@
+@startuml class-auth-domain
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Class Diagram: Auth Domain
+
+enum Role {
+    ADMIN
+    STAFF
+    EMPLOYEE
+}
+
+class User {
+    +String id
+    +String email
+    +String passwordHash
+    +Role role
+    +Boolean isActive
+    +DateTime lastLoginAt
+    +DateTime createdAt
+    +DateTime updatedAt
+    +DateTime deletedAt
+    --
+    +validatePassword(raw): Boolean
+    +isDeleted(): Boolean
+}
+
+class RefreshToken {
+    +String id
+    +String userId
+    +String token
+    +String userAgent
+    +String ipAddress
+    +DateTime expiresAt
+    +DateTime revokedAt
+    +DateTime createdAt
+    --
+    +isValid(): Boolean
+    +isRevoked(): Boolean
+}
+
+class PasswordResetToken {
+    +String id
+    +String userId
+    +String token
+    +DateTime expiresAt
+    +DateTime usedAt
+    +DateTime createdAt
+    --
+    +isUsable(): Boolean
+}
+
+class UserTwoFactor {
+    +String id
+    +String userId
+    +String secretEncrypted
+    +Json recoveryCodeHashes
+    +Boolean enabled
+    +String emailOtpHash
+    +DateTime emailOtpExpiresAt
+    +Int emailOtpAttempts
+    +DateTime emailOtpLockedUntil
+}
+
+User "1" -- "0..*" RefreshToken : possesses
+User "1" -- "0..*" PasswordResetToken : requests
+User "1" -- "0..1" UserTwoFactor : has 2FA config
+User --> Role : has
+
+@enduml

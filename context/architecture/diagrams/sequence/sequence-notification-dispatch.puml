@@ -1,0 +1,75 @@
+@startuml sequence-notification-dispatch
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Sequence: Pengiriman Notifikasi\n(In-App & Email dari Event Domain)
+
+autonumber
+
+actor "User (Penerima)" as User
+participant "Domain Service\n(mis. VerificationService\natau DocumentService)" as DomainSvc
+participant "NotificationService" as NotifSvc
+database "PostgreSQL\n(Tabel Notification)" as DB
+participant "Email Provider\n(SMTP / API)" as Email
+participant "UI Browser\n(Panel Notifikasi)" as Browser
+
+== Skenario 1: Notifikasi Terkirim Sukses (In-App + Email) ==
+
+note over DomainSvc
+  Contoh pemicu:
+  - Dokumen disetujui / ditolak (VerificationService)
+  - Dokumen berhasil diunggah (DocumentService)
+  - Dokumen mendekati kadaluarsa (Cron Reminder)
+  - Dokumen kadaluarsa otomatis (Cron Expiry)
+end note
+
+DomainSvc -> NotifSvc : sendNotification({\n  userId,\n  type,\n  title,\n  message,\n  relatedEntityId\n})
+activate NotifSvc
+
+NotifSvc -> DB : INSERT INTO Notification\n(userId, type, title, message,\nisRead=false, relatedEntityId)
+activate DB
+DB --> NotifSvc : Notifikasi tersimpan (id)
+deactivate DB
+
+NotifSvc -> Email : sendEmail({\n  to: user.email,\n  subject: title,\n  body: message\n})
+activate Email
+
+alt Email terkirim sukses
+    Email --> NotifSvc : 200 OK / accepted
+    deactivate Email
+    NotifSvc --> DomainSvc : { success: true }
+    deactivate NotifSvc
+
+    note right of DomainSvc
+      Domain Service melanjutkan proses utamanya.
+      Kegagalan notifikasi TIDAK membatalkan
+      transaksi bisnis utama (upload / verifikasi).
+    end note
+
+else Email gagal terkirim (SMTP error / timeout)
+    Email --> NotifSvc : Error / timeout
+    deactivate Email
+    NotifSvc -> NotifSvc : log warning: EMAIL_SEND_FAILED\n(notifikasi in-app tetap tersimpan di DB)
+    NotifSvc --> DomainSvc : { success: false, inAppSaved: true }
+    deactivate NotifSvc
+
+    note right of NotifSvc
+      Fallback: notifikasi in-app sudah tersimpan
+      sehingga user tetap bisa membaca notifikasi
+      lewat panel di UI meskipun email gagal.
+    end note
+end
+
+== Skenario 2: User Membaca Notifikasi In-App ==
+
+User -> Browser : Buka panel / halaman notifikasi
+Browser -> DB : GET /api/v1/notifications\n(query: userId, isRead=false)
+DB --> Browser : Daftar notifikasi belum dibaca
+
+User -> Browser : Klik salah satu notifikasi
+Browser -> DB : PATCH /api/v1/notifications/:id/read\n(UPDATE isRead = true)
+DB --> Browser : OK
+Browser --> User : Tampilkan detail notifikasi\n& tandai sudah dibaca
+
+@enduml

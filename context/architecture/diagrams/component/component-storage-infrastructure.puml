@@ -1,0 +1,60 @@
+@startuml component-storage-infrastructure
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Component: Storage & Infrastructure Abstraction
+
+package "Application Layer" {
+    [DocumentService\n(document/service.ts)] as DocSvc
+}
+
+package "Storage Abstraction (src/lib/storage/)" {
+    interface "IStorageProvider" as IStorage
+
+    note top of IStorage
+        +upload(buffer, path): Promise<string>
+        +download(path): Promise<Buffer>
+        +delete(path): Promise<void>
+        +getPublicUrl(path): string
+    end note
+
+    [LocalStorageProvider\n(local.ts)] as LocalImpl
+    [SupabaseStorageProvider\n(supabase.ts)] as SupabaseImpl
+    [S3StorageProvider\n(s3.ts)] as S3Impl
+}
+
+package "Infrastructure / Runtime" {
+    [Local Filesystem\n(uploads/)] as LocalFS
+    [Supabase Storage\n(S3-compatible)] as SupabaseBucket
+    [AWS S3 Bucket] as S3Bucket
+}
+
+package "Configuration" {
+    [Environment Variable\nSTORAGE_PROVIDER=local|supabase|s3] as EnvConfig
+    [src/lib/env.ts] as EnvLib
+    [src/lib/storage/index.ts\n(Factory: getStorageProvider())] as Factory
+}
+
+DocSvc --> IStorage : "calls via contract"
+IStorage <|.. LocalImpl
+IStorage <|.. SupabaseImpl
+IStorage <|.. S3Impl
+
+Factory --> IStorage : "returns correct impl\nbased on STORAGE_PROVIDER"
+EnvConfig --> EnvLib
+EnvLib --> Factory : "reads STORAGE_PROVIDER"
+
+LocalImpl --> LocalFS
+SupabaseImpl --> SupabaseBucket
+S3Impl --> S3Bucket
+
+DocSvc --> Factory : "getStorageProvider()"
+
+note right of IStorage
+  Switching provider (e.g., local -> S3)
+  hanya butuh ubah env var.
+  DocumentService tidak berubah.
+end note
+
+@enduml

@@ -1,0 +1,70 @@
+@startuml erd-auth
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+
+title SIMDP - ERD: Auth Domain
+
+entity "User" as user {
+    * id : String <<PK>>
+    --
+    * email : String <<UNIQUE>>
+    * passwordHash : String
+    * role : Role
+    * isActive : Boolean
+    lastLoginAt : DateTime
+    * createdAt : DateTime
+    * updatedAt : DateTime
+    deletedAt : DateTime
+}
+
+entity "RefreshToken" as rt {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK>>
+    * token : String <<UNIQUE>>
+    userAgent : String
+    ipAddress : String
+    * expiresAt : DateTime
+    revokedAt : DateTime
+    * createdAt : DateTime
+}
+
+entity "PasswordResetToken" as prt {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK>>
+    * token : String <<UNIQUE>>
+    * expiresAt : DateTime
+    usedAt : DateTime
+    * createdAt : DateTime
+}
+
+entity "UserTwoFactor" as u2f {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK, UNIQUE>>
+    * secretEncrypted : String
+    * recoveryCodeHashes : Json
+    * enabled : Boolean
+    emailOtpHash : String
+    emailOtpExpiresAt : DateTime
+    emailOtpAttempts : Int
+    emailOtpLockedUntil : DateTime
+}
+
+entity "RateLimitBucket" as rlb {
+    * key : String <<PK>>
+    --
+    * category : String
+    * count : Int
+    * resetAt : DateTime
+    limitedLoggedAt : DateTime
+}
+
+user ||--o{ rt : "userId"
+user ||--o{ prt : "userId"
+user ||--o| u2f : "userId"
+
+@enduml

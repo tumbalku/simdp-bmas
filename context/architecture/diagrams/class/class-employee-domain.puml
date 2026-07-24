@@ -1,0 +1,100 @@
+@startuml class-employee-domain
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Class Diagram: Employee Domain & Master Data
+
+enum EmployeeStatus {
+    ACTIVE
+    RETIRED
+    STUDY_ASSIGNMENT
+}
+
+enum EmployeeGender {
+    MALE
+    FEMALE
+}
+
+class Employee {
+    +String id
+    +String userId
+    +String employeeId
+    +String nik
+    +String name
+    +EmployeeStatus status
+    +String avatarUrl
+    +EmployeeGender gender
+    +Date birthDate
+    +String birthPlace
+    +String phone
+    +String address
+    +Date joinDate
+    +Boolean hasTmt
+    +Date tmtStartDate
+    +Date tmtEndDate
+    +String employmentStatusId
+    +String employeeGroupId
+    +String employeePositionId
+    +String employeeRankId
+    +String workplaceId
+    +DateTime deletedAt
+}
+
+class EmploymentStatus {
+    +String id
+    +String name
+}
+
+class EmployeeGroup {
+    +String id
+    +String employmentStatusId
+    +String name
+}
+
+class ProfessionGroup {
+    +String id
+    +String name
+}
+
+class EmployeePosition {
+    +String id
+    +String professionGroupId
+    +String name
+}
+
+class EmployeeRank {
+    +String id
+    +String name
+}
+
+class Workplace {
+    +String id
+    +String name
+}
+
+class EmployeeCareerHistory {
+    +String id
+    +String employeeId
+    +String employmentStatusId
+    +String employeeGroupId
+    +String employeePositionId
+    +String employeeRankId
+    +String workplaceId
+    +Date effectiveDate
+    +Date endDate
+    +String note
+    +DateTime createdAt
+}
+
+Employee "*" -- "0..1" EmploymentStatus
+Employee "*" -- "0..1" EmployeeGroup
+Employee "*" -- "0..1" EmployeePosition
+Employee "*" -- "0..1" EmployeeRank
+Employee "*" -- "0..1" Workplace
+Employee "1" -- "0..*" EmployeeCareerHistory
+
+EmploymentStatus "1" -- "0..*" EmployeeGroup : contains
+ProfessionGroup "1" -- "0..*" EmployeePosition : categorizes
+
+@enduml

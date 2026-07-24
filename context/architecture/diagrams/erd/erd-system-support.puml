@@ -1,0 +1,78 @@
+@startuml erd-system-support
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+
+title SIMDP - ERD: System Support Domain (Notification, SecurityLog, Settings)
+
+entity "User" as user {
+    * id : String <<PK>>
+    --
+    * email : String
+    * role : Role
+}
+
+entity "Notification" as notif {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK>>
+    * type : NotificationType
+    * title : String
+    message : String
+    * isRead : Boolean
+    relatedEntityType : String
+    relatedEntityId : String
+    * createdAt : DateTime
+}
+
+entity "SecurityLog" as sl {
+    * id : String <<PK>>
+    --
+    * timestamp : DateTime
+    actorId : String <<FK>>
+    * actorName : String
+    * actorRole : SecurityActorRole
+    * eventType : String
+    * resource : String
+    ipAddress : String
+    * status : SecurityLogStatus
+    metadata : Json
+}
+
+entity "SystemSetting" as ss {
+    * key : String <<PK>>
+    --
+    * value : String
+    label : String
+    description : String
+    updatedBy : String <<FK>>
+    updatedAt : DateTime
+}
+
+entity "RateLimitBucket" as rlb {
+    * key : String <<PK>>
+    --
+    * category : String
+    * count : Int
+    * resetAt : DateTime
+    limitedLoggedAt : DateTime
+}
+
+note right of sl
+  APPEND-ONLY.
+  No UPDATE, no DELETE.
+  actorId may be NULL for
+  unauthenticated events (PUBLIC actor).
+end note
+
+note right of rlb
+  Key format: "login:<ip>", "forgot:<email>"
+  Auto-reset after resetAt.
+end note
+
+user ||--o{ notif
+user ||--o{ sl : "as actor (optional)"
+user ||--o{ ss : "updatedBy"
+
+@enduml

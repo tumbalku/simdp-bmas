@@ -1,0 +1,67 @@
+@startuml sequence-login-refresh-logout
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Sequence: Login Fleksibel, Token Refresh & Logout
+
+autonumber
+
+actor "User (Browser)" as Client
+participant "AuthController\n(/api/v1/auth/*)" as Ctrl
+participant "AuthService" as Svc
+participant "SecurityService" as Sec
+database "PostgreSQL" as DB
+participant "Cookies\n(httpOnly)" as Cookie
+
+== 1. Login ==
+Client -> Ctrl : POST /login { identifier, password }
+Ctrl -> Svc : loginUser({ identifier, password, ip })
+Svc -> Svc : detectIdentifierType()\n(NIK 16d / NIP 10d+ / Email)
+Svc -> DB : findUser by nik|employeeId|email
+DB --> Svc : User + Employee record
+Svc -> Svc : verifyArgon2id(password, hash)
+alt invalid credential
+    Svc -> Sec : log(AUTH_LOGIN_FAILED)
+    Svc --> Ctrl : 401 Unauthorized
+    Ctrl --> Client : 401 { error }
+end
+Svc -> DB : revoke all active RefreshTokens
+Svc -> Sec : log(AUTH_FORCE_LOGOUT_OTHERS) if any
+Svc -> Svc : generate JWT accessToken (30m)
+Svc -> Svc : generate random refreshToken (256bit)
+Svc -> DB : insert RefreshToken (SHA-256 hash)
+Svc -> DB : update User.lastLoginAt
+Svc -> Sec : log(AUTH_LOGIN_SUCCESS)
+Svc --> Ctrl : { accessToken, refreshToken, user }
+Ctrl -> Cookie : set access_token (httpOnly, 30m)
+Ctrl -> Cookie : set refresh_token (httpOnly, 7d)
+Ctrl --> Client : 200 { user }
+
+== 2. Auto Refresh (setiap 20 menit) ==
+Client -> Ctrl : POST /refresh (cookie: refresh_token)
+Ctrl -> Svc : refreshSession({ rawToken, ip })
+Svc -> Svc : SHA-256(rawToken)
+Svc -> DB : find RefreshToken by hash
+DB --> Svc : record
+alt invalid/revoked/expired
+    Svc -> Sec : log(AUTH_REFRESH_FAILED)
+    Svc --> Ctrl : 401
+    Ctrl -> Cookie : clear cookies
+    Ctrl --> Client : 401 -> redirect /login
+end
+Svc -> DB : revoke old RefreshToken
+Svc -> Svc : generate new accessToken + refreshToken
+Svc -> DB : insert new RefreshToken hash
+Svc -> Sec : log(AUTH_REFRESH_SUCCESS)
+Ctrl -> Cookie : update both cookies
+Ctrl --> Client : 200 { success }
+
+== 3. Logout ==
+Client -> Ctrl : POST /logout (cookie: refresh_token)
+Ctrl -> Svc : logoutUser({ rawToken, ip })
+Svc -> DB : revoke RefreshToken by hash
+Svc -> Sec : log(AUTH_LOGOUT)
+Ctrl -> Cookie : clear access_token + refresh_token
+Ctrl --> Client : 200 { message }
+
+@enduml

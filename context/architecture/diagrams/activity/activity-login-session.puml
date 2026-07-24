@@ -1,0 +1,94 @@
+@startuml activity-login-session
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityFontSize 12
+
+title SIMDP - Activity Diagram: Login, Session Refresh & Logout
+
+start
+
+:User membuka halaman Login;
+:User mengisi identifier (NIP / NIK / Email) & password;
+
+if (Format input valid di client?) then (Ya)
+else (Tidak)
+    :Tampilkan error validasi form;
+    stop
+endif
+
+:POST /api/v1/auth/login;
+
+partition "Server: Deteksi Identifier" {
+    if (16 digit numerik?) then (Ya)
+        :Cari Employee by NIK;
+    elseif (>= 10 digit numerik?) then (Ya)
+        :Cari Employee by NIP (employeeId);
+    else (Lainnya)
+        :Cari User by Email;
+    endif
+}
+
+if (User ditemukan & aktif?) then (Tidak)
+    :Log AUTH_LOGIN_FAILED;
+    :Return 401 Unauthorized;
+    stop
+endif
+
+:Verifikasi password dengan Argon2id;
+
+if (Password cocok?) then (Tidak)
+    :Log AUTH_LOGIN_FAILED;
+    :Return 401 Unauthorized;
+    stop
+endif
+
+partition "Single-Device Enforcement" {
+    :Revoke semua RefreshToken aktif user;
+    if (Ada sesi lama?) then (Ya)
+        :Log AUTH_FORCE_LOGOUT_OTHERS;
+    endif
+}
+
+:Generate Access Token JWT (30 menit);
+:Generate Refresh Token random 256-bit;
+:Simpan hash Refresh Token ke DB;
+:Set httpOnly Cookies (access_token, refresh_token);
+:Update lastLoginAt;
+:Log AUTH_LOGIN_SUCCESS;
+:Return data user minimal;
+
+:User mengakses halaman Dashboard;
+
+repeat
+    :Middleware verifikasi Access Token JWT;
+    :Izinkan akses ke route protected;
+    
+    note right: Auto refresh setiap 20 menit\natau saat tab aktif kembali (>15 menit)
+    
+    :POST /api/v1/auth/refresh;
+    :Hash Refresh Token dari cookie;
+    :Cari & validasi RefreshToken di DB;
+    
+    if (Token valid?) then (Ya)
+        :Revoke token lama;
+        :Generate token baru;
+        :Update cookie;
+        :Log AUTH_REFRESH_SUCCESS;
+    else (Tidak)
+        :Hapus cookie;
+        :Log AUTH_REFRESH_FAILED;
+        :Redirect ke /login;
+        stop
+    endif
+repeat while (User masih aktif?) is (Ya)
+
+:User klik Logout;
+:POST /api/v1/auth/logout;
+:Revoke Refresh Token di DB;
+:Hapus cookie access_token & refresh_token;
+:Log AUTH_LOGOUT;
+:Redirect ke /login;
+
+stop
+
+@enduml

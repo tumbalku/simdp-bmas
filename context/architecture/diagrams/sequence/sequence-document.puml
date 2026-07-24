@@ -1,0 +1,93 @@
+@startuml SequenceDocumentDiagram_SIMDP
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+title SIMDP - Sequence Diagram (Document Upload, Auto-Replacement & Verification Flow)
+
+autonumber
+
+actor "Pegawai (Employee)" as Employee
+actor "Staf Kepegawaian (Verifikator)" as Verifier
+participant "DocumentController / Action\n(/api/v1/documents/upload)" as DocController
+participant "VerificationController / Action\n(/api/v1/verification/verify)" as VerifController
+participant "DocumentService" as DocService
+participant "VerificationService" as VerifService
+participant "IStorageProvider\n(Local / Supabase / S3)" as Storage
+participant "NotificationService" as NotifService
+participant "SecurityService" as SecurityService
+database "PostgreSQL (Prisma)" as DB
+
+== 1. Document Upload & Auto-Replacement Flow (BR-001, BR-002, BR-010) ==
+
+Employee -> DocController : POST /api/v1/documents/upload\n(Multipart Form Data + DocumentType ID)
+activate DocController
+
+DocController -> DocService : uploadDocument(formData, currentUserId)
+activate DocService
+
+DocService -> DocService : Validate Zod Schema, Ownership Check,\nMIME Type & Max File Size (from DocumentType)
+DocService -> DocService : Calculate File SHA-256 Hash & Generate Target Path
+
+DocService -> Storage : upload(fileBuffer, targetPath)
+activate Storage
+Storage --> DocService : Return filePath / storageKey
+deactivate Storage
+
+DocService -> DB : INSERT INTO DocumentRecord\n(ownerId, documentTypeId, filePath, fileHash, status='PENDING', isCurrent=true)
+activate DB
+
+note over DB
+  Database Trigger: handle_document_replacement()
+  Jika allowMultiple = false:
+  - Dokumen lama set status = 'REPLACED', isCurrent = false
+  - Dokumen baru menjadi current active document.
+end note
+
+DB --> DocService : DocumentRecord Saved
+deactivate DB
+
+DocService -> NotifService : sendInAppNotification(ownerId, "Dokumen Berhasil Diunggah (Pending Verifikasi)")
+DocService -> SecurityService : logActivity(actorId, "DOCUMENT_UPLOADED", resourceId)
+
+DocService --> DocController : Return DocumentRecord DTO
+deactivate DocService
+
+DocController --> Employee : 201 Created { data: DocumentRecord }
+deactivate DocController
+
+== 2. Verification Workflow (Approve / Reject) (BR-004) ==
+
+Verifier -> VerifController : POST /api/v1/verification/verify\n{ documentRecordId, status: "APPROVED" | "REJECTED", reviewNote }
+activate VerifController
+
+VerifController -> VerifService : verifyDocument({ documentRecordId, status, reviewNote, verifierId })
+activate VerifService
+
+VerifService -> DocService : getDocumentById(documentRecordId)
+DocService --> VerifService : DocumentRecord DTO (Owner: Employee)
+
+VerifService -> DB : BEGIN TRANSACTION
+
+VerifService -> DB : UPDATE DocumentRecord SET status = newStatus WHERE id = documentRecordId
+VerifService -> DB : INSERT INTO VerificationHistory\n(documentRecordId, reviewedById, status, reviewNote, reviewedAt)
+
+DB --> VerifService : Transaction Committed
+
+VerifService -> NotifService : sendNotification & Email\n(ownerId, "Status Dokumen: " + newStatus, reviewNote)
+
+alt Status APPROVED
+    VerifService -> SecurityService : logActivity(verifierId, "DOCUMENT_APPROVED", documentRecordId)
+else Status REJECTED
+    VerifService -> SecurityService : logActivity(verifierId, "DOCUMENT_REJECTED", documentRecordId, { reviewNote })
+end
+
+VerifService --> VerifController : Return VerificationResult DTO
+deactivate VerifService
+
+VerifController --> Verifier : 200 OK { message: "Verifikasi dokumen berhasil diproses" }
+deactivate VerifController
+
+@enduml

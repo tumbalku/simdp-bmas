@@ -1,0 +1,115 @@
+@startuml erd-document-verification
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+
+title SIMDP - ERD: Document, Verification & Target Matching
+
+entity "DocumentType" as dt {
+    * id : String <<PK>>
+    --
+    * code : String <<UNIQUE>>
+    * name : String
+    description : String
+    * archiveCategory : ArchiveCategory
+    * isMandatory : Boolean
+    * allowMultiple : Boolean
+    * requiresExpiryDate : Boolean
+    * requiresIssueDate : Boolean
+    * requiresDocumentNumber : Boolean
+    * allowedFormats : String
+    * maxSizeMb : Float
+    icon : String
+    deletedAt : DateTime
+}
+
+entity "DocumentRecord" as dr {
+    * id : String <<PK>>
+    --
+    * ownerId : String <<FK>>
+    * documentTypeId : String <<FK>>
+    title : String
+    * status : DocumentStatus
+    * isCurrent : Boolean
+    * allowMultipleSnapshot : Boolean
+    * fileName : String
+    * filePath : String
+    fileSize : BigInt
+    mimeType : String
+    fileHash : String
+    * storageProvider : StorageProvider
+    documentNumber : String
+    issueDate : Date
+    expiryDate : Date
+    reminderH30SentAt : DateTime
+    reminderH7SentAt : DateTime
+    reminderH1SentAt : DateTime
+    * uploadedAt : DateTime
+    deletedAt : DateTime
+}
+
+entity "VerificationHistory" as vh {
+    * id : String <<PK>>
+    --
+    * documentRecordId : String <<FK>>
+    * status : DocumentStatus
+    reviewedById : String <<FK>>
+    reviewNote : String
+    * reviewedAt : DateTime
+}
+
+entity "DocumentVerification" as dv {
+    * id : String <<PK>>
+    --
+    * code : String <<UNIQUE>>
+    * subjectEmployeeId : String <<FK>>
+    issuedByUserId : String <<FK>>
+    fileHash : String
+    metadata : Json
+    * issuedAt : DateTime
+    expiresAt : DateTime
+    revokedAt : DateTime
+    revokedByUserId : String <<FK>>
+    revokeReason : String
+}
+
+entity "DocumentTypeProfessionGroup" as dtpg {
+    * id : String <<PK>>
+    * documentTypeId : String <<FK>>
+    * professionGroupId : String <<FK>>
+}
+
+entity "DocumentTypeEmploymentStatus" as dtes {
+    * id : String <<PK>>
+    * documentTypeId : String <<FK>>
+    * employmentStatusId : String <<FK>>
+}
+
+entity "DocumentTypeEmployeeGroup" as dteg {
+    * id : String <<PK>>
+    * documentTypeId : String <<FK>>
+    * employeeGroupId : String <<FK>>
+}
+
+entity "DocumentTypeEmployeeRank" as dter {
+    * id : String <<PK>>
+    * documentTypeId : String <<FK>>
+    * employeeRankId : String <<FK>>
+}
+
+entity "DocumentTypeWorkplace" as dtwp {
+    * id : String <<PK>>
+    * documentTypeId : String <<FK>>
+    * workplaceId : String <<FK>>
+}
+
+dt ||--o{ dr
+dr ||--o{ vh
+dt ||--o{ dtpg
+dt ||--o{ dtes
+dt ||--o{ dteg
+dt ||--o{ dter
+dt ||--o{ dtwp
+
+@enduml

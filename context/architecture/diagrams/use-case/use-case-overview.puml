@@ -1,0 +1,56 @@
+@startuml use-case-overview
+skinparam actorStyle stickman
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Use Case Overview (Semua Aktor & Kelompok Fitur)
+
+actor employee as "Pegawai\n(Employee)"
+actor staff as "Staf Kepegawaian\n(Staff)"
+actor admin as "Administrator\n(Admin)"
+actor system as "Sistem / Cron Job"
+
+staff --|> employee
+admin --|> staff
+
+rectangle "SIMDP" {
+    usecase UC_Auth as "Autentikasi\n& Keamanan Sesi"
+    usecase UC_Profile as "Profil\n& Riwayat Karir"
+    usecase UC_Document as "Manajemen\nDokumen"
+    usecase UC_Verify as "Verifikasi\nDokumen"
+    usecase UC_Master as "Master Data\n& Settings"
+    usecase UC_Audit as "Audit Log\n& Statistik"
+    usecase UC_Cron as "Otomasi Sistem\n& Notifikasi"
+}
+
+employee --> UC_Auth
+employee --> UC_Profile
+employee --> UC_Document
+
+staff --> UC_Verify
+staff --> UC_Audit
+
+admin --> UC_Master
+admin --> UC_Audit
+
+system --> UC_Auth : Auto Refresh
+system --> UC_Cron
+
+note bottom of UC_Auth
+  Detail: use-case-auth.puml
+end note
+note bottom of UC_Document
+  Detail: use-case-pegawai.puml
+end note
+note bottom of UC_Verify
+  Detail: use-case-staff.puml
+end note
+note bottom of UC_Master
+  Detail: use-case-admin.puml
+end note
+note bottom of UC_Cron
+  Detail: use-case-system.puml
+end note
+
+@enduml

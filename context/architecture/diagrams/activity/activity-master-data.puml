@@ -1,0 +1,49 @@
+@startuml activity-master-data
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityFontSize 12
+
+title SIMDP - Activity Diagram: Kelola Master Data (Admin)
+
+start
+
+:Admin membuka halaman Master Data;
+:Pilih kategori master data:\nEmploymentStatus / EmployeeGroup / ProfessionGroup /\nEmployeePosition / EmployeeRank / Workplace / DocumentType;
+
+fork
+  :CREATE - Tambah data baru;
+  :Admin mengisi form data;
+  if (Validasi Zod lolos?) then (Ya)
+    :INSERT ke tabel master;
+    :Log SecurityLog (MASTER_DATA_CREATED);
+    :Return 201 Created;
+  else (Tidak)
+    :Return 400 Validation Error;
+    stop
+  endif
+fork again
+  :UPDATE - Edit data yang ada;
+  :Admin mengubah data yang perlu diubah;
+  if (Data digunakan di relasi aktif?) then (Ya)
+    note right: Contoh: DocumentType dg record aktif
+    :Tampilkan peringatan dampak perubahan;
+  endif
+  :Validasi Zod;
+  :UPDATE tabel master;
+  :Log SecurityLog (MASTER_DATA_UPDATED);
+fork again
+  :DELETE (Soft Delete) - Non-aktifkan;
+  if (Data masih direferensikan?) then (Ya)
+    :Tolak: "Data masih digunakan, tidak dapat dihapus";
+    stop
+  endif
+  :Set deletedAt = NOW();
+  :Log SecurityLog (MASTER_DATA_DELETED);
+end fork
+
+:Return respons sukses;
+:Halaman di-refresh, data terbaru ditampilkan;
+
+stop
+
+@enduml

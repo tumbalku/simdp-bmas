@@ -1,0 +1,63 @@
+@startuml activity-verification-document
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityFontSize 12
+
+title SIMDP - Activity Diagram: Verifikasi Dokumen (Approve / Reject)
+
+start
+
+:Staf/Admin membuka halaman Antrean Verifikasi;
+:Sistem menampilkan daftar DocumentRecord dengan status PENDING;
+:Staf memilih satu dokumen untuk ditinjau;
+
+:Sistem menampilkan detail dokumen:\n- File preview / download link\n- Metadata (documentNumber, issueDate, expiryDate)\n- Pemilik dokumen (Employee)\n- Jenis dokumen (DocumentType);
+
+:Staf meninjau fisik file & kelengkapan metadata;
+
+if (Dokumen valid & memenuhi syarat?) then (Ya - APPROVE)
+
+    :Staf klik tombol "Approve";
+
+    partition "Server: Proses Approve" {
+        :Verifikasi role (harus STAFF atau ADMIN);
+        :BEGIN TRANSACTION;
+        :UPDATE DocumentRecord SET status = APPROVED;
+        :INSERT VerificationHistory\n(status=APPROVED, reviewedById, reviewedAt);
+        :COMMIT;
+        :Kirim notifikasi in-app & email ke pemilik dokumen:\n"Dokumen Anda telah disetujui";
+        :Log SecurityLog (DOCUMENT_APPROVED);
+    }
+    
+    :Return 200 OK;
+    :Halaman menampilkan konfirmasi Approved;
+
+else (Tidak - REJECT)
+
+    :Staf mengisi alasan penolakan (reviewNote wajib);
+    
+    if (reviewNote terisi?) then (Tidak)
+        :Tampilkan error: alasan penolakan wajib diisi;
+        stop
+    endif
+    
+    :Staf klik tombol "Reject";
+    
+    partition "Server: Proses Reject" {
+        :Verifikasi role;
+        :BEGIN TRANSACTION;
+        :UPDATE DocumentRecord SET status = REJECTED;
+        :INSERT VerificationHistory\n(status=REJECTED, reviewedById, reviewNote, reviewedAt);
+        :COMMIT;
+        :Kirim notifikasi in-app & email ke pemilik:\n"Dokumen Anda ditolak: [reviewNote]";
+        :Log SecurityLog (DOCUMENT_REJECTED);
+    }
+    
+    :Return 200 OK;
+    :Halaman menampilkan konfirmasi Rejected;
+    
+endif
+
+stop
+
+@enduml

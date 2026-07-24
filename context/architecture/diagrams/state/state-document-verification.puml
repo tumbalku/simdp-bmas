@@ -1,0 +1,45 @@
+@startuml state-document-verification
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - State Diagram: DocumentVerification Lifecycle\n(Kode Verifikasi Publik Profil / Sertifikat Pegawai)
+
+[*] --> AKTIF : Admin / Staff menerbitkan kode verifikasi\n(DocumentVerification dibuat, kode unik di-generate)\n[POST /api/v1/verification/issue]
+
+AKTIF --> AKTIF : Pihak luar memindai / memeriksa kode\n(GET /api/v1/public/verify/:code)\n→ Sistem merespons: valid ✓\n[state tidak berubah]
+
+AKTIF --> DICABUT : Admin / Staff mencabut kode secara eksplisit\n(revokedAt diisi, revokeReason wajib)\n[POST /api/v1/verification/:id/revoke]
+
+AKTIF --> KADALUARSA : Masa berlaku habis\n(expiresAt < SEKARANG)\n[Jika expiresAt = NULL, kode tidak pernah kadaluarsa]
+
+DICABUT --> [*] : Status terminal.\nKode tidak bisa digunakan kembali.\nRiwayat pencabutan tersimpan permanen.
+
+KADALUARSA --> [*] : Status terminal.\nKode tidak bisa digunakan kembali.\nData tetap tersimpan untuk audit.
+
+note right of AKTIF
+  Saat kode AKTIF:
+  - Pihak luar (tanpa login) dapat memindai kode
+  - Sistem mengembalikan data profil minimal pegawai:
+    nama, NIP/NIK, jabatan
+  - Setiap pemindaian TIDAK mengubah state kode
+  - Kode bisa dipakai berkali-kali selama AKTIF
+end note
+
+note right of DICABUT
+  Contoh alasan pencabutan:
+  - Pegawai sudah tidak aktif
+  - Sertifikat/dokumen yang mendasari tidak berlaku
+  - Kode bocor atau disalahgunakan
+  revokedAt dan revokeReason tersimpan untuk audit.
+end note
+
+note right of KADALUARSA
+  Jika expiresAt di-set saat penerbitan,
+  kode otomatis tidak bisa digunakan setelah
+  tanggal tersebut.
+  Jika expiresAt = NULL,
+  kode berlaku selamanya hingga dicabut.
+end note
+
+@enduml

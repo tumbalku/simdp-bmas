@@ -1,0 +1,80 @@
+@startuml ActivityDocumentWorkflow_SIMDP
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityFontSize 12
+skinparam ActivityDiamondFontSize 12
+
+title SIMDP - Activity Diagram (Siklus Hidup & Workflow Verifikasi Dokumen)
+
+start
+
+:Pegawai memilih Jenis Dokumen (DocumentType) & memilih file;
+
+:Client melakukan validasi format & ukuran di UI;
+
+if (Format & Ukuran Sesuai Constraint DocumentType?) then (Ya)
+    :Client mengirim Request POST /api/v1/documents/upload;
+else (Tidak)
+    :Tampilkan Pesan Error di Form Upload;
+    stop
+endif
+
+partition "Server Processing & Storage" {
+    :Middleware verifikasi sesi & token JWT;
+    :Server validasi Zod, verifikasi MIME Type, & hitung SHA-256 Hash;
+    
+    :Unggah berkas fisik via IStorageProvider (Local / Supabase / S3);
+    
+    :Simpan metadata Dokumen ke PostgreSQL (DocumentRecord);
+    
+    note right
+      Trigger DB: handle_document_replacement()
+      Jika allowMultiple = false:
+      - Dokumen lama otomatis diset REPLACED & isCurrent = false.
+      - Dokumen baru diset PENDING & isCurrent = true.
+    end note
+    
+    :Kirim In-App Notification "Upload Sukses (Pending Verifikasi)";
+    :Catat Audit SecurityLog (DOCUMENT_UPLOADED);
+}
+
+partition "Proses Verifikasi (Staf / Admin)" {
+    :Dokumen masuk ke Antrean Verifikasi (Pending Queue);
+    :Staf / Verifikator meninjau fisik file & metadata dokumen;
+    
+    if (Apakah Dokumen Valid & Sesuai Syarat?) then (Ya - APPROVED)
+        :Verifikator klik Approve;
+        :Update status DocumentRecord menjadi APPROVED;
+        :Buat catatan di VerificationHistory (status: APPROVED);
+        :Kirim Notifikasi Persetujuan ke Pegawai;
+        :Catat Audit SecurityLog (DOCUMENT_APPROVED);
+    else (Tidak - REJECTED)
+        :Verifikator memasukkan Alasan Penolakan (Review Note wajib);
+        :Update status DocumentRecord menjadi REJECTED;
+        :Buat catatan di VerificationHistory (status: REJECTED, reviewNote);
+        :Kirim Notifikasi Penolakan ke Pegawai;
+        :Catat Audit SecurityLog (DOCUMENT_REJECTED);
+        
+        :Pegawai menerima notifikasi penolakan;
+        :Pegawai mengunggah revisi dokumen baru;
+        stop
+    endif
+}
+
+partition "Lifecycle & Expiry Monitoring (System / Cron)" {
+    repeat
+        :Cron Job Harian memeriksa expiryDate dokumen;
+        if (Mendekati Expired (H-30 / H-7 / H-1)?) then (Ya)
+            :Kirim Reminder Email & In-App Notification;
+            :Update timestamp reminderH30SentAt / reminderH7SentAt / reminderH1SentAt;
+        endif
+    repeat while (Tanggal Hari Ini <= Expiry Date?) is (Ya)
+    
+    :Cron Job memperbarui status DocumentRecord menjadi EXPIRED;
+    :Kirim Notifikasi Dokumen Kadaluarsa ke Pegawai;
+}
+
+stop
+
+@enduml

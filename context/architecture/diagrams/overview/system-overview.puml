@@ -1,0 +1,57 @@
+@startuml system-overview
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+
+title SIMDP - System Overview (Modular Monolith on Next.js)
+
+node "Browser (Client)" {
+    [React UI / Next.js App Router] as Browser
+}
+
+node "Vercel (Serverless)" {
+    package "Next.js Application" {
+        [App Router & Middleware] as AppRouter
+        [REST Route Handlers\n(/api/v1/*)] as Routes
+        [Server Actions] as Actions
+        package "Modules (src/modules/*)" {
+            [auth]
+            [employee]
+            [document]
+            [verification]
+            [notification]
+            [statistics]
+            [security]
+            [settings]
+        }
+    }
+}
+
+node "Vercel Cron" {
+    [Cron Job\n(expiry, reminder)] as Cron
+}
+
+database "PostgreSQL\n(Supabase)" as DB
+database "File Storage\n(Local / Supabase / S3)" as Storage
+node "Email Provider" as Email
+
+Browser --> AppRouter : HTTPS
+AppRouter --> Routes
+AppRouter --> Actions
+Routes --> auth
+Routes --> employee
+Routes --> document
+Routes --> verification
+document --> Storage : IStorageProvider
+notification --> Email : SMTP / API
+Cron --> Routes : POST /api/v1/cron/*
+auth --> DB : Prisma
+employee --> DB
+document --> DB
+verification --> DB
+notification --> DB
+security --> DB
+statistics --> DB
+settings --> DB
+
+@enduml
