@@ -158,7 +158,7 @@ describe("Document Module Actions", () => {
     await expect(restoreDocumentAction("doc-1")).resolves.toEqual({ ok: true, data: { success: true } });
     await expect(permanentDeleteDocumentAction("doc-1")).resolves.toEqual({ ok: true, data: { success: true } });
 
-    expect(mocks.softDeleteDocument).toHaveBeenCalledWith("doc-1", session);
+    expect(mocks.softDeleteDocument).toHaveBeenCalledWith("doc-1", session, { mode: "self" });
     expect(mocks.restoreDocument).toHaveBeenCalledWith("doc-1", session);
     expect(mocks.permanentlyDeleteDocument).toHaveBeenCalledWith("doc-1", session);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/master-data/documents");

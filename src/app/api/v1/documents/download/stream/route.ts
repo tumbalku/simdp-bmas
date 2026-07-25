@@ -4,6 +4,7 @@ import path from "path";
 import { requireAuth } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
 import { getLocalStreamDocument } from "@/modules/document/server";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 
 const SAFE_INLINE_MIME_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"]);
 
@@ -21,6 +22,11 @@ function normalizeLocalStoragePath(file: string) {
 export async function GET(request: NextRequest) {
   try {
     const session = await requireAuth();
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.FILE_DOWNLOAD, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     const { searchParams } = new URL(request.url);
     const file = searchParams.get("file");

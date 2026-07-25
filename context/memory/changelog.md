@@ -5,6 +5,13 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #214: Memperluas middleware auth coverage ke seluruh route dashboard group, menambahkan redirect `next` ke login, dan menambahkan guard arsitektur agar route dashboard baru tidak luput dari proteksi middleware.
+- Issue #209: Menaikkan limit auth publik menjadi 15 request per 15 menit dan mengubah rate-limit Google OAuth menjadi redirect ke login dengan pesan yang jelas.
+- Issue #207: Mengubah access token menjadi 30 menit, menambahkan automatic refresh pada dashboard dengan guard concurrency dan visibility resume, serta menghapus cookie auth saat refresh session tidak valid.
+- Issue #198/#199: Membuat flow forgot password mengirim email reset password nyata lewat provider email terpilih ke email User yang cocok, serta membuat response UI forgot password tetap generik untuk mencegah email enumeration.
+- Memperbarui workflow branch utama: feature branch normal dibuat dari `development`, PR normal menargetkan `development`, dan `main` hanya untuk hasil final yang disetujui user.
+- Issue #196: Memperluas rate limiting API v1 ke endpoint auth publik/session, upload/download dokumen, export, statistik, cron internal, dan realtime Pusher memakai helper `enforceApiRateLimit()`.
+- Issue #64: Menambahkan rate limiting login gagal 5 kali per 15 menit per IP pada server action dan REST login, serta mengganti audit cabut sesi menjadi event `AUTH_SESSION_REVOKED`.
 - Menambahkan filter kategori arsip pada `/verification`, menyamakan filter `/documents` dan `/master-data/documents` dengan pola search + jenis dokumen + kategori arsip, dan mengganti branding aplikasi menjadi `SiCantIK` (`Sistem Pencatatan Informasi Kepegawaian`).
 - Issue #188: Menerapkan critical action verification yang sama pada aksi arsip, pulihkan, dan hapus permanen pegawai di halaman `/master-data/employees`.
 - Issue #173: Menambahkan fallback delivery notifikasi saat Inngest/Pusher tidak aktif, termasuk local event dispatch best-effort dan polling otomatis navbar ketika Pusher client tidak tersedia.
@@ -22,6 +29,13 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #216: Menambahkan upload foto profil dari avatar `/profile`, konfigurasi batas upload foto profil di `/system-settings`, fallback avatar upload → Google → inisial, dan streaming foto profil dari folder storage `profile/`.
+- Issue #212: Menambahkan malware scanning upload file dengan abstraction `scanFileBuffer`, provider default ClamAV `clamd`, fail-closed jika scanner error/unavailable, audit log untuk malware terdeteksi atau scan gagal, dan konfigurasi env ClamAV.
+- Issue #201: Menambahkan fondasi verifikasi dokumen publik berbasis QR Code untuk PDF profil pegawai, termasuk tabel `DocumentVerification`, URL `/verify-document?code=...`, endpoint API verifikasi rate-limited, QR pada export PDF profile, dan penyimpanan hash PDF hasil generate.
+- Issue #199: Menambahkan opsi `EMAIL_PROVIDER` (`noop`, `resend`, `smtp`) dan provider SMTP berbasis Nodemailer tanpa menghapus Resend.
+- Issue #198/#199: Menambahkan unit test pengiriman email reset password, binding token ke `userId`, invalidasi token saat delivery gagal, dan response server action forgot password yang tidak membocorkan status email.
+- Issue #196: Menambahkan event audit `API_RATE_LIMIT_CHECK` untuk request yang terkena limit, kategori limit API per endpoint, dan unit test helper rate limit.
+- Issue #64: Menambahkan panel manajemen sesi di `/settings` untuk melihat sesi refresh aktif, mencabut sesi tertentu, dan mencabut semua sesi akun dengan audit log.
 - Issue #188: Menambahkan fondasi komponen generic critical action verification di `src/components/verification/`, memakai pola konfirmasi ringkas ala GitHub dengan frasa target, verifikasi password akun, audit verifikasi, dan throttle percobaan gagal untuk aksi krusial non-spesifik delete.
 - Issue #186: Menambahkan export PDF detail profil pegawai berbasis `puppeteer-core` dan `@sparticuz/chromium`, termasuk tombol Download di detail pegawai admin dan `/profile`, dialog pilihan konten, serta template PDF profil + metadata dokumen.
 - Issue #149: Menambahkan Vitest architecture guard untuk mencegah import repository lintas modul, `fetch()` langsung di Client Component, dan legacy hardcoded status pegawai di layer non-label.
@@ -46,6 +60,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Memperbaiki penyimpanan `/system-settings` agar default `SystemSetting` yang belum lengkap otomatis di-seed sebelum update, mencegah Prisma `P2025` saat submit pengaturan sistem.
 - Issue #188: Menstabilkan lifecycle modal critical verification agar target aksi tidak di-unmount langsung saat dialog ditutup, mencegah runtime `Node.insertBefore` pada portal dialog.
 - Issue #188: Memperbaiki restore dokumen arsip agar jenis dokumen `allowMultiple=true` dapat dipulihkan walaupun sudah ada dokumen aktif lain untuk pegawai dan jenis yang sama, sambil tetap menjaga blokir konflik untuk `allowMultiple=false`.
 - Issue #184: Memperbaiki temuan review upload/notification terbaru, termasuk mock integration upload, format tanggal filename berbasis UTC, upload storage di luar transaksi DB, fallback dispatch lokal saat Inngest nonaktif, dan error boundary per dokumen pada cron reminder expiry.

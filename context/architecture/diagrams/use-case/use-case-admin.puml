@@ -1,0 +1,31 @@
+@startuml use-case-admin
+skinparam actorStyle stickman
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Use Case: Administrator (Admin)
+
+actor staff as "Staf Kepegawaian (Staff)"
+actor admin as "Administrator (Admin)"
+admin --|> staff
+
+rectangle "Fitur Eksklusif Admin" {
+    usecase UC_ManageDocType as "Kelola Master Jenis Dokumen\n(CRUD DocumentType)"
+    usecase UC_ManageTargetMatch as "Kelola Target Matching Dokumen\n(ProfessionGroup / Status / Rank / dll)"
+    usecase UC_ManageMasterData as "Kelola Master Data\n(EmploymentStatus, Workplace, Rank, Jabatan)"
+    usecase UC_ManageSettings as "Kelola System Settings\n(Reminder Days, Max Upload MB)"
+    usecase UC_ViewSecurityLog as "Lihat Audit Security Log\n(Append-only, Read-only)"
+    usecase UC_ManageUser as "Kelola Akun User\n(Aktifkan / Non-aktifkan)"
+}
+
+admin --> UC_ManageDocType
+admin --> UC_ManageTargetMatch
+admin --> UC_ManageMasterData
+admin --> UC_ManageSettings
+admin --> UC_ViewSecurityLog
+admin --> UC_ManageUser
+
+UC_ManageDocType ..> UC_ManageTargetMatch : "<<include>>"
+
+@enduml

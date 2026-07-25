@@ -52,7 +52,7 @@ Server
   -> jika berhasil:
        1. revoke semua RefreshToken aktif milik user
        2. log AUTH_FORCE_LOGOUT_OTHERS jika ada token lama
-       3. buat access token JWT 15 menit
+       3. buat access token JWT 30 menit
        4. buat refresh token random 256-bit
        5. simpan hash refresh token SHA-256 ke DB
        6. set access_token dan refresh_token ke httpOnly cookie
@@ -74,7 +74,7 @@ Setiap gagal login wajib dicatat ke `SecurityLog` dengan status `FAILED`.
 ## 5. Access Token
 
 - Jenis: JWT.
-- Masa berlaku: 15 menit.
+- Masa berlaku: 30 menit.
 - Storage client: httpOnly cookie.
 - Isi token minimal:
   - `userId`
@@ -82,6 +82,10 @@ Setiap gagal login wajib dicatat ke `SecurityLog` dengan status `FAILED`.
   - `employeeId` jika ada
 
 Access token dipakai middleware untuk inject context request.
+
+Middleware juga menjadi defense-in-depth untuk semua top-level route dalam `src/app/(dashboard)`, termasuk `/dashboard`, `/documents`, `/master-data`, `/profile`, `/settings`, `/system-settings`, `/verification`, `/notifications`, `/security-log`, dan `/statistics`. Jika access token tidak ada/tidak valid, request ke route protected diarahkan ke `/login?next=<target>`. Guard role/RBAC dan ownership tetap wajib berada di page/server action/service melalui `requireAuth()` dan business rule server-side; middleware tidak menggantikan validasi tersebut.
+
+Selama layout dashboard terbuka, client memanggil `POST /api/v1/auth/refresh` secara otomatis setiap 20 menit dan ketika tab kembali aktif setelah sedikitnya 15 menit. Request refresh memakai guard promise agar request bersamaan dari komponen yang sama tidak menduplikasi rotasi token. Jika refresh token tidak valid atau expired, cookie auth dihapus dan user diarahkan ke halaman login. Kegagalan jaringan sementara tidak langsung menghapus sesi; refresh berikutnya akan mencoba kembali.
 
 ## 6. Refresh Token
 
@@ -142,7 +146,7 @@ Flow:
 2. Server validasi email.
 3. Jika email ada, buat `PasswordResetToken` satu-pakai.
 4. Token expired 1 jam.
-5. Kirim link reset via email.
+5. Kirim link reset via email ke `User.email` yang cocok. Link memakai `NEXT_PUBLIC_APP_URL` dan query `?token=<raw-token>`, sedangkan token yang tersimpan di database tetap hash.
 6. Response harus generik agar tidak membocorkan apakah email terdaftar.
 
 ## 9. Reset Password

@@ -32,6 +32,11 @@ export const mockPrisma = {
     delete: vi.fn(),
     deleteMany: vi.fn(),
   },
+  userTwoFactor: {
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
+  },
   refreshToken: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -179,6 +184,16 @@ export const mockPrisma = {
     updateMany: vi.fn(),
     delete: vi.fn(),
   },
+  documentVerification: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  rateLimitBucket: {
+    findUnique: vi.fn(),
+    updateMany: vi.fn(),
+    deleteMany: vi.fn(),
+  },
   notification: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -212,6 +227,7 @@ export const mockPrisma = {
     delete: vi.fn(),
   },
   $executeRaw: vi.fn(),
+  $queryRaw: vi.fn(),
   $transaction: vi.fn().mockImplementation(async (cb) => {
     if (typeof cb === "function") {
       return cb(mockPrisma);

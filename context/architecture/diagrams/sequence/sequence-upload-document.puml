@@ -1,0 +1,63 @@
+@startuml sequence-upload-document
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Sequence: Upload Dokumen & Auto-Replacement
+
+autonumber
+
+actor "Pegawai (Employee)" as Client
+participant "DocController\n(/api/v1/documents/upload)" as Ctrl
+participant "DocumentService" as Svc
+participant "IStorageProvider" as Storage
+participant "NotificationService" as Notif
+participant "SecurityService" as Sec
+database "PostgreSQL" as DB
+
+Client -> Ctrl : POST /upload (multipart: file, documentTypeId)
+activate Ctrl
+
+Ctrl -> Svc : uploadDocument(formData, userId)
+activate Svc
+
+Svc -> DB : findDocumentType(documentTypeId)
+DB --> Svc : DocumentType record
+
+Svc -> Svc : validateZod()\nvalidateOwnership()\nverifyMimeType()\ncheckFileSize(maxSizeMb)
+
+alt validation fails
+    Svc --> Ctrl : throw ValidationError
+    Ctrl --> Client : 400 Bad Request
+end
+
+Svc -> Svc : calculateSHA256(fileBuffer)
+Svc -> Svc : generateFilePath()
+
+Svc -> Storage : upload(fileBuffer, filePath)
+activate Storage
+Storage --> Svc : storageKey / filePath
+deactivate Storage
+
+Svc -> DB : INSERT DocumentRecord\n(status=PENDING, isCurrent=true)
+activate DB
+note right of DB
+  Trigger: handle_document_replacement()
+  IF allowMultiple = false:
+    UPDATE DocumentRecord
+    SET status=REPLACED, isCurrent=false
+    WHERE ownerId=X AND documentTypeId=Y
+    AND isCurrent=true
+end note
+DB --> Svc : created record
+deactivate DB
+
+Svc -> Sec : logActivity(DOCUMENT_UPLOADED)
+Svc -> Notif : sendInApp(ownerId, "Upload sukses - Menunggu verifikasi")
+
+Svc --> Ctrl : DocumentRecord DTO
+deactivate Svc
+
+Ctrl --> Client : 201 Created { data: DocumentRecord }
+deactivate Ctrl
+
+@enduml

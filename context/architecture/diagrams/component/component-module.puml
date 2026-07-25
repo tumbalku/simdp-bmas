@@ -1,0 +1,133 @@
+@startuml ComponentModuleDiagram_SIMDP
+
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+
+title SIMDP - Component & Module Boundary Diagram (Modular Monolith Architecture)
+
+package "Browser Client (Presentation Layer)" {
+    [React UI Components / Page RSC] as UI
+    [Custom Hooks (hooks.ts)] as Hooks
+    [Client API Wrapper (api.ts)] as ClientAPI
+}
+
+package "Next.js App Router (Server Gateway)" {
+    [Auth Middleware (middleware.ts)] as Middleware
+    [Route Handlers (/api/v1/*)] as Routes
+    [Server Actions (actions.ts)] as ServerActions
+}
+
+package "Bounded Context Modules (src/modules/*)" {
+
+    package "Auth Module" {
+        [Auth Service (service.ts)] as AuthService
+        [Auth Repo (repository.ts)] as AuthRepo
+    }
+
+    package "Employee Module" {
+        [Employee Service (service.ts)] as EmpService
+        [Employee Repo (repository.ts)] as EmpRepo
+    }
+
+    package "Document Module" {
+        [Document Service (service.ts)] as DocService
+        [Document Repo (repository.ts)] as DocRepo
+    }
+
+    package "Verification Module" {
+        [Verification Service (service.ts)] as VerifService
+        [Verification Repo (repository.ts)] as VerifRepo
+    }
+
+    package "Notification Module" {
+        [Notification Service (service.ts)] as NotifService
+        [Notification Repo (repository.ts)] as NotifRepo
+    }
+
+    package "Statistics Module (Read-only Aggregator)" {
+        [Statistics Service (service.ts)] as StatsService
+        [Statistics Repo (repository.ts)] as StatsRepo
+    }
+
+    package "Security Module (Audit Trail)" {
+        [Security Service / logActivity()] as SecurityService
+        [Security Repo (repository.ts)] as SecurityRepo
+    }
+
+    package "Settings Module" {
+        [Settings Service (service.ts)] as SettingsService
+        [Settings Repo (repository.ts)] as SettingsRepo
+    }
+}
+
+package "Infrastructure & Abstractions (src/lib/*)" {
+    [Prisma Client Singleton (lib/prisma.ts)] as PrismaClient
+    [Storage Abstraction (IStorageProvider)] as StorageAbstraction
+}
+
+database "PostgreSQL Database (Supabase)" as PostgreSQL
+database "File Storage (Local / S3 / Supabase)" as FileStorage
+
+' Client Connections
+UI --> Hooks : "<<use>>"
+Hooks --> ClientAPI : "<<use>>"
+ClientAPI --> Routes : "HTTPS REST"
+UI --> ServerActions : "Invoke Server Action"
+
+' Gateway to Services
+Routes --> Middleware : "<<guarded by>>"
+Routes --> AuthService : "<<call public service>>"
+Routes --> EmpService : "<<call public service>>"
+Routes --> DocService : "<<call public service>>"
+Routes --> VerifService : "<<call public service>>"
+
+ServerActions --> DocService
+ServerActions --> VerifService
+ServerActions --> EmpService
+
+' Cross-Module Boundaries (Resepsionis Service.ts ONLY)
+VerifService ..> DocService : "<<cross-module service call>>"
+VerifService ..> NotifService : "<<cross-module service call>>"
+DocService ..> NotifService : "<<cross-module service call>>"
+DocService ..> SecurityService : "<<logActivity>>"
+VerifService ..> SecurityService : "<<logActivity>>"
+AuthService ..> SecurityService : "<<logActivity>>"
+
+' Internal Module Flow (Service to Repo)
+AuthService --> AuthRepo
+EmpService --> EmpRepo
+DocService --> DocRepo
+VerifService --> VerifRepo
+NotifService --> NotifRepo
+StatsService --> StatsRepo
+SecurityService --> SecurityRepo
+SettingsService --> SettingsRepo
+
+' Storage Boundary
+DocService --> StorageAbstraction : "<<upload / download>>"
+StorageAbstraction --> FileStorage : "S3 / Local / Supabase SDK"
+
+' Stats Read-Only Queries
+StatsRepo ..> PrismaClient : "<<read-only aggregate query>>"
+
+' Database Access via Prisma Singleton ONLY
+AuthRepo --> PrismaClient
+EmpRepo --> PrismaClient
+DocRepo --> PrismaClient
+VerifRepo --> PrismaClient
+NotifRepo --> PrismaClient
+SecurityRepo --> PrismaClient
+SettingsRepo --> PrismaClient
+
+PrismaClient --> PostgreSQL : "SQL / Prisma Query Engine"
+
+note right of StatsService
+  **ATURAN BOUNDARY MODUL (BR-009):**
+  1. Modul lain HANYA boleh memanggil public boundary `service.ts`.
+  2. Modul LAIN DILARANG mengimpor `repository.ts` modul terpisah.
+  3. UI & Hooks DILARANG memanggil `fetch()` atau `repository` secara langsung.
+end note
+
+@enduml

@@ -65,6 +65,13 @@ const STORAGE_FIELDS = [
     unit: "MB",
   },
   {
+    key: "profile_image_max_upload_mb",
+    fallbackLabel: "Batas Upload Foto Profil",
+    fallbackDescription: "Batas ukuran file gambar untuk foto profil pegawai.",
+    min: 1,
+    unit: "MB",
+  },
+  {
     key: "soft_delete_retention_days",
     fallbackLabel: "Masa Retensi Sampah",
     fallbackDescription: "Batas waktu pemulihan data yang sudah dihapus sementara.",
@@ -119,7 +126,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
 
       <div className="grid gap-4 md:grid-cols-3">
         <SummaryCard icon={BellRing} label="Reminder aktif" value={`${REMINDER_FIELDS.length} tahap`} />
-        <SummaryCard icon={UploadCloud} label="Batas upload" value={`${values.default_max_upload_mb ?? "-"} MB`} />
+        <SummaryCard icon={UploadCloud} label="Foto profil" value={`${values.profile_image_max_upload_mb ?? "-"} MB`} />
         <SummaryCard icon={DatabaseBackup} label="Retensi data" value={`${values.soft_delete_retention_days ?? "-"} hari`} />
       </div>
 

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { z } from "zod";
 
 import { requireAuth } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
 import { AppError } from "@/lib/errors";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { DOCUMENT_STATUS_OPTIONS, type DocumentStatus } from "@/modules/document";
 import {
   getActorDisplayName,
@@ -11,6 +13,10 @@ import {
   renderEmployeeProfilePdfHtml,
   renderHtmlToPdfBuffer,
 } from "@/modules/employee/server";
+import {
+  attachDocumentVerificationFileHash,
+  issueEmployeeProfileVerification,
+} from "@/modules/document-verification/server";
 import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 
 export const runtime = "nodejs";
@@ -68,6 +74,12 @@ function buildDocumentStatuses(documents: "none" | "all" | "status", status: Doc
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await requireAuth();
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id } = await params;
 
     if (session.role === "EMPLOYEE" && session.employeeId !== id) {
@@ -94,8 +106,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return errorResponse("NOT_FOUND", "Pegawai tidak ditemukan.", undefined, 404);
     }
 
-    const html = renderEmployeeProfilePdfHtml(data, { includeProfile });
+    const verification = await issueEmployeeProfileVerification({
+      employeeId: id,
+      issuedByUserId: session.userId,
+      metadata: {
+        includeProfile,
+        documents: parsed.data.documents,
+        statuses: documentStatuses ?? "ALL",
+      },
+    });
+
+    const html = renderEmployeeProfilePdfHtml(data, { includeProfile, verification });
     const pdf = await renderHtmlToPdfBuffer(html);
+    const fileHash = crypto.createHash("sha256").update(pdf).digest("hex");
+    await attachDocumentVerificationFileHash(verification.id, fileHash);
     const actorName = await getActorDisplayName(session.userId, "User");
 
     await logActivity({
@@ -109,6 +133,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         includeProfile,
         documents: parsed.data.documents,
         statuses: documentStatuses ?? "ALL",
+        verificationCode: verification.code,
       },
     });
 

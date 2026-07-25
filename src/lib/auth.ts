@@ -6,6 +6,7 @@ import type { UserRole } from "@/constants/roles";
 import { AppError } from "./errors";
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
+export const ACCESS_TOKEN_TTL_SECONDS = 30 * 60;
 
 export interface TokenPayload {
   userId: string;
@@ -17,8 +18,47 @@ export async function signAccessToken(payload: TokenPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("15m")
+    .setExpirationTime(`${ACCESS_TOKEN_TTL_SECONDS}s`)
     .sign(JWT_SECRET);
+}
+
+export async function createTwoFactorChallenge(userId: string): Promise<string> {
+  return new SignJWT({ userId, purpose: "2fa-login" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(JWT_SECRET);
+}
+
+export async function verifyTwoFactorChallenge(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload.purpose === "2fa-login" && typeof payload.userId === "string" ? payload.userId : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setTwoFactorChallengeCookie(userId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set("two_factor_challenge", await createTwoFactorChallenge(userId), {
+    httpOnly: true,
+    secure: env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 5 * 60,
+  });
+}
+
+export async function getTwoFactorChallengeUserId() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("two_factor_challenge")?.value;
+  return token ? verifyTwoFactorChallenge(token) : null;
+}
+
+export async function clearTwoFactorChallengeCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete("two_factor_challenge");
 }
 
 export async function verifyAccessToken(token: string): Promise<TokenPayload | null> {
@@ -52,7 +92,7 @@ export async function setAuthCookies(
     secure: env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 15 * 60, // 15 mins
+    maxAge: ACCESS_TOKEN_TTL_SECONDS,
   });
 
   cookieStore.set("refresh_token", refreshTokenPlain, {

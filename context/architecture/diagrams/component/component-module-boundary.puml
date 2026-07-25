@@ -1,0 +1,70 @@
+@startuml component-module-boundary
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+
+title SIMDP - Component: Module Boundary (src/modules/*)
+
+package "Auth Module" {
+    [auth/service.ts] as AuthSvc
+    [auth/repository.ts] as AuthRepo
+    [auth/actions.ts] as AuthActions
+    [auth/api.ts] as AuthAPI
+}
+
+package "Employee Module" {
+    [employee/service.ts] as EmpSvc
+    [employee/repository.ts] as EmpRepo
+}
+
+package "Document Module" {
+    [document/service.ts] as DocSvc
+    [document/repository.ts] as DocRepo
+}
+
+package "Verification Module" {
+    [verification/service.ts] as VerifSvc
+    [verification/repository.ts] as VerifRepo
+}
+
+package "Notification Module" {
+    [notification/service.ts] as NotifSvc
+}
+
+package "Statistics Module" {
+    [statistics/service.ts] as StatsSvc
+}
+
+package "Security Module" {
+    [security/service.ts\n(logActivity)] as SecSvc
+}
+
+package "Settings Module" {
+    [settings/service.ts] as SettingsSvc
+}
+
+database "Prisma Client\n(src/lib/prisma.ts)" as Prisma
+
+' Allowed cross-module calls (service.ts only)
+VerifSvc ..> DocSvc : "<<cross-module>>"
+VerifSvc ..> NotifSvc : "<<cross-module>>"
+VerifSvc ..> SecSvc : "<<logActivity>>"
+DocSvc ..> NotifSvc : "<<cross-module>>"
+DocSvc ..> SecSvc : "<<logActivity>>"
+AuthSvc ..> SecSvc : "<<logActivity>>"
+
+' Internal flows
+AuthSvc --> AuthRepo
+AuthActions --> AuthSvc
+EmpSvc --> EmpRepo
+DocSvc --> DocRepo
+VerifSvc --> VerifRepo
+
+' All repos use single Prisma instance
+AuthRepo --> Prisma
+EmpRepo --> Prisma
+DocRepo --> Prisma
+VerifRepo --> Prisma
+
+@enduml

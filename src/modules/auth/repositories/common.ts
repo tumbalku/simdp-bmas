@@ -42,9 +42,30 @@ export function findUserWithEmployeeByEmail(email: string) {
   });
 }
 
+export function updateEmployeeGoogleAvatarUrl(employeeId: string, googleAvatarUrl: string) {
+  return prisma.employee.update({
+    where: { id: employeeId },
+    data: { googleAvatarUrl },
+  });
+}
+
 export function findActiveRefreshTokensByUserId(userId: string) {
   return prisma.refreshToken.findMany({
     where: { userId, revokedAt: null },
+  });
+}
+
+export function findActiveRefreshTokenSessionsByUserId(userId: string) {
+  return prisma.refreshToken.findMany({
+    where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      userAgent: true,
+      ipAddress: true,
+      createdAt: true,
+      expiresAt: true,
+    },
   });
 }
 
@@ -105,6 +126,13 @@ export function revokeRefreshTokenById(id: string) {
   });
 }
 
+export function revokeRefreshTokenForRotation(id: string) {
+  return prisma.refreshToken.updateMany({
+    where: { id, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
 export function createPasswordResetToken(input: {
   id: string;
   userId: string;
@@ -113,6 +141,13 @@ export function createPasswordResetToken(input: {
 }) {
   return prisma.passwordResetToken.create({
     data: input,
+  });
+}
+
+export function markPasswordResetTokenUsed(id: string) {
+  return prisma.passwordResetToken.update({
+    where: { id },
+    data: { usedAt: new Date() },
   });
 }
 
@@ -170,6 +205,9 @@ export function findCurrentUserAccount(userId: string) {
       role: true,
       isActive: true,
       lastLoginAt: true,
+      twoFactor: {
+        select: { enabled: true },
+      },
       employee: {
         select: {
           name: true,
@@ -178,5 +216,48 @@ export function findCurrentUserAccount(userId: string) {
         },
       },
     },
+  });
+}
+
+export function findUserTwoFactor(userId: string) {
+  return prisma.userTwoFactor.findUnique({ where: { userId } });
+}
+
+export function upsertUserTwoFactor(input: {
+  userId: string;
+  secretEncrypted: string;
+  recoveryCodeHashes: string[];
+  enabled: boolean;
+}) {
+  return prisma.userTwoFactor.upsert({
+    where: { userId: input.userId },
+    create: {
+      id: crypto.randomUUID(),
+      userId: input.userId,
+      secretEncrypted: input.secretEncrypted,
+      recoveryCodeHashes: input.recoveryCodeHashes,
+      enabled: input.enabled,
+    },
+    update: {
+      secretEncrypted: input.secretEncrypted,
+      recoveryCodeHashes: input.recoveryCodeHashes,
+      enabled: input.enabled,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export function updateUserTwoFactor(userId: string, input: {
+  recoveryCodeHashes?: string[];
+  enabled?: boolean;
+  emailOtpHash?: string | null;
+  emailOtpExpiresAt?: Date | null;
+  emailOtpSentAt?: Date | null;
+  emailOtpAttempts?: number;
+  emailOtpLockedUntil?: Date | null;
+}) {
+  return prisma.userTwoFactor.update({
+    where: { userId },
+    data: { ...input, updatedAt: new Date() },
   });
 }

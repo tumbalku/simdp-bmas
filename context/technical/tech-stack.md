@@ -19,7 +19,7 @@
 | Validation | Zod | Semua input dari luar dan environment variable wajib divalidasi. |
 | Password Hashing | Argon2id | Jangan gunakan plaintext/bcrypt baru kecuali ada keputusan baru. |
 | Scheduled Job | Vercel Cron Jobs | Memanggil `/api/v1/cron/check-expiry` dengan `CRON_SECRET`. |
-| Email | Resend atau Supabase SMTP | Reset password dan reminder dokumen. |
+| Email | Provider abstraction (`noop`, Resend, SMTP/Gmail via Nodemailer) | Reset password dan reminder dokumen. |
 | Testing | Vitest + Playwright | Unit test untuk business logic, E2E untuk flow penting. |
 
 ## Prinsip Stack

@@ -1,0 +1,56 @@
+@startuml sequence-verification-document
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Sequence: Verifikasi Dokumen (Approve / Reject)
+
+autonumber
+
+actor "Staf / Admin (Verifier)" as Verifier
+participant "VerifController\n(/api/v1/verification/*)" as Ctrl
+participant "VerificationService" as VerifSvc
+participant "DocumentService" as DocSvc
+participant "NotificationService" as Notif
+participant "SecurityService" as Sec
+database "PostgreSQL" as DB
+
+Verifier -> Ctrl : GET /pending (query: page, filter)
+Ctrl --> Verifier : list DocumentRecord (status=PENDING)
+
+Verifier -> Ctrl : POST /verify\n{ documentRecordId, status, reviewNote }
+activate Ctrl
+
+Ctrl -> VerifSvc : verifyDocument({ id, status, reviewNote, verifierId })
+activate VerifSvc
+
+VerifSvc -> DocSvc : getDocumentById(documentRecordId)
+DocSvc --> VerifSvc : DocumentRecord (includes owner Employee)
+
+VerifSvc -> VerifSvc : validateRole(verifier must be STAFF or ADMIN)
+VerifSvc -> VerifSvc : validateStatus(doc must be PENDING)
+
+alt REJECTED and reviewNote empty
+    VerifSvc --> Ctrl : throw ValidationError (reviewNote required)
+    Ctrl --> Verifier : 400 Bad Request
+end
+
+VerifSvc -> DB : BEGIN TRANSACTION
+VerifSvc -> DB : UPDATE DocumentRecord SET status = newStatus
+VerifSvc -> DB : INSERT VerificationHistory\n(documentRecordId, status, reviewedById, reviewNote)
+VerifSvc -> DB : COMMIT
+
+alt status = APPROVED
+    VerifSvc -> Sec : log(DOCUMENT_APPROVED)
+    VerifSvc -> Notif : sendInApp + Email(owner, "Dokumen disetujui")
+else status = REJECTED
+    VerifSvc -> Sec : log(DOCUMENT_REJECTED, { reviewNote })
+    VerifSvc -> Notif : sendInApp + Email(owner, "Dokumen ditolak: [note]")
+end
+
+VerifSvc --> Ctrl : VerificationResult DTO
+deactivate VerifSvc
+
+Ctrl --> Verifier : 200 OK { message, data }
+deactivate Ctrl
+
+@enduml

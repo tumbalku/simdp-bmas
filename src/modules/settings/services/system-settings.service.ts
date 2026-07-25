@@ -28,6 +28,12 @@ const DEFAULTS = [
     description: "Batas ukuran file global jika tidak ditentukan per jenis dokumen",
   },
   {
+    key: "profile_image_max_upload_mb",
+    value: "2",
+    label: "Batas Upload Foto Profil (MB)",
+    description: "Batas ukuran file gambar untuk foto profil pegawai",
+  },
+  {
     key: "soft_delete_retention_days",
     value: "30",
     label: "Masa Retensi Sampah (Hari)",
@@ -35,15 +41,26 @@ const DEFAULTS = [
   },
 ];
 
+function getMissingDefaultSettings(settings: Array<{ key: string }>) {
+  const existingKeys = new Set(settings.map((setting) => setting.key));
+  return DEFAULTS.filter((setting) => !existingKeys.has(setting.key));
+}
+
 export async function getSystemSettings() {
   let settings = await repo.findSystemSettings();
+  const missingDefaults = getMissingDefaultSettings(settings);
 
-  if (settings.length === 0) {
-    await repo.createDefaultSystemSettings(DEFAULTS);
+  if (missingDefaults.length > 0) {
+    await repo.createDefaultSystemSettings(missingDefaults);
     settings = await repo.findSystemSettings();
   }
 
   return settings;
+}
+
+export async function getSystemSettingValue(key: string, fallback: string) {
+  const settings = await getSystemSettings();
+  return settings.find((setting) => setting.key === key)?.value ?? fallback;
 }
 
 export async function updateSettings(
@@ -52,6 +69,8 @@ export async function updateSettings(
   actorName: string,
   actorRole: string
 ) {
+  await getSystemSettings();
+
   await repo.updateSystemSettings(settingsList, userId);
 
   await logActivity({

@@ -86,6 +86,10 @@ enum SecurityActorRole {
   SYSTEM
 }
 
+enum DocumentVerificationType {
+  EMPLOYEE_PROFILE
+}
+
 model User {
   id           String    @id
   email        String    @unique
@@ -99,31 +103,51 @@ model User {
 
   employee            Employee?
   refreshTokens       RefreshToken[]
+  twoFactor           UserTwoFactor?
   passwordResetTokens PasswordResetToken[]
   notifications       Notification[]
 
-  createdEmploymentStatuses EmploymentStatus[]      @relation("EmploymentStatusCreatedBy")
-  updatedEmploymentStatuses EmploymentStatus[]      @relation("EmploymentStatusUpdatedBy")
-  createdEmployeeGroups     EmployeeGroup[]         @relation("EmployeeGroupCreatedBy")
-  updatedEmployeeGroups     EmployeeGroup[]         @relation("EmployeeGroupUpdatedBy")
-  createdProfessionGroups   ProfessionGroup[]       @relation("ProfessionGroupCreatedBy")
-  updatedProfessionGroups   ProfessionGroup[]       @relation("ProfessionGroupUpdatedBy")
-  createdEmployeePositions  EmployeePosition[]      @relation("EmployeePositionCreatedBy")
-  updatedEmployeePositions  EmployeePosition[]      @relation("EmployeePositionUpdatedBy")
-  createdEmployeeRanks      EmployeeRank[]          @relation("EmployeeRankCreatedBy")
-  updatedEmployeeRanks      EmployeeRank[]          @relation("EmployeeRankUpdatedBy")
-  createdWorkplaces         Workplace[]             @relation("WorkplaceCreatedBy")
-  updatedWorkplaces         Workplace[]             @relation("WorkplaceUpdatedBy")
-  createdEmployees          Employee[]              @relation("EmployeeCreatedBy")
-  updatedEmployees          Employee[]              @relation("EmployeeUpdatedBy")
-  createdCareerHistories    EmployeeCareerHistory[] @relation("EmployeeCareerHistoryCreatedBy")
-  createdDocumentTypes      DocumentType[]          @relation("DocumentTypeCreatedBy")
-  updatedDocumentTypes      DocumentType[]          @relation("DocumentTypeUpdatedBy")
-  createdDocumentRecords    DocumentRecord[]        @relation("DocumentRecordCreatedBy")
-  updatedDocumentRecords    DocumentRecord[]        @relation("DocumentRecordUpdatedBy")
-  reviewedVerifications     VerificationHistory[]   @relation("VerificationReviewer")
-  securityLogs              SecurityLog[]           @relation("SecurityLogActor")
-  updatedSystemSettings     SystemSetting[]         @relation("SystemSettingUpdatedBy")
+  createdEmploymentStatuses    EmploymentStatus[]      @relation("EmploymentStatusCreatedBy")
+  updatedEmploymentStatuses    EmploymentStatus[]      @relation("EmploymentStatusUpdatedBy")
+  createdEmployeeGroups        EmployeeGroup[]         @relation("EmployeeGroupCreatedBy")
+  updatedEmployeeGroups        EmployeeGroup[]         @relation("EmployeeGroupUpdatedBy")
+  createdProfessionGroups      ProfessionGroup[]       @relation("ProfessionGroupCreatedBy")
+  updatedProfessionGroups      ProfessionGroup[]       @relation("ProfessionGroupUpdatedBy")
+  createdEmployeePositions     EmployeePosition[]      @relation("EmployeePositionCreatedBy")
+  updatedEmployeePositions     EmployeePosition[]      @relation("EmployeePositionUpdatedBy")
+  createdEmployeeRanks         EmployeeRank[]          @relation("EmployeeRankCreatedBy")
+  updatedEmployeeRanks         EmployeeRank[]          @relation("EmployeeRankUpdatedBy")
+  createdWorkplaces            Workplace[]             @relation("WorkplaceCreatedBy")
+  updatedWorkplaces            Workplace[]             @relation("WorkplaceUpdatedBy")
+  createdEmployees             Employee[]              @relation("EmployeeCreatedBy")
+  updatedEmployees             Employee[]              @relation("EmployeeUpdatedBy")
+  createdCareerHistories       EmployeeCareerHistory[] @relation("EmployeeCareerHistoryCreatedBy")
+  createdDocumentTypes         DocumentType[]          @relation("DocumentTypeCreatedBy")
+  updatedDocumentTypes         DocumentType[]          @relation("DocumentTypeUpdatedBy")
+  createdDocumentRecords       DocumentRecord[]        @relation("DocumentRecordCreatedBy")
+  updatedDocumentRecords       DocumentRecord[]        @relation("DocumentRecordUpdatedBy")
+  reviewedVerifications        VerificationHistory[]   @relation("VerificationReviewer")
+  issuedDocumentVerifications  DocumentVerification[]  @relation("DocumentVerificationIssuedBy")
+  revokedDocumentVerifications DocumentVerification[]  @relation("DocumentVerificationRevokedBy")
+  securityLogs                 SecurityLog[]           @relation("SecurityLogActor")
+  updatedSystemSettings        SystemSetting[]         @relation("SystemSettingUpdatedBy")
+}
+
+model UserTwoFactor {
+  id                   String   @id
+  userId               String   @unique
+  secretEncrypted      String
+  recoveryCodeHashes   Json
+  enabled              Boolean  @default(false)
+  emailOtpHash         String?
+  emailOtpExpiresAt    DateTime?
+  emailOtpSentAt       DateTime?
+  emailOtpAttempts     Int      @default(0)
+  emailOtpLockedUntil  DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefreshToken {
@@ -268,6 +292,7 @@ model Employee {
   name               String
   status             EmployeeStatus         @default(ACTIVE)
   avatarUrl          String?
+  googleAvatarUrl    String?
   gender             EmployeeGender?
   birthDate          DateTime?              @db.Date
   birthPlace         String?
@@ -301,8 +326,9 @@ model Employee {
   createdByUser    User?             @relation("EmployeeCreatedBy", fields: [createdBy], references: [id])
   updatedByUser    User?             @relation("EmployeeUpdatedBy", fields: [updatedBy], references: [id])
 
-  careerHistories EmployeeCareerHistory[]
-  documentRecords DocumentRecord[]
+  careerHistories       EmployeeCareerHistory[]
+  documentRecords       DocumentRecord[]
+  documentVerifications DocumentVerification[]
 
   @@index([deletedAt], map: "idx_employee_deleted")
 }
@@ -484,6 +510,28 @@ model VerificationHistory {
   @@index([documentRecordId], map: "idx_verificationhistory_document")
 }
 
+model DocumentVerification {
+  id                String                   @id
+  code              String                   @unique
+  documentType      DocumentVerificationType
+  subjectEmployeeId String
+  issuedByUserId    String?
+  fileHash          String?
+  metadata          Json?
+  issuedAt          DateTime                 @default(now())
+  expiresAt         DateTime?
+  revokedAt         DateTime?
+  revokedByUserId   String?
+  revokeReason      String?
+
+  subjectEmployee Employee @relation(fields: [subjectEmployeeId], references: [id], onDelete: Cascade)
+  issuedByUser    User?    @relation("DocumentVerificationIssuedBy", fields: [issuedByUserId], references: [id])
+  revokedByUser   User?    @relation("DocumentVerificationRevokedBy", fields: [revokedByUserId], references: [id])
+
+  @@index([subjectEmployeeId], map: "idx_documentverification_subject")
+  @@index([issuedAt], map: "idx_documentverification_issued_at")
+}
+
 model Notification {
   id                String                         @id
   userId            String
@@ -527,4 +575,17 @@ model SystemSetting {
   updatedAt   DateTime @default(now())
 
   updatedByUser User? @relation("SystemSettingUpdatedBy", fields: [updatedBy], references: [id])
+}
+
+model RateLimitBucket {
+  key             String   @id
+  category        String
+  count           Int      @default(0)
+  resetAt         DateTime
+  limitedLoggedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category, resetAt], map: "idx_ratelimitbucket_category_reset")
+  @@index([resetAt], map: "idx_ratelimitbucket_reset")
 }

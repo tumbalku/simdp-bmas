@@ -82,6 +82,12 @@ export async function processExpiredDocumentsAndReminders() {
     try {
       if (!doc.expiryDate) continue;
       if (isSameUtcDate(doc.expiryDate, h30Date) && !doc.reminderH30SentAt) {
+        // Flag first in DB to guarantee idempotency and avoid duplicate reminder delivery
+        await repo.updateReminderSentAt({
+          documentRecordId: doc.id,
+          reminderField: "reminderH30SentAt",
+        });
+
         const title = "Peringatan Kedaluwarsa Dokumen (H-30)";
         const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 30 hari (${dateString(
           doc.expiryDate
@@ -94,12 +100,14 @@ export async function processExpiredDocumentsAndReminders() {
           message,
           reminderStage: "H30",
         });
-        await repo.updateReminderSentAt({
-          documentRecordId: doc.id,
-          reminderField: "reminderH30SentAt",
-        });
         remindersSent.H30++;
       } else if (isSameUtcDate(doc.expiryDate, h7Date) && !doc.reminderH7SentAt) {
+        // Flag first in DB to guarantee idempotency and avoid duplicate reminder delivery
+        await repo.updateReminderSentAt({
+          documentRecordId: doc.id,
+          reminderField: "reminderH7SentAt",
+        });
+
         const title = "Peringatan Kedaluwarsa Dokumen (H-7)";
         const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa dalam 7 hari (${dateString(
           doc.expiryDate
@@ -112,12 +120,14 @@ export async function processExpiredDocumentsAndReminders() {
           message,
           reminderStage: "H7",
         });
-        await repo.updateReminderSentAt({
-          documentRecordId: doc.id,
-          reminderField: "reminderH7SentAt",
-        });
         remindersSent.H7++;
       } else if (isSameUtcDate(doc.expiryDate, h1Date) && !doc.reminderH1SentAt) {
+        // Flag first in DB to guarantee idempotency and avoid duplicate reminder delivery
+        await repo.updateReminderSentAt({
+          documentRecordId: doc.id,
+          reminderField: "reminderH1SentAt",
+        });
+
         const title = "Peringatan Kedaluwarsa Dokumen (H-1)";
         const message = `Dokumen ${doc.documentType.name} Anda akan kedaluwarsa besok (${dateString(
           doc.expiryDate
@@ -129,10 +139,6 @@ export async function processExpiredDocumentsAndReminders() {
           title,
           message,
           reminderStage: "H1",
-        });
-        await repo.updateReminderSentAt({
-          documentRecordId: doc.id,
-          reminderField: "reminderH1SentAt",
         });
         remindersSent.H1++;
       }

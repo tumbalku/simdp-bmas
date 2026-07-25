@@ -1,0 +1,250 @@
+@startuml ClassDomainDiagram_SIMDP
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam linetype ortho
+
+title SIMDP - Class Domain Diagram (Data Model & Entities)
+
+enum Role {
+    ADMIN
+    STAFF
+    EMPLOYEE
+}
+
+enum DocumentArchiveCategory {
+    PERSONAL
+    EDUCATION
+    EMPLOYMENT
+    CERTIFICATION
+    LEGAL
+}
+
+enum VerificationStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    EXPIRED
+    REPLACED
+}
+
+enum SecurityLogStatus {
+    SUCCESS
+    FAILED
+}
+
+package "Auth Domain" {
+    class User {
+        +String id
+        +String email
+        +String passwordHash
+        +Role role
+        +Boolean isActive
+        +DateTime lastLoginAt
+        +DateTime createdAt
+        +DateTime updatedAt
+        +DateTime deletedAt
+        --
+        +validatePassword(rawPassword): Boolean
+    }
+
+    class RefreshToken {
+        +String id
+        +String userId
+        +String tokenHash
+        +DateTime expiresAt
+        +DateTime revokedAt
+        +DateTime createdAt
+        --
+        +isValid(): Boolean
+    }
+
+    class PasswordResetToken {
+        +String id
+        +String userId
+        +String tokenHash
+        +DateTime expiresAt
+        +DateTime usedAt
+        +DateTime createdAt
+    }
+}
+
+package "Employee Domain & Master Data" {
+    class Employee {
+        +String id
+        +String userId
+        +String employeeId
+        +String nik
+        +String name
+        +String gender
+        +DateTime birthDate
+        +String birthPlace
+        +String phone
+        +String address
+        +String employmentStatusId
+        +String employeeGroupId
+        +String employeePositionId
+        +String employeeRankId
+        +String workplaceId
+        +DateTime createdAt
+        +DateTime updatedAt
+        +DateTime deletedAt
+    }
+
+    class EmploymentStatus {
+        +String id
+        +String name
+        +String code
+    }
+
+    class EmployeeGroup {
+        +String id
+        +String employmentStatusId
+        +String name
+    }
+
+    class ProfessionGroup {
+        +String id
+        +String name
+    }
+
+    class EmployeePosition {
+        +String id
+        +String professionGroupId
+        +String name
+    }
+
+    class EmployeeRank {
+        +String id
+        +String name
+        +String code
+    }
+
+    class Workplace {
+        +String id
+        +String name
+        +String code
+    }
+
+    class EmployeeCareerHistory {
+        +String id
+        +String employeeId
+        +String positionName
+        +String rankName
+        +String workplaceName
+        +DateTime effectiveDate
+        +DateTime endDate
+        +String note
+    }
+}
+
+package "Document & Verification Domain" {
+    class DocumentType {
+        +String id
+        +String code
+        +String name
+        +DocumentArchiveCategory archiveCategory
+        +Boolean isMandatory
+        +Boolean allowMultiple
+        +Boolean requiresExpiryDate
+        +Boolean requiresIssueDate
+        +Boolean requiresDocumentNumber
+        +String allowedFormats
+        +Float maxSizeMb
+        +DateTime deletedAt
+    }
+
+    class DocumentRecord {
+        +String id
+        +String ownerId
+        +String documentTypeId
+        +String title
+        +VerificationStatus status
+        +Boolean isCurrent
+        +Boolean allowMultipleSnapshot
+        +String fileName
+        +String filePath
+        +BigInt fileSize
+        +String mimeType
+        +String fileHash
+        +String storageProvider
+        +String documentNumber
+        +DateTime issueDate
+        +DateTime expiryDate
+        +DateTime reminderH30SentAt
+        +DateTime reminderH7SentAt
+        +DateTime reminderH1SentAt
+        +DateTime uploadedAt
+        +DateTime updatedAt
+        +DateTime deletedAt
+    }
+
+    class VerificationHistory {
+        +String id
+        +String documentRecordId
+        +String reviewedById
+        +VerificationStatus status
+        +String reviewNote
+        +DateTime reviewedAt
+    }
+}
+
+package "System & Security Domain" {
+    class Notification {
+        +String id
+        +String userId
+        +String type
+        +String title
+        +String message
+        +Boolean isRead
+        +String relatedEntityType
+        +String relatedEntityId
+        +DateTime createdAt
+    }
+
+    class SecurityLog {
+        +String id
+        +DateTime timestamp
+        +String actorId
+        +String actorName
+        +String actorRole
+        +String eventType
+        +String resource
+        +String ipAddress
+        +SecurityLogStatus status
+        +Json metadata
+    }
+
+    class SystemSetting {
+        +String id
+        +String key
+        +String value
+        +String description
+        +DateTime updatedAt
+    }
+}
+
+' Relations - Auth
+User "1" -- "0..1" Employee : owns
+User "1" -- "0..*" RefreshToken : possesses
+User "1" -- "0..*" PasswordResetToken : requests
+User "1" -- "0..*" Notification : receives
+
+' Relations - Employee & Master
+Employee "*" -- "1" EmploymentStatus : has
+Employee "*" -- "0..1" EmployeeGroup : belongs to
+Employee "*" -- "0..1" EmployeePosition : occupies
+Employee "*" -- "0..1" EmployeeRank : holds
+Employee "*" -- "0..1" Workplace : assigned to
+Employee "1" -- "0..*" EmployeeCareerHistory : logs
+EmploymentStatus "1" -- "0..*" EmployeeGroup : contains
+ProfessionGroup "1" -- "0..*" EmployeePosition : categorizes
+
+' Relations - Document
+Employee "1" -- "0..*" DocumentRecord : owns
+DocumentType "1" -- "0..*" DocumentRecord : categorizes
+DocumentRecord "1" -- "0..*" VerificationHistory : tracks
+User "1" -- "0..*" VerificationHistory : verifies
+
+@enduml

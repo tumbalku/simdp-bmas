@@ -1,6 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import crypto from "crypto";
+const notificationMocks = vi.hoisted(() => ({
+  sendEmail: vi.fn(),
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  emailProvider: {
+    sendEmail: notificationMocks.sendEmail,
+  },
+}));
+
 import {
   changePassword,
+  getActiveSessions,
+  isLoginRateLimited,
   loginUser,
   rotateSession,
   logoutUser,
@@ -14,6 +27,92 @@ import * as argon2 from "argon2";
 describe("Auth Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([
+      {
+        key: "RateLimit:AUTH_LOGIN_FAILED:test",
+        category: "AUTH_LOGIN_FAILED",
+        count: 1,
+        resetAt: new Date(Date.now() + 15 * 60 * 1000),
+        limitedLoggedAt: null,
+      },
+    ]);
+    vi.mocked(mockPrisma.rateLimitBucket.findUnique).mockResolvedValue(null);
+    vi.mocked(mockPrisma.rateLimitBucket.updateMany).mockResolvedValue({ count: 1 });
+  });
+
+  describe("login rate limiting", () => {
+    it("should rate limit after five failed attempts per IP from shared rate-limit buckets", async () => {
+      const expectedKey = crypto
+        .createHash("sha256")
+        .update("AUTH_LOGIN_FAILED:192.0.2.55")
+        .digest("hex")
+        .slice(0, 24);
+
+      mockPrisma.rateLimitBucket.findUnique.mockResolvedValue({
+        key: expectedKey,
+        category: "AUTH_LOGIN_FAILED",
+        count: 5,
+        resetAt: new Date(Date.now() + 15 * 60 * 1000),
+        limitedLoggedAt: null,
+      });
+
+      await expect(isLoginRateLimited("192.0.2.55")).resolves.toBe(true);
+
+      expect(mockPrisma.rateLimitBucket.findUnique).toHaveBeenCalledWith({
+        where: { key: expectedKey },
+      });
+    });
+
+    it("should keep rate limit state even after a successful login", async () => {
+      mockPrisma.rateLimitBucket.findUnique.mockResolvedValue({
+        key: crypto
+          .createHash("sha256")
+          .update("AUTH_LOGIN_FAILED:192.0.2.55")
+          .digest("hex")
+          .slice(0, 24),
+        category: "AUTH_LOGIN_FAILED",
+        count: 5,
+        resetAt: new Date(Date.now() + 15 * 60 * 1000),
+        limitedLoggedAt: null,
+      });
+
+      await expect(isLoginRateLimited("192.0.2.55")).resolves.toBe(true);
+    });
+  });
+
+  describe("getActiveSessions", () => {
+    it("should return active refresh token session metadata", async () => {
+      const createdAt = new Date("2026-07-22T01:00:00.000Z");
+      const expiresAt = new Date("2026-07-29T01:00:00.000Z");
+
+      mockPrisma.refreshToken.findMany.mockResolvedValue([
+        {
+          id: "token-1",
+          userAgent: "Mozilla/5.0 Chrome",
+          ipAddress: "127.0.0.1",
+          createdAt,
+          expiresAt,
+        },
+      ]);
+
+      const sessions = await getActiveSessions("user-1");
+
+      expect(sessions).toEqual([
+        {
+          id: "token-1",
+          userAgent: "Mozilla/5.0 Chrome",
+          ipAddress: "127.0.0.1",
+          createdAt,
+          expiresAt,
+        },
+      ]);
+      expect(mockPrisma.refreshToken.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "user-1", revokedAt: null, expiresAt: { gt: expect.any(Date) } },
+          orderBy: { createdAt: "desc" },
+        })
+      );
+    });
   });
 
   describe("loginUser", () => {
@@ -116,20 +215,51 @@ describe("Auth Module Service", () => {
       };
 
       mockPrisma.refreshToken.findFirst.mockResolvedValue(record);
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await rotateSession("old-token-plain");
       expect(result).not.toBeNull();
       expect(result?.user.id).toBe("user-1");
 
       // Verify old token was revoked
-      expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith(
+      expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: "token-record-1" },
+          where: { id: "token-record-1", revokedAt: null },
           data: { revokedAt: expect.any(Date) },
         })
       );
       // Verify new token was created
       expect(mockPrisma.refreshToken.create).toHaveBeenCalled();
+    });
+
+    it("should reject a refresh token when another request rotated it first", async () => {
+      const record = {
+        id: "token-record-1",
+        userId: "user-1",
+        expiresAt: new Date(Date.now() + 100000),
+        user: {
+          id: "user-1",
+          email: "test@example.com",
+          role: "EMPLOYEE",
+          employee: { id: "emp-1", name: "Test Employee" },
+        },
+      };
+
+      mockPrisma.refreshToken.findFirst.mockResolvedValue(record);
+      mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await rotateSession("already-rotated-token");
+
+      expect(result).toBeNull();
+      expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "AUTH_REFRESH_FAILED",
+            status: "FAILED",
+          }),
+        })
+      );
     });
   });
 
@@ -149,20 +279,84 @@ describe("Auth Module Service", () => {
   });
 
   describe("requestPasswordReset", () => {
-    it("should return null for non-existent email", async () => {
+    it("should return false, hash audit resource, and not send email for non-existent email", async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
       const result = await requestPasswordReset("wrong@example.com");
-      expect(result).toBeNull();
+      expect(result).toBe(false);
+      expect(notificationMocks.sendEmail).not.toHaveBeenCalled();
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+            resource: expect.stringMatching(/^EmailHash:/),
+            status: "FAILED",
+          }),
+        })
+      );
+      expect(mockPrisma.securityLog.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            resource: expect.stringContaining("wrong@example.com"),
+          }),
+        })
+      );
     });
 
-    it("should create reset token for valid email and return raw token", async () => {
+    it("should create reset token for valid email and send reset link to matched user email", async () => {
       const user = { id: "user-1", email: "test@example.com", role: "EMPLOYEE", employee: { name: "Emp" } };
       mockPrisma.user.findFirst.mockResolvedValue(user);
+      mockPrisma.passwordResetToken.create.mockResolvedValue({ id: "reset-token-1" });
+      notificationMocks.sendEmail.mockResolvedValue(undefined);
 
-      const token = await requestPasswordReset("test@example.com");
-      expect(token).not.toBeNull();
+      const result = await requestPasswordReset("test@example.com");
+      const sendEmailInput = notificationMocks.sendEmail.mock.calls[0]?.[0];
+      const token = sendEmailInput?.text.match(/token=(prt_[a-f0-9]+)/)?.[1];
+
+      expect(result).toBe(true);
+      expect(token).toBeDefined();
       expect(token?.startsWith("prt_")).toBe(true);
-      expect(mockPrisma.passwordResetToken.create).toHaveBeenCalled();
+      expect(mockPrisma.passwordResetToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: "user-1",
+          token: expect.not.stringContaining(token!),
+          expiresAt: expect.any(Date),
+        }),
+      });
+      expect(notificationMocks.sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "test@example.com",
+          subject: "Reset password akun SIMDP",
+          html: expect.stringContaining(`/reset-password?token=${token}`),
+          text: expect.stringContaining(`/reset-password?token=${token}`),
+        })
+      );
+    });
+
+    it("should invalidate reset token and audit failure when email delivery fails", async () => {
+      const user = { id: "user-1", email: "test@example.com", role: "EMPLOYEE", employee: { name: "Emp" } };
+      mockPrisma.user.findFirst.mockResolvedValue(user);
+      mockPrisma.passwordResetToken.create.mockResolvedValue({ id: "reset-token-1" });
+      mockPrisma.passwordResetToken.update.mockResolvedValue({ id: "reset-token-1" });
+      notificationMocks.sendEmail.mockRejectedValue(new Error("provider down"));
+
+      const result = await requestPasswordReset("test@example.com");
+
+      expect(result).toBe(false);
+      expect(mockPrisma.passwordResetToken.update).toHaveBeenCalledWith({
+        where: { id: expect.any(String) },
+        data: { usedAt: expect.any(Date) },
+      });
+      expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorId: "user-1",
+            eventType: "AUTH_PASSWORD_RESET_REQUESTED",
+            resource: "User:user-1",
+            status: "FAILED",
+            metadata: { reason: "EMAIL_DELIVERY_FAILED" },
+          }),
+        })
+      );
     });
   });
 

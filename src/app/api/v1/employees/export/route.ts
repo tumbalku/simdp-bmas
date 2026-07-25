@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { errorResponse } from "@/lib/api-response";
 import { AppError } from "@/lib/errors";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { employeeDirectorySchema } from "@/modules/employee";
 import { exportEmployeeDirectoryCsv, getActorDisplayName } from "@/modules/employee/server";
 
@@ -21,6 +22,12 @@ function getTimestamp() {
 export async function GET(request: Request) {
   try {
     const session = await requireAuth("ADMIN");
+    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
+      actorId: session.userId,
+      actorRole: session.role,
+    });
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { searchParams } = new URL(request.url);
 
     const parsed = employeeDirectorySchema.safeParse({

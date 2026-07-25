@@ -1,0 +1,102 @@
+@startuml class-document-domain
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Class Diagram: Document & Verification Domain
+
+enum DocumentStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    EXPIRED
+    REPLACED
+}
+
+enum ArchiveCategory {
+    PERSONAL
+    EDUCATION
+    EMPLOYMENT
+    CERTIFICATION
+    LEGAL
+}
+
+enum StorageProvider {
+    LOCAL
+    SUPABASE
+    S3
+}
+
+class DocumentType {
+    +String id
+    +String code
+    +String name
+    +String description
+    +ArchiveCategory archiveCategory
+    +Boolean isMandatory
+    +Boolean allowMultiple
+    +Boolean requiresExpiryDate
+    +Boolean requiresIssueDate
+    +Boolean requiresDocumentNumber
+    +String allowedFormats
+    +Float maxSizeMb
+    +DateTime deletedAt
+}
+
+class DocumentRecord {
+    +String id
+    +String ownerId
+    +String documentTypeId
+    +String title
+    +DocumentStatus status
+    +Boolean isCurrent
+    +Boolean allowMultipleSnapshot
+    +String fileName
+    +String filePath
+    +BigInt fileSize
+    +String mimeType
+    +String fileHash
+    +StorageProvider storageProvider
+    +String documentNumber
+    +Date issueDate
+    +Date expiryDate
+    +DateTime reminderH30SentAt
+    +DateTime reminderH7SentAt
+    +DateTime reminderH1SentAt
+    +DateTime uploadedAt
+    +DateTime updatedAt
+    +DateTime deletedAt
+    --
+    +isExpired(): Boolean
+    +isCurrent(): Boolean
+}
+
+class VerificationHistory {
+    +String id
+    +String documentRecordId
+    +DocumentStatus status
+    +String reviewedById
+    +String reviewNote
+    +DateTime reviewedAt
+}
+
+class DocumentVerification {
+    +String id
+    +String code
+    +String subjectEmployeeId
+    +String issuedByUserId
+    +String fileHash
+    +Json metadata
+    +DateTime issuedAt
+    +DateTime expiresAt
+    +DateTime revokedAt
+    +String revokedByUserId
+    +String revokeReason
+    --
+    +isValid(): Boolean
+}
+
+DocumentType "1" -- "0..*" DocumentRecord : typed as
+DocumentRecord "1" -- "0..*" VerificationHistory : has history
+
+@enduml

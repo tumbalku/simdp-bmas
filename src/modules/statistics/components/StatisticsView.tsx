@@ -6,7 +6,10 @@ import { AlertCircle, AlertTriangle, Clock, FileText, RefreshCw, ShieldCheck, Tr
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/navigation/PageHeader";
-import { MetricCard } from "@/components/cards/MetricCard";
+import {
+  getResponsiveMetricGridClass,
+  ResponsiveMetricCard,
+} from "@/components/cards/ResponsiveMetricCard";
 import { EmptyState } from "./StatisticsCharts";
 import { StatisticsSkeleton } from "./StatisticsSkeleton";
 import { StatisticsTabs } from "./StatisticsTabs";
@@ -74,45 +77,51 @@ export default function StatisticsView() {
       />
 
       {/* KPI Cards Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <MetricCard
+      <div className={`grid ${getResponsiveMetricGridClass(["Pegawai", "Dokumen", "Upload", "Verifikasi", "Kurang", "Expired"])} gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6`}>
+        <ResponsiveMetricCard
           title="Total Pegawai"
+          compactTitle="Pegawai"
           value={totalEmployees}
           description="Pegawai aktif terdaftar"
           icon={Users}
           iconClassName="bg-teal-500/10 text-teal-600 dark:text-teal-400"
         />
-        <MetricCard
+        <ResponsiveMetricCard
           title="Total Dokumen"
+          compactTitle="Dokumen"
           value={totalDocuments}
           description="Berkas digital terunggah"
           icon={FileText}
           iconClassName="bg-sky-500/10 text-sky-600 dark:text-sky-400"
         />
-        <MetricCard
+        <ResponsiveMetricCard
           title="Upload (6 Bln)"
+          compactTitle="Upload"
           value={totalUploadsLastSixMonths}
           description="Berkas baru diunggah"
           icon={TrendingUp}
           iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
         />
-        <MetricCard
+        <ResponsiveMetricCard
           title="Riwayat Verifikasi"
+          compactTitle="Verifikasi"
           value={totalVerifications}
           description="Total dokumen ditinjau"
           icon={ShieldCheck}
           iconClassName="bg-purple-500/10 text-purple-600 dark:text-purple-400"
         />
-        <MetricCard
+        <ResponsiveMetricCard
           title="Kekurangan Dokumen"
+          compactTitle="Kurang"
           value={totalMissingMandatory}
           description="Kekurangan berkas wajib"
           icon={AlertTriangle}
           iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
           valueClassName={totalMissingMandatory > 0 ? "text-amber-600 dark:text-amber-400" : ""}
         />
-        <MetricCard
+        <ResponsiveMetricCard
           title="Hampir Kedaluwarsa"
+          compactTitle="Expired"
           value={expiringWithin30Days}
           description="Masa berlaku ≤ 30 hari"
           icon={Clock}

@@ -4,7 +4,6 @@
 
 - [ ] [#62](https://github.com/tumbalku/simdp-bmas/issues/62) SIMDP-ROADMAP-003: Fase 3 — Admin & Master Data
 - [ ] [#63](https://github.com/tumbalku/simdp-bmas/issues/63) SIMDP-ROADMAP-004: Fase 4 — Statistik & Dashboard
-- [ ] [#64](https://github.com/tumbalku/simdp-bmas/issues/64) SIMDP-ROADMAP-005: Fase 5 — Security & Hardening
 - [ ] [#65](https://github.com/tumbalku/simdp-bmas/issues/65) SIMDP-ROADMAP-006: Fase 6 — Polish UI/UX
 
 ### UI Implementation Queue
@@ -21,6 +20,15 @@
 
 ## In Progress
 
+- [ ] [#214](https://github.com/tumbalku/simdp-bmas/issues/214) Harden middleware auth coverage for dashboard routes
+- [ ] [#212](https://github.com/tumbalku/simdp-bmas/issues/212) Add antivirus/malware scanning for uploaded files
+- [ ] [#209](https://github.com/tumbalku/simdp-bmas/issues/209) Improve Google OAuth rate-limit UX dan naikkan limit auth publik menjadi 15
+- [ ] [#207](https://github.com/tumbalku/simdp-bmas/issues/207) Implement automatic access-token refresh dan perpanjang access token menjadi 30 menit
+- [ ] [#201](https://github.com/tumbalku/simdp-bmas/issues/201) Add QR code verification for downloaded employee profile
+- [ ] [#199](https://github.com/tumbalku/simdp-bmas/issues/199) Add selectable SMTP email provider
+- [ ] [#198](https://github.com/tumbalku/simdp-bmas/issues/198) Implement real forgot password email delivery
+- [ ] [#196](https://github.com/tumbalku/simdp-bmas/issues/196) Apply rate limiting across API v1 endpoints
+- [ ] [#64](https://github.com/tumbalku/simdp-bmas/issues/64) SIMDP-ROADMAP-005: Fase 5 - Security & Hardening (slice: rate limiting dan session management)
 - [ ] [#188](https://github.com/tumbalku/simdp-bmas/issues/188) Generic critical action verification dialog
 - [ ] [#186](https://github.com/tumbalku/simdp-bmas/issues/186) Export detail profil pegawai ke PDF
 - [ ] [#184](https://github.com/tumbalku/simdp-bmas/issues/184) Address review findings for document upload and notification dispatch

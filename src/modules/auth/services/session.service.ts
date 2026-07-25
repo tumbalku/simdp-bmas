@@ -4,6 +4,7 @@ import { generateRefreshToken, hashRefreshToken } from "@/lib/auth";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repositories/common";
+import { normalizeLoginIpAddress, registerFailedLoginAttempt } from "./login-rate-limit.service";
 
 export interface LoginResult {
   user: {
@@ -19,8 +20,10 @@ export async function loginUser(
   identifier: string,
   password: string,
   ipAddress?: string | null,
-  userAgent?: string | null
+  userAgent?: string | null,
+  options?: { createSession?: boolean },
 ): Promise<LoginResult | null> {
+  const normalizedIpAddress = normalizeLoginIpAddress(ipAddress);
   const isNumeric = (str: string) => /^\d+$/.test(str);
   let userId: string | null = null;
 
@@ -38,12 +41,13 @@ export async function loginUser(
   }
 
   if (!userId) {
+    await registerFailedLoginAttempt(ipAddress);
     await logActivity({
       actorName: "System",
       actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
       eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `UserIdentifier:${identifier}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "User tidak ditemukan" },
     });
@@ -53,12 +57,13 @@ export async function loginUser(
   const user = await repo.findActiveUserWithEmployee(userId);
 
   if (!user) {
+    await registerFailedLoginAttempt(ipAddress);
     await logActivity({
       actorName: "System",
       actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
       eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `User:${userId}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "User tidak aktif atau terhapus" },
     });
@@ -67,13 +72,14 @@ export async function loginUser(
 
   const isPasswordMatch = await argon2.verify(user.passwordHash, password);
   if (!isPasswordMatch) {
+    await registerFailedLoginAttempt(ipAddress);
     await logActivity({
       actorId: user.id,
       actorName: user.employee?.name || user.email,
       actorRole: user.role,
       eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
       resource: `User:${user.id}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.FAILED,
       metadata: { reason: "Password salah" },
     });
@@ -81,6 +87,12 @@ export async function loginUser(
   }
 
   const employeeId = user.employee?.id || null;
+  if (options?.createSession === false) {
+    return {
+      user: { id: user.id, email: user.email, role: user.role, employeeId },
+      refreshTokenPlain: "",
+    };
+  }
   const activeTokens = await repo.findActiveRefreshTokensByUserId(user.id);
 
   if (activeTokens.length > 0) {
@@ -91,7 +103,7 @@ export async function loginUser(
       actorRole: user.role,
       eventType: SECURITY_EVENT_TYPE.AUTH_FORCE_LOGOUT_OTHERS,
       resource: `User:${user.id}`,
-      ipAddress,
+      ipAddress: normalizedIpAddress,
       status: SECURITY_LOG_STATUS.SUCCESS,
       metadata: { revokedCount: activeTokens.length },
     });
@@ -118,7 +130,7 @@ export async function loginUser(
     actorRole: user.role,
     eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
     resource: `User:${user.id}`,
-    ipAddress,
+    ipAddress: normalizedIpAddress,
     status: SECURITY_LOG_STATUS.SUCCESS,
   });
 
@@ -131,6 +143,49 @@ export async function loginUser(
     },
     refreshTokenPlain,
   };
+}
+
+export async function createSessionForAuthenticatedUser(
+  user: LoginResult["user"],
+  ipAddress?: string | null,
+  userAgent?: string | null,
+): Promise<LoginResult> {
+  const activeTokens = await repo.findActiveRefreshTokensByUserId(user.id);
+  if (activeTokens.length > 0) {
+    await repo.revokeActiveRefreshTokensByUserId(user.id);
+    await logActivity({
+      actorId: user.id,
+      actorName: user.email,
+      actorRole: user.role,
+      eventType: SECURITY_EVENT_TYPE.AUTH_FORCE_LOGOUT_OTHERS,
+      resource: `User:${user.id}`,
+      ipAddress: normalizeLoginIpAddress(ipAddress),
+      status: SECURITY_LOG_STATUS.SUCCESS,
+      metadata: { revokedCount: activeTokens.length },
+    });
+  }
+
+  const refreshTokenPlain = generateRefreshToken();
+  await repo.createRefreshToken({
+    id: crypto.randomUUID(),
+    userId: user.id,
+    token: hashRefreshToken(refreshTokenPlain),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    userAgent,
+    ipAddress: normalizeLoginIpAddress(ipAddress),
+  });
+  await repo.updateUserLastLoginAt(user.id);
+  await logActivity({
+    actorId: user.id,
+    actorName: user.email,
+    actorRole: user.role,
+    eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
+    resource: `User:${user.id}`,
+    ipAddress: normalizeLoginIpAddress(ipAddress),
+    status: SECURITY_LOG_STATUS.SUCCESS,
+  });
+
+  return { user, refreshTokenPlain };
 }
 
 export async function rotateSession(
@@ -156,7 +211,19 @@ export async function rotateSession(
 
   const user = refreshTokenRecord.user;
 
-  await repo.revokeRefreshTokenById(refreshTokenRecord.id);
+  const revokedToken = await repo.revokeRefreshTokenForRotation(refreshTokenRecord.id);
+  if (revokedToken.count !== 1) {
+    await logActivity({
+      actorName: "System",
+      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+      eventType: SECURITY_EVENT_TYPE.AUTH_REFRESH_FAILED,
+      resource: "SessionRotation",
+      ipAddress,
+      status: SECURITY_LOG_STATUS.FAILED,
+      metadata: { reason: "Refresh token sudah dipakai atau direvoke" },
+    });
+    return null;
+  }
 
   const newRefreshTokenPlain = generateRefreshToken();
   const newHashedToken = hashRefreshToken(newRefreshTokenPlain);

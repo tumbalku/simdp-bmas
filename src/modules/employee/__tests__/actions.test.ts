@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getEmployeeDetail: vi.fn(),
   getCurrentProfile: vi.fn(),
   updateProfile: vi.fn(),
+  uploadProfileAvatar: vi.fn(),
   handleEmployeeCrud: vi.fn(),
   addCareerHistory: vi.fn(),
   importFromCsv: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("../service", () => ({
   getEmployeeDetail: mocks.getEmployeeDetail,
   getCurrentProfile: mocks.getCurrentProfile,
   updateProfile: mocks.updateProfile,
+  uploadProfileAvatar: mocks.uploadProfileAvatar,
   handleEmployeeCrud: mocks.handleEmployeeCrud,
   addCareerHistory: mocks.addCareerHistory,
   importFromCsv: mocks.importFromCsv,
@@ -41,6 +43,7 @@ import {
   getEmployeeDirectoryWithPaginationAction,
   getMasterDataListAction,
   updateProfileAction,
+  uploadProfileAvatarAction,
 } from "../actions";
 
 describe("Employee Module Actions", () => {
@@ -118,6 +121,23 @@ describe("Employee Module Actions", () => {
       "EMPLOYEE"
     );
     expect(result).toEqual({ ok: true, data: { success: true } });
+  });
+
+  it("should upload a profile avatar file for the current user", async () => {
+    mocks.requireAuth.mockResolvedValue({ userId: "user-1", role: "EMPLOYEE" });
+    mocks.uploadProfileAvatar.mockResolvedValue({ avatarUrl: "uploads/profile/avatar.png" });
+    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "avatar.png", { type: "image/png" });
+    const formData = new FormData();
+    formData.set("file", file);
+
+    const result = await uploadProfileAvatarAction(formData);
+
+    expect(mocks.uploadProfileAvatar).toHaveBeenCalledWith(
+      { file },
+      { userId: "user-1", role: "EMPLOYEE" },
+      "Admin User"
+    );
+    expect(result).toEqual({ ok: true, data: { avatarUrl: "uploads/profile/avatar.png" } });
   });
 
   it("should return validation details for invalid employee CRUD payloads", async () => {

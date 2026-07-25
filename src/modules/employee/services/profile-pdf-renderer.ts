@@ -2,6 +2,11 @@ import type { EmployeeProfilePdfData } from "./profile-pdf";
 
 type RenderEmployeeProfilePdfHtmlOptions = {
   includeProfile: boolean;
+  verification?: {
+    code: string;
+    verifyUrl: string;
+    qrCodeDataUrl: string;
+  };
 };
 
 function escapeHtml(value: string | null | undefined) {
@@ -151,6 +156,20 @@ export function renderEmployeeProfilePdfHtml(
         )
         .join("")
     : `<div class="empty-state">Tidak ada metadata dokumen sesuai opsi yang dipilih.</div>`;
+
+  const verificationHtml = options.verification
+    ? `
+      <section class="verification-card">
+        <img class="verification-qr" src="${escapeHtml(options.verification.qrCodeDataUrl)}" alt="QR Code verifikasi dokumen" />
+        <div class="verification-copy">
+          <div class="verification-label">Verifikasi Dokumen</div>
+          <div class="verification-title">Scan QR untuk mengecek keaslian dokumen ini.</div>
+          <div class="verification-code">Kode: ${escapeHtml(options.verification.code)}</div>
+          <div class="verification-url">${escapeHtml(options.verification.verifyUrl)}</div>
+        </div>
+      </section>
+    `
+    : "";
 
   return `<!doctype html>
 <html lang="id">
@@ -350,6 +369,52 @@ export function renderEmployeeProfilePdfHtml(
       break-inside: avoid;
       page-break-inside: avoid;
     }
+    .verification-card {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid #99f6e4;
+      border-radius: 12px;
+      background: #f0fdfa;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .verification-qr {
+      width: 82px;
+      height: 82px;
+      border: 1px solid #ccfbf1;
+      border-radius: 8px;
+      background: white;
+    }
+    .verification-label {
+      color: var(--teal);
+      font-size: 7.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .verification-title {
+      margin-top: 3px;
+      color: var(--navy);
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .verification-code {
+      margin-top: 6px;
+      color: var(--ink);
+      font-size: 8.5px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+    .verification-url {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 6.8px;
+      overflow-wrap: anywhere;
+    }
     .empty-state { border: 1px dashed #cbd5e1; border-radius: 10px; padding: 15px; text-align: center; color: var(--muted); background: var(--soft); }
     .footer-bar {
       display: flex;
@@ -366,6 +431,7 @@ export function renderEmployeeProfilePdfHtml(
     @media print {
       body { background: white; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .section-card, .info-card, .document-item, .hero, .doc-header { break-inside: avoid; page-break-inside: avoid; }
+      .verification-card { break-inside: avoid; page-break-inside: avoid; }
       .document-section { page-break-before: always; break-before: page; }
     }
   </style>
@@ -409,6 +475,7 @@ export function renderEmployeeProfilePdfHtml(
       </div>
       <div class="document-list">${documentsHtml}</div>
       <div class="print-note">Metadata dokumen hanya berisi ringkasan arsip. File asli tidak disertakan dalam export PDF ini.</div>
+      ${verificationHtml}
     </section>
 
     <div class="footer-bar">

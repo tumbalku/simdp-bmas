@@ -1,0 +1,60 @@
+@startuml class-domain-overview
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam linetype ortho
+
+title SIMDP - Class Domain Overview (Relasi Antar Domain)
+
+package "Auth Domain" {
+    class User
+    class RefreshToken
+    class PasswordResetToken
+}
+
+package "Employee Domain" {
+    class Employee
+    class EmploymentStatus
+    class EmployeeGroup
+    class ProfessionGroup
+    class EmployeePosition
+    class EmployeeRank
+    class Workplace
+    class EmployeeCareerHistory
+}
+
+package "Document Domain" {
+    class DocumentType
+    class DocumentRecord
+    class VerificationHistory
+    class DocumentVerification
+}
+
+package "System Domain" {
+    class Notification
+    class SecurityLog
+    class SystemSetting
+}
+
+User "1" -- "0..1" Employee : has profile
+User "1" -- "0..*" RefreshToken
+User "1" -- "0..*" PasswordResetToken
+User "1" -- "0..*" Notification
+
+Employee "*" -- "0..1" EmploymentStatus
+Employee "*" -- "0..1" EmployeeGroup
+Employee "*" -- "0..1" EmployeePosition
+Employee "*" -- "0..1" EmployeeRank
+Employee "*" -- "0..1" Workplace
+Employee "1" -- "0..*" EmployeeCareerHistory
+Employee "1" -- "0..*" DocumentRecord : owns
+Employee "1" -- "0..*" DocumentVerification
+
+EmploymentStatus "1" -- "0..*" EmployeeGroup
+ProfessionGroup "1" -- "0..*" EmployeePosition
+
+DocumentType "1" -- "0..*" DocumentRecord
+DocumentRecord "1" -- "0..*" VerificationHistory
+User "1" -- "0..*" VerificationHistory : reviews
+
+@enduml

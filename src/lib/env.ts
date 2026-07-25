@@ -10,6 +10,29 @@ const optionalUrl = z.preprocess(
   z.string().url().optional(),
 );
 
+const optionalNumber = z.preprocess((value) => {
+  if (value === "" || value === undefined || value === null) return undefined;
+  if (typeof value === "number") return value;
+  return Number(value);
+}, z.number().int().positive().optional());
+
+const optionalBoolean = z.preprocess((value) => {
+  if (value === "" || value === undefined || value === null) return undefined;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return Boolean(value);
+}, z.boolean().optional());
+
+const emailProviderSchema = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["noop", "resend", "smtp"]).default("noop"),
+);
+
+const malwareScannerProviderSchema = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["noop", "clamav"]).default("clamav"),
+);
+
 const envSchema = z
   .object({
     NODE_ENV: z
@@ -41,8 +64,23 @@ const envSchema = z
       .min(1, "REFRESH_TOKEN_SECRET wajib diisi"),
     CRON_SECRET: z.string().min(1, "CRON_SECRET wajib diisi"),
 
+    MALWARE_SCANNER_PROVIDER: malwareScannerProviderSchema,
+    CLAMAV_HOST: optionalString.default("127.0.0.1"),
+    CLAMAV_PORT: optionalNumber.default(3310),
+    CLAMAV_TIMEOUT_MS: optionalNumber.default(10000),
+
+    GOOGLE_CLIENT_ID: optionalString,
+    GOOGLE_CLIENT_SECRET: optionalString,
+    GOOGLE_OAUTH_REDIRECT_URI: optionalUrl,
+
+    EMAIL_PROVIDER: emailProviderSchema,
     RESEND_API_KEY: optionalString,
     EMAIL_FROM: optionalString,
+    SMTP_HOST: optionalString,
+    SMTP_PORT: optionalNumber,
+    SMTP_SECURE: optionalBoolean,
+    SMTP_USER: optionalString,
+    SMTP_PASS: optionalString,
     PUSHER_APP_ID: optionalString,
     PUSHER_KEY: optionalString,
     PUSHER_SECRET: optionalString,
@@ -89,6 +127,19 @@ const envSchema = z
         }
       }
     }
+
+    // Aturan ini dinonaktifkan agar deployment di Vercel (free tier) bisa menggunakan MALWARE_SCANNER_PROVIDER=noop jika diinginkan.
+    // const isProductionRuntime =
+    //   env.NODE_ENV === "production" &&
+    //   process.env.NEXT_PHASE !== "phase-production-build";
+    //
+    // if (env.MALWARE_SCANNER_PROVIDER === "noop" && isProductionRuntime) {
+    //   context.addIssue({
+    //     code: "custom",
+    //     path: ["MALWARE_SCANNER_PROVIDER"],
+    //     message: "MALWARE_SCANNER_PROVIDER=noop tidak diizinkan di lingkungan production",
+    //   });
+    // }
   });
 
 const parsedEnv = envSchema.safeParse(process.env);

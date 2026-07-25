@@ -1,0 +1,102 @@
+@startuml erd-employee-master-data
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classAttributeIconSize 0
+
+title SIMDP - ERD: Employee & Master Data
+
+entity "Employee" as emp {
+    * id : String <<PK>>
+    --
+    * userId : String <<FK, UNIQUE>>
+    employeeId : String <<UNIQUE>> [NIP]
+    nik : String <<UNIQUE>> [NIK]
+    * name : String
+    * status : EmployeeStatus
+    avatarUrl : String
+    gender : EmployeeGender
+    birthDate : Date
+    birthPlace : String
+    phone : String
+    address : String
+    joinDate : Date
+    hasTmt : Boolean
+    tmtStartDate : Date
+    tmtEndDate : Date
+    employmentStatusId : String <<FK>>
+    employeeGroupId : String <<FK>>
+    employeePositionId : String <<FK>>
+    employeeRankId : String <<FK>>
+    workplaceId : String <<FK>>
+    * createdAt : DateTime
+    * updatedAt : DateTime
+    deletedAt : DateTime
+}
+
+entity "EmploymentStatus" as es {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+    * createdAt : DateTime
+}
+
+entity "EmployeeGroup" as eg {
+    * id : String <<PK>>
+    --
+    * name : String
+    * employmentStatusId : String <<FK>>
+    * createdAt : DateTime
+}
+
+entity "ProfessionGroup" as pg {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+}
+
+entity "EmployeePosition" as ep {
+    * id : String <<PK>>
+    --
+    * name : String
+    * professionGroupId : String <<FK>>
+}
+
+entity "EmployeeRank" as er {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+}
+
+entity "Workplace" as wp {
+    * id : String <<PK>>
+    --
+    * name : String <<UNIQUE>>
+}
+
+entity "EmployeeCareerHistory" as ech {
+    * id : String <<PK>>
+    --
+    * employeeId : String <<FK>>
+    employmentStatusId : String <<FK>>
+    employeeGroupId : String <<FK>>
+    employeePositionId : String <<FK>>
+    employeeRankId : String <<FK>>
+    workplaceId : String <<FK>>
+    * effectiveDate : Date
+    endDate : Date
+    note : String
+    * createdAt : DateTime
+}
+
+emp }|--o| es
+emp }|--o| eg
+emp }|--o| ep
+emp }|--o| er
+emp }|--o| wp
+emp ||--o{ ech
+
+es ||--o{ eg
+pg ||--o{ ep
+
+@enduml

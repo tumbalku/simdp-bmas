@@ -2,6 +2,53 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-23] Middleware Auth Coverage untuk Route Dashboard
+- Konteks: route group `(dashboard)` menghasilkan URL seperti `/documents`, `/master-data/*`, `/profile`, `/settings`, dan `/verification/*`, sementara middleware sebelumnya hanya menganggap `/dashboard` dan `/admin` sebagai protected route.
+- Keputusan: middleware memakai daftar eksplisit `PROTECTED_ROUTE_PREFIXES` yang mencerminkan seluruh top-level folder di `src/app/(dashboard)`. Route baru di group dashboard wajib tercakup oleh prefix ini; architecture guard akan gagal jika ada prefix yang luput.
+- Batasan: middleware hanya defense-in-depth untuk autentikasi umum. Guard role/RBAC dan ownership tetap wajib di page/server action/service melalui `requireAuth()` dan business rule server-side.
+- UX: request unauthenticated ke protected route diarahkan ke `/login?next=<target>` agar target tujuan tersimpan.
+- Referensi: #214.
+
+## [2026-07-23] Malware Scanning Upload File
+- Konteks: magic-byte check memastikan tipe file, tetapi tidak mendeteksi PDF/dokumen/gambar yang disisipi malware, exploit payload, atau konten berbahaya lain.
+- Keputusan: semua upload/ganti file dokumen wajib melewati abstraction malware scanner setelah magic-byte check dan sebelum hash/storage/database reservation. Provider default aman adalah ClamAV melalui `clamd` (`MALWARE_SCANNER_PROVIDER=clamav`).
+- Kebijakan: fail closed. Jika scanner mendeteksi malware, timeout, error, atau unavailable, file tidak boleh disimpan sebagai dokumen aktif. Event `DOCUMENT_MALWARE_DETECTED` atau `DOCUMENT_MALWARE_SCAN_FAILED` dicatat ke SecurityLog tanpa menyimpan isi file atau secret.
+- Alasan: menjaga server-side validation sebagai sumber kebenaran dan mencegah file valid secara tipe tetapi berbahaya masuk ke storage dokumen pegawai.
+- Referensi: #212.
+
+## [2026-07-23] Google OAuth Rate-Limit UX
+- Konteks: callback Google OAuth adalah navigasi browser, sehingga response JSON 429 tampil mentah kepada user ketika limit auth publik tercapai.
+- Keputusan: limit `AUTH_PUBLIC` menjadi 15 request per 15 menit. Endpoint Google OAuth start/callback tetap rate-limited, tetapi mengarahkan browser ke `/login?oauth_error=rate_limited` agar UI menampilkan pesan yang dapat dipahami. Endpoint API lain tetap menggunakan response JSON.
+- Alasan: satu percobaan OAuth menghasilkan request start dan callback, sementara rate limiting tetap diperlukan untuk mencegah abuse.
+- Referensi: #209.
+
+## [2026-07-23] Automatic Access-Token Refresh
+- Konteks: access token 15 menit sebelumnya membuat user aktif dipaksa login ulang karena endpoint refresh belum dipanggil otomatis dari dashboard.
+- Keputusan: access token berlaku 30 menit. Client dashboard menjalankan refresh session setiap 20 menit dan saat tab kembali aktif setelah 15 menit, sedangkan refresh token tetap httpOnly dan dirotasi server-side. Guard promise mencegah duplicate refresh request dalam satu browser context, dan rotasi database memakai conditional update agar token hanya dapat dipakai sekali secara atomik.
+- Alasan: memberi margin sebelum access token expired, mempertahankan secret/token agar tidak masuk JavaScript storage, dan mencegah dua request refresh memakai token lama secara bersamaan.
+- Batasan: refresh token saat ini tetap memiliki masa berlaku 7 hari sejak setiap rotasi sesuai perilaku session service yang sudah ada. Kegagalan jaringan sementara dicoba ulang pada interval berikutnya; hanya response 401 yang mengakhiri sesi.
+- Referensi: #207.
+
+## [2026-07-22] API v1 Rate Limiting Coverage
+- Konteks: slice security hardening perlu memastikan endpoint API v1 tidak hanya login yang dibatasi, tetapi juga endpoint upload, download, export, statistik, realtime, dan cron internal.
+- Keputusan: SIMDP memakai helper server-only `enforceApiRateLimit()` dengan kategori limit per jenis endpoint. Counter sementara memakai bucket in-memory per proses, sedangkan `SecurityLog` hanya mencatat event `API_RATE_LIMIT_CHECK` saat request terkena 429. `resource` tetap memakai hash berdasarkan kategori + user/IP agar key mentah tidak terekspos.
+- Alasan: menjaga scope tetap kecil tanpa menambah dependency/store baru, menghindari audit log menjadi hot path untuk setiap request, tetap memberi audit trail untuk percobaan yang dibatasi, dan memungkinkan limit per kategori yang berbeda.
+- Batasan: counter in-memory bersifat per proses/runtime dan belum global antar instance. Endpoint provider-managed Inngest tidak memakai generic limiter sebelum verifikasi provider untuk menghindari DoS terhadap webhook valid. Evaluasi Redis atau tabel rate-limit khusus saat traffic meningkat.
+- Referensi: #196.
+
+## [2026-07-22] QR Verification untuk PDF Profil Pegawai
+- Konteks: PDF profil pegawai yang diunduh perlu bisa dicek keasliannya oleh pihak yang menerima dokumen tanpa login ke SIMDP.
+- Keputusan: QR Code pada PDF hanya berisi URL publik `/verify-document?code=...` dengan kode random 128-bit berformat `SIMDP-` + 32 karakter hex uppercase. Detail verifikasi disimpan di tabel `DocumentVerification`; halaman publik hanya menampilkan data minimal yang aman seperti status, jenis dokumen, nama pegawai, identifier termasking, unit/jabatan, tanggal terbit, dan hash file.
+- Alasan: menghindari penyimpanan data pegawai lengkap di QR, memungkinkan dokumen dicabut/revoked di masa depan, dan memberi audit/integritas lebih baik melalui record server-side.
+- Batasan: scope awal hanya PDF profil pegawai. Verifikasi dokumen upload lain, upload ulang file untuk mencocokkan hash, expiry policy, dan revoke UI dapat dibuat sebagai issue lanjutan.
+- Referensi: #201.
+
+## [2026-07-22] Branch Utama `main` dan `development`
+- Konteks: workflow SIMDP perlu memisahkan branch final dari branch eksperimen/iterasi.
+- Keputusan: `main` menjadi branch final/stable yang tidak berubah kecuali pekerjaan sudah benar-benar final dan user menyetujui release. `development` menjadi branch integrasi aktif untuk eksperimen, iterasi, dan feature branch harian.
+- Alasan: menjaga `main` tetap stabil sambil memberi ruang iterasi yang lebih bebas di `development`.
+- Dampak ke workflow: feature branch normal dibuat dari `development` dan PR normal menargetkan `development`; merge `development` ke `main` hanya dilakukan saat user menyatakan hasilnya final.
+
 ## [2026-07-18] SecurityLog Event Taxonomy dan Actor/Status Enum
 - Konteks: `SecurityLog.status` dan `actorRole` masih string bebas, sedangkan `eventType` punya banyak event append-only dari auth, dokumen, employee, settings, dan cron.
 - Keputusan: `SecurityLog.status` dan `SecurityLog.actorRole` memakai Prisma enum canonical uppercase. `SecurityLog.eventType` tetap string tetapi dikontrol typed constants TypeScript dan dokumentasi taxonomy.

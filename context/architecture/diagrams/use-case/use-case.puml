@@ -1,0 +1,98 @@
+@startuml UseCaseDiagram_SIMDP
+
+skinparam actorStyle stickman
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title SIMDP - Use Case Diagram (System Document Management RSUD Bahteramas)
+
+actor "Pegawai (Employee)" as employee
+actor "Staf Kepegawaian (Staff)" as staff
+actor "Administrator (Admin)" as admin
+actor "Sistem / Cron Job" as system
+
+staff --|> employee
+admin --|> staff
+
+rectangle "Sistem Informasi Manajemen Dokumen Pegawai (SIMDP)" {
+
+    package "1. Autentikasi & Keamanan Sesi" {
+        usecase "UC-01 Login Sistem\n(NIP / NIK / Email)" as UC_Login
+        usecase "UC-02 Logout & Revoke Sesi" as UC_Logout
+        usecase "UC-03 Lupa & Reset Password" as UC_ResetPassword
+        usecase "UC-04 Ubah Password Saya" as UC_ChangePassword
+        usecase "UC-05 Auto Refresh Token Sesi" as UC_RefreshToken
+    }
+
+    package "2. Profil & Riwayat Pegawai" {
+        usecase "UC-06 Lihat Profil Saya" as UC_ViewProfile
+        usecase "UC-07 Kelola Data Pegawai & Riwayat Karir" as UC_ManageEmployee
+        usecase "UC-08 Export Data Pegawai" as UC_ExportEmployee
+    }
+
+    package "3. Manajemen Dokumen (Pegawai)" {
+        usecase "UC-09 Unggah Dokumen Pegawai" as UC_UploadDoc
+        usecase "UC-10 Lihat & Unduh Dokumen Saya" as UC_ViewDoc
+        usecase "UC-11 Perbarui Dokumen (Rejected / Expired)" as UC_UpdateDoc
+        usecase "UC-12 Transisi Otomatis Snapshot (REPLACED)" as UC_ReplaceDoc
+    }
+
+    package "4. Verifikasi Dokumen (Verifikator)" {
+        usecase "UC-13 Lihat Antrean Verifikasi (Pending)" as UC_ViewPending
+        usecase "UC-14 Verifikasi Dokumen (Approve / Reject)" as UC_VerifyDoc
+        usecase "UC-15 Catat Alasan Penolakan" as UC_RejectNote
+        usecase "UC-16 Monitoring Dokumen Kadaluarsa" as UC_MonitorExpiry
+    }
+
+    package "5. Master Data & Pengaturan Sistem" {
+        usecase "UC-17 Kelola Master Jenis Dokumen & Target Matching" as UC_ManageDocType
+        usecase "UC-18 Kelola Master Unit Kerja, Pangkat, Jabatan" as UC_ManageMasterData
+        usecase "UC-19 Kelola System Settings" as UC_ManageSettings
+    }
+
+    package "6. Audit Log & Analytics" {
+        usecase "UC-20 Lihat Audit Security Log (Append-only)" as UC_ViewAuditLog
+        usecase "UC-21 Lihat Dashboard Statistics (Read-only)" as UC_ViewStats
+    }
+
+    package "7. Otomasi Sistem & Notifikasi" {
+        usecase "UC-22 Kirim Reminder Dokumen Expired\n(H-30, H-7, H-1)" as UC_CronReminder
+        usecase "UC-23 Update Otomatis Status EXPIRED" as UC_CronExpiry
+        usecase "UC-24 Kirim In-App & Email Notification" as UC_SendNotif
+    }
+}
+
+' Relationships & Includes
+UC_ReplaceDoc ..> UC_UploadDoc : "<<extend>>\n(Jika allowMultiple = false)"
+UC_VerifyDoc ..> UC_RejectNote : "<<extend>>\n(Jika Rejected)"
+UC_VerifyDoc ..> UC_SendNotif : "<<include>>"
+UC_CronReminder ..> UC_SendNotif : "<<include>>"
+
+' Actor Connections
+employee --> UC_Login
+employee --> UC_Logout
+employee --> UC_ResetPassword
+employee --> UC_ChangePassword
+employee --> UC_ViewProfile
+employee --> UC_UploadDoc
+employee --> UC_ViewDoc
+employee --> UC_UpdateDoc
+
+staff --> UC_ViewPending
+staff --> UC_VerifyDoc
+staff --> UC_MonitorExpiry
+staff --> UC_ManageEmployee
+staff --> UC_ExportEmployee
+staff --> UC_ViewStats
+
+admin --> UC_ManageDocType
+admin --> UC_ManageMasterData
+admin --> UC_ManageSettings
+admin --> UC_ViewAuditLog
+
+system --> UC_RefreshToken
+system --> UC_CronReminder
+system --> UC_CronExpiry
+
+@enduml

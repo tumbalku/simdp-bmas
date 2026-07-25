@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { env } from "@/lib/env";
+import { isAuthPagePath, isProtectedPath } from "@/lib/route-protection";
 
 const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
@@ -33,16 +34,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const isProtectedRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
-  const isAuthRoute = pathname === "/login" || pathname === "/forgot-password" || pathname.startsWith("/reset-password");
-
-  if (isProtectedRoute && !payload) {
+  if (isProtectedPath(pathname) && !payload) {
     const loginUrl = new URL("/login", request.url);
-    // Keep target path as redirect parameter if needed
+    loginUrl.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthRoute && payload) {
+  if (isAuthPagePath(pathname) && payload) {
     const dashboardUrl = new URL("/dashboard", request.url);
     return NextResponse.redirect(dashboardUrl);
   }

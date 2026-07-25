@@ -5,15 +5,42 @@ import type { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import * as repo from "../repository";
 
-export async function softDeleteDocument(documentId: string, session: TokenPayload) {
+type SoftDeleteDocumentOptions = {
+  mode?: "self" | "admin";
+  actorName?: string;
+};
+
+export async function softDeleteDocument(
+  documentId: string,
+  session: TokenPayload,
+  options: SoftDeleteDocumentOptions = {},
+) {
   const doc = await repo.findDocumentRecordWithOwner(documentId);
 
   if (!doc) throw new Error("Dokumen tidak ditemukan");
 
-  // Ownership check
-  if (session.role === "EMPLOYEE") {
+  const mode = options.mode ?? "self";
+
+  if (mode === "self") {
     if (doc.owner.userId !== session.userId) {
       throw new Error("OWNERSHIP_REQUIRED");
+    }
+
+    // Pegawai/Admin/Staf biasa hanya boleh mengarsipkan dokumen milik sendiri berstatus PENDING atau REJECTED
+    if (doc.status !== "PENDING" && doc.status !== "REJECTED") {
+      throw new AppError(
+        "FORBIDDEN",
+        "Anda hanya dapat mengarsipkan dokumen yang berstatus PENDING atau REJECTED.",
+        403,
+      );
+    }
+  } else if (mode === "admin") {
+    if (session.role !== "ADMIN") {
+      throw new AppError(
+        "FORBIDDEN",
+        "Hanya admin yang dapat menghapus dokumen dari halaman master data.",
+        403,
+      );
     }
   }
 
@@ -21,7 +48,7 @@ export async function softDeleteDocument(documentId: string, session: TokenPaylo
 
   await logActivity({
     actorId: session.userId,
-    actorName: doc.owner.name,
+    actorName: options.actorName ?? doc.owner.name,
     actorRole: session.role,
     eventType: SECURITY_EVENT_TYPE.DOCUMENT_DELETED,
     resource: `DocumentRecord:${documentId}`,

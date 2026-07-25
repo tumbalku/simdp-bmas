@@ -1,0 +1,140 @@
+@startuml SequenceAuthDiagram_SIMDP
+
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+title SIMDP - Sequence Diagram (Flexible Login, Single-Device Enforcement & Token Refresh)
+
+autonumber
+
+actor "User (Browser Client)" as Client
+participant "Next.js Middleware" as Middleware
+participant "AuthController\n(/api/v1/auth/*)" as Controller
+participant "AuthService" as Service
+participant "AuditService" as Audit
+database "PostgreSQL (Prisma)" as DB
+participant "CookieStore\n(httpOnly Cookies)" as Cookies
+
+== 1. Flexible Login Flow ==
+
+Client -> Controller : POST /api/v1/auth/login\n{ identifier: "NIP/NIK/Email", password }
+activate Controller
+
+Controller -> Service : loginUser({ identifier, password, ipAddress })
+activate Service
+
+Service -> Service : Detect Identifier Type:\n1. 16 Digits -> NIK (Employee.nik)\n2. 10+ Digits -> NIP (Employee.employeeId)\n3. Else -> Email (User.email)
+
+alt NIK or NIP
+    Service -> DB : Find Employee by nik / employeeId (include User)
+    DB --> Service : Return Employee & User record
+else Email
+    Service -> DB : Find User by email
+    DB --> Service : Return User record
+end
+
+alt User not found / inactive / soft-deleted
+    Service -> Audit : logSecurityEvent(AUTH_LOGIN_FAILED, FAILED)
+    Service --> Controller : throw InvalidCredentialsException
+    Controller --> Client : 401 Unauthorized { error: "Kredensial tidak valid" }
+end
+
+Service -> Service : Verify password hash (Argon2id)
+
+alt Password Mismatch
+    Service -> Audit : logSecurityEvent(AUTH_LOGIN_FAILED, FAILED)
+    Service --> Controller : throw InvalidCredentialsException
+    Controller --> Client : 401 Unauthorized { error: "Kredensial tidak valid" }
+end
+
+== Single-Device Enforcement ==
+Service -> DB : UPDATE RefreshToken SET revokedAt = NOW()\nWHERE userId = user.id AND revokedAt IS NULL
+DB --> Service : Revoked previous active sessions
+
+alt Had previous active session
+    Service -> Audit : logSecurityEvent(AUTH_FORCE_LOGOUT_OTHERS, SUCCESS)
+end
+
+== Generate Tokens ==
+Service -> Service : Create Access Token JWT (30 mins validity)\nPayload: { userId, role, employeeId }
+Service -> Service : Generate Random 256-bit Refresh Token
+Service -> Service : Hash Refresh Token with SHA-256
+
+Service -> DB : INSERT INTO RefreshToken\n(userId, tokenHash, expiresAt)
+DB --> Service : Created RefreshToken record
+
+Service -> Audit : logSecurityEvent(AUTH_LOGIN_SUCCESS, SUCCESS)
+Service -> DB : UPDATE User SET lastLoginAt = NOW()
+
+Service --> Controller : Return { accessToken, refreshToken, userMinimal }
+deactivate Service
+
+Controller -> Cookies : Set httpOnly cookie 'access_token'\n(expires: 30m, SameSite=Lax, Secure)
+Controller -> Cookies : Set httpOnly cookie 'refresh_token'\n(expires: 7d, SameSite=Lax, Secure)
+
+Controller --> Client : 200 OK { user: { id, name, role } }
+deactivate Controller
+
+== 2. Protected Route Request & Background Token Refresh ==
+
+Client -> Middleware : GET /dashboard (with access_token cookie)
+activate Middleware
+Middleware -> Middleware : Verify Access Token JWT signature & expiry
+Middleware --> Client : Allow access & render RSC Dashboard
+deactivate Middleware
+
+note over Client, Service
+  Client layout trigger refresh otomatis setiap 20 menit
+  atau saat tab aktif kembali setelah 15+ menit.
+end note
+
+Client -> Controller : POST /api/v1/auth/refresh (with refresh_token cookie)
+activate Controller
+
+Controller -> Service : refreshSession({ rawRefreshToken, ipAddress })
+activate Service
+
+Service -> Service : Hash rawRefreshToken (SHA-256)
+Service -> DB : SELECT * FROM RefreshToken WHERE tokenHash = hash
+DB --> Service : RefreshToken Record
+
+alt Token null OR revokedAt IS NOT NULL OR expiresAt < NOW()
+    Service -> Audit : logSecurityEvent(AUTH_REFRESH_FAILED, FAILED)
+    Service --> Controller : throw SessionExpiredException
+    Controller -> Cookies : Clear 'access_token' & 'refresh_token'
+    Controller --> Client : 401 Unauthorized -> Redirect to /login
+end
+
+== Token Rotation ==
+Service -> DB : UPDATE RefreshToken SET revokedAt = NOW()\nWHERE id = oldToken.id
+Service -> Service : Create New Access Token JWT & New Refresh Token
+Service -> DB : INSERT INTO RefreshToken (newTokenHash)
+Service -> Audit : logSecurityEvent(AUTH_REFRESH_SUCCESS, SUCCESS)
+
+Service --> Controller : Return New Tokens
+deactivate Service
+
+Controller -> Cookies : Update 'access_token' & 'refresh_token' cookies
+Controller --> Client : 200 OK { success: true }
+deactivate Controller
+
+== 3. Logout Flow ==
+
+Client -> Controller : POST /api/v1/auth/logout
+activate Controller
+Controller -> Service : logoutUser({ rawRefreshToken, ipAddress })
+activate Service
+
+Service -> Service : Hash rawRefreshToken (SHA-256)
+Service -> DB : UPDATE RefreshToken SET revokedAt = NOW()\nWHERE tokenHash = hash
+Service -> Audit : logSecurityEvent(AUTH_LOGOUT, SUCCESS)
+Service --> Controller : Done
+deactivate Service
+
+Controller -> Cookies : Clear 'access_token' & 'refresh_token' cookies
+Controller --> Client : 200 OK { message: "Logged out successfully" }
+deactivate Controller
+
+@enduml

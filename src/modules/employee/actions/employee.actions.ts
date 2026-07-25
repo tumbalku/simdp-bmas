@@ -6,6 +6,7 @@ import { AppError, handleActionError } from "@/lib/errors";
 import {
   getCurrentProfile as getProfileService,
   updateProfile,
+  uploadProfileAvatar,
   handleEmployeeCrud,
   addCareerHistory,
   importFromCsv,
@@ -132,6 +133,31 @@ export async function updateProfileAction(data: unknown) {
     return { ok: true as const, data: { success: true } };
   } catch (error: any) {
     console.error("updateProfileAction error:", error);
+    return handleActionError(error, { defaultMessage: "Terjadi kesalahan internal" });
+  }
+}
+
+export async function uploadProfileAvatarAction(formData: FormData) {
+  try {
+    const session = await requireAuth();
+    const file = formData.get("file");
+
+    if (!(file instanceof File) || file.size === 0) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Foto profil wajib dipilih.",
+        },
+      };
+    }
+
+    const actorName = await getActorDisplayName(session.userId, "User");
+    const result = await uploadProfileAvatar({ file }, { userId: session.userId, role: session.role }, actorName);
+
+    return { ok: true as const, data: result };
+  } catch (error: any) {
+    console.error("uploadProfileAvatarAction error:", error);
     return handleActionError(error, { defaultMessage: "Terjadi kesalahan internal" });
   }
 }

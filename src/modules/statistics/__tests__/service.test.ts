@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getDashboardStats } from "../service";
+import { getDashboardStats, getEmployeeStats } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
 describe("Statistics Module Service", () => {
@@ -66,6 +66,53 @@ describe("Statistics Module Service", () => {
       expect(stats.uploadTrend[3].Verified).toBe(1);
       expect(stats.uploadTrend[4].Uploaded).toBe(0);
       expect(stats.uploadTrend[4].Verified).toBe(0);
+    });
+  });
+
+  describe("getEmployeeStats", () => {
+    it("uses approved mandatory target documents for employee dashboard progress", async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+        employmentStatusId: "NON_ASN",
+        employeeGroupId: null,
+        employeePositionId: null,
+        employeePosition: null,
+        employeeRankId: null,
+        workplaceId: null,
+      });
+      mockPrisma.documentType.findMany.mockResolvedValue([
+        {
+          id: "str-non-asn",
+          isMandatory: true,
+          employmentStatuses: [{ employmentStatusId: "NON_ASN" }],
+          employeeGroups: [],
+          employeePositions: [],
+          professionGroups: [],
+          employeeRanks: [],
+          workplaces: [],
+        },
+        {
+          id: "ktp-asn",
+          isMandatory: true,
+          employmentStatuses: [{ employmentStatusId: "ASN" }],
+          employeeGroups: [],
+          employeePositions: [],
+          professionGroups: [],
+          employeeRanks: [],
+          workplaces: [],
+        },
+      ]);
+      mockPrisma.documentRecord.findMany
+        .mockResolvedValueOnce([{ documentTypeId: "str-non-asn", status: "PENDING" }])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
+
+      const stats = await getEmployeeStats("user-1");
+
+      expect(stats.mandatoryDocumentCompleted).toBe(0);
+      expect(stats.mandatoryDocumentTotal).toBe(1);
     });
   });
 });

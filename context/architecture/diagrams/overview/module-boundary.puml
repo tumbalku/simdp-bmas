@@ -1,0 +1,74 @@
+@startuml module-boundary
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+
+title SIMDP - Module Boundary Diagram (Allowed Import Paths)
+
+package "UI Layer" {
+    [Page / RSC Component] as Page
+    [Client Component] as ClientComp
+    [hooks.ts] as Hooks
+    [api.ts] as ClientAPI
+}
+
+package "Server Layer" {
+    [Server Action (actions.ts)] as ServerAction
+    [Route Handler (/api/v1/*)] as RouteHandler
+    [Middleware] as Middleware
+}
+
+package "Module Boundary (service.ts = Public Gateway)" {
+    [auth/service.ts] as AuthSvc
+    [employee/service.ts] as EmpSvc
+    [document/service.ts] as DocSvc
+    [verification/service.ts] as VerifSvc
+    [notification/service.ts] as NotifSvc
+    [statistics/service.ts] as StatsSvc
+    [security/service.ts (logActivity)] as SecSvc
+    [settings/service.ts] as SettingsSvc
+}
+
+package "Internal Module Only" {
+    [*/repository.ts] as Repo
+    [*/schema.ts] as Schema
+    [*/types.ts] as Types
+}
+
+database "PostgreSQL (Prisma)" as DB
+
+Page --> Hooks : allowed
+ClientComp --> Hooks : allowed
+Hooks --> ClientAPI : allowed
+ClientAPI --> RouteHandler : HTTPS
+Page --> ServerAction : allowed
+
+ServerAction --> AuthSvc : allowed
+ServerAction --> DocSvc : allowed
+ServerAction --> VerifSvc : allowed
+ServerAction --> EmpSvc : allowed
+
+RouteHandler --> Middleware : guarded by
+RouteHandler --> AuthSvc : allowed
+RouteHandler --> DocSvc : allowed
+RouteHandler --> EmpSvc : allowed
+RouteHandler --> VerifSvc : allowed
+
+VerifSvc ..> DocSvc : cross-module OK via service.ts
+VerifSvc ..> NotifSvc : cross-module OK via service.ts
+DocSvc ..> NotifSvc : cross-module OK
+DocSvc ..> SecSvc : logActivity()
+VerifSvc ..> SecSvc : logActivity()
+AuthSvc ..> SecSvc : logActivity()
+
+AuthSvc --> Repo : internal only
+EmpSvc --> Repo : internal only
+DocSvc --> Repo : internal only
+
+Repo --> DB : Prisma Client
+
+ClientComp -[#red]-> Repo : FORBIDDEN
+RouteHandler -[#red]-> Repo : FORBIDDEN
+Hooks -[#red]-> RouteHandler : FORBIDDEN cross-module
+
+@enduml
