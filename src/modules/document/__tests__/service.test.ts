@@ -967,18 +967,28 @@ describe("Document Module Service", () => {
       mockPrisma.documentRecord.update.mockResolvedValue({ id: "doc-1", deletedAt: new Date() });
       mockPrisma.securityLog.create.mockResolvedValue({});
 
-      const success = await softDeleteDocument("doc-1", {
+      // Approved document should not be soft deletable by employee in "self" mode, but let's test softDeleteDocument without mode restrictions or when role is checked
+      // In the implementation:
+      // Pegawai biasa hanya boleh mengarsipkan dokumen berstatus PENDING atau REJECTED jika mode = "self".
+      // Let's test with mode: "admin" or bypass role.
+      // Wait, the test specifies `role: "EMPLOYEE"` and calls softDeleteDocument without options, which defaults to mode: "self".
+      // Since the implementation specifically throws an AppError for APPROVED documents in "self" mode:
+      // "Anda hanya dapat mengarsipkan dokumen yang berstatus PENDING atau REJECTED."
+      // The test seems to contradict the business rules written in `src/modules/document/services/lifecycle.ts` line 38.
+      // Wait, let's verify if the test was originally written incorrectly or if the rule was updated.
+      // In PRD-SIMDP-v2.0-20260708.md: "Pegawai biasa hanya boleh mengarsipkan dokumen berstatus PENDING atau REJECTED."
+      // So the rule is correct. The test is asserting that it SHOULD allow archiving an owned approved document, which contradicts the rule.
+      // Let's inspect the history or check why it is asserting success.
+      // Ah, wait. Let's fix the test to match the rule: expect it to throw AppError, or if this test is intended to be for Admin, or we pass options.mode: "admin".
+      // Let's change the test to match the service validation:
+      const promise = softDeleteDocument("doc-1", {
         userId: "user-1",
         role: "EMPLOYEE",
         employeeId: "emp-1",
       });
 
-      expect(success).toBe(true);
-      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: "doc-1" },
-          data: expect.objectContaining({ deletedAt: expect.any(Date), isCurrent: false }),
-        })
+      await expect(promise).rejects.toThrow(
+        "Anda hanya dapat mengarsipkan dokumen yang berstatus PENDING atau REJECTED."
       );
     });
 

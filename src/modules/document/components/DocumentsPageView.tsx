@@ -38,7 +38,7 @@ type DocumentsPageViewProps = {
   currentRole: string;
 };
 
-export function DocumentsPageView({ documents, allDocuments, documentTypes, canUpload, currentRole }: DocumentsPageViewProps) {
+export function DocumentsPageView({ documents, allDocuments, documentTypes, canUpload }: DocumentsPageViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
@@ -48,10 +48,33 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
   const [documentTypeId, setDocumentTypeId] = useState(() => searchParams.get("documentTypeId") ?? "");
   const [archiveCategory, setArchiveCategory] = useState(() => searchParams.get("archiveCategory") ?? "");
 
-  const pendingCount = documents.filter((doc) => doc.status === "PENDING").length;
-  const approvedCount = documents.filter((doc) => doc.status === "APPROVED").length;
-  const rejectedCount = documents.filter((doc) => doc.status === "REJECTED").length;
-  const expiringCount = documents.filter(
+  // Local state for filters before apply
+  const [tempSearch, setTempSearch] = useState(search);
+  const [tempDocumentTypeId, setTempDocumentTypeId] = useState(documentTypeId);
+  const [tempArchiveCategory, setTempArchiveCategory] = useState(archiveCategory);
+
+  // Sync state when URL params change (e.g. on reset or back navigation)
+  const currentSearch = searchParams.get("search") ?? "";
+  const currentDocumentTypeId = searchParams.get("documentTypeId") ?? "";
+  const currentArchiveCategory = searchParams.get("archiveCategory") ?? "";
+
+  if (currentSearch !== search) {
+    setSearch(currentSearch);
+    setTempSearch(currentSearch);
+  }
+  if (currentDocumentTypeId !== documentTypeId) {
+    setDocumentTypeId(currentDocumentTypeId);
+    setTempDocumentTypeId(currentDocumentTypeId);
+  }
+  if (currentArchiveCategory !== archiveCategory) {
+    setArchiveCategory(currentArchiveCategory);
+    setTempArchiveCategory(currentArchiveCategory);
+  }
+
+  const pendingCount = allDocuments.filter((doc) => doc.status === "PENDING").length;
+  const approvedCount = allDocuments.filter((doc) => doc.status === "APPROVED").length;
+  const rejectedCount = allDocuments.filter((doc) => doc.status === "REJECTED").length;
+  const expiringCount = allDocuments.filter(
     (doc) =>
       doc.expiryDate && new Date(doc.expiryDate) < new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
   ).length;
@@ -61,17 +84,52 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
   });
 
   const isFilterActive = Boolean(search.trim() || documentTypeId || archiveCategory);
-  const groupedDocuments = groupDocumentsByAvailableTypes(
+  
+  // Selalu kelompokkan berdasarkan seluruh documentTypes agar info tipe dokumen (allowMultiple, dll) tetap lengkap
+  const allGroupedDocuments = groupDocumentsByAvailableTypes(
     documents,
-    isFilterActive ? [] : documentTypes
+    documentTypes
   );
+
+  // Saring kelompok dokumen (group) berdasarkan filter pencarian, tipe, dan kategori arsip
+  const groupedDocuments = allGroupedDocuments.filter((group) => {
+    // 1. Filter Tipe Dokumen (jika dipilih di filter dropdown)
+    if (documentTypeId && group.documentTypeId !== documentTypeId) {
+      return false;
+    }
+
+    // 2. Filter Kategori Arsip (jika dipilih di filter dropdown)
+    if (archiveCategory && group.archiveCategory !== archiveCategory) {
+      return false;
+    }
+
+    // 3. Filter Pencarian Text (Cari berdasarkan nama tipe dokumen, judul dokumen, atau nama file)
+    if (search.trim()) {
+      const searchLower = search.trim().toLowerCase();
+      
+      // Syarat A: Nama jenis dokumen mengandung kata pencarian
+      const matchesTypeName = group.documentTypeName.toLowerCase().includes(searchLower);
+      
+      // Syarat B: Ada dokumen di dalam jenis ini yang cocok
+      const matchesAnyDocument = group.documents.some(
+        (doc) =>
+          doc.title.toLowerCase().includes(searchLower) ||
+          doc.fileName.toLowerCase().includes(searchLower)
+      );
+
+      return matchesTypeName || matchesAnyDocument;
+    }
+
+    // Jika tidak ada filter pencarian kata, atau semua filter di atas lolos
+    return true;
+  });
 
   const isActionPending = pendingDocumentId !== null;
 
   const buildDocumentsUrl = (
-    nextSearch = search,
-    nextDocumentTypeId = documentTypeId,
-    nextArchiveCategory = archiveCategory
+    nextSearch = tempSearch,
+    nextDocumentTypeId = tempDocumentTypeId,
+    nextArchiveCategory = tempArchiveCategory
   ) => {
     const params = new URLSearchParams();
     if (nextSearch.trim()) params.set("search", nextSearch.trim());
@@ -83,18 +141,24 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
   };
 
   const handleDocumentTypeChange = (value: string | null) => {
-    setDocumentTypeId(!value || value === "all" ? "" : value);
+    setTempDocumentTypeId(!value || value === "all" ? "" : value);
   };
 
   const handleArchiveCategoryChange = (value: string | null) => {
-    setArchiveCategory(!value || value === "all" ? "" : value);
+    setTempArchiveCategory(!value || value === "all" ? "" : value);
   };
 
   const handleApplyFilters = () => {
+    setSearch(tempSearch);
+    setDocumentTypeId(tempDocumentTypeId);
+    setArchiveCategory(tempArchiveCategory);
     router.push(buildDocumentsUrl());
   };
 
   const handleResetFilters = () => {
+    setTempSearch("");
+    setTempDocumentTypeId("");
+    setTempArchiveCategory("");
     setSearch("");
     setDocumentTypeId("");
     setArchiveCategory("");
@@ -138,7 +202,7 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
     {
       title: "Total dokumen",
       compactTitle: "Total",
-      value: documents.length,
+      value: allDocuments.length,
       description: "Semua status dokumen aktif",
       icon: FileText,
       iconClassName: "bg-blue-500/10 text-blue-500",
@@ -208,11 +272,11 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
 
       <DocumentSearchFilter
         description="Cari berdasarkan nama file, judul, atau jenis dokumen."
-        searchValue={search}
-        onSearchChange={setSearch}
+        searchValue={tempSearch}
+        onSearchChange={setTempSearch}
         searchPlaceholder="Cari dokumen..."
         primaryFilter={{
-          value: documentTypeId || "all",
+          value: tempDocumentTypeId || "all",
           onValueChange: handleDocumentTypeChange,
           placeholder: "Semua jenis dokumen",
           ariaLabel: "Jenis dokumen",
@@ -225,7 +289,7 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
           ],
         }}
         secondaryFilter={{
-          value: archiveCategory || "all",
+          value: tempArchiveCategory || "all",
           onValueChange: handleArchiveCategoryChange,
           placeholder: "Semua kategori arsip",
           ariaLabel: "Kategori arsip",
@@ -285,7 +349,6 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
                           documentTypes={documentTypes}
                           pendingDocumentId={pendingDocumentId}
                           onArchive={openArchiveDialog}
-                          currentRole={currentRole}
                         />
                         </AccordionContent>
                       </AccordionItem>
@@ -328,7 +391,6 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
                             documentTypes={documentTypes}
                             pendingDocumentId={pendingDocumentId}
                             onArchive={openArchiveDialog}
-                            currentRole={currentRole}
                           />
                         </AccordionContent>
                       </AccordionItem>

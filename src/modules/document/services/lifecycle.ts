@@ -22,19 +22,11 @@ export async function softDeleteDocument(
   const mode = options.mode ?? "self";
 
   if (mode === "self") {
-    if (session.role !== "EMPLOYEE") {
-      throw new AppError(
-        "FORBIDDEN",
-        "Hanya pegawai yang dapat menghapus dokumen dari halaman dokumen pribadi.",
-        403,
-      );
-    }
-
     if (doc.owner.userId !== session.userId) {
       throw new Error("OWNERSHIP_REQUIRED");
     }
 
-    // Pegawai biasa hanya boleh mengarsipkan dokumen berstatus PENDING atau REJECTED
+    // Pegawai/Admin/Staf biasa hanya boleh mengarsipkan dokumen milik sendiri berstatus PENDING atau REJECTED
     if (doc.status !== "PENDING" && doc.status !== "REJECTED") {
       throw new AppError(
         "FORBIDDEN",

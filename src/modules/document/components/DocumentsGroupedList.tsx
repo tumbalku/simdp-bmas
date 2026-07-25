@@ -206,13 +206,11 @@ export function DocumentList({
   documentTypes,
   pendingDocumentId,
   onArchive,
-  currentRole,
 }: {
   documents: DocumentRecordListItem[];
   documentTypes: DocumentTypeOption[];
   pendingDocumentId: string | null;
   onArchive: (document: DocumentRecordListItem) => void;
-  currentRole: string;
 }) {
   if (documents.length === 0) {
     return (
@@ -227,9 +225,7 @@ export function DocumentList({
       {documents.map((document) => {
         const config = statusConfig[document.status] ?? statusConfig.PENDING;
         const Icon = config.icon;
-        const canArchive =
-          currentRole === "EMPLOYEE" &&
-          (document.status === "PENDING" || document.status === "REJECTED");
+        const canArchive = document.status === "PENDING" || document.status === "REJECTED";
         return (
           <div
             key={document.id}
