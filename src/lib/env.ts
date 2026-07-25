@@ -128,17 +128,18 @@ const envSchema = z
       }
     }
 
-    const isProductionRuntime =
-      env.NODE_ENV === "production" &&
-      process.env.NEXT_PHASE !== "phase-production-build";
-
-    if (env.MALWARE_SCANNER_PROVIDER === "noop" && isProductionRuntime) {
-      context.addIssue({
-        code: "custom",
-        path: ["MALWARE_SCANNER_PROVIDER"],
-        message: "MALWARE_SCANNER_PROVIDER=noop tidak diizinkan di lingkungan production",
-      });
-    }
+    // Aturan ini dinonaktifkan agar deployment di Vercel (free tier) bisa menggunakan MALWARE_SCANNER_PROVIDER=noop jika diinginkan.
+    // const isProductionRuntime =
+    //   env.NODE_ENV === "production" &&
+    //   process.env.NEXT_PHASE !== "phase-production-build";
+    //
+    // if (env.MALWARE_SCANNER_PROVIDER === "noop" && isProductionRuntime) {
+    //   context.addIssue({
+    //     code: "custom",
+    //     path: ["MALWARE_SCANNER_PROVIDER"],
+    //     message: "MALWARE_SCANNER_PROVIDER=noop tidak diizinkan di lingkungan production",
+    //   });
+    // }
   });
 
 const parsedEnv = envSchema.safeParse(process.env);
