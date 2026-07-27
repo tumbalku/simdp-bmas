@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { EVENT_NAMES, publishEvent } from "@/lib/events";
 import { scanFileBuffer, type MalwareScanResult } from "@/lib/malware-scanner";
 import { storage } from "@/lib/storage";
+import { normalizeStoragePath } from "@/lib/storage/path";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import type { TokenPayload } from "@/lib/auth";
@@ -271,7 +272,7 @@ export async function uploadDocumentRecord(
         sequence,
         ext,
       });
-      const uploadPath = path.join(docType.code, fileName).replace(/\\/g, "/");
+      const uploadPath = normalizeStoragePath(path.join(docType.code, fileName));
 
       return { fileName, uploadPath };
     },
@@ -328,7 +329,7 @@ export async function uploadDocumentRecord(
     actorName: employee.name,
     actorRole: session.role,
     eventType: SECURITY_EVENT_TYPE.DOCUMENT_UPLOADED,
-    resource: `DocumentRecord:${docId}`,
+    resource: `DocumentRecord:${record.id}`,
     ipAddress,
     status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: {
@@ -425,7 +426,7 @@ export async function replaceDocumentFile(
         sequence,
         ext,
       });
-      const uploadPath = path.join(doc.documentType.code, fileName).replace(/\\/g, "/");
+      const uploadPath = normalizeStoragePath(path.join(doc.documentType.code, fileName));
 
       return { fileName, uploadPath };
     },

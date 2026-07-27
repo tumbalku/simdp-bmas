@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { env } from "@/lib/env";
+import { encodeStoragePath, normalizeStoragePath } from "./path";
 
 export interface IStorageProvider {
   upload(filePath: string, buffer: Buffer, mimeType?: string): Promise<string>;
@@ -16,23 +17,23 @@ class LocalStorageProvider implements IStorageProvider {
   }
 
   async upload(filePath: string, buffer: Buffer): Promise<string> {
-    const fullPath = path.join(this.baseDir, filePath);
+    const objectPath = normalizeStoragePath(filePath);
+    const fullPath = path.join(this.baseDir, objectPath);
     const dir = path.dirname(fullPath);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, buffer);
-    return `uploads/${filePath}`;
+    return `uploads/${objectPath}`;
   }
 
   async getTemporaryUrl(filePath: string): Promise<string> {
     // For local, we return a relative URL to the streaming endpoint.
     // The streaming route will perform auth and stream the file.
-    // We clean filePath if it starts with "uploads/" prefix
-    const cleanPath = filePath.startsWith("uploads/") ? filePath.slice(8) : filePath;
+    const cleanPath = normalizeStoragePath(filePath);
     return `/api/v1/documents/download/stream?file=${encodeURIComponent(cleanPath)}`;
   }
 
   async delete(filePath: string): Promise<void> {
-    const cleanPath = filePath.startsWith("uploads/") ? filePath.slice(8) : filePath;
+    const cleanPath = normalizeStoragePath(filePath);
     const fullPath = path.join(this.baseDir, cleanPath);
     try {
       await fs.unlink(fullPath);
@@ -40,23 +41,6 @@ class LocalStorageProvider implements IStorageProvider {
       // Ignore if file doesn't exist
     }
   }
-}
-
-function normalizeStoragePath(filePath: string) {
-  return filePath
-    .split("?")[0]
-    .replace(/\\/g, "/")
-    .replace(/^\/+/, "")
-    .replace(/^uploads\//, "")
-    .replace(/^supabase\//, "");
-}
-
-function encodeStoragePath(filePath: string) {
-  return normalizeStoragePath(filePath)
-    .split("/")
-    .filter(Boolean)
-    .map(encodeURIComponent)
-    .join("/");
 }
 
 class SupabaseStorageProvider implements IStorageProvider {

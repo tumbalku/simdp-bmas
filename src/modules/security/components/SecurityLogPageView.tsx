@@ -193,8 +193,11 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
       key: "resource",
       header: "Resource",
       cell: (log) => (
-        <div className="max-w-[280px] truncate" title={log.resource}>
-          {log.resource}
+        <div className="space-y-1">
+          <div className="max-w-[280px] truncate" title={log.resource}>
+            {log.resource}
+          </div>
+          <ReminderErrorBadge metadata={log.metadata} />
         </div>
       ),
     },
@@ -305,6 +308,19 @@ function StatusBadge({ status }: { status: string }) {
   }
 
   return <Badge variant="outline">{status}</Badge>;
+}
+
+function ReminderErrorBadge({ metadata }: { metadata: unknown }) {
+  const reminderErrorCount = getReminderErrorCount(metadata);
+  if (reminderErrorCount === 0) return null;
+
+  return <Badge variant="destructive">Reminder gagal: {reminderErrorCount}</Badge>;
+}
+
+function getReminderErrorCount(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return 0;
+  const reminderErrors = (metadata as { reminderErrors?: unknown }).reminderErrors;
+  return Array.isArray(reminderErrors) ? reminderErrors.length : 0;
 }
 
 function formatDate(value: string) {

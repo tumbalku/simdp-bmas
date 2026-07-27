@@ -128,6 +128,18 @@ const envSchema = z
       }
     }
 
+    const isProductionRuntime =
+      env.NODE_ENV === "production" &&
+      process.env.NEXT_PHASE !== "phase-production-build";
+
+    if (isProductionRuntime && !env.INNGEST_SIGNING_KEY) {
+      context.addIssue({
+        code: "custom",
+        path: ["INNGEST_SIGNING_KEY"],
+        message: "INNGEST_SIGNING_KEY wajib diisi di runtime production untuk verifikasi webhook Inngest",
+      });
+    }
+
     // Aturan ini dinonaktifkan agar deployment di Vercel (free tier) bisa menggunakan MALWARE_SCANNER_PROVIDER=noop jika diinginkan.
     // const isProductionRuntime =
     //   env.NODE_ENV === "production" &&
