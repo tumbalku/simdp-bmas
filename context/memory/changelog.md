@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #222/#223: Menetapkan `RateLimitBucket` PostgreSQL sebagai shared rate-limit store awal untuk multi-instance production, serta mengurangi write amplification audit login gagal dengan hanya mencatat `SecurityLog` pada hit pertama bucket window.
 - Issue #214: Memperluas middleware auth coverage ke seluruh route dashboard group, menambahkan redirect `next` ke login, dan menambahkan guard arsitektur agar route dashboard baru tidak luput dari proteksi middleware.
 - Issue #209: Menaikkan limit auth publik menjadi 15 request per 15 menit dan mengubah rate-limit Google OAuth menjadi redirect ke login dengan pesan yang jelas.
 - Issue #207: Mengubah access token menjadi 30 menit, menambahkan automatic refresh pada dashboard dengan guard concurrency dan visibility resume, serta menghapus cookie auth saat refresh session tidak valid.

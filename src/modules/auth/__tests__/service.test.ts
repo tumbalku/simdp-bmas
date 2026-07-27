@@ -63,6 +63,25 @@ describe("Auth Module Service", () => {
       });
     });
 
+    it("should avoid repeated SecurityLog writes for failed logins in the same bucket window", async () => {
+      vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([
+        {
+          key: "RateLimit:AUTH_LOGIN_FAILED:test",
+          category: "AUTH_LOGIN_FAILED",
+          count: 2,
+          resetAt: new Date(Date.now() + 15 * 60 * 1000),
+          limitedLoggedAt: null,
+        },
+      ]);
+      mockPrisma.employee.findFirst.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+
+      const result = await loginUser("unknown-user", "password", "192.0.2.55");
+
+      expect(result).toBeNull();
+      expect(mockPrisma.securityLog.create).not.toHaveBeenCalled();
+    });
+
     it("should keep rate limit state even after a successful login", async () => {
       mockPrisma.rateLimitBucket.findUnique.mockResolvedValue({
         key: crypto

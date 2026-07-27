@@ -53,6 +53,8 @@ Upload file menerapkan kebijakan **fail closed**: jika ClamAV tidak tersedia, ti
 
 Catatan rate limiting:
 - `enforceApiRateLimit()` membaca IP dari `x-forwarded-for` lalu fallback ke `x-real-ip`.
+- Counter rate limit disimpan di tabel PostgreSQL `RateLimitBucket` agar berlaku global untuk deployment multi-instance yang memakai database yang sama.
+- Strategi ini adalah default production awal. Jika traffic naik signifikan, gunakan Redis/Upstash atau limiter di edge/proxy untuk mengurangi write load PostgreSQL tanpa mengubah kontrak helper rate limit.
 - Production harus berjalan di belakang trusted proxy/load balancer yang menimpa header IP tersebut, bukan meneruskan nilai spoofed langsung dari client.
 - Jika deployment tidak menjamin sanitasi header IP, gunakan store/adapter rate limit di edge/proxy atau tambahkan allowlist trusted proxy sebelum mengandalkan limit per IP.
 
