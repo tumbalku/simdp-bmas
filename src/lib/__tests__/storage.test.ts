@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import fs from "fs/promises";
 import path from "path";
 import { getStorageProvider } from "@/lib/storage";
+import { normalizeStoragePath } from "@/lib/storage/path";
 import { env } from "@/lib/env";
 
 vi.mock("fs/promises", () => ({
@@ -19,6 +20,11 @@ describe("storage provider helpers", () => {
   });
 
   describe("LocalStorageProvider (via getStorageProvider)", () => {
+    it("should normalize storage paths consistently", () => {
+      expect(normalizeStoragePath("uploads\\docs\\file.pdf?token=abc")).toBe("docs/file.pdf");
+      expect(normalizeStoragePath("/supabase/docs/file.pdf")).toBe("docs/file.pdf");
+    });
+
     it("should upload files to local filesystem", async () => {
       // Set to local provider
       const origProvider = env.STORAGE_PROVIDER;

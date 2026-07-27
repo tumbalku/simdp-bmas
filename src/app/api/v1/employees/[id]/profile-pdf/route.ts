@@ -150,7 +150,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (error instanceof AppError) {
       return errorResponse(error.code, error.message, error.details, error.status);
     }
-    const message = error instanceof Error ? error.message : "Terjadi kesalahan internal";
-    return errorResponse("INTERNAL_ERROR", message, undefined, 500);
+    return errorResponse("INTERNAL_ERROR", "Terjadi kesalahan saat membuat PDF profil pegawai.", undefined, 500);
   }
 }

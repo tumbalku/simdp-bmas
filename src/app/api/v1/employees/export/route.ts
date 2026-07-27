@@ -86,11 +86,6 @@ export async function GET(request: Request) {
       return errorResponse(error.code, message, error.details, error.status);
     }
 
-    return errorResponse(
-      "INTERNAL_ERROR",
-      error instanceof Error ? error.message : "Terjadi kesalahan internal saat export data pegawai.",
-      undefined,
-      500,
-    );
+    return errorResponse("INTERNAL_ERROR", "Terjadi kesalahan internal saat export data pegawai.", undefined, 500);
   }
 }

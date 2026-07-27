@@ -48,6 +48,8 @@ prisma/dev.db-journal
 LocalStorage/
 uploads/
 storage/
+!src/lib/storage/
+!src/lib/storage/path.ts
 private-storage/
 
 # Logs
