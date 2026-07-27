@@ -30,6 +30,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 
 ### Added
 - Issue #237: Menambahkan rencana Backup & Disaster Recovery untuk database PostgreSQL dan document storage, termasuk target RPO/RTO awal, retention, runbook restore, restore drill checklist, dan penegasan bahwa admin export/import bukan pengganti backup production.
+- Issue #237: Menambahkan helper backup lokal/VPS untuk `pg_dump` database + archive storage, manifest checksum, enkripsi opsional wajib untuk production, pruning retention, dan panduan cron/offsite copy.
 - Issue #216: Menambahkan upload foto profil dari avatar `/profile`, konfigurasi batas upload foto profil di `/system-settings`, fallback avatar upload → Google → inisial, dan streaming foto profil dari folder storage `profile/`.
 - Issue #212: Menambahkan malware scanning upload file dengan abstraction `scanFileBuffer`, provider default ClamAV `clamd`, fail-closed jika scanner error/unavailable, audit log untuk malware terdeteksi atau scan gagal, dan konfigurasi env ClamAV.
 - Issue #201: Menambahkan fondasi verifikasi dokumen publik berbasis QR Code untuk PDF profil pegawai, termasuk tabel `DocumentVerification`, URL `/verify-document?code=...`, endpoint API verifikasi rate-limited, QR pada export PDF profile, dan penyimpanan hash PDF hasil generate.

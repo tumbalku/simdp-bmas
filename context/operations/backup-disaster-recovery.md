@@ -131,6 +131,7 @@ Database:
 - simpan dump dengan nama tanggal/waktu;
 - kompres dan enkripsi dump sebelum dikirim offsite;
 - verifikasi dump bisa dibaca.
+- gunakan `scripts/backup-local-vps.sh` sebagai helper awal untuk membuat backup database + storage dan manifest checksum.
 
 Contoh pola nama file:
 
@@ -143,6 +144,7 @@ Storage:
 - sync folder `uploads/` atau lokasi storage aktif ke lokasi backup;
 - gunakan incremental sync jika ukuran besar;
 - jangan hapus backup lama sebelum retention policy berjalan benar.
+- lihat panduan operasional di `context/operations/local-vps-backup-automation.md`.
 
 Contoh pola nama archive:
 
@@ -290,8 +292,8 @@ Sebelum SIMDP dianggap siap production/main:
 
 Dokumen ini adalah plan awal. Implementasi teknis otomatis perlu issue terpisah setelah target deployment final jelas:
 
-1. **Implement automated PostgreSQL backup job.**
-2. **Implement automated document storage backup/sync.**
+1. **Wire local/VPS backup helper to server cron/systemd timer and offsite copy.**
+2. **Implement provider-specific Supabase Storage backup/sync if production uses Supabase.**
 3. **Add backup monitoring and failure alert.**
 4. **Run and record first restore drill.**
 5. **Evaluate admin export/import as operational convenience, not disaster recovery.**
