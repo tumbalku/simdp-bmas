@@ -9,6 +9,13 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - UX: request unauthenticated ke protected route diarahkan ke `/login?next=<target>` agar target tujuan tersimpan.
 - Referensi: #214.
 
+## [2026-07-27] Backup & Disaster Recovery untuk Database dan Storage
+- Konteks: SIMDP menyimpan metadata pegawai, audit log, dan file dokumen legal/asli. Kehilangan database atau storage dapat membuat dokumen tidak dapat diverifikasi atau dibuka kembali.
+- Keputusan: production readiness wajib memiliki Backup & Disaster Recovery plan yang mencakup database PostgreSQL dan document storage sebagai satu paket recovery. Admin export/import dianggap fitur operasional, bukan pengganti backup disaster recovery.
+- Target awal: RPO 24 jam, RTO 4 jam, retention backup harian 14 hari, mingguan 8 minggu, dan bulanan 12 bulan. Target dapat diperketat setelah deployment production final ditetapkan.
+- Batasan: PR awal hanya mendokumentasikan SOP, checklist, dan runbook. Implementasi backup otomatis, monitoring, dan restore drill dibuat sebagai follow-up ops setelah target deployment final jelas.
+- Referensi: #237.
+
 ## [2026-07-23] Malware Scanning Upload File
 - Konteks: magic-byte check memastikan tipe file, tetapi tidak mendeteksi PDF/dokumen/gambar yang disisipi malware, exploit payload, atau konten berbahaya lain.
 - Keputusan: semua upload/ganti file dokumen wajib melewati abstraction malware scanner setelah magic-byte check dan sebelum hash/storage/database reservation. Provider default aman adalah ClamAV melalui `clamd` (`MALWARE_SCANNER_PROVIDER=clamav`).

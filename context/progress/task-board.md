@@ -20,6 +20,7 @@
 
 ## In Progress
 
+- [ ] [#237](https://github.com/tumbalku/simdp-bmas/issues/237) Add Backup & Disaster Recovery plan for DB and document storage
 - [ ] [#214](https://github.com/tumbalku/simdp-bmas/issues/214) Harden middleware auth coverage for dashboard routes
 - [ ] [#212](https://github.com/tumbalku/simdp-bmas/issues/212) Add antivirus/malware scanning for uploaded files
 - [ ] [#209](https://github.com/tumbalku/simdp-bmas/issues/209) Improve Google OAuth rate-limit UX dan naikkan limit auth publik menjadi 15
