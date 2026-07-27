@@ -27,6 +27,11 @@ Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/
 | `S3_ACCESS_KEY_ID` | Jika s3 | Access key. Secret. |
 | `S3_SECRET_ACCESS_KEY` | Jika s3 | Secret key. Secret. |
 
+Catatan Backup & Disaster Recovery:
+- Database dan storage harus dibackup sebagai satu paket recovery production. Lihat `context/operations/backup-disaster-recovery.md`.
+- Jangan mengandalkan export/import admin sebagai pengganti backup database + storage.
+- Jangan simpan backup, dump database, storage archive, atau backup encryption key di repository.
+
 ## Auth & Security
 
 | Variable | Required | Keterangan |

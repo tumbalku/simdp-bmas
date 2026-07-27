@@ -29,6 +29,9 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #237: Menambahkan rencana Backup & Disaster Recovery untuk database PostgreSQL dan document storage, termasuk target RPO/RTO awal, retention, runbook restore, restore drill checklist, dan penegasan bahwa admin export/import bukan pengganti backup production.
+- Issue #237: Menambahkan helper backup lokal/VPS untuk `pg_dump` database + archive storage, manifest checksum, enkripsi opsional wajib untuk production, pruning retention, dan panduan cron/offsite copy.
+- Issue #237: Menambahkan template hasil restore drill untuk mencatat backup artifact, validasi DB/storage, RPO/RTO aktual, sample dokumen yang dicek, masalah, keputusan PASS/FAIL, dan sign-off.
 - Issue #216: Menambahkan upload foto profil dari avatar `/profile`, konfigurasi batas upload foto profil di `/system-settings`, fallback avatar upload → Google → inisial, dan streaming foto profil dari folder storage `profile/`.
 - Issue #212: Menambahkan malware scanning upload file dengan abstraction `scanFileBuffer`, provider default ClamAV `clamd`, fail-closed jika scanner error/unavailable, audit log untuk malware terdeteksi atau scan gagal, dan konfigurasi env ClamAV.
 - Issue #201: Menambahkan fondasi verifikasi dokumen publik berbasis QR Code untuk PDF profil pegawai, termasuk tabel `DocumentVerification`, URL `/verify-document?code=...`, endpoint API verifikasi rate-limited, QR pada export PDF profile, dan penyimpanan hash PDF hasil generate.
@@ -60,6 +63,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Memperbaiki setup test rate limiter agar integration tests yang melewati distributed rate-limit store memakai default mock bucket aman dan tidak gagal 500 karena `$queryRaw` kosong.
 - Menutup sisa kebocoran `error.message` mentah pada route export PDF profil pegawai dan export CSV pegawai, menambahkan guard `INNGEST_SIGNING_KEY` untuk runtime production, merapikan fallback scanner malware, memperjelas bypass middleware auth, mengekstrak helper normalisasi path storage, dan menampilkan ringkasan reminder cron gagal di audit log.
 - Memperbaiki penyimpanan `/system-settings` agar default `SystemSetting` yang belum lengkap otomatis di-seed sebelum update, mencegah Prisma `P2025` saat submit pengaturan sistem.
 - Issue #188: Menstabilkan lifecycle modal critical verification agar target aksi tidak di-unmount langsung saat dialog ditutup, mencegah runtime `Node.insertBefore` pada portal dialog.

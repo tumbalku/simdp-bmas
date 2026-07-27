@@ -243,4 +243,15 @@ vi.mock("@/lib/prisma", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPrisma.$queryRaw.mockResolvedValue([
+    {
+      key: "RateLimit:test",
+      category: "TEST",
+      count: 1,
+      resetAt: new Date(Date.now() + 60 * 1000),
+      limitedLoggedAt: null,
+    },
+  ]);
+  mockPrisma.rateLimitBucket.updateMany.mockResolvedValue({ count: 1 });
+  mockPrisma.rateLimitBucket.deleteMany.mockResolvedValue({ count: 0 });
 });
