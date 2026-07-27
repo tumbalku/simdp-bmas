@@ -138,6 +138,7 @@ Ringkasnya:
 4. Extract storage ke folder/bucket restore.
 5. Arahkan app restore ke DB/storage tersebut.
 6. Jalankan restore drill checklist.
+7. Catat hasil drill memakai `context/operations/restore-drill-template.md`.
 
 ## 11. Larangan
 

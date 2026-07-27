@@ -219,6 +219,8 @@ Gunakan runbook ini saat terjadi kerusakan besar. Jangan jalankan langsung ke pr
 6. Cek security log.
 7. Cek export penting seperti CSV/PDF jika relevan.
 
+Catat hasil restore drill memakai template `context/operations/restore-drill-template.md` agar durasi, sample data, RPO/RTO aktual, dan masalah yang ditemukan terdokumentasi konsisten.
+
 ### 8.5 Cutover ke production
 
 Cutover artinya mengarahkan traffic user ke hasil restore.
@@ -234,6 +236,7 @@ Cutover artinya mengarahkan traffic user ke hasil restore.
 
 Sebelum production final atau merge/release ke `main`, lakukan minimal satu restore drill:
 
+- [ ] Salin template `context/operations/restore-drill-template.md` untuk hasil drill aktual.
 - [ ] Ambil backup database terbaru.
 - [ ] Ambil backup storage yang timestamp-nya cocok.
 - [ ] Restore database ke environment sementara.
