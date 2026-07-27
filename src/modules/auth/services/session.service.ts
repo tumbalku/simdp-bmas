@@ -41,48 +41,54 @@ export async function loginUser(
   }
 
   if (!userId) {
-    await registerFailedLoginAttempt(ipAddress);
-    await logActivity({
-      actorName: "System",
-      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
-      eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
-      resource: `UserIdentifier:${identifier}`,
-      ipAddress: normalizedIpAddress,
-      status: SECURITY_LOG_STATUS.FAILED,
-      metadata: { reason: "User tidak ditemukan" },
-    });
+    const failedLoginBucket = await registerFailedLoginAttempt(ipAddress);
+    if (failedLoginBucket.count === 1) {
+      await logActivity({
+        actorName: "System",
+        actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+        eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
+        resource: `UserIdentifier:${identifier}`,
+        ipAddress: normalizedIpAddress,
+        status: SECURITY_LOG_STATUS.FAILED,
+        metadata: { reason: "User tidak ditemukan" },
+      });
+    }
     return null;
   }
 
   const user = await repo.findActiveUserWithEmployee(userId);
 
   if (!user) {
-    await registerFailedLoginAttempt(ipAddress);
-    await logActivity({
-      actorName: "System",
-      actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
-      eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
-      resource: `User:${userId}`,
-      ipAddress: normalizedIpAddress,
-      status: SECURITY_LOG_STATUS.FAILED,
-      metadata: { reason: "User tidak aktif atau terhapus" },
-    });
+    const failedLoginBucket = await registerFailedLoginAttempt(ipAddress);
+    if (failedLoginBucket.count === 1) {
+      await logActivity({
+        actorName: "System",
+        actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
+        eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
+        resource: `User:${userId}`,
+        ipAddress: normalizedIpAddress,
+        status: SECURITY_LOG_STATUS.FAILED,
+        metadata: { reason: "User tidak aktif atau terhapus" },
+      });
+    }
     return null;
   }
 
   const isPasswordMatch = await argon2.verify(user.passwordHash, password);
   if (!isPasswordMatch) {
-    await registerFailedLoginAttempt(ipAddress);
-    await logActivity({
-      actorId: user.id,
-      actorName: user.employee?.name || user.email,
-      actorRole: user.role,
-      eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
-      resource: `User:${user.id}`,
-      ipAddress: normalizedIpAddress,
-      status: SECURITY_LOG_STATUS.FAILED,
-      metadata: { reason: "Password salah" },
-    });
+    const failedLoginBucket = await registerFailedLoginAttempt(ipAddress);
+    if (failedLoginBucket.count === 1) {
+      await logActivity({
+        actorId: user.id,
+        actorName: user.employee?.name || user.email,
+        actorRole: user.role,
+        eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
+        resource: `User:${user.id}`,
+        ipAddress: normalizedIpAddress,
+        status: SECURITY_LOG_STATUS.FAILED,
+        metadata: { reason: "Password salah" },
+      });
+    }
     return null;
   }
 
