@@ -49,6 +49,9 @@ const envSchema = z
     DIRECT_URL: optionalString,
 
     STORAGE_PROVIDER: z.enum(["local", "supabase", "s3"]).default("local"),
+    DEPLOYMENT_CONTEXT: z
+      .enum(["vercel-supabase", "vps-local", "hybrid"])
+      .default("hybrid"),
     SUPABASE_URL: optionalUrl,
     SUPABASE_SERVICE_ROLE_KEY: optionalString,
     SUPABASE_STORAGE_BUCKET: optionalString.default("employee-documents"),
@@ -68,6 +71,21 @@ const envSchema = z
     CLAMAV_HOST: optionalString.default("127.0.0.1"),
     CLAMAV_PORT: optionalNumber.default(3310),
     CLAMAV_TIMEOUT_MS: optionalNumber.default(10000),
+
+    BACKUP_ENABLED: optionalBoolean.default(false),
+    BACKUP_DB_ENABLED: optionalBoolean.default(true),
+    BACKUP_STORAGE_ENABLED: optionalBoolean.default(true),
+    BACKUP_ENCRYPTION_ENABLED: optionalBoolean.default(false),
+    BACKUP_TARGET: z.enum(["local", "folder", "gdrive", "s3"]).default("local"),
+    BACKUP_LOCAL_DIR: optionalString,
+    BACKUP_FOLDER_PATH: optionalString,
+    BACKUP_RETENTION_DAILY_DAYS: optionalNumber.default(14),
+    BACKUP_RETENTION_WEEKLY_DAYS: optionalNumber.default(56),
+    BACKUP_RETENTION_MONTHLY_DAYS: optionalNumber.default(365),
+    SIMDP_BACKUP_ALLOW_UNENCRYPTED: optionalBoolean.default(false),
+    GDRIVE_FOLDER_ID: optionalString,
+    GDRIVE_CLIENT_EMAIL: optionalString,
+    GDRIVE_PRIVATE_KEY: optionalString,
 
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
@@ -125,6 +143,107 @@ const envSchema = z
             message: `${key} wajib diisi saat STORAGE_PROVIDER=s3`,
           });
         }
+      }
+    }
+
+    if (env.BACKUP_ENABLED) {
+      if (
+        env.DEPLOYMENT_CONTEXT === "vercel-supabase" &&
+        env.STORAGE_PROVIDER === "local"
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["STORAGE_PROVIDER"],
+          message:
+            "STORAGE_PROVIDER=local tidak cocok dengan DEPLOYMENT_CONTEXT=vercel-supabase",
+        });
+      }
+
+      if (
+        env.DEPLOYMENT_CONTEXT === "vercel-supabase" &&
+        (env.BACKUP_TARGET === "local" || env.BACKUP_TARGET === "folder")
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["BACKUP_TARGET"],
+          message:
+            "DEPLOYMENT_CONTEXT=vercel-supabase tidak boleh bergantung pada filesystem runtime; gunakan BACKUP_TARGET=gdrive sebagai target utama",
+        });
+      }
+
+      if (
+        env.DEPLOYMENT_CONTEXT === "vps-local" &&
+        env.STORAGE_PROVIDER !== "local"
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["STORAGE_PROVIDER"],
+          message:
+            "DEPLOYMENT_CONTEXT=vps-local mengharapkan STORAGE_PROVIDER=local",
+        });
+      }
+
+      if (env.BACKUP_TARGET === "local" && !env.BACKUP_LOCAL_DIR) {
+        context.addIssue({
+          code: "custom",
+          path: ["BACKUP_LOCAL_DIR"],
+          message: "BACKUP_LOCAL_DIR wajib diisi saat BACKUP_TARGET=local",
+        });
+      }
+
+      if (env.BACKUP_TARGET === "folder" && !env.BACKUP_FOLDER_PATH) {
+        context.addIssue({
+          code: "custom",
+          path: ["BACKUP_FOLDER_PATH"],
+          message: "BACKUP_FOLDER_PATH wajib diisi saat BACKUP_TARGET=folder",
+        });
+      }
+
+      if (env.BACKUP_TARGET === "gdrive") {
+        for (const key of [
+          "GDRIVE_FOLDER_ID",
+          "GDRIVE_CLIENT_EMAIL",
+          "GDRIVE_PRIVATE_KEY",
+        ] as const) {
+          if (!env[key]) {
+            context.addIssue({
+              code: "custom",
+              path: [key],
+              message: `${key} wajib diisi saat BACKUP_TARGET=gdrive`,
+            });
+          }
+        }
+      }
+
+      if (env.BACKUP_TARGET === "s3") {
+        for (const key of [
+          "S3_REGION",
+          "S3_BUCKET",
+          "S3_ACCESS_KEY_ID",
+          "S3_SECRET_ACCESS_KEY",
+        ] as const) {
+          if (!env[key]) {
+            context.addIssue({
+              code: "custom",
+              path: [key],
+              message: `${key} wajib diisi saat BACKUP_TARGET=s3`,
+            });
+          }
+        }
+      }
+
+      if (
+        env.NODE_ENV === "production" &&
+        env.BACKUP_TARGET === "local" &&
+        !env.BACKUP_ENCRYPTION_ENABLED &&
+        !env.SIMDP_BACKUP_ALLOW_UNENCRYPTED
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["BACKUP_ENCRYPTION_ENABLED"],
+          message:
+            "Backup production ke target local wajib dienkripsi sebelum disalin offsite. Untuk drill lokal saja, set SIMDP_BACKUP_ALLOW_UNENCRYPTED=true",
+        });
       }
     }
 

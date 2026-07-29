@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #237: Menetapkan prioritas target backup production: Google Drive sebagai target offsite utama, VPS/local sebagai jalur kedua untuk server sendiri, dan S3/S3-compatible sebagai opsi terakhir/future sampai adapter/job resmi dipilih.
 - Issue #222/#223: Menetapkan `RateLimitBucket` PostgreSQL sebagai shared rate-limit store awal untuk multi-instance production, serta mengurangi write amplification audit login gagal dengan hanya mencatat `SecurityLog` pada hit pertama bucket window.
 - Issue #214: Memperluas middleware auth coverage ke seluruh route dashboard group, menambahkan redirect `next` ke login, dan menambahkan guard arsitektur agar route dashboard baru tidak luput dari proteksi middleware.
 - Issue #209: Menaikkan limit auth publik menjadi 15 request per 15 menit dan mengubah rate-limit Google OAuth menjadi redirect ke login dengan pesan yang jelas.
@@ -30,6 +31,11 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Issue #237: Menambahkan template environment per skenario (`.env.local.example`, `.env.supabase.example`, `.env.backup-supabase.example`, `.env.vps-local.example`, `.env.restore-local.example`) agar konfigurasi app, backup Supabase, VPS, dan restore bisa dipilih tanpa menebak variable satu per satu.
+- Issue #237: Menambahkan helper restore lokal/VPS `scripts/restore-local-vps.sh` untuk memilih manifest backup terbaru atau timestamp tertentu, restore database via `psql` lokal/Docker dengan konfirmasi eksplisit, dan restore storage ke folder terpisah untuk drill recovery.
+- Issue #237: Menambahkan helper backup storage source `scripts/backup-storage-source.mjs` dan integrasi `scripts/backup-local-vps.sh` agar sumber storage bisa dipilih lewat `STORAGE_PROVIDER` (`local` membaca `/uploads`/`SIMDP_STORAGE_DIR`, `supabase` menarik object dari bucket Supabase) sebelum diarsipkan.
+- Issue #237: Menambahkan konfigurasi backup/recovery provider-agnostic (`DEPLOYMENT_CONTEXT`, `BACKUP_TARGET`, retention, Google Drive service account), kontrak `IBackupTarget`, target local/folder/Google Drive, dan dokumen arsitektur pemisahan backup target dari storage dokumen aplikasi.
+- Issue #237: Menambahkan hasil restore drill lokal pertama untuk database + storage-level smoke test via Docker PostgreSQL dan archive `uploads/`, lalu melanjutkan app-level smoke test terhadap `sicantik-local-psql` sampai seed demo, Prisma query, build, login admin, render halaman utama, stream 5 dokumen PDF, dan enkripsi artifact backup lokal berhasil; offsite production masih menunggu target/credential valid.
 - Issue #237: Menambahkan rencana Backup & Disaster Recovery untuk database PostgreSQL dan document storage, termasuk target RPO/RTO awal, retention, runbook restore, restore drill checklist, dan penegasan bahwa admin export/import bukan pengganti backup production.
 - Issue #237: Menambahkan helper backup lokal/VPS untuk `pg_dump` database + archive storage, manifest checksum, enkripsi opsional wajib untuk production, pruning retention, dan panduan cron/offsite copy.
 - Issue #237: Menambahkan template hasil restore drill untuk mencatat backup artifact, validasi DB/storage, RPO/RTO aktual, sample dokumen yang dicek, masalah, keputusan PASS/FAIL, dan sign-off.
@@ -64,6 +70,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Issue #237: Memperkuat helper backup/restore lokal/VPS dengan pemilihan `latest` berdasarkan `timestamp_utc` manifest, `psql -v ON_ERROR_STOP=1` saat restore database, line ending LF untuk skrip shell, dan pengiriman URL database backup/restore melalui environment command agar tidak muncul sebagai argumen proses.
 - Memperbaiki setup test rate limiter agar integration tests yang melewati distributed rate-limit store memakai default mock bucket aman dan tidak gagal 500 karena `$queryRaw` kosong.
 - Menutup sisa kebocoran `error.message` mentah pada route export PDF profil pegawai dan export CSV pegawai, menambahkan guard `INNGEST_SIGNING_KEY` untuk runtime production, merapikan fallback scanner malware, memperjelas bypass middleware auth, mengekstrak helper normalisasi path storage, dan menampilkan ringkasan reminder cron gagal di audit log.
 - Memperbaiki penyimpanan `/system-settings` agar default `SystemSetting` yang belum lengkap otomatis di-seed sebelum update, mencegah Prisma `P2025` saat submit pengaturan sistem.
