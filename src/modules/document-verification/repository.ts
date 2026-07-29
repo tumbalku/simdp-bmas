@@ -6,7 +6,7 @@ export type CreateDocumentVerificationInput = {
   id: string;
   code: string;
   documentType: DocumentVerificationType;
-  subjectEmployeeId: string;
+  subjectEmployeeId?: string | null;
   issuedByUserId?: string | null;
   metadata?: Prisma.InputJsonObject;
   expiresAt?: Date | null;

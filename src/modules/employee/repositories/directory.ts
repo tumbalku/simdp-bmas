@@ -52,3 +52,16 @@ export async function findEmployeesWithPagination(
 export async function countEmployees(where: any, tx?: PrismaClientOrTx) {
   return getClient(tx).employee.count({ where });
 }
+
+export async function findEmployeeSignatureOptions(tx?: PrismaClientOrTx) {
+  return getClient(tx).employee.findMany({
+    where: { deletedAt: null },
+    select: {
+      id: true,
+      name: true,
+      employeeId: true,
+      employeeRank: { select: { name: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+}

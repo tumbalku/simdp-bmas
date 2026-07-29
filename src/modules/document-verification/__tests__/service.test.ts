@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockPrisma } from "../../../../tests/setup";
 import {
   attachDocumentVerificationFileHash,
+  issueEmployeeDirectoryVerification,
   issueEmployeeProfileVerification,
   verifyDocumentCode,
 } from "../service";
@@ -46,6 +47,31 @@ describe("document verification service", () => {
       qrCodeDataUrl: "data:image/png;base64,qr",
     });
   });
+
+  it("issues an employee directory verification without a subject employee", async () => {
+    mockPrisma.documentVerification.create.mockResolvedValue({
+      id: "verification-directory",
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+    });
+
+    const result = await issueEmployeeDirectoryVerification({
+      issuedByUserId: "admin-1",
+      metadata: { rowCount: 12 },
+    });
+
+    expect(mockPrisma.documentVerification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        documentType: "EMPLOYEE_DIRECTORY",
+        subjectEmployeeId: null,
+        issuedByUserId: "admin-1",
+        metadata: { rowCount: 12 },
+      }),
+    });
+    expect(result.verifyUrl).toBe(
+      "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+    );
+  });
+
 
   it("attaches the generated PDF hash to an issued verification", async () => {
     mockPrisma.documentVerification.update.mockResolvedValue({ id: "verification-1" });
@@ -95,6 +121,36 @@ describe("document verification service", () => {
       fileHash: "hash-1",
     });
   });
+
+  it("returns safe public data for a verified employee directory report", async () => {
+    mockPrisma.documentVerification.findUnique.mockResolvedValue({
+      id: "verification-directory",
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+      documentType: "EMPLOYEE_DIRECTORY",
+      issuedAt: new Date("2026-07-29T01:00:00.000Z"),
+      expiresAt: null,
+      revokedAt: null,
+      fileHash: "hash-directory",
+      subjectEmployee: null,
+    });
+
+    const result = await verifyDocumentCode("SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+
+    expect(result).toEqual({
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+      status: "VALID",
+      documentTypeLabel: "Laporan Kepegawaian",
+      subjectName: "Direktori Pegawai RSUD Bahteramas",
+      subjectIdentifier: null,
+      workplace: null,
+      employeePosition: null,
+      issuedAt: "2026-07-29T01:00:00.000Z",
+      expiresAt: null,
+      revokedAt: null,
+      fileHash: "hash-directory",
+    });
+  });
+
 
   it("marks revoked codes as revoked", async () => {
     mockPrisma.documentVerification.findUnique.mockResolvedValue({

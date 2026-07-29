@@ -45,6 +45,16 @@ export async function getEmployeeDirectoryWithPagination(
   };
 }
 
+export async function getEmployeeDirectorOptions() {
+  const employees = await repository.findEmployeeSignatureOptions();
+  return employees.map((employee) => ({
+    id: employee.id,
+    name: employee.name,
+    nip: employee.employeeId,
+    rank: employee.employeeRank?.name ?? null,
+  }));
+}
+
 export async function exportEmployeeDirectoryCsv(
   filter: EmployeeDirectoryFilter = {},
   actor: EmployeeExportActor

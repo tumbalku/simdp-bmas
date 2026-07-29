@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { PAGINATION } from "@/constants";
 import { getEmployeeDirectoryWithPaginationAction } from "@/modules/employee";
-import { getMasterDataList } from "@/modules/employee/server";
+import { getEmployeeDirectorOptions, getMasterDataList } from "@/modules/employee/server";
 import { MasterDataEmployeesView } from "@/modules/employee/components/MasterDataEmployeesView";
 
 export const dynamic = "force-dynamic";
@@ -47,8 +47,16 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
   const page = parsePositiveInt(params.page, PAGINATION.defaultPage);
   const limit = parsePositiveInt(params.limit, PAGINATION.defaultPageSize);
 
-  const [result, employmentStatuses, employeeGroups, professionGroups, employeePositions, employeeRanks, workplaces] =
-    await Promise.all([
+  const [
+    result,
+    employmentStatuses,
+    employeeGroups,
+    professionGroups,
+    employeePositions,
+    employeeRanks,
+    workplaces,
+    directorOptions,
+  ] = await Promise.all([
       getEmployeeDirectoryWithPaginationAction({
         archiveView: params.archiveView === "archived" ? "archived" : "active",
         page,
@@ -74,6 +82,7 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
       getMasterDataList("EmployeePosition", { limit: PAGINATION.masterDataEntityLimit }),
       getMasterDataList("EmployeeRank", { limit: PAGINATION.masterDataEntityLimit }),
       getMasterDataList("Workplace", { limit: PAGINATION.masterDataEntityLimit }),
+      getEmployeeDirectorOptions(),
     ]);
 
   if (!result.ok) {
@@ -93,6 +102,7 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
         employeeRanks: employeeRanks.data,
         workplaces: workplaces.data,
       }}
+      directorOptions={directorOptions}
     />
   );
 }

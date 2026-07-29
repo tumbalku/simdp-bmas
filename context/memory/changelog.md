@@ -31,6 +31,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Menambahkan export PDF laporan kepegawaian dari halaman `/master-data/employees` yang mengikuti query pencarian/filter aktif, memakai format kop surat RSUD Bahteramas, menyertakan QR Code verifikasi publik, dan menyimpan hash PDF di `DocumentVerification`.
 - Menambahkan portal dokumentasi resmi berbasis Docusaurus di `documentation/`, termasuk struktur sidebar untuk Architecture, Developer Guide, Operator Guide, Security, API, User Manual, dan Reference.
 - Issue #237: Menambahkan template environment per skenario (`.env.local.example`, `.env.supabase.example`, `.env.backup-supabase.example`, `.env.vps-local.example`, `.env.restore-local.example`) agar konfigurasi app, backup Supabase, VPS, dan restore bisa dipilih tanpa menebak variable satu per satu.
 - Issue #237: Menambahkan helper restore lokal/VPS `scripts/restore-local-vps.sh` untuk memilih manifest backup terbaru atau timestamp tertentu, restore database via `psql` lokal/Docker dengan konfirmasi eksplisit, dan restore storage ke folder terpisah untuk drill recovery.
