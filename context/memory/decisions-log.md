@@ -2,6 +2,13 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-29] Docusaurus sebagai Portal Dokumentasi Resmi
+- Konteks: SIMDP membutuhkan dokumentasi yang mudah dibaca developer, operator, auditor keamanan, dan user internal tanpa menghilangkan detail historis yang sudah ada di folder `context/`.
+- Keputusan: dokumentasi resmi yang dapat dipublish dibuat dengan Docusaurus di folder `documentation/` dalam repo yang sama. Folder `context/` tetap menjadi memori detail/source historis, sedangkan Docusaurus menjadi portal baca utama dengan struktur Architecture, Developer Guide, Operator Guide, Security, API, User Manual, dan Reference.
+- Alasan: satu repo membuat perubahan kode dan docs bisa direview dalam PR yang sama, tidak perlu sinkron antar repo, dan cocok untuk fase project yang masih aktif berkembang.
+- Batasan: jika di masa depan docs perlu lifecycle atau akses publik yang berbeda dari source code, dokumentasi bisa dipindahkan ke repo terpisah.
+- Referensi: diskusi dokumentasi project 2026-07-29.
+
 ## [2026-07-29] Prioritas Target Backup Production
 - Konteks: setelah fondasi backup provider-agnostic dibuat, production SIMDP perlu urutan target yang jelas agar operator tidak menganggap semua opsi setara.
 - Keputusan: target utama offsite backup adalah Google Drive service account (`BACKUP_TARGET=gdrive`). Jalur VPS/local (`BACKUP_TARGET=folder|local`) menjadi opsi kedua untuk server lokal/VPS dengan copy offsite. S3/S3-compatible menjadi opsi terakhir/future sampai target bucket, credential, dan adapter/job resmi dipilih.
