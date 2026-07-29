@@ -396,6 +396,9 @@ describe("Employee Module Service", () => {
       expect(html).toContain("ASN/PNS");
       expect(html).toContain("col-education");
       expect(html).toContain("col-tmt");
+      expect(html).toContain('<col style="width: 7.2%" />');
+      expect(html).toContain('<col style="width: 8%" />');
+      expect(html).toContain('<col style="width: 5.5%" />');
       expect(html).not.toContain("Status data:");
       expect(html).not.toContain("Total data sesuai pencarian:");
       expect(html).toContain("Dicetak: 29 Juli 2026 pukul");
@@ -403,7 +406,8 @@ describe("Employee Module Service", () => {
       expect(html).toContain("Pembina Utama Muda, Gol.IV/c");
       expect(html).toContain("NIP. 197001012000121001");
       expect(html).not.toContain("dr. H. Suukirman");
-      expect(html).toContain("SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+      expect(html).not.toContain("Kode: SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+      expect(html).not.toContain("verification-code");
       expect(html).toContain("data:image/png;base64,qr");
       expect(html).toContain(".verification-card {\n      display: grid;");
       expect(html).not.toContain("background: #f0fdfa");

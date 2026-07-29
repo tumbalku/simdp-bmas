@@ -293,16 +293,8 @@ export function renderEmployeeDirectoryPdfHtml(
       font-size: 8px;
       font-weight: 900;
     }
-    .verification-code {
-      margin-top: 5px;
-      color: #111827;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 7px;
-      font-weight: 900;
-      overflow-wrap: anywhere;
-    }
     .verification-url {
-      margin-top: 2px;
+      margin-top: 5px;
       color: #475569;
       font-size: 6.2px;
       overflow-wrap: anywhere;
@@ -352,15 +344,15 @@ export function renderEmployeeDirectoryPdfHtml(
         <col style="width: 2.2%" />
         <col style="width: 13.8%" />
         <col style="width: 8.3%" />
-        <col style="width: 6.6%" />
+        <col style="width: 7.2%" />
         <col style="width: 9.8%" />
         <col style="width: 10.5%" />
         <col style="width: 9%" />
         <col style="width: 8.5%" />
-        <col style="width: 7.4%" />
+        <col style="width: 8%" />
         <col style="width: 9%" />
         <col style="width: 8.2%" />
-        <col style="width: 6.7%" />
+        <col style="width: 5.5%" />
       </colgroup>
       <thead>
         <tr>
@@ -387,7 +379,6 @@ export function renderEmployeeDirectoryPdfHtml(
         <div>
           <div class="verification-label">Verifikasi Laporan</div>
           <div class="verification-title">Scan QR untuk mengecek keaslian PDF laporan ini.</div>
-          <div class="verification-code">Kode: ${escapeHtml(options.verification.code)}</div>
           <div class="verification-url">${escapeHtml(options.verification.verifyUrl)}</div>
         </div>
       </div>

@@ -1,5 +1,3 @@
-import { AlertCircle, CheckCircle2, FileQuestion, ShieldCheck, XCircle } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -22,7 +20,6 @@ function statusCopy(status: PublicDocumentVerificationResult["status"]) {
     return {
       title: "Dokumen valid",
       description: "Kode QR ini terdaftar sebagai dokumen resmi yang diterbitkan oleh SiCantIK.",
-      icon: CheckCircle2,
       badgeClassName: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
     };
   }
@@ -31,7 +28,6 @@ function statusCopy(status: PublicDocumentVerificationResult["status"]) {
     return {
       title: "Dokumen dicabut",
       description: "Dokumen ini pernah diterbitkan, tetapi status verifikasinya sudah dicabut.",
-      icon: XCircle,
       badgeClassName: "bg-destructive/10 text-destructive ring-1 ring-destructive/20",
     };
   }
@@ -40,7 +36,6 @@ function statusCopy(status: PublicDocumentVerificationResult["status"]) {
     return {
       title: "Dokumen kedaluwarsa",
       description: "Kode ini terdaftar, tetapi masa berlaku verifikasinya sudah berakhir.",
-      icon: AlertCircle,
       badgeClassName: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
     };
   }
@@ -48,7 +43,6 @@ function statusCopy(status: PublicDocumentVerificationResult["status"]) {
   return {
     title: "Dokumen tidak ditemukan",
     description: "Kode ini tidak cocok dengan dokumen verifikasi yang tersimpan di SiCantIK.",
-    icon: FileQuestion,
     badgeClassName: "bg-muted text-muted-foreground ring-1 ring-border",
   };
 }
@@ -62,29 +56,37 @@ function DetailRow({ label, value }: { label: string; value: string | null }) {
   );
 }
 
+function buildDetailRows(result: PublicDocumentVerificationResult) {
+  const rows = [
+    { label: "Kode Verifikasi", value: result.code, always: true },
+    { label: "Jenis Dokumen", value: result.documentTypeLabel, always: true },
+    { label: "Subjek Dokumen", value: result.subjectName, always: true },
+    { label: "Identifier", value: result.subjectIdentifier },
+    { label: "Jabatan", value: result.employeePosition },
+    { label: "Unit Kerja", value: result.workplace },
+    { label: "Tanggal Terbit", value: formatDate(result.issuedAt), always: true },
+    { label: "Berlaku Sampai", value: result.expiresAt ? formatDate(result.expiresAt) : null },
+  ];
+
+  return rows.filter((row) => row.always || row.value);
+}
+
 export function VerifyDocumentPage({ result, error }: VerifyDocumentPageProps) {
   const copy = result ? statusCopy(result.status) : null;
-  const Icon = copy?.icon ?? FileQuestion;
+  const detailRows = result ? buildDetailRows(result) : [];
 
   return (
     <main className="min-h-screen bg-background px-4 py-10 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ShieldCheck className="size-6" />
-          </div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">SiCantIK</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Verifikasi Dokumen</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Halaman publik untuk memeriksa apakah dokumen pegawai diterbitkan oleh SIMDP RSUD Bahteramas.
+            Halaman untuk memeriksa dokumen diterbitkan oleh SIMDP RSUD Bahteramas.
           </p>
         </div>
 
         <Card className="border-border/80">
           <CardHeader className="items-center text-center">
-            <div className="mb-2 flex size-14 items-center justify-center rounded-full bg-muted">
-              <Icon className="size-7" />
-            </div>
             <CardTitle className="text-xl">{error || copy?.title || "Masukkan kode verifikasi"}</CardTitle>
             <CardDescription>
               {error ||
@@ -103,25 +105,13 @@ export function VerifyDocumentPage({ result, error }: VerifyDocumentPageProps) {
           {result ? (
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <DetailRow label="Kode Verifikasi" value={result.code} />
-                <DetailRow label="Jenis Dokumen" value={result.documentTypeLabel} />
-                <DetailRow label="Nama Pegawai" value={result.subjectName} />
-                <DetailRow label="Identifier" value={result.subjectIdentifier} />
-                <DetailRow label="Jabatan" value={result.employeePosition} />
-                <DetailRow label="Unit Kerja" value={result.workplace} />
-                <DetailRow label="Tanggal Terbit" value={formatDate(result.issuedAt)} />
-                <DetailRow label="Berlaku Sampai" value={formatDate(result.expiresAt)} />
+                {detailRows.map((row) => (
+                  <DetailRow key={row.label} label={row.label} value={row.value} />
+                ))}
               </div>
 
               {result.revokedAt ? (
                 <DetailRow label="Tanggal Dicabut" value={formatDate(result.revokedAt)} />
-              ) : null}
-
-              {result.fileHash ? (
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">SHA-256 File</div>
-                  <div className="mt-1 break-all font-mono text-xs text-foreground">{result.fileHash}</div>
-                </div>
               ) : null}
 
               <p className="text-xs leading-5 text-muted-foreground">
