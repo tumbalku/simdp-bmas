@@ -9,6 +9,13 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Batasan: jika di masa depan docs perlu lifecycle atau akses publik yang berbeda dari source code, dokumentasi bisa dipindahkan ke repo terpisah.
 - Referensi: diskusi dokumentasi project 2026-07-29.
 
+## [2026-07-29] Verifikasi PDF Direktori Pegawai
+- Konteks: export PDF laporan kepegawaian dari halaman daftar pegawai berisi banyak pegawai sesuai query pencarian, sehingga tidak tepat jika QR verifikasi dikaitkan ke satu `Employee` seperti PDF profil pegawai.
+- Keputusan: `DocumentVerification` mendukung tipe `EMPLOYEE_DIRECTORY` dan `subjectEmployeeId` boleh kosong untuk dokumen agregat/direktori. QR tetap berisi URL publik `/verify-document?code=...`, sedangkan hash PDF dan metadata filter export disimpan di record verifikasi.
+- Alasan: menjaga integritas verifikasi PDF direktori tanpa menumpangkan subject ke pegawai pertama atau pegawai acak, serta tetap memakai alur verifikasi publik yang sudah ada.
+- Batasan: halaman publik menampilkan ringkasan aman untuk laporan direktori dan hash file, bukan seluruh isi data pegawai.
+- Referensi: permintaan export PDF laporan kepegawaian dengan QR verifikasi 2026-07-29.
+
 ## [2026-07-29] Prioritas Target Backup Production
 - Konteks: setelah fondasi backup provider-agnostic dibuat, production SIMDP perlu urutan target yang jelas agar operator tidak menganggap semua opsi setara.
 - Keputusan: target utama offsite backup adalah Google Drive service account (`BACKUP_TARGET=gdrive`). Jalur VPS/local (`BACKUP_TARGET=folder|local`) menjadi opsi kedua untuk server lokal/VPS dengan copy offsite. S3/S3-compatible menjadi opsi terakhir/future sampai target bucket, credential, dan adapter/job resmi dipilih.

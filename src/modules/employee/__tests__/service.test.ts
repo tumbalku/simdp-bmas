@@ -6,9 +6,12 @@ import {
   handleEmployeeCrud,
   getEmployeeDirectory,
   getEmployeeDirectoryWithPagination,
+  getEmployeeDirectorOptions,
   getEmployeeDetail,
   getEmployeeProfilePdfData,
   exportEmployeeDirectoryCsv,
+  getEmployeeDirectoryPdfData,
+  renderEmployeeDirectoryPdfHtml,
   importFromCsv,
   addCareerHistory,
 } from "../service";
@@ -212,6 +215,38 @@ describe("Employee Module Service", () => {
       });
     });
 
+    it("should list active employee options for report director selection", async () => {
+      mockPrisma.employee.findMany.mockResolvedValue([
+        {
+          id: "emp-director",
+          name: "dr. Direktur Baru",
+          employeeId: "197001012000121001",
+          employeeRank: { name: "Pembina Utama Muda, Gol.IV/c" },
+        },
+      ]);
+
+      const result = await getEmployeeDirectorOptions();
+
+      expect(mockPrisma.employee.findMany).toHaveBeenCalledWith({
+        where: { deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          employeeId: true,
+          employeeRank: { select: { name: true } },
+        },
+        orderBy: { name: "asc" },
+      });
+      expect(result).toEqual([
+        {
+          id: "emp-director",
+          name: "dr. Direktur Baru",
+          nip: "197001012000121001",
+          rank: "Pembina Utama Muda, Gol.IV/c",
+        },
+      ]);
+    });
+
     it("should export filtered employees to CSV without secret fields", async () => {
       mockPrisma.employee.findMany.mockResolvedValue([
         {
@@ -251,6 +286,128 @@ describe("Employee Module Service", () => {
           data: expect.objectContaining({ eventType: "EMPLOYEE_EXPORTED" }),
         }),
       );
+    });
+
+    it("should build PDF directory data from the same filtered employee query", async () => {
+      mockPrisma.employee.findMany.mockResolvedValue([
+        {
+          name: "Siti Aminah",
+          employeeId: "19850101",
+          nik: "7471010101010001",
+          status: "ACTIVE",
+          gender: "FEMALE",
+          birthPlace: "Kendari",
+          birthDate: new Date("1985-01-01T00:00:00.000Z"),
+          lastEducation: "S1",
+          hasTmt: true,
+          tmtStartDate: new Date("2020-01-01T00:00:00.000Z"),
+          tmtEndDate: null,
+          user: { email: "siti@example.com", role: "EMPLOYEE", isActive: true },
+          employmentStatus: { name: "PNS" },
+          employeeGroup: { name: "ASN" },
+          employeePosition: { name: "Perawat" },
+          employeeRank: { name: "III/a" },
+          workplace: { name: "UGD" },
+        },
+      ]);
+
+      const data = await getEmployeeDirectoryPdfData({ search: "siti", archiveView: "active" });
+
+      expect(mockPrisma.employee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            OR: expect.arrayContaining([{ name: { contains: "siti", mode: "insensitive" } }]),
+          }),
+        }),
+      );
+      expect(data).toEqual(
+        expect.objectContaining({
+          title: "Laporan Kepegawaian",
+          archiveView: "active",
+          rowCount: 1,
+          rows: [
+            expect.objectContaining({
+              no: 1,
+              name: "Siti Aminah",
+              employeeGroup: "ASN",
+              employmentStatus: "PNS",
+              gender: "Wanita",
+              tmt: "2020-01-01",
+            }),
+          ],
+        }),
+      );
+      expect(JSON.stringify(data)).not.toContain("passwordHash");
+    });
+
+    it("should render employee directory PDF HTML with letterhead table and QR verification", () => {
+      const html = renderEmployeeDirectoryPdfHtml(
+        {
+          title: "Laporan Kepegawaian",
+          archiveView: "active",
+          generatedAt: "2026-07-29T00:00:00.000Z",
+          rowCount: 1,
+          rows: [
+            {
+              no: 1,
+              name: "Siti Aminah",
+              employeeId: "19850101",
+              nik: "7471010101010001",
+              rank: "III/a",
+              position: "Perawat",
+              workplace: "UGD",
+              birthPlace: "Kendari",
+              birthDate: "1985-01-01",
+              lastEducation: "S1",
+              employeeGroup: "ASN",
+              employmentStatus: "PNS",
+              tmt: "2020-01-01",
+              gender: "Wanita",
+            },
+          ],
+        },
+        {
+          verification: {
+            id: "verification-1",
+            code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+            verifyUrl: "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+            qrCodeDataUrl: "data:image/png;base64,qr",
+          },
+          director: {
+            name: "dr. Direktur Baru",
+            rank: "Pembina Utama Muda, Gol.IV/c",
+            nip: "197001012000121001",
+          },
+        },
+      );
+
+      expect(html).toContain("RUMAH SAKIT UMUM DAERAH BAHTERAMAS");
+      expect(html).toContain("Laporan Kepegawaian");
+      expect(html).toContain("class=\"letterhead-logo\"");
+      expect(html).toContain("data:image/png;base64,");
+      expect(html).toContain("min-height: calc(210mm - 14mm)");
+      expect(html).toContain("margin-top: auto");
+      expect(html).toContain("padding-top: 20px");
+      expect(html).toContain("padding-bottom: 18px");
+      expect(html).toContain("Siti Aminah");
+      expect(html).toContain("<span>Status/Jenis</span><span>Pegawai</span>");
+      expect(html).toContain("<span>Jenis</span><span>Kelamin</span>");
+      expect(html).toContain("ASN/PNS");
+      expect(html).toContain("col-education");
+      expect(html).toContain("col-tmt");
+      expect(html).not.toContain("Status data:");
+      expect(html).not.toContain("Total data sesuai pencarian:");
+      expect(html).toContain("Dicetak: 29 Juli 2026 pukul");
+      expect(html).toContain("dr. Direktur Baru");
+      expect(html).toContain("Pembina Utama Muda, Gol.IV/c");
+      expect(html).toContain("NIP. 197001012000121001");
+      expect(html).not.toContain("dr. H. Suukirman");
+      expect(html).toContain("SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+      expect(html).toContain("data:image/png;base64,qr");
+      expect(html).toContain(".verification-card {\n      display: grid;");
+      expect(html).not.toContain("background: #f0fdfa");
+      expect(html).not.toContain("Data mengikuti query pencarian");
     });
   });
 

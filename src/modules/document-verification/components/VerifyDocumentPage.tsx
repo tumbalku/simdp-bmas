@@ -76,7 +76,7 @@ export function VerifyDocumentPage({ result, error }: VerifyDocumentPageProps) {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">SiCantIK</p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Verifikasi Dokumen</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Halaman publik untuk memeriksa apakah dokumen profil pegawai diterbitkan oleh SIMDP RSUD Bahteramas.
+            Halaman publik untuk memeriksa apakah dokumen pegawai diterbitkan oleh SIMDP RSUD Bahteramas.
           </p>
         </div>
 
@@ -89,7 +89,7 @@ export function VerifyDocumentPage({ result, error }: VerifyDocumentPageProps) {
             <CardDescription>
               {error ||
                 copy?.description ||
-                "Scan QR Code pada PDF profil pegawai atau buka link verifikasi yang tertera di dokumen."}
+                "Scan QR Code pada PDF pegawai atau buka link verifikasi yang tertera di dokumen."}
             </CardDescription>
             {result ? (
               <div className="flex w-full justify-center">

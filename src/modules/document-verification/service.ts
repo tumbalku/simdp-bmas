@@ -8,12 +8,14 @@ import { env } from "@/lib/env";
 import * as repository from "./repository";
 import {
   DOCUMENT_VERIFICATION_TYPE,
+  type DocumentVerificationType,
   type IssuedDocumentVerification,
   type PublicDocumentVerificationResult,
 } from "./types";
 
 const DOCUMENT_TYPE_LABELS = {
   [DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_PROFILE]: "Profil Pegawai",
+  [DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DIRECTORY]: "Laporan Kepegawaian",
 } as const;
 
 function generateVerificationCode() {
@@ -54,6 +56,32 @@ export async function issueEmployeeProfileVerification(input: {
   issuedByUserId: string;
   metadata?: Prisma.InputJsonObject;
 }): Promise<IssuedDocumentVerification> {
+  return issueDocumentVerification({
+    documentType: DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_PROFILE,
+    subjectEmployeeId: input.employeeId,
+    issuedByUserId: input.issuedByUserId,
+    metadata: input.metadata,
+  });
+}
+
+export async function issueEmployeeDirectoryVerification(input: {
+  issuedByUserId: string;
+  metadata?: Prisma.InputJsonObject;
+}): Promise<IssuedDocumentVerification> {
+  return issueDocumentVerification({
+    documentType: DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DIRECTORY,
+    subjectEmployeeId: null,
+    issuedByUserId: input.issuedByUserId,
+    metadata: input.metadata,
+  });
+}
+
+async function issueDocumentVerification(input: {
+  documentType: DocumentVerificationType;
+  subjectEmployeeId?: string | null;
+  issuedByUserId: string;
+  metadata?: Prisma.InputJsonObject;
+}): Promise<IssuedDocumentVerification> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const id = crypto.randomUUID();
     const code = generateVerificationCode();
@@ -62,8 +90,8 @@ export async function issueEmployeeProfileVerification(input: {
       const verification = await repository.createDocumentVerification({
         id,
         code,
-        documentType: DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_PROFILE,
-        subjectEmployeeId: input.employeeId,
+        documentType: input.documentType,
+        subjectEmployeeId: input.subjectEmployeeId ?? null,
         issuedByUserId: input.issuedByUserId,
         metadata: input.metadata,
       });
@@ -113,14 +141,19 @@ export async function verifyDocumentCode(code: string): Promise<PublicDocumentVe
     };
   }
 
+  const subjectEmployee = verification.subjectEmployee;
+
   return {
     code: verification.code,
     status: getVerificationStatus(verification),
     documentTypeLabel: DOCUMENT_TYPE_LABELS[verification.documentType],
-    subjectName: verification.subjectEmployee.name,
-    subjectIdentifier: maskIdentifier(verification.subjectEmployee.employeeId || verification.subjectEmployee.nik),
-    workplace: verification.subjectEmployee.workplace?.name ?? null,
-    employeePosition: verification.subjectEmployee.employeePosition?.name ?? null,
+    subjectName:
+      verification.documentType === DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DIRECTORY
+        ? "Direktori Pegawai RSUD Bahteramas"
+        : subjectEmployee?.name ?? null,
+    subjectIdentifier: maskIdentifier(subjectEmployee?.employeeId || subjectEmployee?.nik),
+    workplace: subjectEmployee?.workplace?.name ?? null,
+    employeePosition: subjectEmployee?.employeePosition?.name ?? null,
     issuedAt: toIsoString(verification.issuedAt),
     expiresAt: toIsoString(verification.expiresAt),
     revokedAt: toIsoString(verification.revokedAt),

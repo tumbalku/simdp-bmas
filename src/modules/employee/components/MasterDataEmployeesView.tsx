@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Archive, Eye, FileDown, Pencil, RotateCcw, Trash2, UserPlus, Users } from "lucide-react";
+import { Archive, Eye, FileDown, FileText, Pencil, RotateCcw, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
@@ -15,6 +15,23 @@ import { DataTableCard } from "@/components/tables/DataTableCard";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Pagination,
   PaginationContent,
@@ -35,6 +52,13 @@ import { EmployeeCsvImportDialog } from "./EmployeeCsvImportDialog";
 
 type ViewMode = "grid" | "list";
 type CriticalEmployeeAction = "archive" | "restore" | "permanent-delete";
+
+type DirectorForm = {
+  employeeId: string;
+  name: string;
+  rank: string;
+  nip: string;
+};
 
 type CriticalEmployeeActionTarget = {
   action: CriticalEmployeeAction;
@@ -69,6 +93,12 @@ type MasterDataEmployeesViewProps = {
   pagination: PaginationMeta;
   archiveView: "active" | "archived";
   filterOptions: EmployeeDirectoryFilterOptions;
+  directorOptions: Array<{
+    id: string;
+    name: string;
+    nip: string | null;
+    rank: string | null;
+  }>;
 };
 
 const FILTER_KEYS = [
@@ -114,12 +144,20 @@ export function MasterDataEmployeesView({
   pagination,
   archiveView,
   filterOptions,
+  directorOptions,
 }: MasterDataEmployeesViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingEmployeeId, setPendingEmployeeId] = useState<string | null>(null);
   const [isCriticalActionDialogOpen, setIsCriticalActionDialogOpen] = useState(false);
+  const [isExportPdfDialogOpen, setIsExportPdfDialogOpen] = useState(false);
   const [criticalActionTarget, setCriticalActionTarget] = useState<CriticalEmployeeActionTarget | null>(null);
+  const [directorForm, setDirectorForm] = useState<DirectorForm>({
+    employeeId: "",
+    name: "",
+    rank: "",
+    nip: "",
+  });
   const [filters, setFilters] = useState(() =>
     getInitialFilterValues(searchParams),
   );
@@ -180,6 +218,23 @@ export function MasterDataEmployeesView({
     return `/api/v1/employees/export${query ? `?${query}` : ""}`;
   };
 
+  const buildExportPdfUrl = (director: DirectorForm) => {
+    const params = new URLSearchParams();
+    if (isArchiveView) params.set("archiveView", "archived");
+
+    FILTER_KEYS.forEach((key) => {
+      const value = filters[key].trim();
+      if (value) params.set(key, value);
+    });
+
+    params.set("directorName", director.name.trim());
+    params.set("directorRank", director.rank.trim());
+    params.set("directorNip", director.nip.trim());
+
+    const query = params.toString();
+    return `/api/v1/employees/export-pdf${query ? `?${query}` : ""}`;
+  };
+
   const handleValueChange = (key: keyof EmployeeDirectoryFilterValues, value: string) => {
     setFilters((current) => ({ ...current, [key]: value }));
   };
@@ -230,6 +285,42 @@ export function MasterDataEmployeesView({
     setFilters(resetFilters);
     setRowsPerPage(String(PAGINATION.defaultPageSize));
     router.push(buildPageUrl(PAGINATION.defaultPage, resetFilters));
+  };
+
+  const handleDirectorFieldChange = (key: keyof DirectorForm, value: string) => {
+    setDirectorForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleDirectorSelect = (employeeId: string | null) => {
+    const director = directorOptions.find((option) => option.id === employeeId);
+    setDirectorForm({
+      employeeId: director?.id ?? "",
+      name: director?.name ?? "",
+      rank: director?.rank ?? "",
+      nip: director?.nip ?? "",
+    });
+  };
+
+  const handleExportPdf = () => {
+    const normalizedDirector = {
+      employeeId: directorForm.employeeId,
+      name: directorForm.name.trim(),
+      rank: directorForm.rank.trim(),
+      nip: directorForm.nip.trim(),
+    };
+
+    if (!normalizedDirector.name || !normalizedDirector.rank || !normalizedDirector.nip) {
+      toast.error("Nama, pangkat/golongan, dan NIP Direktur wajib diisi sebelum export PDF.");
+      return;
+    }
+
+    setIsExportPdfDialogOpen(false);
+    const anchor = document.createElement("a");
+    anchor.href = buildExportPdfUrl(normalizedDirector);
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
   };
 
   const handleArchiveAction = async (employee: EmployeeSummary) => {
@@ -514,6 +605,71 @@ export function MasterDataEmployeesView({
   return (
     <div className="space-y-6">
       {verificationDialog}
+      <Dialog open={isExportPdfDialogOpen} onOpenChange={setIsExportPdfDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Pilih Direktur Laporan</DialogTitle>
+            <DialogDescription>
+              Data ini akan dipakai pada area tanda tangan PDF laporan kepegawaian.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="export-pdf-director-employee">Direktur</Label>
+              <Select value={directorForm.employeeId || null} onValueChange={handleDirectorSelect}>
+                <SelectTrigger id="export-pdf-director-employee">
+                  <SelectValue placeholder="Pilih pegawai sebagai Direktur" />
+                </SelectTrigger>
+                <SelectContent>
+                  {directorOptions.map((director) => (
+                    <SelectItem key={director.id} value={director.id}>
+                      {director.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="export-pdf-director-name">Nama Direktur</Label>
+              <Input
+                id="export-pdf-director-name"
+                value={directorForm.name}
+                onChange={(event) => handleDirectorFieldChange("name", event.target.value)}
+                placeholder="Nama lengkap Direktur"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="export-pdf-director-rank">Pangkat/Golongan</Label>
+              <Input
+                id="export-pdf-director-rank"
+                value={directorForm.rank}
+                onChange={(event) => handleDirectorFieldChange("rank", event.target.value)}
+                placeholder="Contoh: Pembina Utama Muda, Gol.IV/c"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="export-pdf-director-nip">NIP Direktur</Label>
+              <Input
+                id="export-pdf-director-nip"
+                value={directorForm.nip}
+                onChange={(event) => handleDirectorFieldChange("nip", event.target.value)}
+                placeholder="NIP Direktur"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsExportPdfDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button type="button" onClick={handleExportPdf}>
+              <FileText className="size-3.5" />
+              Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PageHeader
         title="Data Pegawai"
@@ -525,6 +681,10 @@ export function MasterDataEmployeesView({
               <FileDown className="size-3.5" />
               Export CSV
             </Link>
+            <Button type="button" variant="outline" onClick={() => setIsExportPdfDialogOpen(true)}>
+              <FileText className="size-3.5" />
+              Export PDF
+            </Button>
             <Link className={buttonVariants()} href="/master-data/employees/add">
               <UserPlus className="size-3.5" />
               Tambah Pegawai
