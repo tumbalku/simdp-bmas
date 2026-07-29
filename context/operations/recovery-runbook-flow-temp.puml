@@ -1,0 +1,113 @@
+@startuml SIMDP_Recovery_Runbook_Flow
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam activity {
+  BorderColor #334155
+  BackgroundColor #F8FAFC
+  FontColor #0F172A
+}
+skinparam note {
+  BorderColor #F59E0B
+  BackgroundColor #FFFBEB
+}
+skinparam partition {
+  BorderColor #CBD5E1
+  BackgroundColor #FFFFFF
+}
+
+title SIMDP — Temporary Recovery Runbook Flow
+
+start
+
+partition "1. Pilih backup" {
+  :Pilih manifest database;
+  note right
+  Local drill path:
+  C:/Users/Arsi/simdp-restore-drill-backups/
+  20260727_035025/manifest_20260727_035025.txt
+  end note
+
+  :Pilih archive storage dengan timestamp cocok;
+  note right
+  Local drill path:
+  C:/Users/Arsi/simdp-restore-drill-backups/
+  storage_20260727_043512/storage_manifest_20260727_043512.txt
+  end note
+}
+
+partition "2. Siapkan restore environment" {
+  :Buat database restore sementara;
+  :Restore DB dump ke database restore;
+  :Extract/sync storage archive ke folder restore;
+  note right
+  Jangan restore langsung ke production.
+  Uji dulu di DB/folder sementara.
+  end note
+}
+
+partition "3. Validasi data level" {
+  :Cek table utama ada;
+  :Cek row count penting;
+  :Cek path storage source vs restore;
+  :Cek SHA-256 per file storage;
+}
+
+if (Data-level restore valid?) then (ya)
+  partition "4. Jalankan app terhadap restore" {
+    :Set DATABASE_URL ke DB restore/local;
+    :Set STORAGE_PROVIDER=local;
+    :Set env runtime non-secret/dummy untuk smoke test;
+    :Run build/start app sementara;
+  }
+
+  partition "5. App-level smoke test" {
+    :Login admin/operator test;
+    :Buka /dashboard;
+    :Buka /statistics;
+    :Buka /profile;
+    :Download/preview minimal 5 dokumen;
+    note right
+    Local drill PASS:
+    - seed + Prisma query PASS
+    - build PASS
+    - login/pages PASS
+    - 5 PDF stream PASS
+    end note
+  }
+
+  if (App smoke valid?) then (ya)
+    partition "6. Production readiness checks" {
+      :Encrypt backup artifacts;
+      :Decrypt test dan cocokkan checksum;
+      :Copy encrypted backup ke offsite target;
+      :Verifikasi restore/copy dari offsite;
+    }
+
+    if (Offsite verified?) then (ya)
+      :Status = FULL DR PRODUCTION-READY;
+      note right
+      Semua syarat terpenuhi:
+      DB + storage + app smoke + encryption + offsite.
+      end note
+    else (belum)
+      :Status = HOLD untuk full production-ready;
+      note right
+      Current blocker:
+      target/credential offsite belum valid.
+      Local/app-level recovery sudah PASS.
+      end note
+    endif
+  else (tidak)
+    :Status = FAIL app-level;
+    :Perbaiki DB/storage/env/app lalu ulang smoke test;
+  endif
+else (tidak)
+  :Status = FAIL data-level;
+  :Perbaiki artifact restore lalu ulang dari awal;
+endif
+
+stop
+@enduml

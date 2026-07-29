@@ -1,10 +1,18 @@
 # Backup & Disaster Recovery Plan — SIMDP
 
-**Status:** Production readiness plan awal  
-**Issue:** #237  
+**Status:** Production readiness plan awal
+**Issue:** #237
 **Terakhir diperbarui:** 2026-07-27
 
 Dokumen ini menjelaskan cara SIMDP mencegah kehilangan data dan cara memulihkan sistem jika terjadi kerusakan. SIMDP menyimpan data pegawai dan dokumen legal/asli, sehingga backup tidak boleh bergantung pada export manual dari halaman admin saja.
+
+Desain provider-agnostic dan decision table env ada di `context/operations/backup-recovery-architecture.md`.
+
+Prioritas target backup production saat ini:
+
+1. Google Drive service account sebagai offsite backup utama.
+2. VPS/local folder backup sebagai jalur kedua untuk server sendiri, lalu disalin offsite.
+3. S3/S3-compatible sebagai opsi terakhir/future sampai adapter/job resmi dipilih.
 
 ## 1. Tujuan sederhana
 
@@ -122,6 +130,7 @@ Storage:
 - simpan manifest backup yang berisi waktu backup, jumlah object, dan total ukuran.
 
 Catatan: fitur backup database Supabase tidak otomatis berarti file storage ikut terbackup. Storage tetap perlu strategi sendiri.
+Untuk `DEPLOYMENT_CONTEXT=vercel-supabase`, `BACKUP_TARGET` utama adalah `gdrive`. `s3` hanya dipakai jika Google Drive tidak disetujui dan job/adapter S3 sudah siap. Filesystem lokal runtime Vercel tidak boleh dipakai.
 
 ### 6.2 Jika production memakai VPS/PostgreSQL sendiri
 
@@ -132,6 +141,9 @@ Database:
 - kompres dan enkripsi dump sebelum dikirim offsite;
 - verifikasi dump bisa dibaca.
 - gunakan `scripts/backup-local-vps.sh` sebagai helper awal untuk membuat backup database + storage dan manifest checksum.
+- set `BACKUP_TARGET=local` atau `folder`, lalu isi `BACKUP_LOCAL_DIR`/`BACKUP_FOLDER_PATH`. Alias lama `SIMDP_BACKUP_DIR` masih didukung oleh helper untuk transisi.
+- pilih sumber storage lewat `STORAGE_PROVIDER`: `local` untuk `/uploads` atau `SIMDP_STORAGE_DIR`, dan `supabase` jika storage aktif ada di bucket Supabase.
+- setelah artefak lokal terenkripsi, salin offsite. Target offsite yang diprioritaskan tetap Google Drive.
 
 Contoh pola nama file:
 
@@ -141,7 +153,7 @@ simdp-db_YYYYMMDD_HHmm.sql.gz.enc
 
 Storage:
 
-- sync folder `uploads/` atau lokasi storage aktif ke lokasi backup;
+- sync folder `uploads/`, `SIMDP_STORAGE_DIR`, atau bucket Supabase Storage sesuai `STORAGE_PROVIDER` ke lokasi backup;
 - gunakan incremental sync jika ukuran besar;
 - jangan hapus backup lama sebelum retention policy berjalan benar.
 - lihat panduan operasional di `context/operations/local-vps-backup-automation.md`.
@@ -199,6 +211,8 @@ Gunakan runbook ini saat terjadi kerusakan besar. Jangan jalankan langsung ke pr
    - audit log masih ada.
 4. Jalankan Prisma validation/generate jika diperlukan oleh deployment.
 
+Untuk lokal/VPS, gunakan `scripts/restore-local-vps.sh` sebagai helper awal. Restore database sungguhan membutuhkan `RESTORE_CONFIRM=I_UNDERSTAND_RESTORE_OVERWRITES_DATA` dan sebaiknya diarahkan ke database sementara terlebih dahulu.
+
 ### 8.3 Restore storage
 
 1. Restore folder/bucket storage ke lokasi restore.
@@ -208,6 +222,8 @@ Gunakan runbook ini saat terjadi kerusakan besar. Jangan jalankan langsung ke pr
    - gambar/foto profil;
    - file dari provider aktif.
 4. Jangan expose bucket/folder restore ke publik tanpa auth.
+
+Untuk backup lokal/VPS, helper `scripts/restore-local-vps.sh` bisa mengekstrak `simdp-storage_*.tar.gz` ke `RESTORE_STORAGE_DIR` tanpa menyentuh database jika `RESTORE_DB_ENABLED=false`.
 
 ### 8.4 Validasi aplikasi
 
@@ -236,6 +252,10 @@ Cutover artinya mengarahkan traffic user ke hasil restore.
 
 Sebelum production final atau merge/release ke `main`, lakukan minimal satu restore drill:
 
+Hasil drill yang sudah dicatat:
+
+- `context/operations/restore-drills/2026-07-27-local-restore-drill.md` — local DB + storage smoke test via Docker PostgreSQL dan `uploads/` archive; status **PASS WITH NOTES**. App-level smoke tambahan sudah PASS untuk seed demo, Prisma query, build, login admin, render halaman utama, dan stream 5 dokumen PDF; enkripsi artifact lokal juga PASS. Production full DR masih membutuhkan offsite backup target/credential yang valid.
+
 - [ ] Salin template `context/operations/restore-drill-template.md` untuk hasil drill aktual.
 - [ ] Ambil backup database terbaru.
 - [ ] Ambil backup storage yang timestamp-nya cocok.
@@ -244,7 +264,7 @@ Sebelum production final atau merge/release ke `main`, lakukan minimal satu rest
 - [ ] Jalankan app terhadap environment restore.
 - [ ] Login admin berhasil.
 - [ ] Minimal 5 pegawai acak bisa dibuka.
-- [ ] Minimal 5 dokumen acak bisa di-download/preview.
+- [x] Minimal 5 dokumen acak bisa di-download/preview pada drill lokal.
 - [ ] Foto profil upload manual tetap muncul jika ada.
 - [ ] Audit log masih terbaca.
 - [ ] Catat durasi restore aktual.
@@ -284,9 +304,9 @@ Sebelum SIMDP dianggap siap production/main:
 - [ ] Backup disimpan offsite atau di lokasi terpisah.
 - [ ] Retention harian/mingguan/bulanan diterapkan.
 - [ ] Backup gagal mengirim alert ke operator.
-- [ ] Restore database pernah diuji.
-- [ ] Restore storage pernah diuji.
-- [ ] Dokumen dari hasil restore bisa dibuka.
+- [x] Restore database pernah diuji secara lokal.
+- [x] Restore storage pernah diuji secara lokal.
+- [x] Dokumen dari hasil restore bisa dibuka pada app-level smoke lokal.
 - [ ] Durasi restore aktual dicatat dan masih sesuai RTO.
 - [ ] Kehilangan data maksimum masih sesuai RPO.
 - [ ] Operator tahu siapa yang bertanggung jawab saat incident.
@@ -297,6 +317,7 @@ Dokumen ini adalah plan awal. Implementasi teknis otomatis perlu issue terpisah 
 
 1. **Wire local/VPS backup helper to server cron/systemd timer and offsite copy.**
 2. **Implement provider-specific Supabase Storage backup/sync if production uses Supabase.**
-3. **Add backup monitoring and failure alert.**
-4. **Run and record first restore drill.**
-5. **Evaluate admin export/import as operational convenience, not disaster recovery.**
+3. **Verify Google Drive service-account upload with a real production/offsite folder.**
+4. **Add backup monitoring and failure alert.**
+5. **Run and record first production-context restore drill.**
+6. **Evaluate admin export/import as operational convenience, not disaster recovery.**
