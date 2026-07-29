@@ -17,6 +17,7 @@ Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/
 
 | Variable | Required | Keterangan |
 |---|:---:|---|
+| `DEPLOYMENT_CONTEXT` | Yes | `vercel-supabase`, `vps-local`, atau `hybrid`. Default `hybrid`. Dipakai untuk fail-fast konfigurasi backup/deployment. |
 | `STORAGE_PROVIDER` | Yes | `local`, `supabase`, atau `s3`. Development default: `local`. |
 | `SUPABASE_URL` | Jika supabase | URL project Supabase. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Jika supabase | Service role key server-side only. Jangan expose ke client. |
@@ -26,6 +27,39 @@ Semua environment variable wajib divalidasi saat startup dengan Zod di `src/lib/
 | `S3_BUCKET` | Jika s3 | Nama bucket. |
 | `S3_ACCESS_KEY_ID` | Jika s3 | Access key. Secret. |
 | `S3_SECRET_ACCESS_KEY` | Jika s3 | Secret key. Secret. |
+
+Catatan Backup & Disaster Recovery:
+- Database dan storage harus dibackup sebagai satu paket recovery production. Lihat `context/operations/backup-disaster-recovery.md`.
+- Jangan mengandalkan export/import admin sebagai pengganti backup database + storage.
+- Jangan simpan backup, dump database, storage archive, atau backup encryption key di repository.
+- `STORAGE_PROVIDER` hanya memilih storage dokumen aplikasi. Lokasi artefak backup/offsite dipilih oleh `BACKUP_TARGET`.
+- Untuk helper lokal/VPS, `STORAGE_PROVIDER` juga menentukan sumber storage yang diarsipkan: `local` membaca `SIMDP_STORAGE_DIR`, sedangkan `supabase` menarik object dari bucket Supabase sebelum diarsipkan.
+
+## Backup & Recovery
+
+| Variable | Required | Keterangan |
+|---|:---:|---|
+| `BACKUP_ENABLED` | Yes | `true`/`false`. Default `false`. Saat `true`, env target backup divalidasi fail-fast. |
+| `BACKUP_DB_ENABLED` | Yes | `true`/`false`. Default `true`. |
+| `BACKUP_STORAGE_ENABLED` | Yes | `true`/`false`. Default `true`. |
+| `BACKUP_ENCRYPTION_ENABLED` | Yes | `true`/`false`. Default `false`. Production local target wajib dienkripsi sebelum offsite. |
+| `BACKUP_TARGET` | Yes | `gdrive` untuk target production utama; `local`/`folder` untuk VPS/local; `s3` opsi terakhir/future. Berbeda dari `STORAGE_PROVIDER`. |
+| `BACKUP_LOCAL_DIR` | Jika `BACKUP_TARGET=local` | Folder artifact backup lokal. Harus di luar repo. |
+| `BACKUP_FOLDER_PATH` | Jika `BACKUP_TARGET=folder` | Mounted folder/NAS/offline path. Harus di luar repo. |
+| `BACKUP_RETENTION_DAILY_DAYS` | Optional | Default `14`. |
+| `BACKUP_RETENTION_WEEKLY_DAYS` | Optional | Default `56`. |
+| `BACKUP_RETENTION_MONTHLY_DAYS` | Optional | Default `365`. |
+| `GDRIVE_FOLDER_ID` | Jika `BACKUP_TARGET=gdrive` | Folder tujuan Google Drive di Shared Drive. Jangan pakai folder My Drive pribadi untuk service account. |
+| `GDRIVE_CLIENT_EMAIL` | Jika `BACKUP_TARGET=gdrive` | Service account email. Secret-adjacent, jangan expose client. |
+| `GDRIVE_PRIVATE_KEY` | Jika `BACKUP_TARGET=gdrive` | Private key service account dari env. Secret. |
+
+Context guard:
+
+- `DEPLOYMENT_CONTEXT=vercel-supabase` menolak `STORAGE_PROVIDER=local` dan menolak `BACKUP_TARGET=local|folder`; gunakan `BACKUP_TARGET=gdrive` sebagai default production.
+- `DEPLOYMENT_CONTEXT=vps-local` mengharapkan `STORAGE_PROVIDER=local`.
+- `BACKUP_TARGET=s3` memakai env S3 yang sama untuk credential target backup, tetapi tidak berarti `STORAGE_PROVIDER=s3`; S3 adalah opsi terakhir sampai adapter/job resmi aktif.
+- `BACKUP_TARGET=gdrive` harus menunjuk folder di Shared Drive yang dibagikan ke service account backup; My Drive pribadi akan gagal pada service account karena tidak punya storage quota.
+- Detail desain dan recovery path ada di `context/operations/backup-recovery-architecture.md`.
 
 ## Auth & Security
 
@@ -48,6 +82,8 @@ Upload file menerapkan kebijakan **fail closed**: jika ClamAV tidak tersedia, ti
 
 Catatan rate limiting:
 - `enforceApiRateLimit()` membaca IP dari `x-forwarded-for` lalu fallback ke `x-real-ip`.
+- Counter rate limit disimpan di tabel PostgreSQL `RateLimitBucket` agar berlaku global untuk deployment multi-instance yang memakai database yang sama.
+- Strategi ini adalah default production awal. Jika traffic naik signifikan, gunakan Redis/Upstash atau limiter di edge/proxy untuk mengurangi write load PostgreSQL tanpa mengubah kontrak helper rate limit.
 - Production harus berjalan di belakang trusted proxy/load balancer yang menimpa header IP tersebut, bukan meneruskan nilai spoofed langsung dari client.
 - Jika deployment tidak menjamin sanitasi header IP, gunakan store/adapter rate limit di edge/proxy atau tambahkan allowlist trusted proxy sebelum mengandalkan limit per IP.
 
@@ -116,6 +152,15 @@ CLAMAV_HOST="127.0.0.1"
 CLAMAV_PORT="3310"
 CLAMAV_TIMEOUT_MS="10000"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+DEPLOYMENT_CONTEXT="hybrid"
+BACKUP_ENABLED="false"
+BACKUP_DB_ENABLED="true"
+BACKUP_STORAGE_ENABLED="true"
+BACKUP_ENCRYPTION_ENABLED="false"
+BACKUP_TARGET="local"
+BACKUP_RETENTION_DAILY_DAYS="14"
+BACKUP_RETENTION_WEEKLY_DAYS="56"
+BACKUP_RETENTION_MONTHLY_DAYS="365"
 ```
 
 ## Larangan

@@ -27,7 +27,7 @@
 | `NotificationRelatedEntityType` | `DOCUMENT_RECORD` |
 | `SecurityLogStatus` | `SUCCESS`, `FAILED` |
 | `SecurityActorRole` | `ADMIN`, `STAFF`, `EMPLOYEE`, `PUBLIC`, `SYSTEM` |
-| `DocumentVerificationType` | `EMPLOYEE_PROFILE` |
+| `DocumentVerificationType` | `EMPLOYEE_PROFILE`, `EMPLOYEE_DIRECTORY` |
 
 ## Tabel Auth
 
@@ -63,7 +63,7 @@
 | `DocumentTypeWorkplace` | Target by unit | Unique `(documentTypeId, workplaceId)`. |
 | `DocumentRecord` | File dokumen pegawai | Metadata file lengkap, status, expiry reminder fields, soft delete. |
 | `VerificationHistory` | Riwayat verifikasi | Satu row untuk setiap approve/reject. |
-| `DocumentVerification` | Kode verifikasi publik untuk dokumen yang diterbitkan sistem | Kode unik random, subject pegawai, jenis dokumen, hash file opsional, revoked/expiry metadata. |
+| `DocumentVerification` | Kode verifikasi publik untuk dokumen yang diterbitkan sistem | Kode unik random, subject pegawai opsional untuk dokumen agregat, jenis dokumen, hash file opsional, revoked/expiry metadata. |
 
 ## Tabel Pendukung
 

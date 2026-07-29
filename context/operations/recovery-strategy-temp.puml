@@ -1,0 +1,122 @@
+@startuml SIMDP_Backup_Recovery_Strategy
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam rectangle {
+  BorderColor #333333
+  BackgroundColor #F8FAFC
+}
+skinparam database {
+  BorderColor #2563EB
+  BackgroundColor #EFF6FF
+}
+skinparam folder {
+  BorderColor #16A34A
+  BackgroundColor #F0FDF4
+}
+skinparam note {
+  BorderColor #F59E0B
+  BackgroundColor #FFFBEB
+}
+
+title SIMDP — Strategi Backup & Recovery Data
+
+actor "Operator / Admin Teknis" as Operator
+
+rectangle "Aplikasi SIMDP" as App {
+  rectangle "Next.js App\n(login, dokumen, dashboard)" as NextApp
+}
+
+database "Database PostgreSQL\n(katalog data)\n- User\n- Pegawai\n- Metadata dokumen\n- Audit log\n- Settings" as MainDB
+
+folder "Document Storage\n(map/arsip file)\n- PDF\n- Foto profil\n- File dokumen" as MainStorage
+
+rectangle "Backup Job Otomatis\n(cron / script / Supabase backup)" as BackupJob
+
+folder "Backup Database\npg_dump .sql.gz\n+ checksum\n+ encryption" as DbBackup
+folder "Backup Storage\ntar.gz / bucket sync\n+ checksum\n+ encryption" as StorageBackup
+folder "Offsite Backup\nlokasi terpisah\nS3/R2/Drive/server backup" as Offsite
+
+rectangle "Restore Environment Sementara\n(local / staging / VPS sementara)" as RestoreEnv {
+  database "Restore DB" as RestoreDB
+  folder "Restore Storage" as RestoreStorage
+  rectangle "App diarahkan ke\nDB + Storage restore" as RestoreApp
+}
+
+rectangle "Validasi Restore" as Validation {
+  rectangle "1. DB tables ada" as V1
+  rectangle "2. Data pegawai cocok" as V2
+  rectangle "3. File dokumen bisa dibuka" as V3
+  rectangle "4. Login/admin test" as V4
+  rectangle "5. Audit log terbaca" as V5
+}
+
+rectangle "Keputusan" as Decision {
+  rectangle "PASS\nRecovery siap" as Pass
+  rectangle "PASS WITH NOTES\nAda catatan" as Notes
+  rectangle "FAIL\nPerbaiki backup/restore" as Fail
+}
+
+Operator --> BackupJob : setup jadwal backup
+NextApp --> MainDB : baca/tulis data
+NextApp --> MainStorage : upload/download file
+
+MainDB --> BackupJob : dump database
+MainStorage --> BackupJob : archive/sync storage
+BackupJob --> DbBackup
+BackupJob --> StorageBackup
+DbBackup --> Offsite : copy terenkripsi
+StorageBackup --> Offsite : copy terenkripsi
+
+Operator --> RestoreEnv : saat drill / bencana
+DbBackup --> RestoreDB : restore pg_dump
+StorageBackup --> RestoreStorage : extract/sync file
+RestoreDB --> RestoreApp
+RestoreStorage --> RestoreApp
+
+RestoreApp --> Validation
+Validation --> Pass
+Validation --> Notes
+Validation --> Fail
+
+note right of MainDB
+Database = katalog arsip.
+Kalau hilang, sistem tidak tahu
+file milik siapa/statusnya apa.
+end note
+
+note right of MainStorage
+Storage = isi map arsip.
+Kalau hilang, metadata masih ada
+tapi file tidak bisa dibuka.
+end note
+
+note bottom of BackupJob
+Backup harus otomatis.
+Bukan tombol admin manual.
+Production wajib encryption + offsite.
+end note
+
+note bottom of RestoreEnv
+Restore jangan langsung ke production.
+Uji dulu di environment sementara,
+baru cutover kalau valid.
+end note
+
+note bottom of Decision
+Yang mes lakukan sekarang:
+- DB local restore: PASS
+- Storage local restore: PASS
+- Status total: PASS WITH NOTES
+- App-level restore smoke: PASS
+  seed + build + login/pages 200
+- Document download smoke: PASS
+  5 PDFs streamed with checksum
+- Encryption check: PASS
+- Offsite backup: BLOCKED
+  target/credential not configured
+end note
+
+@enduml

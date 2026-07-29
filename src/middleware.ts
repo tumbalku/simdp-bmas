@@ -9,16 +9,17 @@ const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Bypass static files and standard public auth route handlers
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.includes("favicon.ico") ||
+  const isInfrastructureAsset = pathname.startsWith("/_next") || pathname.includes("favicon.ico");
+  const isAuthManagedEndpoint =
+    // Public auth endpoints validate/rate-limit their own request contract in the route handler.
     pathname.startsWith("/api/v1/auth/login") ||
     pathname.startsWith("/api/v1/auth/forgot-password") ||
     pathname.startsWith("/api/v1/auth/reset-password") ||
+    // Session endpoints must stay reachable when the access token is expired or being cleared.
     pathname.startsWith("/api/v1/auth/refresh") ||
-    pathname.startsWith("/api/v1/auth/logout")
-  ) {
+    pathname.startsWith("/api/v1/auth/logout");
+
+  if (isInfrastructureAsset || isAuthManagedEndpoint) {
     return NextResponse.next();
   }
 

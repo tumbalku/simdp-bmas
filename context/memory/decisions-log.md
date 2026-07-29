@@ -2,12 +2,52 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-07-29] Docusaurus sebagai Portal Dokumentasi Resmi
+- Konteks: SIMDP membutuhkan dokumentasi yang mudah dibaca developer, operator, auditor keamanan, dan user internal tanpa menghilangkan detail historis yang sudah ada di folder `context/`.
+- Keputusan: dokumentasi resmi yang dapat dipublish dibuat dengan Docusaurus di folder `documentation/` dalam repo yang sama. Folder `context/` tetap menjadi memori detail/source historis, sedangkan Docusaurus menjadi portal baca utama dengan struktur Architecture, Developer Guide, Operator Guide, Security, API, User Manual, dan Reference.
+- Alasan: satu repo membuat perubahan kode dan docs bisa direview dalam PR yang sama, tidak perlu sinkron antar repo, dan cocok untuk fase project yang masih aktif berkembang.
+- Batasan: jika di masa depan docs perlu lifecycle atau akses publik yang berbeda dari source code, dokumentasi bisa dipindahkan ke repo terpisah.
+- Referensi: diskusi dokumentasi project 2026-07-29.
+
+## [2026-07-29] Verifikasi PDF Direktori Pegawai
+- Konteks: export PDF laporan kepegawaian dari halaman daftar pegawai berisi banyak pegawai sesuai query pencarian, sehingga tidak tepat jika QR verifikasi dikaitkan ke satu `Employee` seperti PDF profil pegawai.
+- Keputusan: `DocumentVerification` mendukung tipe `EMPLOYEE_DIRECTORY` dan `subjectEmployeeId` boleh kosong untuk dokumen agregat/direktori. QR tetap berisi URL publik `/verify-document?code=...`, sedangkan hash PDF dan metadata filter export disimpan di record verifikasi.
+- Alasan: menjaga integritas verifikasi PDF direktori tanpa menumpangkan subject ke pegawai pertama atau pegawai acak, serta tetap memakai alur verifikasi publik yang sudah ada.
+- Batasan: halaman publik menampilkan ringkasan aman untuk laporan direktori dan hash file, bukan seluruh isi data pegawai.
+- Referensi: permintaan export PDF laporan kepegawaian dengan QR verifikasi 2026-07-29.
+
+## [2026-07-29] Prioritas Target Backup Production
+- Konteks: setelah fondasi backup provider-agnostic dibuat, production SIMDP perlu urutan target yang jelas agar operator tidak menganggap semua opsi setara.
+- Keputusan: target utama offsite backup adalah Google Drive service account (`BACKUP_TARGET=gdrive`). Jalur VPS/local (`BACKUP_TARGET=folder|local`) menjadi opsi kedua untuk server lokal/VPS dengan copy offsite. S3/S3-compatible menjadi opsi terakhir/future sampai target bucket, credential, dan adapter/job resmi dipilih.
+- Alasan: Google Drive paling realistis untuk kesiapan awal RSUD karena mudah diaudit operator, terpisah dari runtime aplikasi, dan sudah punya adapter upload awal. VPS/local tetap penting untuk backup cepat di server sendiri, sedangkan S3 memerlukan keputusan infrastruktur tambahan.
+- Referensi: #237.
+
+## [2026-07-29] Sumber Storage Helper Backup VPS Dipilih dari STORAGE_PROVIDER
+- Konteks: helper backup lokal/VPS perlu bisa berjalan di dua deployment yang paling umum: storage lokal pada VPS sendiri dan storage Supabase pada deployment hybrid/Vercel.
+- Keputusan: `scripts/backup-local-vps.sh` boleh membaca sumber storage aktif dari `STORAGE_PROVIDER`. Nilai `local` mengambil folder `SIMDP_STORAGE_DIR` atau default `uploads/`, sedangkan `supabase` menyalin object dari bucket Supabase ke snapshot sementara sebelum diarsipkan.
+- Batasan: keputusan ini hanya untuk helper backup lokal/VPS. Boundary storage aplikasi tetap memakai `STORAGE_PROVIDER` di `src/lib/storage/`, dan target backup offsite tetap memakai `BACKUP_TARGET`.
+- Referensi: #237.
+
 ## [2026-07-23] Middleware Auth Coverage untuk Route Dashboard
 - Konteks: route group `(dashboard)` menghasilkan URL seperti `/documents`, `/master-data/*`, `/profile`, `/settings`, dan `/verification/*`, sementara middleware sebelumnya hanya menganggap `/dashboard` dan `/admin` sebagai protected route.
 - Keputusan: middleware memakai daftar eksplisit `PROTECTED_ROUTE_PREFIXES` yang mencerminkan seluruh top-level folder di `src/app/(dashboard)`. Route baru di group dashboard wajib tercakup oleh prefix ini; architecture guard akan gagal jika ada prefix yang luput.
 - Batasan: middleware hanya defense-in-depth untuk autentikasi umum. Guard role/RBAC dan ownership tetap wajib di page/server action/service melalui `requireAuth()` dan business rule server-side.
 - UX: request unauthenticated ke protected route diarahkan ke `/login?next=<target>` agar target tujuan tersimpan.
 - Referensi: #214.
+
+## [2026-07-27] Backup & Disaster Recovery untuk Database dan Storage
+- Konteks: SIMDP menyimpan metadata pegawai, audit log, dan file dokumen legal/asli. Kehilangan database atau storage dapat membuat dokumen tidak dapat diverifikasi atau dibuka kembali.
+- Keputusan: production readiness wajib memiliki Backup & Disaster Recovery plan yang mencakup database PostgreSQL dan document storage sebagai satu paket recovery. Admin export/import dianggap fitur operasional, bukan pengganti backup disaster recovery.
+- Target awal: RPO 24 jam, RTO 4 jam, retention backup harian 14 hari, mingguan 8 minggu, dan bulanan 12 bulan. Target dapat diperketat setelah deployment production final ditetapkan.
+- Batasan: PR awal hanya mendokumentasikan SOP, checklist, dan runbook. Implementasi backup otomatis, monitoring, dan restore drill dibuat sebagai follow-up ops setelah target deployment final jelas.
+- Referensi: #237.
+
+## [2026-07-27] Backup Target Dipisah dari Document Storage Provider
+- Konteks: Deployment SIMDP bisa memakai Vercel + Supabase, VPS + PostgreSQL lokal, atau hybrid. Storage dokumen aplikasi dan lokasi backup/offsite punya concern berbeda, credential berbeda, dan lifecycle restore berbeda.
+- Keputusan: `STORAGE_PROVIDER` tetap khusus untuk kontrak dokumen aplikasi `IStorageProvider`, sedangkan artifact backup memakai `BACKUP_TARGET` lewat kontrak `IBackupTarget`. Env backup tervalidasi fail-fast di `src/lib/env.ts`, dengan guard context seperti larangan filesystem runtime untuk `DEPLOYMENT_CONTEXT=vercel-supabase`.
+- Target awal: `BACKUP_TARGET=local|folder|gdrive|s3`, dengan local/folder dan Google Drive service-account target tersedia di `src/lib/backup/index.ts`. S3 target tervalidasi env-nya tetapi adapter upload belum aktif sampai dependency/SigV4 resmi dipilih.
+- Alasan: menjaga boundary storage dokumen tetap bersih, mencegah backup tersimpan di lokasi yang sama dengan storage utama, dan membuat recovery operator-driven tetap jelas.
+- Referensi: #237.
 
 ## [2026-07-23] Malware Scanning Upload File
 - Konteks: magic-byte check memastikan tipe file, tetapi tidak mendeteksi PDF/dokumen/gambar yang disisipi malware, exploit payload, atau konten berbahaya lain.
@@ -21,6 +61,13 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - Keputusan: limit `AUTH_PUBLIC` menjadi 15 request per 15 menit. Endpoint Google OAuth start/callback tetap rate-limited, tetapi mengarahkan browser ke `/login?oauth_error=rate_limited` agar UI menampilkan pesan yang dapat dipahami. Endpoint API lain tetap menggunakan response JSON.
 - Alasan: satu percobaan OAuth menghasilkan request start dan callback, sementara rate limiting tetap diperlukan untuk mencegah abuse.
 - Referensi: #209.
+
+## [2026-07-27] RateLimitBucket sebagai Strategi Shared Rate Limiting
+- Konteks: deployment multi-instance tidak boleh mengandalkan counter in-memory per proses, dan login gagal tidak boleh menulis `SecurityLog` berulang pada hot path yang sama.
+- Keputusan: rate limiting API dan login memakai tabel PostgreSQL `RateLimitBucket` sebagai shared store awal. Upsert raw SQL menjaga increment per bucket atomik antar instance. `SecurityLog` hanya dicatat untuk rate limit ketika `limitedLoggedAt` berhasil diklaim atau untuk gagal login pertama dalam window bucket.
+- Alasan: tidak menambah dependency baru, cukup untuk production awal/internal RSUD, dan tetap global antar instance selama semua instance memakai database yang sama.
+- Batasan: PostgreSQL tetap menjadi hot path limiter. Jika traffic naik atau deployment scale-out agresif, migrasi store ke Redis/Upstash atau edge/provider limiter tanpa mengubah kontrak `enforceApiRateLimit()`.
+- Referensi: #222, #223.
 
 ## [2026-07-23] Automatic Access-Token Refresh
 - Konteks: access token 15 menit sebelumnya membuat user aktif dipaksa login ulang karena endpoint refresh belum dipanggil otomatis dari dashboard.

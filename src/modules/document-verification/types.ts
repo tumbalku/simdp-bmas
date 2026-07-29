@@ -1,5 +1,6 @@
 export const DOCUMENT_VERIFICATION_TYPE = {
   EMPLOYEE_PROFILE: "EMPLOYEE_PROFILE",
+  EMPLOYEE_DIRECTORY: "EMPLOYEE_DIRECTORY",
 } as const;
 
 export type DocumentVerificationType =

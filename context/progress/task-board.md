@@ -20,6 +20,8 @@
 
 ## In Progress
 
+- [ ] [#222](https://github.com/tumbalku/simdp-bmas/issues/222) Multi-instance rate limiting strategy
+- [ ] [#223](https://github.com/tumbalku/simdp-bmas/issues/223) Remove DB hot-write amplification from login rate limiting
 - [ ] [#214](https://github.com/tumbalku/simdp-bmas/issues/214) Harden middleware auth coverage for dashboard routes
 - [ ] [#212](https://github.com/tumbalku/simdp-bmas/issues/212) Add antivirus/malware scanning for uploaded files
 - [ ] [#209](https://github.com/tumbalku/simdp-bmas/issues/209) Improve Google OAuth rate-limit UX dan naikkan limit auth publik menjadi 15
@@ -41,6 +43,7 @@
 
 ## Done
 
+- [x] [#237](https://github.com/tumbalku/simdp-bmas/issues/237) Add Backup & Disaster Recovery plan for DB and document storage (selesai: 2026-07-27)
 - [x] [#61](https://github.com/tumbalku/simdp-bmas/issues/61) SIMDP-ROADMAP-002: Fase 2 — Verification & Notification (selesai: 2026-07-14)
 - [x] [#50](https://github.com/tumbalku/simdp-bmas/issues/50) SIMDP-UI-006: Fase 2 implement dashboard feature UI pages (selesai: 2026-07-10)
 - [x] [#49](https://github.com/tumbalku/simdp-bmas/issues/49) SIMDP-UI-005: Fase 1 implement Auth UI and dashboard shell (selesai: 2026-07-10)

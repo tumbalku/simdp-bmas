@@ -6,6 +6,7 @@ node_modules/
 
 # Next.js
 .next/
+documentation/.docusaurus/
 out/
 build/
 dist/
@@ -16,6 +17,7 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.*.example
 *.pem
 *.key
 *.crt
@@ -48,6 +50,8 @@ prisma/dev.db-journal
 LocalStorage/
 uploads/
 storage/
+!src/lib/storage/
+!src/lib/storage/path.ts
 private-storage/
 
 # Logs

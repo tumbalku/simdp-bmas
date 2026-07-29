@@ -43,7 +43,7 @@ function toggleStatus(current: DocumentStatus[], status: DocumentStatus, checked
 export function EmployeeProfilePdfDownloadDialog({
   employeeId,
   employeeName,
-  triggerLabel = "Download",
+  triggerLabel = "Unduh",
 }: EmployeeProfilePdfDownloadDialogProps) {
   const [open, setOpen] = useState(false);
   const [includeProfile, setIncludeProfile] = useState(true);
@@ -92,7 +92,7 @@ export function EmployeeProfilePdfDownloadDialog({
           <div className="mb-1 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
             <FileText className="size-5" />
           </div>
-          <DialogTitle>Download Detail Pegawai</DialogTitle>
+          <DialogTitle>Unduh Detail Pegawai</DialogTitle>
           <DialogDescription>
             Pilih konten PDF untuk {employeeName}. File dokumen asli tidak ikut disertakan, hanya metadata.
           </DialogDescription>
@@ -109,7 +109,7 @@ export function EmployeeProfilePdfDownloadDialog({
               <span className="space-y-0.5">
                 <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                   <FileCheck2 className="size-3.5 text-primary" />
-                  Print profil saja / detail user
+                  Cetak profil saja / detail pengguna
                 </span>
                 <span className="block text-xs text-muted-foreground">
                   Identitas, kontak, status kepegawaian, jabatan, unit kerja, dan metadata profil.
@@ -128,7 +128,7 @@ export function EmployeeProfilePdfDownloadDialog({
               <span className="space-y-0.5">
                 <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                   <Layers3 className="size-3.5 text-primary" />
-                  Print document seluruh
+                  Cetak semua dokumen
                 </span>
                 <span className="block text-xs text-muted-foreground">
                   Sertakan seluruh metadata dokumen, tanpa memfilter status.
@@ -139,7 +139,7 @@ export function EmployeeProfilePdfDownloadDialog({
 
           <div className="rounded-xl border bg-card p-3">
             <div className="mb-2">
-              <p className="text-sm font-semibold text-foreground">Print document berdasarkan status</p>
+              <p className="text-sm font-semibold text-foreground">Cetak dokumen berdasarkan status</p>
               <p className="text-xs text-muted-foreground">
                 Bisa dipilih beberapa kombinasi. Opsi ini diabaikan jika “seluruh” aktif.
               </p>
@@ -159,7 +159,7 @@ export function EmployeeProfilePdfDownloadDialog({
                     aria-label={`Cetak dokumen ${option.label}`}
                   />
                   <span>
-                    <span className="block text-xs font-semibold text-foreground">Print document {option.label.toLowerCase()}</span>
+                    <span className="block text-xs font-semibold text-foreground">Cetak dokumen {option.label.toLowerCase()}</span>
                     <span className="block text-[10px] leading-4 text-muted-foreground">
                       {DOCUMENT_STATUS_DESCRIPTIONS[option.value]}
                     </span>
@@ -180,7 +180,7 @@ export function EmployeeProfilePdfDownloadDialog({
           </Button>
           <Button type="button" onClick={handleDownload} disabled={!canDownload}>
             <Download className="size-3.5" />
-            Download PDF
+            Unduh PDF
           </Button>
         </DialogFooter>
       </DialogContent>
