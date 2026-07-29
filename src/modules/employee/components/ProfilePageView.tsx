@@ -8,6 +8,7 @@ import { DATE_FORMATS, DATE_LOCALE, ROLE_LABELS } from "@/constants";
 import { EmployeeProfilePdfDownloadDialog } from "@/modules/employee/components/EmployeeProfilePdfDownloadDialog";
 import { ProfileAvatarUpload } from "@/modules/employee/components/ProfileAvatarUpload";
 import { ProfileEditDialog } from "@/modules/employee/components/ProfileEditDialog";
+import { getEmployeeStatusLabel, getGenderLabel, getMaritalStatusLabel, getReligionLabel } from "../constants";
 
 type NamedRecord = {
   name: string;
@@ -101,6 +102,7 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
   const tmt = formatTmt(profile);
   const roleLabel = getRoleLabel(account.role);
   const initials = getInitials(profile.name);
+  const statusLabel = getEmployeeStatusLabel(profile.status) || "Aktif";
 
   return (
     <div className="space-y-6">
@@ -137,7 +139,7 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
             <h2 className="text-lg font-bold text-foreground">{profile.name}</h2>
             <div className="flex flex-wrap items-center justify-center gap-1.5">
               <Badge variant="outline" className="bg-muted/50 px-1.5 py-0 text-[10px] font-semibold text-foreground">
-                {profile.status || "Aktif"}
+                {statusLabel}
               </Badge>
               <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-medium">
                 {display(profile.employmentStatus?.name)}
@@ -161,10 +163,10 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
         fields={[
           { key: "employeeId", icon: User, label: "NIP / NIPTT", value: display(profile.employeeId) },
           { key: "nik", icon: User, label: "NIK", value: display(profile.nik) },
-          { key: "email", icon: Mail, label: "Email Login", value: account.email },
+          { key: "email", icon: Mail, label: "Email Akun", value: account.email },
           { key: "phone", icon: Phone, label: "Telepon", value: display(profile.phone) },
           { key: "address", icon: MapPin, label: "Alamat Tinggal", value: display(profile.address) },
-          { key: "gender", icon: User, label: "Jenis Kelamin", value: display(profile.gender) },
+          { key: "gender", icon: User, label: "Jenis Kelamin", value: display(getGenderLabel(profile.gender)) },
           {
             key: "birth",
             icon: Calendar,
@@ -179,9 +181,9 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
               ? `${profile.lastEducation} ${profile.academicDegree ? `(${profile.academicDegree})` : ""}`
               : "-",
           },
-          { key: "religion", icon: Heart, label: "Agama", value: display(profile.religion) },
-          { key: "maritalStatus", icon: ShieldCheck, label: "Status Pernikahan", value: display(profile.maritalStatus) },
-          { key: "joinDate", icon: Briefcase, label: "Mulai Bekerja (Join Date)", value: formatDate(profile.joinDate) },
+          { key: "religion", icon: Heart, label: "Agama", value: display(getReligionLabel(profile.religion)) },
+          { key: "maritalStatus", icon: ShieldCheck, label: "Status Pernikahan", value: display(getMaritalStatusLabel(profile.maritalStatus)) },
+          { key: "joinDate", icon: Briefcase, label: "Tanggal Mulai Bekerja", value: formatDate(profile.joinDate) },
           {
             key: "groupRank",
             icon: Briefcase,
