@@ -71,6 +71,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Memperbaiki deploy preview aplikasi Next.js agar root TypeScript build tidak ikut mengompilasi konfigurasi Docusaurus di `documentation/`, karena portal docs memakai dependency dan tsconfig terpisah.
 - Issue #237: Memperkuat helper backup/restore lokal/VPS dengan pemilihan `latest` berdasarkan `timestamp_utc` manifest, `psql -v ON_ERROR_STOP=1` saat restore database, line ending LF untuk skrip shell, dan pengiriman URL database backup/restore melalui environment command agar tidak muncul sebagai argumen proses.
 - Memperbaiki setup test rate limiter agar integration tests yang melewati distributed rate-limit store memakai default mock bucket aman dan tidak gagal 500 karena `$queryRaw` kosong.
 - Menutup sisa kebocoran `error.message` mentah pada route export PDF profil pegawai dan export CSV pegawai, menambahkan guard `INNGEST_SIGNING_KEY` untuk runtime production, merapikan fallback scanner malware, memperjelas bypass middleware auth, mengekstrak helper normalisasi path storage, dan menampilkan ringkasan reminder cron gagal di audit log.
