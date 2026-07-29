@@ -1,10 +1,26 @@
 import os from "os";
 import path from "path";
+import { pathToFileURL } from "url";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "fs/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const helperModulePath = "../../../../scripts/backup-storage-source.mjs";
+const helperModuleUrl = pathToFileURL(
+  path.resolve(process.cwd(), "scripts/backup-storage-source.mjs"),
+).href;
 const originalEnv = { ...process.env };
+
+async function importStorageHelper() {
+  try {
+    return await import(helperModuleUrl);
+  } catch (error) {
+    throw new Error(
+      `Gagal import backup-storage-source.mjs dari ${helperModuleUrl}: ${
+        error instanceof Error ? error.stack : String(error)
+      }`,
+      { cause: error },
+    );
+  }
+}
 
 describe("backup storage source helper", () => {
   afterEach(() => {
@@ -22,7 +38,7 @@ describe("backup storage source helper", () => {
     process.env.STORAGE_PROVIDER = "local";
     process.env.SIMDP_STORAGE_DIR = sourceDir;
 
-    const { snapshotLocalStorageSource } = await import(helperModulePath);
+    const { snapshotLocalStorageSource } = await importStorageHelper();
     await snapshotLocalStorageSource({ outDir });
 
     const copied = await readFile(path.join(outDir, "storage", "docs", "file.pdf"), "utf8");
@@ -59,7 +75,7 @@ describe("backup storage source helper", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const { snapshotSupabaseStorageSource } = await import(helperModulePath);
+    const { snapshotSupabaseStorageSource } = await importStorageHelper();
     await snapshotSupabaseStorageSource({
       outDir,
       baseUrl: "https://project.supabase.co/",
@@ -105,7 +121,7 @@ describe("backup storage source helper", () => {
       });
     vi.stubGlobal("fetch", fetchMock);
 
-    const { snapshotSupabaseStorageSource } = await import(helperModulePath);
+    const { snapshotSupabaseStorageSource } = await importStorageHelper();
     await snapshotSupabaseStorageSource({
       outDir,
       baseUrl: "https://project.supabase.co/",
