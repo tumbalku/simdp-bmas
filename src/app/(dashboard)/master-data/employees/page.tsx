@@ -1,7 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { PAGINATION } from "@/constants";
-import { getEmployeeDirectoryWithPaginationAction } from "@/modules/employee";
-import { getEmployeeDirectorOptions, getMasterDataList } from "@/modules/employee/server";
+import { getEmployeeDirectoryWithPagination, getEmployeeDirectorOptions, getMasterDataList } from "@/modules/employee/server";
 import { MasterDataEmployeesView } from "@/modules/employee/components/MasterDataEmployeesView";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +47,7 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
   const limit = parsePositiveInt(params.limit, PAGINATION.defaultPageSize);
 
   const [
-    result,
+    employeeDirectory,
     employmentStatuses,
     employeeGroups,
     professionGroups,
@@ -57,7 +56,7 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
     workplaces,
     directorOptions,
   ] = await Promise.all([
-      getEmployeeDirectoryWithPaginationAction({
+      getEmployeeDirectoryWithPagination({
         archiveView: params.archiveView === "archived" ? "archived" : "active",
         page,
         limit,
@@ -85,14 +84,10 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
       getEmployeeDirectorOptions(),
     ]);
 
-  if (!result.ok) {
-    throw new Error(result.error.message);
-  }
-
   return (
     <MasterDataEmployeesView
-      employees={result.data.data}
-      pagination={result.data.pagination}
+      employees={employeeDirectory.data}
+      pagination={employeeDirectory.pagination}
       archiveView={params.archiveView === "archived" ? "archived" : "active"}
       filterOptions={{
         employmentStatuses: employmentStatuses.data,

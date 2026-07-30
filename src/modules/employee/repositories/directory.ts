@@ -60,6 +60,7 @@ export async function findEmployeeSignatureOptions(tx?: PrismaClientOrTx) {
       id: true,
       name: true,
       employeeId: true,
+      employeePosition: { select: { name: true } },
       employeeRank: { select: { name: true } },
     },
     orderBy: { name: "asc" },

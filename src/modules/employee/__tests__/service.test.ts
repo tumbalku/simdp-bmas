@@ -215,12 +215,13 @@ describe("Employee Module Service", () => {
       });
     });
 
-    it("should list active employee options for report director selection", async () => {
+    it("should list active employee options for report official selection", async () => {
       mockPrisma.employee.findMany.mockResolvedValue([
         {
-          id: "emp-director",
-          name: "dr. Direktur Baru",
+          id: "emp-official",
+          name: "dr. Pejabat Baru",
           employeeId: "197001012000121001",
+          employeePosition: { name: "Direktur" },
           employeeRank: { name: "Pembina Utama Muda, Gol.IV/c" },
         },
       ]);
@@ -233,15 +234,17 @@ describe("Employee Module Service", () => {
           id: true,
           name: true,
           employeeId: true,
+          employeePosition: { select: { name: true } },
           employeeRank: { select: { name: true } },
         },
         orderBy: { name: "asc" },
       });
       expect(result).toEqual([
         {
-          id: "emp-director",
-          name: "dr. Direktur Baru",
+          id: "emp-official",
+          name: "dr. Pejabat Baru",
           nip: "197001012000121001",
+          position: "Direktur",
           rank: "Pembina Utama Muda, Gol.IV/c",
         },
       ]);
@@ -374,8 +377,9 @@ describe("Employee Module Service", () => {
             verifyUrl: "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
             qrCodeDataUrl: "data:image/png;base64,qr",
           },
-          director: {
-            name: "dr. Direktur Baru",
+          official: {
+            name: "dr. Pejabat Baru",
+            position: "Direktur",
             rank: "Pembina Utama Muda, Gol.IV/c",
             nip: "197001012000121001",
           },
@@ -402,7 +406,8 @@ describe("Employee Module Service", () => {
       expect(html).not.toContain("Status data:");
       expect(html).not.toContain("Total data sesuai pencarian:");
       expect(html).toContain("Dicetak: 29 Juli 2026 pukul");
-      expect(html).toContain("dr. Direktur Baru");
+      expect(html).toContain("Direktur,");
+      expect(html).toContain("dr. Pejabat Baru");
       expect(html).toContain("Pembina Utama Muda, Gol.IV/c");
       expect(html).toContain("NIP. 197001012000121001");
       expect(html).not.toContain("dr. H. Suukirman");

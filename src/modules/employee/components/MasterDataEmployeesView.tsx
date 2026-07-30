@@ -53,9 +53,10 @@ import { EmployeeCsvImportDialog } from "./EmployeeCsvImportDialog";
 type ViewMode = "grid" | "list";
 type CriticalEmployeeAction = "archive" | "restore" | "permanent-delete";
 
-type DirectorForm = {
+type OfficialForm = {
   employeeId: string;
   name: string;
+  position: string;
   rank: string;
   nip: string;
 };
@@ -97,6 +98,7 @@ type MasterDataEmployeesViewProps = {
     id: string;
     name: string;
     nip: string | null;
+    position: string | null;
     rank: string | null;
   }>;
 };
@@ -152,9 +154,10 @@ export function MasterDataEmployeesView({
   const [isCriticalActionDialogOpen, setIsCriticalActionDialogOpen] = useState(false);
   const [isExportPdfDialogOpen, setIsExportPdfDialogOpen] = useState(false);
   const [criticalActionTarget, setCriticalActionTarget] = useState<CriticalEmployeeActionTarget | null>(null);
-  const [directorForm, setDirectorForm] = useState<DirectorForm>({
+  const [officialForm, setOfficialForm] = useState<OfficialForm>({
     employeeId: "",
     name: "",
+    position: "",
     rank: "",
     nip: "",
   });
@@ -218,7 +221,7 @@ export function MasterDataEmployeesView({
     return `/api/v1/employees/export${query ? `?${query}` : ""}`;
   };
 
-  const buildExportPdfUrl = (director: DirectorForm) => {
+  const buildExportPdfUrl = (official: OfficialForm) => {
     const params = new URLSearchParams();
     if (isArchiveView) params.set("archiveView", "archived");
 
@@ -227,9 +230,10 @@ export function MasterDataEmployeesView({
       if (value) params.set(key, value);
     });
 
-    params.set("directorName", director.name.trim());
-    params.set("directorRank", director.rank.trim());
-    params.set("directorNip", director.nip.trim());
+    params.set("officialName", official.name.trim());
+    params.set("officialPosition", official.position.trim());
+    params.set("officialRank", official.rank.trim());
+    params.set("officialNip", official.nip.trim());
 
     const query = params.toString();
     return `/api/v1/employees/export-pdf${query ? `?${query}` : ""}`;
@@ -287,36 +291,38 @@ export function MasterDataEmployeesView({
     router.push(buildPageUrl(PAGINATION.defaultPage, resetFilters));
   };
 
-  const handleDirectorFieldChange = (key: keyof DirectorForm, value: string) => {
-    setDirectorForm((current) => ({ ...current, [key]: value }));
+  const handleOfficialFieldChange = (key: keyof OfficialForm, value: string) => {
+    setOfficialForm((current) => ({ ...current, [key]: value }));
   };
 
-  const handleDirectorSelect = (employeeId: string | null) => {
-    const director = directorOptions.find((option) => option.id === employeeId);
-    setDirectorForm({
-      employeeId: director?.id ?? "",
-      name: director?.name ?? "",
-      rank: director?.rank ?? "",
-      nip: director?.nip ?? "",
+  const handleOfficialSelect = (employeeId: string | null) => {
+    const official = directorOptions.find((option) => option.id === employeeId);
+    setOfficialForm({
+      employeeId: official?.id ?? "",
+      name: official?.name ?? "",
+      position: official?.position ?? "",
+      rank: official?.rank ?? "",
+      nip: official?.nip ?? "",
     });
   };
 
   const handleExportPdf = () => {
-    const normalizedDirector = {
-      employeeId: directorForm.employeeId,
-      name: directorForm.name.trim(),
-      rank: directorForm.rank.trim(),
-      nip: directorForm.nip.trim(),
+    const normalizedOfficial = {
+      employeeId: officialForm.employeeId,
+      name: officialForm.name.trim(),
+      position: officialForm.position.trim(),
+      rank: officialForm.rank.trim(),
+      nip: officialForm.nip.trim(),
     };
 
-    if (!normalizedDirector.name || !normalizedDirector.rank || !normalizedDirector.nip) {
-      toast.error("Nama, pangkat/golongan, dan NIP Direktur wajib diisi sebelum export PDF.");
+    if (!normalizedOfficial.name || !normalizedOfficial.position || !normalizedOfficial.rank || !normalizedOfficial.nip) {
+      toast.error("Nama, jabatan, pangkat/golongan, dan NIP Pejabat wajib diisi sebelum export PDF.");
       return;
     }
 
     setIsExportPdfDialogOpen(false);
     const anchor = document.createElement("a");
-    anchor.href = buildExportPdfUrl(normalizedDirector);
+    anchor.href = buildExportPdfUrl(normalizedOfficial);
     anchor.rel = "noopener";
     document.body.appendChild(anchor);
     anchor.click();
@@ -608,7 +614,7 @@ export function MasterDataEmployeesView({
       <Dialog open={isExportPdfDialogOpen} onOpenChange={setIsExportPdfDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Pilih Direktur Laporan</DialogTitle>
+            <DialogTitle>Pilih Pejabat</DialogTitle>
             <DialogDescription>
               Data ini akan dipakai pada area tanda tangan PDF laporan kepegawaian.
             </DialogDescription>
@@ -616,45 +622,54 @@ export function MasterDataEmployeesView({
 
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label htmlFor="export-pdf-director-employee">Direktur</Label>
-              <Select value={directorForm.employeeId || null} onValueChange={handleDirectorSelect}>
-                <SelectTrigger id="export-pdf-director-employee">
-                  <SelectValue placeholder="Pilih pegawai sebagai Direktur" />
+              <Label htmlFor="export-pdf-official-employee">Pejabat</Label>
+              <Select value={officialForm.employeeId || null} onValueChange={handleOfficialSelect}>
+                <SelectTrigger id="export-pdf-official-employee">
+                  <SelectValue placeholder="Pilih pegawai sebagai pejabat" />
                 </SelectTrigger>
                 <SelectContent>
-                  {directorOptions.map((director) => (
-                    <SelectItem key={director.id} value={director.id}>
-                      {director.name}
+                  {directorOptions.map((official) => (
+                    <SelectItem key={official.id} value={official.id}>
+                      {official.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="export-pdf-director-name">Nama Direktur</Label>
+              <Label htmlFor="export-pdf-official-name">Nama Pejabat</Label>
               <Input
-                id="export-pdf-director-name"
-                value={directorForm.name}
-                onChange={(event) => handleDirectorFieldChange("name", event.target.value)}
-                placeholder="Nama lengkap Direktur"
+                id="export-pdf-official-name"
+                value={officialForm.name}
+                onChange={(event) => handleOfficialFieldChange("name", event.target.value)}
+                placeholder="Nama lengkap pejabat"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="export-pdf-director-rank">Pangkat/Golongan</Label>
+              <Label htmlFor="export-pdf-official-position">Jabatan</Label>
               <Input
-                id="export-pdf-director-rank"
-                value={directorForm.rank}
-                onChange={(event) => handleDirectorFieldChange("rank", event.target.value)}
+                id="export-pdf-official-position"
+                value={officialForm.position}
+                onChange={(event) => handleOfficialFieldChange("position", event.target.value)}
+                placeholder="Contoh: Direktur"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="export-pdf-official-rank">Pangkat/Golongan</Label>
+              <Input
+                id="export-pdf-official-rank"
+                value={officialForm.rank}
+                onChange={(event) => handleOfficialFieldChange("rank", event.target.value)}
                 placeholder="Contoh: Pembina Utama Muda, Gol.IV/c"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="export-pdf-director-nip">NIP Direktur</Label>
+              <Label htmlFor="export-pdf-official-nip">NIP Pejabat</Label>
               <Input
-                id="export-pdf-director-nip"
-                value={directorForm.nip}
-                onChange={(event) => handleDirectorFieldChange("nip", event.target.value)}
-                placeholder="NIP Direktur"
+                id="export-pdf-official-nip"
+                value={officialForm.nip}
+                onChange={(event) => handleOfficialFieldChange("nip", event.target.value)}
+                placeholder="NIP Pejabat"
               />
             </div>
           </div>
