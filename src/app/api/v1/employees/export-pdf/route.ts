@@ -22,10 +22,11 @@ import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const directorSchema = z.object({
-  name: z.string().trim().min(1, "Nama Direktur wajib diisi.").max(120),
-  rank: z.string().trim().min(1, "Pangkat/Golongan Direktur wajib diisi.").max(120),
-  nip: z.string().trim().min(1, "NIP Direktur wajib diisi.").max(40),
+const officialSchema = z.object({
+  name: z.string().trim().min(1, "Nama Pejabat wajib diisi.").max(120),
+  position: z.string().trim().min(1, "Jabatan Pejabat wajib diisi.").max(120),
+  rank: z.string().trim().min(1, "Pangkat/Golongan Pejabat wajib diisi.").max(120),
+  nip: z.string().trim().min(1, "NIP Pejabat wajib diisi.").max(40),
 });
 
 function parseNonNegativeInt(value: string | null) {
@@ -60,11 +61,12 @@ function parseDirectoryFilter(searchParams: URLSearchParams) {
   });
 }
 
-function parseDirector(searchParams: URLSearchParams) {
-  return directorSchema.safeParse({
-    name: searchParams.get("directorName") || "",
-    rank: searchParams.get("directorRank") || "",
-    nip: searchParams.get("directorNip") || "",
+function parseOfficial(searchParams: URLSearchParams) {
+  return officialSchema.safeParse({
+    name: searchParams.get("officialName") || searchParams.get("directorName") || "",
+    position: searchParams.get("officialPosition") || searchParams.get("directorPosition") || "",
+    rank: searchParams.get("officialRank") || searchParams.get("directorRank") || "",
+    nip: searchParams.get("officialNip") || searchParams.get("directorNip") || "",
   });
 }
 
@@ -79,7 +81,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const parsed = parseDirectoryFilter(searchParams);
-    const parsedDirector = parseDirector(searchParams);
+    const parsedOfficial = parseOfficial(searchParams);
 
     if (!parsed.success) {
       return errorResponse(
@@ -90,11 +92,11 @@ export async function GET(request: Request) {
       );
     }
 
-    if (!parsedDirector.success) {
+    if (!parsedOfficial.success) {
       return errorResponse(
         "VALIDATION_ERROR",
-        "Data Direktur untuk export PDF tidak valid.",
-        parsedDirector.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
+        "Data Pejabat untuk export PDF tidak valid.",
+        parsedOfficial.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
         400,
       );
     }
@@ -106,16 +108,17 @@ export async function GET(request: Request) {
         archiveView: data.archiveView,
         rowCount: data.rowCount,
         filters: parsed.data,
-        director: {
-          name: parsedDirector.data.name,
-          nip: parsedDirector.data.nip,
+        official: {
+          name: parsedOfficial.data.name,
+          position: parsedOfficial.data.position,
+          nip: parsedOfficial.data.nip,
         },
       },
     });
 
     const html = renderEmployeeDirectoryPdfHtml(data, {
       verification,
-      director: parsedDirector.data,
+      official: parsedOfficial.data,
     });
     const pdf = await renderHtmlToPdfBuffer(html);
     const fileHash = crypto.createHash("sha256").update(pdf).digest("hex");
@@ -133,7 +136,8 @@ export async function GET(request: Request) {
         rowCount: data.rowCount,
         archiveView: data.archiveView,
         verificationCode: verification.code,
-        directorName: parsedDirector.data.name,
+        officialName: parsedOfficial.data.name,
+        officialPosition: parsedOfficial.data.position,
       },
     });
 

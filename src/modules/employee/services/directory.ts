@@ -51,6 +51,7 @@ export async function getEmployeeDirectorOptions() {
     id: employee.id,
     name: employee.name,
     nip: employee.employeeId,
+    position: employee.employeePosition?.name ?? null,
     rank: employee.employeeRank?.name ?? null,
   }));
 }

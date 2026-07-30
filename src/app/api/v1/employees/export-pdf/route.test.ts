@@ -75,7 +75,7 @@ describe("GET /api/v1/employees/export-pdf", () => {
 
   it("exports an admin PDF with the requested filters, verification hash, audit log, and safe attachment headers", async () => {
     const request = new Request(
-      "http://localhost/api/v1/employees/export-pdf?search=siti&archiveView=active&employmentStatusId=status-1&workplaceId=workplace-1&retirementAgeFrom=50&retirementAgeTo=58&directorName=dr.%20Direktur&directorRank=Pembina%20Utama&directorNip=197001012000121001",
+      "http://localhost/api/v1/employees/export-pdf?search=siti&archiveView=active&employmentStatusId=status-1&workplaceId=workplace-1&retirementAgeFrom=50&retirementAgeTo=58&officialName=dr.%20Pejabat&officialPosition=Direktur&officialRank=Pembina%20Utama&officialNip=197001012000121001",
       { headers: { "x-forwarded-for": "127.0.0.1" } },
     );
 
@@ -119,8 +119,9 @@ describe("GET /api/v1/employees/export-pdf", () => {
           retirementAgeFrom: 50,
           retirementAgeTo: 58,
         },
-        director: {
-          name: "dr. Direktur",
+        official: {
+          name: "dr. Pejabat",
+          position: "Direktur",
           nip: "197001012000121001",
         },
       },
@@ -132,8 +133,9 @@ describe("GET /api/v1/employees/export-pdf", () => {
           id: "verification-1",
           code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
         }),
-        director: {
-          name: "dr. Direktur",
+        official: {
+          name: "dr. Pejabat",
+          position: "Direktur",
           rank: "Pembina Utama",
           nip: "197001012000121001",
         },
@@ -151,12 +153,13 @@ describe("GET /api/v1/employees/export-pdf", () => {
         rowCount: 2,
         archiveView: "active",
         verificationCode: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
-        directorName: "dr. Direktur",
+        officialName: "dr. Pejabat",
+        officialPosition: "Direktur",
       },
     });
   });
 
-  it("rejects admin requests without director data before creating a verification", async () => {
+  it("rejects admin requests without official data before creating a verification", async () => {
     const response = await GET(new Request("http://localhost/api/v1/employees/export-pdf?search=siti"));
     const body = await response.json();
 
@@ -164,7 +167,7 @@ describe("GET /api/v1/employees/export-pdf", () => {
     expect(body.error).toEqual(
       expect.objectContaining({
         code: "VALIDATION_ERROR",
-        message: "Data Direktur untuk export PDF tidak valid.",
+        message: "Data Pejabat untuk export PDF tidak valid.",
       }),
     );
     expect(mocks.issueEmployeeDirectoryVerification).not.toHaveBeenCalled();
