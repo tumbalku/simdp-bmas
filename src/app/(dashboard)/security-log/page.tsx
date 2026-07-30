@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
-
-import { PAGINATION, ROUTES } from "@/constants";
-import { getSecurityLog } from "@/modules/security";
+import { PAGINATION } from "@/constants";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { SecurityLogPageView } from "@/modules/security/components/SecurityLogPageView";
+import { getSecurityLogs } from "@/modules/security/server";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +20,8 @@ type PageProps = {
 
 export default async function SecurityLogPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const result = await getSecurityLog({
+  await requireDashboardRole("ADMIN");
+  const result = await getSecurityLogs({
     page: params.page ? parseInt(params.page, 10) : PAGINATION.defaultPage,
     pageSize: params.pageSize ? parseInt(params.pageSize, 10) : PAGINATION.defaultSecurityLogPageSize,
     search: params.search,
@@ -31,10 +31,6 @@ export default async function SecurityLogPage({ searchParams }: PageProps) {
     dateFrom: params.dateFrom,
     dateTo: params.dateTo,
   });
-
-  if (!result.ok) {
-    redirect(result.error.code === "FORBIDDEN" ? ROUTES.dashboard : ROUTES.login);
-  }
 
   return (
     <SecurityLogPageView

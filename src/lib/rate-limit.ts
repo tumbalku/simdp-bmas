@@ -23,6 +23,7 @@ export const API_RATE_LIMIT_CATEGORY = {
   DOCUMENT_VERIFY: "DOCUMENT_VERIFY",
   INTERNAL: "INTERNAL",
   STATISTICS_READ: "STATISTICS_READ",
+  NOTIFICATION_READ: "NOTIFICATION_READ",
 } as const;
 
 export type ApiRateLimitCategory = (typeof API_RATE_LIMIT_CATEGORY)[keyof typeof API_RATE_LIMIT_CATEGORY];
@@ -48,6 +49,7 @@ export const API_RATE_LIMIT_CONFIG: Record<ApiRateLimitCategory, ApiRateLimitCon
   DOCUMENT_VERIFY: { limit: 60, windowMs: 60 * 1000 },
   INTERNAL: { limit: 30, windowMs: 60 * 1000 },
   STATISTICS_READ: { limit: 120, windowMs: 60 * 1000 },
+  NOTIFICATION_READ: { limit: 120, windowMs: 60 * 1000 },
 };
 
 export function getClientIp(request: Request) {

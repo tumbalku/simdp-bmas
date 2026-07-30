@@ -4,10 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { PAGINATION } from "@/constants"
 import {
-  getNotifications,
   markAllNotificationsReadAction,
   markNotificationReadAction,
 } from "@/modules/notification"
+import { fetchNavbarNotifications } from "../api"
 import { getPusherClient } from "@/lib/notifications/client/pusher-client"
 
 export type NavbarNotification = {
@@ -49,7 +49,7 @@ export function useNavbarNotifications(enabled: boolean, userId?: string) {
     if (options?.showLoading && mountedRef.current) setLoading(true)
 
     try {
-      const res = await getNotifications({
+      const res = await fetchNavbarNotifications({
         page: PAGINATION.defaultPage,
         pageSize: PAGINATION.navbarNotificationLimit,
       })

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { DocumentTypeFormPage } from "@/modules/document/components/DocumentTypeFormPage";
 import { PAGINATION } from "@/constants";
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { AppError } from "@/lib/errors";
 import { getDocumentTypeForAdminEdit } from "@/modules/document/server";
 import { getMasterDataList } from "@/modules/employee/server";
@@ -14,7 +14,7 @@ type PageProps = {
 };
 
 export default async function EditDocumentTypePage({ params }: PageProps) {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
 
   const { id } = await params;
 

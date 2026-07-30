@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { getMasterDataList } from "@/modules/employee/server";
 import {
   MasterDataCategoriesView,
@@ -42,7 +42,7 @@ function toRelatedMasterData(
 }
 
 export default async function MasterDataCategoriesPage() {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
 
   const [
     employmentStatuses,

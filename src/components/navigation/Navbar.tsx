@@ -15,7 +15,6 @@ import {
 
 import { cn } from "@/utils"
 import { Button } from "@/components/ui/button"
-import { getSessionProfileAction } from "@/modules/auth"
 import type { UserRole } from "@/constants/roles"
 import { getNavItemsByRole, type NavItem } from "@/config/nav"
 import { APP, ROUTES } from "@/constants"
@@ -24,37 +23,6 @@ import {
   UserProfileMenu,
   type NavbarProfile,
 } from "@/components/navigation/navbar/UserProfileMenu"
-
-/* -------------------------------------------------------------------------- */
-/*  Data hook                                                                   */
-/* -------------------------------------------------------------------------- */
-
-function useProfile() {
-  const [profile, setProfile] = useState<NavbarProfile | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadProfile() {
-      try {
-        const res = await getSessionProfileAction()
-        if (!cancelled && res.ok && res.data) {
-          setProfile(res.data)
-        }
-      } catch (err) {
-        console.error("Failed to load profile in Navbar:", err)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    loadProfile()
-    return () => { cancelled = true }
-  }, [])
-
-  return { profile, loading }
-}
 
 /* -------------------------------------------------------------------------- */
 /*  Logo                                                                        */
@@ -258,9 +226,12 @@ function MobileMenuToggle({ open, onToggle }: { open: boolean; onToggle: () => v
 /*  Navbar                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export default function Navbar() {
+type NavbarProps = {
+  profile?: NavbarProfile | null
+}
+
+export default function Navbar({ profile = null }: NavbarProps) {
   const pathname = usePathname()
-  const { profile, loading } = useProfile()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
@@ -275,7 +246,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <NotificationPanel enabled={Boolean(profile)} userId={profile?.userId} />
-          <UserProfileMenu profile={profile} loading={loading} />
+          <UserProfileMenu profile={profile} loading={false} />
           <MobileMenuToggle open={mobileMenuOpen} onToggle={() => setMobileMenuOpen((v) => !v)} />
         </div>
       </div>
