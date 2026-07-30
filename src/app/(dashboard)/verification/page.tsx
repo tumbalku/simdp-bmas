@@ -2,9 +2,9 @@ import { AlertCircle } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PAGINATION } from "@/constants";
-import { requireAuth } from "@/lib/auth";
-import { getDocumentTypeOptionsAction } from "@/modules/document";
-import { getVerificationQueue } from "@/modules/verification";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
+import { getAvailableDocumentTypes } from "@/modules/document/server";
+import { getVerificationQueue } from "@/modules/verification/server";
 import { VerificationQueueView } from "@/modules/verification/components/VerificationQueueView";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ type PageProps = {
 };
 
 export default async function VerificationPage({ searchParams }: PageProps) {
-  await requireAuth("STAFF");
+  const session = await requireDashboardRole("STAFF");
 
   const params = await searchParams;
   const page = params?.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;
@@ -28,7 +28,7 @@ export default async function VerificationPage({ searchParams }: PageProps) {
     ? parseInt(params.limit, 10)
     : PAGINATION.defaultPageSize;
 
-  const [queueResult, docTypesResult] = await Promise.all([
+  const [queueResult, documentTypes] = await Promise.all([
     getVerificationQueue({
       page,
       pageSize,
@@ -36,30 +36,16 @@ export default async function VerificationPage({ searchParams }: PageProps) {
       documentTypeId: params?.documentTypeId,
       archiveCategory: params?.archiveCategory,
     }),
-    getDocumentTypeOptionsAction(),
+    getAvailableDocumentTypes(session),
   ]);
 
-  if (!queueResult.ok) {
+  if (!queueResult) {
     return (
       <Alert variant="destructive" className="my-6">
         <AlertCircle className="size-4" />
         <AlertTitle>Gagal Memuat Antrian</AlertTitle>
         <AlertDescription>
-          {queueResult.error?.message ||
-            "Terjadi kesalahan saat memuat data verifikasi."}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (!docTypesResult.ok) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertCircle className="size-4" />
-        <AlertTitle>Gagal Memuat Data</AlertTitle>
-        <AlertDescription>
-          {docTypesResult.error?.message ||
-            "Terjadi kesalahan saat memuat jenis dokumen."}
+          Terjadi kesalahan saat memuat data verifikasi.
         </AlertDescription>
       </Alert>
     );
@@ -69,7 +55,7 @@ export default async function VerificationPage({ searchParams }: PageProps) {
     <VerificationQueueView
       initialData={queueResult.data}
       initialPagination={queueResult.meta.pagination}
-      documentTypes={docTypesResult.data}
+      documentTypes={documentTypes}
     />
   );
 }

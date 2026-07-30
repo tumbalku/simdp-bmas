@@ -1,21 +1,25 @@
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants";
-import { getSessionProfileAction } from "@/modules/auth";
-import { getCurrentProfile } from "@/modules/employee";
+import { getSession } from "@/lib/auth";
+import { getSessionProfile } from "@/modules/auth/server";
+import { getCurrentProfile } from "@/modules/employee/server";
 import { ProfilePageView } from "@/modules/employee/components/ProfilePageView";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
+  const session = await getSession();
+  if (!session) redirect(ROUTES.login);
+
   const [profileResult, accountResult] = await Promise.all([
-    getCurrentProfile(),
-    getSessionProfileAction(),
+    getCurrentProfile(session.userId),
+    getSessionProfile(session.userId),
   ]);
 
-  if (!profileResult.ok || !accountResult.ok) {
+  if (!profileResult || !accountResult) {
     redirect(ROUTES.login);
   }
 
-  return <ProfilePageView profile={profileResult.data} account={accountResult.data} />;
+  return <ProfilePageView profile={profileResult} account={accountResult} />;
 }

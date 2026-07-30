@@ -9,7 +9,10 @@ export type ArchitectureViolation = {
 
 export type ArchitectureViolations = {
   repositoryBoundary: ArchitectureViolation[];
+  actionRepositoryBoundary: ArchitectureViolation[];
   clientFetch: ArchitectureViolation[];
+  clientReadActionImports: ArchitectureViolation[];
+  serverPageReadActionImports: ArchitectureViolation[];
   legacyConstants: ArchitectureViolation[];
 };
 
@@ -28,6 +31,12 @@ const LABEL_LAYER_PATTERNS = [
   /\/dictionaries\//,
   /\/i18n\//,
 ];
+const READ_ACTION_PREFIX_PATTERN = /^(?:get|fetch|find|list|count|load|read)[A-Z0-9_]/;
+const LEGACY_ACTION_REPOSITORY_EXCEPTIONS = new Set([
+  // TODO: Auth/settings actions predate the service boundary cleanup. Keep this explicit until they are refactored.
+  "src/modules/auth/actions/auth.actions.ts",
+  "src/modules/settings/actions/settings.actions.ts",
+]);
 
 export function collectArchitectureViolations(options: CollectOptions): ArchitectureViolations {
   const srcDir = path.join(options.rootDir, "src");
@@ -37,11 +46,21 @@ export function collectArchitectureViolations(options: CollectOptions): Architec
     (violations, filePath) => {
       const content = readFileSync(filePath, "utf8");
       violations.repositoryBoundary.push(...findRepositoryBoundaryViolations(options.rootDir, filePath, content));
+      violations.actionRepositoryBoundary.push(...findActionRepositoryBoundaryViolations(options.rootDir, filePath, content));
       violations.clientFetch.push(...findClientFetchViolations(options.rootDir, filePath, content));
+      violations.clientReadActionImports.push(...findClientReadActionImportViolations(options.rootDir, filePath, content));
+      violations.serverPageReadActionImports.push(...findServerPageReadActionImportViolations(options.rootDir, filePath, content));
       violations.legacyConstants.push(...findLegacyConstantViolations(options.rootDir, filePath, content));
       return violations;
     },
-    { repositoryBoundary: [], clientFetch: [], legacyConstants: [] }
+    {
+      repositoryBoundary: [],
+      actionRepositoryBoundary: [],
+      clientFetch: [],
+      clientReadActionImports: [],
+      serverPageReadActionImports: [],
+      legacyConstants: [],
+    }
   );
 }
 
@@ -96,6 +115,69 @@ function findClientFetchViolations(
   }));
 }
 
+function findActionRepositoryBoundaryViolations(
+  rootDir: string,
+  filePath: string,
+  content: string
+): ArchitectureViolation[] {
+  const relativePath = toRelativePath(rootDir, filePath);
+  if (!normalizePath(relativePath).includes("/actions/")) return [];
+  if (LEGACY_ACTION_REPOSITORY_EXCEPTIONS.has(relativePath)) return [];
+
+  const importPattern = /from\s+["']([^"']*(?:repository|repositories\/[^"']+)[^"']*)["']/g;
+
+  return findMatches(content, importPattern).map((match) => ({
+    file: relativePath,
+    line: match.line,
+    message: "Server Action tidak boleh import repository langsung; panggil service/server boundary.",
+  }));
+}
+
+function findClientReadActionImportViolations(
+  rootDir: string,
+  filePath: string,
+  content: string
+): ArchitectureViolation[] {
+  if (!hasUseClientDirective(content)) return [];
+
+  return findReadActionImportViolations(rootDir, filePath, content, {
+    message: "Client component tidak boleh import read Server Action; gunakan hooks/api GET route.",
+  });
+}
+
+function findServerPageReadActionImportViolations(
+  rootDir: string,
+  filePath: string,
+  content: string
+): ArchitectureViolation[] {
+  const relativePath = toRelativePath(rootDir, filePath);
+  if (!normalizePath(relativePath).startsWith("src/app/")) return [];
+  if (!relativePath.endsWith("/page.tsx")) return [];
+
+  return findReadActionImportViolations(rootDir, filePath, content, {
+    message: "Server Component page tidak boleh import read Server Action untuk initial render; gunakan module/server.",
+  });
+}
+
+function findReadActionImportViolations(
+  rootDir: string,
+  filePath: string,
+  content: string,
+  options: { message: string }
+): ArchitectureViolation[] {
+  return getNamedImports(content)
+    .filter((importDeclaration) => isModuleActionSource(importDeclaration.source))
+    .flatMap((importDeclaration) =>
+      importDeclaration.names
+        .filter(isReadActionName)
+        .map((name) => ({
+          file: toRelativePath(rootDir, filePath),
+          line: importDeclaration.line,
+          message: `${options.message} Import read action '${name}'.`,
+        }))
+    );
+}
+
 function findLegacyConstantViolations(
   rootDir: string,
   filePath: string,
@@ -116,6 +198,28 @@ function findLegacyConstantViolations(
 function hasUseClientDirective(content: string): boolean {
   const firstStatements = content.split("\n").slice(0, 8).join("\n");
   return /^[\s;]*(?:"use client"|'use client')/m.test(firstStatements);
+}
+
+function getNamedImports(content: string): Array<{ line: number; source: string; names: string[] }> {
+  const importPattern = /import\s+(?:type\s+)?{([\s\S]*?)}\s+from\s+["']([^"']+)["']/g;
+
+  return Array.from(content.matchAll(importPattern)).map((match) => ({
+    line: getLineNumber(content, match.index ?? 0),
+    source: match[2],
+    names: match[1]
+      .split(",")
+      .map((specifier) => specifier.trim())
+      .filter(Boolean)
+      .map((specifier) => specifier.replace(/^type\s+/, "").split(/\s+as\s+/i)[0].trim()),
+  }));
+}
+
+function isModuleActionSource(source: string): boolean {
+  return /^@\/modules\/[^/]+$/.test(source) || /^@\/modules\/[^/]+\/actions(?:\/|$)/.test(source);
+}
+
+function isReadActionName(name: string): boolean {
+  return READ_ACTION_PREFIX_PATTERN.test(name);
 }
 
 function isLabelLayer(relativePath: string): boolean {

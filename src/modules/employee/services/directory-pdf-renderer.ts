@@ -7,8 +7,9 @@ import type { EmployeeDirectoryPdfData, EmployeeDirectoryPdfRow } from "./direct
 
 type RenderEmployeeDirectoryPdfHtmlOptions = {
   verification: IssuedDocumentVerification;
-  director: {
+  official: {
     name: string;
+    position: string;
     rank: string;
     nip: string;
   };
@@ -385,10 +386,10 @@ export function renderEmployeeDirectoryPdfHtml(
       <div class="signature">
         <div>Mengetahui,</div>
         <div>Kendari&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${escapeHtml(currentMonth)}</div>
-        <div>Direktur,</div>
-        <div class="name">${escapeHtml(options.director.name)}</div>
-        <div>${escapeHtml(options.director.rank)}</div>
-        <div>NIP. ${escapeHtml(options.director.nip)}</div>
+        <div>${escapeHtml(options.official.position)},</div>
+        <div class="name">${escapeHtml(options.official.name)}</div>
+        <div>${escapeHtml(options.official.rank)}</div>
+        <div>NIP. ${escapeHtml(options.official.nip)}</div>
       </div>
     </section>
 

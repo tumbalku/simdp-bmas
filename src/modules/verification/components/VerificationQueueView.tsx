@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Search,
   CheckCircle2,
-  AlertCircle,
   FileText,
 } from "lucide-react";
 
@@ -25,7 +24,6 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Pagination,
   PaginationContent,
@@ -37,11 +35,9 @@ import { Separator } from "@/components/ui/separator";
 import { PAGINATION, ROUTES } from "@/constants";
 
 import { ARCHIVE_CATEGORY_OPTIONS } from "@/modules/document";
-import { getVerificationQueue as getQueueAction } from "@/modules/verification";
 import {
   formatEmployeeIdentifier,
   formatVerificationQueueDate,
-  getVerificationQueueErrorMessage,
 } from "./VerificationQueueFormatters";
 
 /* -------------------------------------------------------------------------- */
@@ -106,7 +102,7 @@ export function VerificationQueueView({
 }: VerificationQueueViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   /* data */
   const [items, setItems] = useState<QueueItem[]>(initialData);
@@ -131,51 +127,18 @@ export function VerificationQueueView({
   );
 
   /* error */
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  /* ------------------------------------------------------------------------ */
-  /*  Fetch data                                                              */
-  /* ------------------------------------------------------------------------ */
-
-  const fetchQueue = useCallback(
-    async (
-      overrides?: {
-        page?: number;
-        search?: string;
-        documentTypeId?: string;
-        archiveCategory?: string;
-        pageSize?: number;
-      }
-    ) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await getQueueAction({
-          page: overrides?.page ?? page,
-          search: (overrides?.search ?? search) || undefined,
-          documentTypeId:
-            (overrides?.documentTypeId ?? documentTypeId) || undefined,
-          archiveCategory:
-            (overrides?.archiveCategory ?? archiveCategory) || undefined,
-          pageSize: overrides?.pageSize ?? Number(rowsPerPage),
-        });
-        if (!result.ok) {
-          setError(
-            result.error?.message || "Gagal memuat antrian verifikasi."
-          );
-          return;
-        }
-        setItems(result.data);
-        setPagination(result.meta.pagination);
-      } catch (error: unknown) {
-        setError(getVerificationQueueErrorMessage(error, "Terjadi kesalahan saat memuat data."));
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [page, search, documentTypeId, archiveCategory, rowsPerPage]
-  );
+  useEffect(() => {
+    setItems(initialData);
+    setPagination(initialPagination);
+    setPage(initialPagination.page);
+    setSearch(searchParams.get("search") ?? "");
+    setDocumentTypeId(searchParams.get("documentTypeId") ?? "");
+    setArchiveCategory(searchParams.get("archiveCategory") ?? "");
+    setRowsPerPage(searchParams.get("limit") ?? String(initialPagination.pageSize));
+    setIsLoading(false);
+  }, [initialData, initialPagination, searchParams]);
 
   /* ------------------------------------------------------------------------ */
   /*  Filter handlers                                                         */
@@ -225,20 +188,14 @@ export function VerificationQueueView({
       setArchiveCategory(nextArchiveCategory);
       setRowsPerPage(nextRowsPerPage);
       setViewMode(nextViewMode);
-      router.push(
-        buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextDocumentTypeId, nextArchiveCategory, nextViewMode)
-      );
+      setIsLoading(true);
       startTransition(() => {
-        fetchQueue({
-          page: nextPage,
-          search: nextSearch,
-          documentTypeId: nextDocumentTypeId,
-          archiveCategory: nextArchiveCategory,
-          pageSize: Number(nextRowsPerPage),
-        });
+        router.push(
+          buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextDocumentTypeId, nextArchiveCategory, nextViewMode),
+        );
       });
     },
-    [archiveCategory, buildPageUrl, documentTypeId, fetchQueue, router, rowsPerPage, search, startTransition, viewMode]
+    [archiveCategory, buildPageUrl, documentTypeId, router, rowsPerPage, search, startTransition, viewMode]
   );
 
   const handleViewModeChange = useCallback(
@@ -473,16 +430,8 @@ export function VerificationQueueView({
       />
 
       {/* Error state */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="size-4" />
-          <AlertTitle>Gagal Memuat Data</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
       {/* Content */}
-      {isLoading ? (
+      {isLoading || isPending ? (
         /* Loading skeleton */
         <Card>
           <CardContent className="p-6">

@@ -1,5 +1,5 @@
 import { PAGINATION } from "@/constants";
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { DocumentTypesPageView } from "@/modules/document/components/DocumentTypesPageView";
 import { getDocumentTypesWithPagination } from "@/modules/document/server";
 
@@ -22,7 +22,7 @@ function parseArchiveCategory(value?: string): ArchiveCategory | undefined {
 }
 
 export default async function DocumentTypesPage({ searchParams }: PageProps) {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
 
   const params = await searchParams;
   const page = params.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;

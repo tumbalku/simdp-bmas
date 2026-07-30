@@ -1,5 +1,6 @@
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import { getProfileAvatarDisplayUrl } from "@/modules/employee/server";
 import * as repo from "../repositories/common";
 
 export async function getCurrentUserAccount(userId: string) {
@@ -17,6 +18,22 @@ export async function getCurrentUserAccount(userId: string) {
     employeeId: user.employee?.employeeId ?? null,
     nik: user.employee?.nik ?? null,
     twoFactorEnabled: user.twoFactor?.enabled ?? false,
+  };
+}
+
+export async function getSessionProfile(userId: string) {
+  const user = await repo.findUserWithEmployeeById(userId);
+
+  if (!user) return null;
+
+  return {
+    userId: user.id,
+    name: user.employee?.name || "User",
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    avatarUrl: getProfileAvatarDisplayUrl(user.employee?.avatarUrl) || user.employee?.googleAvatarUrl || null,
+    employeeId: user.employee?.employeeId || null,
   };
 }
 

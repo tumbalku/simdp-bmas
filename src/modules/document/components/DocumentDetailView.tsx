@@ -13,7 +13,7 @@ import {
   type ReviewInfoField,
   type ReviewStatusConfig,
 } from "@/modules/document/components/document-review";
-import { getDocumentPreviewUrlAction } from "@/modules/document";
+import { fetchDocumentPreviewUrl } from "@/modules/document/api";
 import { DownloadDocumentButton } from "@/modules/document/components/DownloadDocumentButton";
 
 type DocumentDetail = {
@@ -45,8 +45,6 @@ type DocumentDetailViewProps = {
   backHref?: string;
   backLabel?: string;
 };
-
-type PreviewUrlResult = Awaited<ReturnType<typeof getDocumentPreviewUrlAction>>;
 
 const statusConfig: Record<string, ReviewStatusConfig> = {
   PENDING: {
@@ -88,11 +86,6 @@ function formatFileSize(value: number | null) {
   if (!value) return "-";
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
   return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function getActionErrorMessage(result: PreviewUrlResult) {
-  if (result.ok) return null;
-  return result.error.message || "Gagal menyiapkan pratinjau berkas.";
 }
 
 function getOwnerFields(document: DocumentDetail): ReviewInfoField[] {
@@ -149,16 +142,20 @@ export function DocumentDetailView({
       setPreviewLoading(true);
       setPreviewError(null);
 
-      const result = await getDocumentPreviewUrlAction(document.id);
-      if (cancelled) return;
-
-      if (result.ok) {
-        setPreviewUrl(result.data.url);
-      } else {
-        setPreviewError(getActionErrorMessage(result));
+      try {
+        const url = await fetchDocumentPreviewUrl(document.id);
+        if (!cancelled) {
+          setPreviewUrl(url);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPreviewError(error instanceof Error ? error.message : "Gagal menyiapkan pratinjau berkas.");
+        }
       }
 
-      setPreviewLoading(false);
+      if (!cancelled) {
+        setPreviewLoading(false);
+      }
     }
 
     void loadPreviewUrl();

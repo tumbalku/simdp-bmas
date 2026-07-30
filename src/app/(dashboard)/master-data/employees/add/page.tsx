@@ -1,11 +1,11 @@
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { getMasterDataList } from "@/modules/employee/server";
 import { MasterDataEmployeeForm } from "@/modules/employee/components/MasterDataEmployeeForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function AddEmployeePage() {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
 
   // Load all reference data for select dropdowns
   const [employmentStatuses, employeeGroups, professionGroups, employeePositions, employeeRanks, workplaces] =

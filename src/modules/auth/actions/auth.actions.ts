@@ -12,11 +12,11 @@ import {
   clearTwoFactorChallengeCookie,
 } from "@/lib/auth";
 import { logActivity, SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
-import { getProfileAvatarDisplayUrl } from "@/modules/employee/server";
 import {
   changePassword,
   getActiveSessions,
   getCurrentUserAccount,
+  getSessionProfile,
   isLoginRateLimited,
   logRateLimitedLoginAttempt,
   revokeSession,
@@ -665,22 +665,11 @@ export async function getSessionProfileAction() {
     if (!session) {
       return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "User belum login" } };
     }
-    const user = await findUserWithEmployeeById(session.userId);
-    if (!user) {
+    const profile = await getSessionProfile(session.userId);
+    if (!profile) {
       return { ok: false as const, error: { code: "NOT_FOUND", message: "User tidak ditemukan" } };
     }
-    return {
-      ok: true as const,
-      data: {
-        userId: user.id,
-        name: user.employee?.name || "User",
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        avatarUrl: getProfileAvatarDisplayUrl(user.employee?.avatarUrl) || user.employee?.googleAvatarUrl || null,
-        employeeId: user.employee?.employeeId || null,
-      },
-    };
+    return { ok: true as const, data: profile };
   } catch (error) {
     console.error("getSessionProfileAction error:", error);
     return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan internal" } };

@@ -1,12 +1,12 @@
 import { PAGINATION } from "@/constants";
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { DocumentTypeFormPage } from "@/modules/document/components/DocumentTypeFormPage";
 import { getMasterDataList } from "@/modules/employee/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function AddDocumentTypePage() {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
 
   const [employmentStatuses, employeeGroups, professionGroups, employeePositions, employeeRanks, workplaces] = await Promise.all([
     getMasterDataList("EmploymentStatus", { limit: PAGINATION.masterDataEntityLimit }),

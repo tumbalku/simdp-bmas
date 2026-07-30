@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findUserWithEmployeeById as findUserWithEmployeeByIdQuery } from "@/lib/queries/user";
 
 export function findEmployeeUserIdByNik(nik: string) {
   return prisma.employee.findFirst({
@@ -29,10 +30,7 @@ export function findActiveUserWithEmployee(userId: string) {
 }
 
 export function findUserWithEmployeeById(userId: string) {
-  return prisma.user.findFirst({
-    where: { id: userId },
-    include: { employee: true },
-  });
+  return findUserWithEmployeeByIdQuery(userId);
 }
 
 export function findUserWithEmployeeByEmail(email: string) {

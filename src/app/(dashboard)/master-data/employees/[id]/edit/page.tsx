@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { MasterDataEmployeeForm } from "@/modules/employee/components/MasterDataEmployeeForm";
 import { getEmployeeDetail, getMasterDataList } from "@/modules/employee/server";
 
@@ -11,7 +11,7 @@ export default async function EditEmployeePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
   const { id } = await params;
 
   const [employee, employmentStatuses, employeeGroups, professionGroups, employeePositions, employeeRanks, workplaces] =

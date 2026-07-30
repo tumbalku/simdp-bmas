@@ -6,6 +6,7 @@ import { SideBar } from "@/components/navigation/Sidebar";
 import { getSession } from "@/lib/auth";
 import type { UserRole } from "@/constants/roles";
 import { AuthSessionRefresh } from "@/modules/auth/components";
+import { getSessionProfile } from "@/modules/auth/server";
 
 export default async function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default async function DashboardLayout({
   if (!session) redirect("/login");
 
   const role = session.role as UserRole;
+  const profile = await getSessionProfile(session.userId);
 
   return (
     <AuthSessionRefresh>
@@ -25,7 +27,7 @@ export default async function DashboardLayout({
       >
         <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
           {/* Top Navbar */}
-          <Navbar />
+          <Navbar profile={profile} />
 
           {/* Sidebar + Main Content */}
           <div className="flex min-h-0 flex-1 overflow-hidden">

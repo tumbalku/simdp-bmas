@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findUserWithEmployeeById as findUserWithEmployeeByIdQuery } from "@/lib/queries/user";
 import type { Prisma } from "@prisma/client";
 
 export function findNotificationsWithUnreadCount(input: {
@@ -59,10 +60,7 @@ export function findNotificationById(notificationId: string) {
 }
 
 export function findUserWithEmployeeById(userId: string) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    include: { employee: true },
-  });
+  return findUserWithEmployeeByIdQuery(userId);
 }
 
 export function findDocumentWithTypeAndOwnerById(documentId: string) {
