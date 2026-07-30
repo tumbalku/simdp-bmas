@@ -10,7 +10,7 @@ import {
   getVerificationDocumentDetail,
 } from "../service";
 import { generateDownloadUrl } from "@/modules/document/server";
-import { findUserWithEmployeeById } from "../repositories/common";
+import { getActorDisplayName } from "@/modules/employee/server";
 
 const verifyDocumentSchema = z
   .object({
@@ -78,8 +78,7 @@ export async function verifyDocumentAction(id: string, decision: string, note?: 
       };
     }
 
-    const user = await findUserWithEmployeeById(session.userId);
-    const actorName = user?.employee?.name || user?.email || "Reviewer";
+    const actorName = await getActorDisplayName(session.userId, "Reviewer");
 
     const result = await verifyDocument(
       parsed.data.id,

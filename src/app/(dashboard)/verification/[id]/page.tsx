@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { requireAuth } from "@/lib/auth";
-import { getVerificationDocumentDetailAction } from "@/modules/verification";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
+import { getVerificationDocumentDetail } from "@/modules/verification/server";
 import { VerificationDetailView } from "@/modules/verification/components/VerificationDetailView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileX } from "lucide-react";
@@ -13,14 +13,15 @@ type PageProps = {
 };
 
 export default async function VerificationDetailPage({ params }: PageProps) {
-  await requireAuth("STAFF");
+  const session = await requireDashboardRole("STAFF");
 
   const { id } = await params;
 
-  const result = await getVerificationDocumentDetailAction(id);
-
-  if (!result.ok) {
-    if (result.error?.code === "NOT_FOUND") {
+  try {
+    const document = await getVerificationDocumentDetail(id, session);
+    return <VerificationDetailView document={document} />;
+  } catch (error) {
+    if (error instanceof Error && error.message === "Dokumen tidak ditemukan") {
       return (
         <div className="flex min-h-[300px] flex-col items-center justify-center space-y-4 text-center">
           <div className="flex size-16 items-center justify-center rounded-full bg-muted">
@@ -47,12 +48,9 @@ export default async function VerificationDetailPage({ params }: PageProps) {
         <AlertCircle className="size-4" />
         <AlertTitle>Kesalahan</AlertTitle>
         <AlertDescription>
-          {result.error?.message ||
-            "Gagal memuat detail dokumen. Silakan coba lagi."}
+          {error instanceof Error ? error.message : "Gagal memuat detail dokumen. Silakan coba lagi."}
         </AlertDescription>
       </Alert>
     );
   }
-
-  return <VerificationDetailView document={result.data} />;
 }

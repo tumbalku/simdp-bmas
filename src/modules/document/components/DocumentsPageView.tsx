@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Clock3, FileText, FileWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -58,18 +58,14 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
   const currentDocumentTypeId = searchParams.get("documentTypeId") ?? "";
   const currentArchiveCategory = searchParams.get("archiveCategory") ?? "";
 
-  if (currentSearch !== search) {
+  useEffect(() => {
     setSearch(currentSearch);
     setTempSearch(currentSearch);
-  }
-  if (currentDocumentTypeId !== documentTypeId) {
     setDocumentTypeId(currentDocumentTypeId);
     setTempDocumentTypeId(currentDocumentTypeId);
-  }
-  if (currentArchiveCategory !== archiveCategory) {
     setArchiveCategory(currentArchiveCategory);
     setTempArchiveCategory(currentArchiveCategory);
-  }
+  }, [currentSearch, currentDocumentTypeId, currentArchiveCategory]);
 
   const pendingCount = allDocuments.filter((doc) => doc.status === "PENDING").length;
   const approvedCount = allDocuments.filter((doc) => doc.status === "APPROVED").length;

@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { getDocumentRecordsAction, getDocumentTypeOptionsAction } from "@/modules/document";
+import { getAvailableDocumentTypes, getDocumentRecordsForSession } from "@/modules/document/server";
 import { DocumentsPageView } from "@/modules/document/components/DocumentsPageView";
 
 export const dynamic = "force-dynamic";
@@ -17,25 +16,21 @@ export default async function Page({ searchParams }: PageProps) {
   const session = await requireAuth();
   const params = await searchParams;
 
-  const [documentsResult, allDocumentsResult, documentTypesResult] = await Promise.all([
-    getDocumentRecordsAction({
+  const [documents, allDocuments, documentTypes] = await Promise.all([
+    getDocumentRecordsForSession(session, {
       search: params?.search,
       documentTypeId: params?.documentTypeId,
       archiveCategory: params?.archiveCategory,
     }),
-    getDocumentRecordsAction(),
-    getDocumentTypeOptionsAction(),
+    getDocumentRecordsForSession(session),
+    getAvailableDocumentTypes(session),
   ]);
-
-  if (!documentsResult.ok || !allDocumentsResult.ok || !documentTypesResult.ok) {
-    redirect("/login");
-  }
 
   return (
     <DocumentsPageView
-      documents={documentsResult.data}
-      allDocuments={allDocumentsResult.data}
-      documentTypes={documentTypesResult.data}
+      documents={documents}
+      allDocuments={allDocuments}
+      documentTypes={documentTypes}
       canUpload={true}
       currentRole={session.role}
     />

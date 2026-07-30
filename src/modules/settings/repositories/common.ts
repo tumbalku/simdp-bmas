@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { findUserWithEmployeeById as findUserWithEmployeeByIdQuery } from "@/lib/queries/user";
 
 export function findSystemSettings() {
   return prisma.systemSetting.findMany();
@@ -32,8 +33,5 @@ export function updateSystemSettings(
 }
 
 export function findUserWithEmployeeById(userId: string) {
-  return prisma.user.findFirst({
-    where: { id: userId },
-    include: { employee: true },
-  });
+  return findUserWithEmployeeByIdQuery(userId);
 }

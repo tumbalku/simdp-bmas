@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { ROUTES } from "@/constants";
-import { getDocumentRecordDetailAction } from "@/modules/document";
+import { requireAuth } from "@/lib/auth";
+import { AppError } from "@/lib/errors";
 import { DocumentDetailView } from "@/modules/document/components/DocumentDetailView";
+import { getDocumentRecordDetailForSession } from "@/modules/document/server";
 
 export const dynamic = "force-dynamic";
 
@@ -47,19 +49,24 @@ function getBackNavigation(returnTo?: string) {
 export default async function Page({ params, searchParams }: PageProps) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const result = await getDocumentRecordDetailAction(id);
+  const session = await requireAuth();
 
-  if (!result.ok) {
-    if (result.error.code === "NOT_FOUND" || result.error.code === "OWNERSHIP_REQUIRED") {
+  try {
+    const document = await getDocumentRecordDetailForSession(id, session);
+
+    return (
+      <DocumentDetailView
+        document={document}
+        {...getBackNavigation(resolvedSearchParams?.returnTo)}
+      />
+    );
+  } catch (error) {
+    if (
+      error instanceof AppError &&
+      (error.code === "NOT_FOUND" || error.code === "OWNERSHIP_REQUIRED")
+    ) {
       notFound();
     }
     redirect("/login");
   }
-
-  return (
-    <DocumentDetailView
-      document={result.data}
-      {...getBackNavigation(resolvedSearchParams?.returnTo)}
-    />
-  );
 }
