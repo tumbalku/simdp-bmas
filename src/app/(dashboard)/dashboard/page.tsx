@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getEmployeeStatistics } from "@/modules/statistics";
+import { getEmployeeStats } from "@/modules/statistics/server";
 import { EmployeeDashboardView } from "@/modules/statistics/components/EmployeeDashboardView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -13,8 +13,8 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const response = await getEmployeeStatistics();
-  if (!response.ok) {
+  const stats = await getEmployeeStats(session.userId);
+  if (!stats) {
     return (
       <Alert variant="destructive" className="my-6">
         <AlertCircle className="size-4" />
@@ -26,5 +26,5 @@ export default async function DashboardPage() {
     );
   }
 
-  return <EmployeeDashboardView stats={response.data} />;
+  return <EmployeeDashboardView stats={stats} />;
 }

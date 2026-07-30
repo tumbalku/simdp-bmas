@@ -1,6 +1,7 @@
-import { notFound, redirect } from "next/navigation";
-import { getEmployeeDetailAction, getMasterDataListAction } from "@/modules/employee";
+import { notFound } from "next/navigation";
+import { requireAuth } from "@/lib/auth";
 import { EmployeeDetailView } from "@/modules/employee/components/EmployeeDetailView";
+import { getEmployeeDetail, getMasterDataList } from "@/modules/employee/server";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +14,10 @@ type MasterDataRecord = {
   professionGroup?: { id: string } | null;
 };
 
-async function getMasterData(entityType: Parameters<typeof getMasterDataListAction>[0]) {
-  const result = await getMasterDataListAction(entityType, { limit: 1000 });
+async function getMasterData(entityType: Parameters<typeof getMasterDataList>[0]) {
+  const result = await getMasterDataList(entityType, { limit: 1000 });
 
-  if (!result.ok) {
-    return [] as MasterDataRecord[];
-  }
-
-  return result.data.data as MasterDataRecord[];
+  return result.data as MasterDataRecord[];
 }
 
 export default async function MasterDataEmployeeDetailPage({
@@ -29,13 +26,11 @@ export default async function MasterDataEmployeeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getEmployeeDetailAction(id);
+  await requireAuth("ADMIN");
+  const employee = await getEmployeeDetail(id);
 
-  if (!result.ok) {
-    if (result.error.code === "NOT_FOUND") {
-      notFound();
-    }
-    redirect(result.error.code === "FORBIDDEN" ? "/dashboard" : "/login");
+  if (!employee) {
+    notFound();
   }
 
   const [employmentStatuses, employeeGroups, professionGroups, employeePositions, employeeRanks, workplaces] = await Promise.all([
@@ -49,7 +44,7 @@ export default async function MasterDataEmployeeDetailPage({
 
   return (
     <EmployeeDetailView
-      employee={result.data}
+      employee={employee}
       masterData={{
         employmentStatuses,
         employeeGroups: employeeGroups.map((group) => ({

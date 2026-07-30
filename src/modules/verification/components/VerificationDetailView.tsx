@@ -48,9 +48,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DATE_FORMATS, DATE_LOCALE } from "@/constants";
 import {
-  getVerificationDocumentPreviewUrlAction,
   verifyDocumentAction,
 } from "@/modules/verification";
+import { fetchVerificationDocumentPreviewUrl } from "@/modules/verification/api";
 import { VERIFICATION_STATUS_LABELS } from "@/modules/verification";
 
 type DocumentDetail = {
@@ -206,11 +206,8 @@ export function VerificationDetailView({ document }: VerificationDetailViewProps
       setPreviewLoading(true);
       setPreviewError(null);
       try {
-        const payload = await getVerificationDocumentPreviewUrlAction(document.id);
-        if (!payload.ok || !payload.data?.url) {
-          throw new Error(payload.error?.message || "Gagal menyiapkan pratinjau berkas.");
-        }
-        if (!cancelled) setPreviewUrl(payload.data.url);
+        const url = await fetchVerificationDocumentPreviewUrl(document.id);
+        if (!cancelled) setPreviewUrl(url);
       } catch (error: unknown) {
         if (!cancelled) setPreviewError(getErrorMessage(error));
       } finally {

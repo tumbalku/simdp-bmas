@@ -1,17 +1,19 @@
 import { redirect } from "next/navigation";
 
 import { ROUTES } from "@/constants";
-import { getSystemSettings } from "@/modules/settings";
+import { requireAuth } from "@/lib/auth";
+import { getSystemSettings } from "@/modules/settings/server";
 import { SettingsPageView } from "@/modules/settings/components/SettingsPageView";
 
 export const dynamic = "force-dynamic";
 
 export default async function SystemSettingsPage() {
-  const result = await getSystemSettings();
-
-  if (!result.ok) {
-    redirect(result.error.code === "FORBIDDEN" ? ROUTES.dashboard : ROUTES.login);
+  const session = await requireAuth();
+  if (session.role !== "ADMIN") {
+    redirect(ROUTES.dashboard);
   }
 
-  return <SettingsPageView settings={result.data} />;
+  const settings = await getSystemSettings();
+
+  return <SettingsPageView settings={settings} />;
 }
