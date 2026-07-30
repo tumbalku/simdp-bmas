@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { PAGINATION } from "@/constants";
 import { getEmployeeDirectoryWithPagination, getEmployeeDirectorOptions, getMasterDataList } from "@/modules/employee/server";
 import { MasterDataEmployeesView } from "@/modules/employee/components/MasterDataEmployeesView";
@@ -40,7 +40,7 @@ function parseNonNegativeInt(value: string | undefined) {
 }
 
 export default async function MasterDataEmployeesPage({ searchParams }: PageProps) {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
 
   const params = await searchParams;
   const page = parsePositiveInt(params.page, PAGINATION.defaultPage);

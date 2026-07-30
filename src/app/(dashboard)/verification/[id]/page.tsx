@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { getVerificationDocumentDetail } from "@/modules/verification/server";
 import { VerificationDetailView } from "@/modules/verification/components/VerificationDetailView";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,7 +13,7 @@ type PageProps = {
 };
 
 export default async function VerificationDetailPage({ params }: PageProps) {
-  const session = await requireAuth("STAFF");
+  const session = await requireDashboardRole("STAFF");
 
   const { id } = await params;
 

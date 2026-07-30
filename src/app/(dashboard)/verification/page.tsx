@@ -2,7 +2,7 @@ import { AlertCircle } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PAGINATION } from "@/constants";
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { getAvailableDocumentTypes } from "@/modules/document/server";
 import { getVerificationQueue } from "@/modules/verification/server";
 import { VerificationQueueView } from "@/modules/verification/components/VerificationQueueView";
@@ -20,7 +20,7 @@ type PageProps = {
 };
 
 export default async function VerificationPage({ searchParams }: PageProps) {
-  const session = await requireAuth("STAFF");
+  const session = await requireDashboardRole("STAFF");
 
   const params = await searchParams;
   const page = params?.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;

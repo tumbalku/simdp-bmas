@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { getAvailableDocumentTypes, getDocumentRecordsWithPagination } from "@/modules/document/server";
 import { MasterDataDocumentsView } from "@/modules/document/components/MasterDataDocumentsView";
 import { PAGINATION } from "@/constants";
@@ -25,7 +25,7 @@ function parseArchiveCategory(value?: string) {
 }
 
 export default async function MasterDataDocumentsPage({ searchParams }: PageProps) {
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
 
   const params = await searchParams;
   const page = params.page ? parseInt(params.page, 10) : PAGINATION.defaultPage;

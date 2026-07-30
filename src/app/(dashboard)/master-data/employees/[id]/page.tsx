@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireAuth } from "@/lib/auth";
+import { requireDashboardRole } from "@/lib/dashboard-auth";
 import { EmployeeDetailView } from "@/modules/employee/components/EmployeeDetailView";
 import { getEmployeeDetail, getMasterDataList } from "@/modules/employee/server";
 
@@ -26,7 +26,7 @@ export default async function MasterDataEmployeeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireAuth("ADMIN");
+  await requireDashboardRole("ADMIN");
   const employee = await getEmployeeDetail(id);
 
   if (!employee) {
