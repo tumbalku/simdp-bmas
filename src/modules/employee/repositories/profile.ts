@@ -1,4 +1,5 @@
 import { getClient, type PrismaClientOrTx } from "./common";
+import { findUserWithEmployeeById as findUserWithEmployeeByIdQuery } from "@/lib/queries/user";
 
 export async function findEmployeeDetailById(id: string, tx?: PrismaClientOrTx) {
   return getClient(tx).employee.findUnique({
@@ -43,10 +44,7 @@ export async function findEmployeeByUserId(userId: string, tx?: PrismaClientOrTx
 }
 
 export async function findUserWithEmployeeById(userId: string, tx?: PrismaClientOrTx) {
-  return getClient(tx).user.findFirst({
-    where: { id: userId },
-    include: { employee: true },
-  });
+  return findUserWithEmployeeByIdQuery(userId, getClient(tx));
 }
 
 export async function findEmployeeSimpleByUserId(userId: string, tx?: PrismaClientOrTx) {
