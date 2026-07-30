@@ -72,6 +72,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Issue #249/#250: Menghilangkan POST Server Action read-only dari navbar dashboard dengan mem-pass profile dari layout server dan mengganti polling notifikasi navbar menjadi GET `/api/v1/notifications`.
 - Memperbaiki dialog export PDF data pegawai agar memilih Pejabat secara dinamis, mengisi jabatan otomatis dari data pegawai terpilih, dan memakai label Nama/NIP Pejabat.
 - Issue #243: Memperbaiki label enum profil pegawai agar nilai canonical database seperti `MALE`, `MARRIED`, `ISLAM`, dan `ACTIVE` tampil sebagai label Bahasa Indonesia di UI `/profile`, serta merapikan copy dialog unduh PDF profil.
 - Memperbaiki deploy preview aplikasi Next.js agar root TypeScript build tidak ikut mengompilasi konfigurasi Docusaurus di `documentation/`, karena portal docs memakai dependency dan tsconfig terpisah.
