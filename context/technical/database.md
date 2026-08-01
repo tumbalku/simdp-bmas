@@ -27,7 +27,7 @@
 | `NotificationRelatedEntityType` | `DOCUMENT_RECORD` |
 | `SecurityLogStatus` | `SUCCESS`, `FAILED` |
 | `SecurityActorRole` | `ADMIN`, `STAFF`, `EMPLOYEE`, `PUBLIC`, `SYSTEM` |
-| `DocumentVerificationType` | `EMPLOYEE_PROFILE`, `EMPLOYEE_DIRECTORY` |
+| `DocumentVerificationType` | `EMPLOYEE_PROFILE`, `EMPLOYEE_DIRECTORY`, `EMPLOYEE_DOCUMENTS` |
 
 ## Tabel Auth
 

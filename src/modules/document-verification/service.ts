@@ -16,6 +16,7 @@ import {
 const DOCUMENT_TYPE_LABELS = {
   [DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_PROFILE]: "Profil Pegawai",
   [DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DIRECTORY]: "Laporan Kepegawaian",
+  [DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DOCUMENTS]: "Laporan Dokumen",
 } as const;
 
 function generateVerificationCode() {
@@ -70,6 +71,31 @@ export async function issueEmployeeDirectoryVerification(input: {
 }): Promise<IssuedDocumentVerification> {
   return issueDocumentVerification({
     documentType: DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DIRECTORY,
+    subjectEmployeeId: null,
+    issuedByUserId: input.issuedByUserId,
+    metadata: input.metadata,
+  });
+}
+
+export async function issueEmployeeDocumentsVerification(input: {
+  employeeId: string;
+  issuedByUserId: string;
+  metadata?: Prisma.InputJsonObject;
+}): Promise<IssuedDocumentVerification> {
+  return issueDocumentVerification({
+    documentType: DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DOCUMENTS,
+    subjectEmployeeId: input.employeeId,
+    issuedByUserId: input.issuedByUserId,
+    metadata: input.metadata,
+  });
+}
+
+export async function issueMasterDataDocumentsVerification(input: {
+  issuedByUserId: string;
+  metadata?: Prisma.InputJsonObject;
+}): Promise<IssuedDocumentVerification> {
+  return issueDocumentVerification({
+    documentType: DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DOCUMENTS,
     subjectEmployeeId: null,
     issuedByUserId: input.issuedByUserId,
     metadata: input.metadata,
@@ -150,7 +176,9 @@ export async function verifyDocumentCode(code: string): Promise<PublicDocumentVe
     subjectName:
       verification.documentType === DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DIRECTORY
         ? "Direktori Pegawai RSUD Bahteramas"
-        : subjectEmployee?.name ?? null,
+        : verification.documentType === DOCUMENT_VERIFICATION_TYPE.EMPLOYEE_DOCUMENTS && !subjectEmployee
+          ? "Laporan Dokumen Pegawai RSUD Bahteramas"
+          : subjectEmployee?.name ?? null,
     subjectIdentifier: maskIdentifier(subjectEmployee?.employeeId || subjectEmployee?.nik),
     workplace: subjectEmployee?.workplace?.name ?? null,
     employeePosition: subjectEmployee?.employeePosition?.name ?? null,

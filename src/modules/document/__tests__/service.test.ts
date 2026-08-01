@@ -12,6 +12,9 @@ import {
   getDocumentRecordsWithPagination,
   getDocumentRecordDetailForSession,
   getAvailableDocumentTypes,
+  MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS,
+  getMasterDataDocumentsPdfData,
+  renderMasterDataDocumentsPdfHtml,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 import { storage } from "@/lib/storage";
@@ -279,6 +282,210 @@ describe("Document Module Service", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual(expect.objectContaining({ id: "type-1" }));
+    });
+
+    it("should build admin PDF data with a dynamic document type and archive category title", async () => {
+      mockPrisma.documentType.findUnique.mockResolvedValue({
+        id: "type-ktp",
+        code: "KTP",
+        name: "KTP",
+        archiveCategory: "PERSONAL",
+      });
+      mockPrisma.documentRecord.findMany.mockResolvedValue([
+        {
+          id: "doc-1",
+          title: "KTP Utama",
+          status: "APPROVED",
+          documentNumber: "4701/KTP/2026",
+          fileName: "siti-ktp.pdf",
+          uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
+          expiryDate: null,
+          documentType: { id: "type-ktp", code: "KTP", name: "KTP", archiveCategory: "PERSONAL" },
+          owner: {
+            id: "emp-1",
+            name: "Siti Aminah",
+            employeeId: "19850101",
+            nik: "7471010101010001",
+            employeeGroup: { name: "ASN" },
+            employmentStatus: { name: "PNS" },
+          },
+        },
+      ]);
+
+      const data = await getMasterDataDocumentsPdfData(
+        {
+          archiveView: "active",
+          documentTypeId: "type-ktp",
+          archiveCategory: "PERSONAL",
+          search: "siti",
+        },
+        { userId: "admin-1", role: "ADMIN", employeeId: "admin-emp" },
+      );
+
+      expect(mockPrisma.documentType.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: "type-ktp" } }),
+      );
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            documentTypeId: "type-ktp",
+            documentType: { archiveCategory: "PERSONAL" },
+            OR: expect.arrayContaining([{ owner: { name: { contains: "siti", mode: "insensitive" } } }]),
+          }),
+        }),
+      );
+      expect(data).toEqual(
+        expect.objectContaining({
+          title: "Laporan Dokumen KTP (Personal) Pegawai",
+          rowCount: 1,
+          filters: {
+            search: "siti",
+            documentTypeName: "KTP",
+            archiveCategoryLabel: "Personal",
+          },
+          rows: [
+            expect.objectContaining({
+              no: 1,
+              ownerName: "Siti Aminah",
+              documentTypeCode: "KTP",
+              archiveCategoryLabel: "Personal",
+              employmentType: "ASN/PNS",
+              statusLabel: "Disetujui",
+            }),
+          ],
+        }),
+      );
+    });
+
+    it("should build admin PDF data with a category-only title", async () => {
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+
+      const data = await getMasterDataDocumentsPdfData(
+        { archiveCategory: "PERSONAL" },
+        { userId: "admin-1", role: "ADMIN", employeeId: "admin-emp" },
+      );
+
+      expect(data.title).toBe("Laporan Dokumen Personal Pegawai");
+      expect(mockPrisma.documentType.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("should reject master data document PDF exports above the row cap", async () => {
+      mockPrisma.documentRecord.findMany.mockResolvedValue(
+        Array.from({ length: MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS + 1 }, (_, index) => ({
+          id: `doc-${index}`,
+          title: "Dokumen",
+          status: "APPROVED",
+          documentNumber: null,
+          fileName: "dokumen.pdf",
+          uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
+          expiryDate: null,
+          documentType: { id: "type-ktp", code: "KTP", name: "KTP", archiveCategory: "PERSONAL" },
+          owner: {
+            id: "emp-1",
+            name: "Siti Aminah",
+            employeeId: "19850101",
+            nik: "7471010101010001",
+            employeeGroup: { name: "ASN" },
+            employmentStatus: { name: "PNS" },
+          },
+        })),
+      );
+
+      await expect(
+        getMasterDataDocumentsPdfData(
+          { archiveCategory: "PERSONAL" },
+          { userId: "admin-1", role: "ADMIN", employeeId: "admin-emp" },
+        ),
+      ).rejects.toThrow(`Export PDF dokumen dibatasi maksimal ${MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS} baris`);
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        take: MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS + 1,
+      }));
+    });
+
+    it("should reject non-admin sessions from building master data document PDF data", async () => {
+      await expect(
+        getMasterDataDocumentsPdfData(
+          { archiveCategory: "PERSONAL" },
+          { userId: "staff-1", role: "STAFF", employeeId: "staff-emp" },
+        ),
+      ).rejects.toThrow("Hanya Admin yang dapat mengunduh PDF laporan dokumen pegawai.");
+
+      expect(mockPrisma.documentRecord.findMany).not.toHaveBeenCalled();
+    });
+
+    it("should render master data document PDF HTML with dynamic title, filters, and rows", () => {
+      const html = renderMasterDataDocumentsPdfHtml(
+        {
+          title: "Laporan Dokumen KTP (Personal) Pegawai",
+          archiveView: "active",
+          generatedAt: "2026-08-01T00:00:00.000Z",
+          rowCount: 1,
+          filters: {
+            search: "siti",
+            documentTypeName: "KTP",
+            archiveCategoryLabel: "Personal",
+          },
+          rows: [
+            {
+              no: 1,
+              title: "KTP Utama",
+              documentTypeName: "KTP",
+              documentTypeCode: "KTP",
+              archiveCategory: "PERSONAL",
+              archiveCategoryLabel: "Personal",
+              employmentType: "ASN/PNS",
+              ownerName: "Siti Aminah",
+              ownerEmployeeId: "19850101",
+              ownerNik: "7471010101010001",
+              status: "APPROVED",
+              statusLabel: "Disetujui",
+              documentNumber: "4701/KTP/2026",
+              fileName: "siti-ktp.pdf",
+              uploadedAt: "2026-01-02",
+              expiryDate: null,
+            },
+          ],
+        },
+        {
+          verification: {
+            id: "verification-1",
+            code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+            verifyUrl: "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+            qrCodeDataUrl: "data:image/png;base64,qr",
+          },
+        },
+      );
+
+      expect(html).toContain("RUMAH SAKIT UMUM DAERAH BAHTERAMAS");
+      expect(html).toContain("Laporan Dokumen KTP (Personal) Pegawai");
+      expect(html).toContain("Status Data");
+      expect(html).toContain("Data berjalan");
+      expect(html).toContain("Jenis Dokumen");
+      expect(html).toContain("KTP");
+      expect(html).toContain("Kategori Arsip");
+      expect(html).toContain("Personal");
+      expect(html).toContain("<th>Nama</th>");
+      expect(html).toContain("<th>NIP</th>");
+      expect(html).toContain("<th>NIK</th>");
+      expect(html).toContain("<th>Judul</th>");
+      expect(html).toContain("<th>Status/Jenis Kepegawaian</th>");
+      expect(html).toContain("Siti Aminah");
+      expect(html).toContain("19850101");
+      expect(html).toContain("7471010101010001");
+      expect(html).toContain("KTP Utama");
+      expect(html).toContain("ASN/PNS");
+      expect(html).toContain("<th>Nomor</th>");
+      expect(html).toContain("<th>Diunggah</th>");
+      expect(html).toContain("<th>Kadaluarsa</th>");
+      expect(html).not.toContain("<th>Pegawai</th>");
+      expect(html).not.toContain("<th>Nama File</th>");
+      expect(html).toContain("Scan QR untuk mengecek keaslian PDF laporan dokumen pegawai ini.");
+      expect(html).toContain("http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+      expect(html).toContain("data:image/png;base64,qr");
+      expect(html).not.toContain("padding-top: 10px");
+      expect(html).toContain("Dokumen SiCantIK");
     });
   });
 

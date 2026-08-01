@@ -2,6 +2,12 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-08-01] REVISED Scoped API Rate Limit Buckets
+- Konteks: kategori rate limit seperti `EXPORT` dipakai oleh beberapa endpoint berbeda. Bucket yang hanya berbasis kategori + user/IP membuat download PDF profil, PDF dokumen, CSV pegawai, dan export lain saling menghabiskan kuota walaupun aksi yang dilakukan berbeda.
+- Keputusan: `enforceApiRateLimit()` mendukung `scope` aksi opsional. Key bucket dibentuk dari kategori + scope + user/IP, dengan default `scope:global` untuk endpoint yang belum membutuhkan pemisahan aksi.
+- Alasan: rate limiting tetap aktif untuk mencegah spam pada satu aksi, tetapi aktivitas di endpoint lain tidak menyebabkan 429 akumulatif yang tidak intuitif.
+- Referensi: revisi issue #196/#222, diskusi rate limit export 2026-08-01.
+
 ## [2026-07-29] Docusaurus sebagai Portal Dokumentasi Resmi
 - Konteks: SIMDP membutuhkan dokumentasi yang mudah dibaca developer, operator, auditor keamanan, dan user internal tanpa menghilangkan detail historis yang sudah ada di folder `context/`.
 - Keputusan: dokumentasi resmi yang dapat dipublish dibuat dengan Docusaurus di folder `documentation/` dalam repo yang sama. Folder `context/` tetap menjadi memori detail/source historis, sedangkan Docusaurus menjadi portal baca utama dengan struktur Architecture, Developer Guide, Operator Guide, Security, API, User Manual, dan Reference.

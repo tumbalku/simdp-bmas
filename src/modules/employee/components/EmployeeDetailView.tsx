@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil, Download } from "lucide-react";
 import { InfoCard } from "@/components/cards/InfoCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -210,8 +210,20 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
         <div className="space-y-6">
           <Card className="border-muted-foreground/10 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base font-semibold">Dokumen Pegawai</CardTitle>
-              <CardDescription>Dokumen milik pegawai ini yang tersimpan di sistem ({employee.documentCount} berkas).</CardDescription>
+              <div>
+                <CardTitle className="text-base font-semibold">Dokumen Pegawai</CardTitle>
+                <CardDescription>Dokumen milik pegawai ini yang tersimpan di sistem ({employee.documentCount} berkas).</CardDescription>
+              </div>
+              <CardAction>
+                <Link
+                  className={buttonVariants({ variant: "default", size: "sm" })}
+                  href={`/api/v1/employees/${employee.id}/documents-pdf`}
+                  prefetch={false}
+                >
+                  <Download className="size-4" />
+                  Download PDF
+                </Link>
+              </CardAction>
             </CardHeader>
             <CardContent className="space-y-3">
               {employee.documents.map((document) => (

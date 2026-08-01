@@ -89,6 +89,7 @@ enum SecurityActorRole {
 enum DocumentVerificationType {
   EMPLOYEE_PROFILE
   EMPLOYEE_DIRECTORY
+  EMPLOYEE_DOCUMENTS
 }
 
 model User {

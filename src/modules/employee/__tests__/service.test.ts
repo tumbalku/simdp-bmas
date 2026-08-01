@@ -12,6 +12,7 @@ import {
   exportEmployeeDirectoryCsv,
   getEmployeeDirectoryPdfData,
   renderEmployeeDirectoryPdfHtml,
+  renderEmployeeDocumentsPdfHtml,
   importFromCsv,
   addCareerHistory,
 } from "../service";
@@ -417,6 +418,99 @@ describe("Employee Module Service", () => {
       expect(html).toContain(".verification-card {\n      display: grid;");
       expect(html).not.toContain("background: #f0fdfa");
       expect(html).not.toContain("Data mengikuti query pencarian");
+    });
+
+    it("should render employee document report PDF HTML with letterhead, employee detail, and document table", () => {
+      const html = renderEmployeeDocumentsPdfHtml(
+        {
+          employee: {
+            id: "emp-1",
+            employeeId: "19850101",
+            nik: "7471010101010001",
+            name: "Siti Aminah",
+            status: "Aktif",
+            gender: "Wanita",
+            birthDate: "1985-01-01",
+            birthPlace: "Kendari",
+            academicDegree: null,
+            lastEducation: "S1",
+            religion: "Islam",
+            maritalStatus: "Kawin",
+            phone: "0812",
+            address: "Kendari",
+            joinDate: "2020-01-01",
+            hasTmt: true,
+            tmtStartDate: "2020-01-01",
+            tmtEndDate: null,
+            email: "siti@example.com",
+            role: "EMPLOYEE",
+            employmentStatus: "PNS",
+            employeeGroup: "ASN",
+            employeePosition: "Perawat",
+            employeeRank: "III/a",
+            workplace: "UGD",
+            avatarUrl: null,
+          },
+          documents: [
+            {
+              id: "doc-1",
+              title: "KTP Utama",
+              documentTypeName: "KTP",
+              documentTypeCode: "KTP",
+              documentNumber: "4701/KTP/2026",
+              archiveCategory: "PERSONAL",
+              archiveCategoryLabel: "Personal",
+              status: "APPROVED",
+              statusLabel: "Disetujui",
+              uploadedAt: "2026-01-01",
+              expiryDate: null,
+            },
+          ],
+        },
+        {
+          verification: {
+            id: "verification-1",
+            code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+            verifyUrl: "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+            qrCodeDataUrl: "data:image/png;base64,qr",
+          },
+        },
+      );
+
+      expect(html).toContain("RUMAH SAKIT UMUM DAERAH BAHTERAMAS");
+      expect(html).toContain("Laporan Dokumen");
+      expect(html).toContain("class=\"letterhead-logo\"");
+      expect(html).toContain("<div class=\"detail-label\">Nama</div>");
+      expect(html).toContain("<div class=\"detail-value\">Siti Aminah</div>");
+      expect(html).toContain("<div class=\"detail-label\">NIK</div>");
+      expect(html).toContain("<div class=\"detail-value\">7471010101010001</div>");
+      expect(html).toContain("<div class=\"detail-label\">NIP</div>");
+      expect(html).toContain("<div class=\"detail-value\">19850101</div>");
+      expect(html).toContain("<div class=\"detail-label\">Pangkat/Golongan</div>");
+      expect(html).toContain("<div class=\"detail-value\">III/a</div>");
+      expect(html).toContain("<div class=\"detail-label\">Jabatan</div>");
+      expect(html).toContain("<div class=\"detail-value\">Perawat</div>");
+      expect(html).toContain("<div class=\"detail-label\">Status/Jenis Kepegawaian</div>");
+      expect(html).toContain("<div class=\"detail-value\">ASN/PNS</div>");
+      expect(html).toContain("<div class=\"detail-label\">Unit Kerja</div>");
+      expect(html).toContain("<div class=\"detail-value\">UGD</div>");
+      expect(html).toContain("grid-template-columns: 1fr;");
+      expect(html).toContain("<th>Kode</th>");
+      expect(html).toContain("<th>Judul</th>");
+      expect(html).toContain("<th>Jenis Dokumen</th>");
+      expect(html).toContain("<th>Kategori</th>");
+      expect(html).toContain("<th>Nomor</th>");
+      expect(html).toContain("<th>Diunggah</th>");
+      expect(html).toContain("<th>Kadaluarsa</th>");
+      expect(html).toContain("<th>Status</th>");
+      expect(html).not.toContain("<th>Pegawai</th>");
+      expect(html).not.toContain("<span>Status/Jenis</span><span>Kepegawaian</span>");
+      expect(html).toContain("KTP Utama");
+      expect(html).toContain("4701/KTP/2026");
+      expect(html).toContain("Scan QR untuk mengecek keaslian PDF laporan dokumen ini.");
+      expect(html).toContain("http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+      expect(html).toContain("data:image/png;base64,qr");
+      expect(html).toContain("Dokumen SiCantIK");
     });
   });
 

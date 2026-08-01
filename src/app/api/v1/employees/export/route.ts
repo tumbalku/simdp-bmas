@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
       actorId: session.userId,
       actorRole: session.role,
+      scope: "employee-directory-csv",
     });
     if (rateLimitResponse) return rateLimitResponse;
 
