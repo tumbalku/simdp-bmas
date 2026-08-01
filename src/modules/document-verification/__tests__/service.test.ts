@@ -4,7 +4,9 @@ import { mockPrisma } from "../../../../tests/setup";
 import {
   attachDocumentVerificationFileHash,
   issueEmployeeDirectoryVerification,
+  issueEmployeeDocumentsVerification,
   issueEmployeeProfileVerification,
+  issueMasterDataDocumentsVerification,
   verifyDocumentCode,
 } from "../service";
 
@@ -62,6 +64,55 @@ describe("document verification service", () => {
     expect(mockPrisma.documentVerification.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         documentType: "EMPLOYEE_DIRECTORY",
+        subjectEmployeeId: null,
+        issuedByUserId: "admin-1",
+        metadata: { rowCount: 12 },
+      }),
+    });
+    expect(result.verifyUrl).toBe(
+      "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+    );
+  });
+
+  it("issues an employee documents verification with a subject employee", async () => {
+    mockPrisma.documentVerification.create.mockResolvedValue({
+      id: "verification-documents",
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+    });
+
+    const result = await issueEmployeeDocumentsVerification({
+      employeeId: "emp-1",
+      issuedByUserId: "user-1",
+      metadata: { documentCount: 4 },
+    });
+
+    expect(mockPrisma.documentVerification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        documentType: "EMPLOYEE_DOCUMENTS",
+        subjectEmployeeId: "emp-1",
+        issuedByUserId: "user-1",
+        metadata: { documentCount: 4 },
+      }),
+    });
+    expect(result.verifyUrl).toBe(
+      "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+    );
+  });
+
+  it("issues a master data documents verification without a subject employee", async () => {
+    mockPrisma.documentVerification.create.mockResolvedValue({
+      id: "verification-master-documents",
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+    });
+
+    const result = await issueMasterDataDocumentsVerification({
+      issuedByUserId: "admin-1",
+      metadata: { rowCount: 12 },
+    });
+
+    expect(mockPrisma.documentVerification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        documentType: "EMPLOYEE_DOCUMENTS",
         subjectEmployeeId: null,
         issuedByUserId: "admin-1",
         metadata: { rowCount: 12 },
@@ -148,6 +199,70 @@ describe("document verification service", () => {
       expiresAt: null,
       revokedAt: null,
       fileHash: "hash-directory",
+    });
+  });
+
+  it("returns safe public data for a verified employee document report", async () => {
+    mockPrisma.documentVerification.findUnique.mockResolvedValue({
+      id: "verification-documents",
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+      documentType: "EMPLOYEE_DOCUMENTS",
+      issuedAt: new Date("2026-08-01T01:00:00.000Z"),
+      expiresAt: null,
+      revokedAt: null,
+      fileHash: "hash-documents",
+      subjectEmployee: {
+        name: "Siti Aminah",
+        employeeId: "198501012010011001",
+        nik: "7471010101010001",
+        employeePosition: { name: "Perawat" },
+        workplace: { name: "UGD" },
+      },
+    });
+
+    const result = await verifyDocumentCode("SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+
+    expect(result).toEqual({
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+      status: "VALID",
+      documentTypeLabel: "Laporan Dokumen",
+      subjectName: "Siti Aminah",
+      subjectIdentifier: "1985****1001",
+      workplace: "UGD",
+      employeePosition: "Perawat",
+      issuedAt: "2026-08-01T01:00:00.000Z",
+      expiresAt: null,
+      revokedAt: null,
+      fileHash: "hash-documents",
+    });
+  });
+
+  it("returns safe public data for a verified master data document report", async () => {
+    mockPrisma.documentVerification.findUnique.mockResolvedValue({
+      id: "verification-master-documents",
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+      documentType: "EMPLOYEE_DOCUMENTS",
+      issuedAt: new Date("2026-08-01T01:00:00.000Z"),
+      expiresAt: null,
+      revokedAt: null,
+      fileHash: "hash-master-documents",
+      subjectEmployee: null,
+    });
+
+    const result = await verifyDocumentCode("SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+
+    expect(result).toEqual({
+      code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+      status: "VALID",
+      documentTypeLabel: "Laporan Dokumen",
+      subjectName: "Laporan Dokumen Pegawai RSUD Bahteramas",
+      subjectIdentifier: null,
+      workplace: null,
+      employeePosition: null,
+      issuedAt: "2026-08-01T01:00:00.000Z",
+      expiresAt: null,
+      revokedAt: null,
+      fileHash: "hash-master-documents",
     });
   });
 

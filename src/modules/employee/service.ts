@@ -1,6 +1,7 @@
 export * from "./services/directory";
 export * from "./services/directory-pdf";
 export * from "./services/directory-pdf-renderer";
+export * from "./services/documents-pdf-renderer";
 export * from "./services/profile";
 export * from "./services/profile-pdf";
 export * from "./services/profile-pdf-renderer";

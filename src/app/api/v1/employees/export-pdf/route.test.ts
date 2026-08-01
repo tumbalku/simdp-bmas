@@ -97,6 +97,7 @@ describe("GET /api/v1/employees/export-pdf", () => {
     expect(mocks.enforceApiRateLimit).toHaveBeenCalledWith(request, "EXPORT", {
       actorId: "admin-1",
       actorRole: "ADMIN",
+      scope: "employee-directory-pdf",
     });
     expect(mocks.getEmployeeDirectoryPdfData).toHaveBeenCalledWith({
       archiveView: "active",

@@ -77,6 +77,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
       actorId: session.userId,
       actorRole: session.role,
+      scope: "employee-profile-pdf",
     });
     if (rateLimitResponse) return rateLimitResponse;
 

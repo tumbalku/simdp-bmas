@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
+import crypto from "crypto";
 
 import {
   API_RATE_LIMIT_CATEGORY,
@@ -64,6 +65,43 @@ describe("rate-limit helper", () => {
     expect(mockPrisma.securityLog.create).not.toHaveBeenCalled();
   });
 
+  it("uses separate database buckets for different scoped actions", async () => {
+    const capturedBuckets: string[] = [];
+    vi.mocked(mockPrisma.$queryRaw).mockImplementation(async (...args: unknown[]) => {
+      capturedBuckets.push(args[1] as string);
+      return [
+        {
+          key: args[1] as string,
+          category: API_RATE_LIMIT_CATEGORY.EXPORT,
+          count: 1,
+          resetAt: new Date(Date.now() + 15 * 60 * 1000),
+          limitedLoggedAt: null,
+        },
+      ];
+    });
+
+    const request = createRequest({ "x-forwarded-for": "203.0.113.13" });
+
+    await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
+      actorId: "user-1",
+      actorRole: "ADMIN",
+      scope: "first",
+    });
+    await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
+      actorId: "user-1",
+      actorRole: "ADMIN",
+      scope: "b",
+    });
+
+    const firstKey = "EXPORT:scope:first:user:user-1:ip:203.0.113.13";
+    const secondKey = "EXPORT:scope:b:user:user-1:ip:203.0.113.13";
+    const expectedFirstBucket = `RateLimit:EXPORT:${crypto.createHash("sha256").update(firstKey).digest("hex").slice(0, 24)}`;
+    const expectedSecondBucket = `RateLimit:EXPORT:${crypto.createHash("sha256").update(secondKey).digest("hex").slice(0, 24)}`;
+
+    expect(capturedBuckets).toEqual([expectedFirstBucket, expectedSecondBucket]);
+    expect(capturedBuckets[0]).not.toBe(capturedBuckets[1]);
+  });
+
   it("returns a 429 response when the configured limit is reached", async () => {
     mockPrisma.securityLog.create.mockResolvedValue({ id: "log-2" });
 
@@ -94,6 +132,7 @@ describe("rate-limit helper", () => {
           metadata: expect.objectContaining({
             category: API_RATE_LIMIT_CATEGORY.FILE_UPLOAD,
             reason: "RATE_LIMITED",
+            scope: "global",
           }),
         }),
       })

@@ -10,6 +10,7 @@ type PageHeaderAction = {
   href: string;
   icon?: ComponentType<{ className?: string }>;
   iconPosition?: "start" | "end";
+  prefetch?: boolean;
   variant?: "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
 };
 
@@ -69,6 +70,7 @@ export function PageHeader({
                 <Link
                   key={`${action.href}-${action.label}`}
                   href={action.href}
+                  prefetch={action.prefetch}
                   className={buttonVariants({
                     variant: action.variant ?? "default",
                     size: "default",
