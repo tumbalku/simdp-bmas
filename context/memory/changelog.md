@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Issue #196/#222: Memisahkan bucket rate limit API berdasarkan `scope` aksi opsional, sehingga endpoint yang berbagi kategori seperti `EXPORT` tetap dibatasi per aksi tanpa saling menghabiskan kuota global user/IP.
 - Issue #237: Menetapkan prioritas target backup production: Google Drive sebagai target offsite utama, VPS/local sebagai jalur kedua untuk server sendiri, dan S3/S3-compatible sebagai opsi terakhir/future sampai adapter/job resmi dipilih.
 - Issue #222/#223: Menetapkan `RateLimitBucket` PostgreSQL sebagai shared rate-limit store awal untuk multi-instance production, serta mengurangi write amplification audit login gagal dengan hanya mencatat `SecurityLog` pada hit pertama bucket window.
 - Issue #214: Memperluas middleware auth coverage ke seluruh route dashboard group, menambahkan redirect `next` ke login, dan menambahkan guard arsitektur agar route dashboard baru tidak luput dari proteksi middleware.
@@ -31,6 +32,8 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - Issue #115: Memoles halaman Kategori Pegawai agar kartu master data memiliki batas tinggi konsisten dan scroll internal saat konten melebihi area tampil.
 
 ### Added
+- Menambahkan export PDF admin-only pada `/master-data/documents` yang mengikuti filter aktif, memakai judul dinamis berdasarkan jenis dokumen/kategori/arsip, dan mencatat audit `DOCUMENT_EXPORTED`.
+- Menambahkan download PDF `Laporan Dokumen` pegawai dengan kop/footer RSUD Bahteramas, detail pegawai, tabel dokumen, QR verifikasi publik, guard akses Admin/pemilik akun, serta tombol download pada detail pegawai dan halaman `/documents`.
 - Menambahkan export PDF laporan kepegawaian dari halaman `/master-data/employees` yang mengikuti query pencarian/filter aktif, memakai format kop surat RSUD Bahteramas, menyertakan QR Code verifikasi publik, dan menyimpan hash PDF di `DocumentVerification`.
 - Menambahkan portal dokumentasi resmi berbasis Docusaurus di `documentation/`, termasuk struktur sidebar untuk Architecture, Developer Guide, Operator Guide, Security, API, User Manual, dan Reference.
 - Issue #237: Menambahkan template environment per skenario (`.env.local.example`, `.env.supabase.example`, `.env.backup-supabase.example`, `.env.vps-local.example`, `.env.restore-local.example`) agar konfigurasi app, backup Supabase, VPS, dan restore bisa dipilih tanpa menebak variable satu per satu.

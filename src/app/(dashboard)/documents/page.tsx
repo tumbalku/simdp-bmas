@@ -33,6 +33,7 @@ export default async function Page({ searchParams }: PageProps) {
       documentTypes={documentTypes}
       canUpload={true}
       currentRole={session.role}
+      currentEmployeeId={session.employeeId ?? null}
     />
   );
 }

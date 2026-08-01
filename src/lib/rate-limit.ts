@@ -37,6 +37,7 @@ type ApiRateLimitActor = {
   actorId?: string | null;
   actorName?: string | null;
   actorRole?: string | null;
+  scope?: string | null;
 };
 
 export const API_RATE_LIMIT_CONFIG: Record<ApiRateLimitCategory, ApiRateLimitConfig> = {
@@ -68,9 +69,23 @@ function buildRateLimitResource(category: ApiRateLimitCategory, key: string) {
   return `RateLimit:${category}:${digest}`;
 }
 
+function normalizeRateLimitScope(scope?: string | null) {
+  if (!scope) return "global";
+
+  return (
+    scope
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 64) || "global"
+  );
+}
+
 function buildRateLimitKey(category: ApiRateLimitCategory, ipAddress: string, actor?: ApiRateLimitActor) {
   const actorKey = actor?.actorId ? `user:${actor.actorId}` : "public";
-  return `${category}:${actorKey}:ip:${ipAddress}`;
+  const scopeKey = `scope:${normalizeRateLimitScope(actor?.scope)}`;
+  return `${category}:${scopeKey}:${actorKey}:ip:${ipAddress}`;
 }
 
 export async function enforceApiRateLimit(
@@ -81,6 +96,7 @@ export async function enforceApiRateLimit(
   const config = API_RATE_LIMIT_CONFIG[category];
   const now = Date.now();
   const ipAddress = getClientIp(request);
+  const scope = normalizeRateLimitScope(actor?.scope);
   const key = buildRateLimitKey(category, ipAddress, actor);
   const resource = buildRateLimitResource(category, key);
 
@@ -107,6 +123,7 @@ export async function enforceApiRateLimit(
       metadata: {
         category,
         limit: config.limit,
+        scope,
         windowMs: config.windowMs,
         reason: "RATE_LIMITED",
       },

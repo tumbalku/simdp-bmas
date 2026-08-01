@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, Clock3, FileText, FileWarning, ShieldCheck, Trash2 } from "lucide-react";
+import { AlertTriangle, Clock3, Download, FileText, FileWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentCompletenessProgress } from "@/components/cards/DocumentCompletenessProgress";
 import {
@@ -36,9 +36,16 @@ type DocumentsPageViewProps = {
   documentTypes: DocumentTypeOption[];
   canUpload: boolean;
   currentRole: string;
+  currentEmployeeId: string | null;
 };
 
-export function DocumentsPageView({ documents, allDocuments, documentTypes, canUpload }: DocumentsPageViewProps) {
+export function DocumentsPageView({
+  documents,
+  allDocuments,
+  documentTypes,
+  canUpload,
+  currentEmployeeId,
+}: DocumentsPageViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
@@ -237,6 +244,19 @@ export function DocumentsPageView({ documents, allDocuments, documentTypes, canU
       <PageHeader
         title="Dokumen pegawai"
         description="Unggah, pantau status, dan buka dokumen kepegawaian milik Anda."
+        actions={
+          currentEmployeeId
+            ? [
+                {
+                  label: "Download PDF",
+                  href: `/api/v1/employees/${currentEmployeeId}/documents-pdf`,
+                  icon: Download,
+                  prefetch: false,
+                  variant: "default",
+                },
+              ]
+            : undefined
+        }
       />
 
       {expiringCount > 0 ? (

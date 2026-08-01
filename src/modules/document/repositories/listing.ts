@@ -41,6 +41,27 @@ export async function findDocumentRecordsWithPagination(where: any, skip: number
   ]);
 }
 
+export async function findDocumentRecordsForExport(where: any, take?: number) {
+  return prisma.documentRecord.findMany({
+    where,
+    include: {
+      documentType: { select: { id: true, code: true, name: true, archiveCategory: true } },
+      owner: {
+        select: {
+          id: true,
+          name: true,
+          employeeId: true,
+          nik: true,
+          employeeGroup: { select: { name: true } },
+          employmentStatus: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: [{ owner: { name: "asc" } }, { uploadedAt: "desc" }],
+    take,
+  });
+}
+
 export async function findDocumentRecordDetailById(documentId: string) {
   return prisma.documentRecord.findUnique({
     where: { id: documentId, deletedAt: null },

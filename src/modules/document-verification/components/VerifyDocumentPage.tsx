@@ -66,6 +66,7 @@ function buildDetailRows(result: PublicDocumentVerificationResult) {
     { label: "Unit Kerja", value: result.workplace },
     { label: "Tanggal Terbit", value: formatDate(result.issuedAt), always: true },
     { label: "Berlaku Sampai", value: result.expiresAt ? formatDate(result.expiresAt) : null },
+    { label: "Hash File PDF", value: result.fileHash },
   ];
 
   return rows.filter((row) => row.always || row.value);
@@ -115,8 +116,10 @@ export function VerifyDocumentPage({ result, error }: VerifyDocumentPageProps) {
               ) : null}
 
               <p className="text-xs leading-5 text-muted-foreground">
-                Verifikasi ini hanya membuktikan bahwa kode dokumen terdaftar di SiCantIK. Jika tampilan dokumen fisik/PDF
-                berbeda dari data di halaman ini, mintalah dokumen ulang dari administrator.
+                Verifikasi ini membuktikan bahwa kode QR terdaftar di SiCantIK dan dapat digunakan untuk mengecek
+                apakah PDF diterbitkan oleh sistem. Cocokkan jenis dokumen, subjek, tanggal terbit, dan hash file PDF
+                bila tersedia. Jika tampilan dokumen fisik/PDF berbeda dari data di halaman ini, mintalah dokumen ulang
+                dari administrator.
               </p>
             </CardContent>
           ) : null}

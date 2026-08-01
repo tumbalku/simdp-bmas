@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Archive, Eye, FileText, RotateCcw, Settings2, Trash2 } from "lucide-react";
+import { Archive, Download, Eye, FileText, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
@@ -144,6 +144,17 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
     if (archiveCategory) params.set("archiveCategory", archiveCategory);
     if (viewMode === "grid") params.set("view", "grid");
     return `${ROUTES.masterDataDocuments}?${params.toString()}`;
+  };
+
+  const buildExportPdfUrl = () => {
+    const params = new URLSearchParams();
+    if (isArchiveView) params.set("archiveView", "archived");
+    if (search.trim()) params.set("search", search.trim());
+    if (documentTypeId) params.set("documentTypeId", documentTypeId);
+    if (archiveCategory) params.set("archiveCategory", archiveCategory);
+    const query = params.toString();
+
+    return `/api/v1/documents/export-pdf${query ? `?${query}` : ""}`;
   };
 
   const handleDocumentTypeChange = (value: string | null) => {
@@ -447,6 +458,13 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
         title="Dokumen Pegawai"
         description="Pantau seluruh dokumen pegawai, status verifikasi, dan metadata berkas."
         actions={[
+          {
+            label: "Download PDF",
+            href: buildExportPdfUrl(),
+            icon: Download,
+            prefetch: false,
+            variant: "outline",
+          },
           {
             label: "Jenis Dokumen",
             href: ROUTES.masterDataDocumentTypes,
