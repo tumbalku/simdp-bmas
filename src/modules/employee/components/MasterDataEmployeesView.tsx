@@ -341,8 +341,10 @@ export function MasterDataEmployeesView({
             : `Pegawai "${employee.name}" berhasil diarsipkan.`,
         );
         setIsCriticalActionDialogOpen(false);
-        setCriticalActionTarget(null);
-        router.refresh();
+        window.setTimeout(() => {
+          setCriticalActionTarget(null);
+          router.refresh();
+        }, 200);
       }
 
       if (!result.ok) {
@@ -366,8 +368,10 @@ export function MasterDataEmployeesView({
       if (result.ok) {
         toast.success(`Pegawai "${employee.name}" berhasil dihapus permanen.`);
         setIsCriticalActionDialogOpen(false);
-        setCriticalActionTarget(null);
-        router.refresh();
+        window.setTimeout(() => {
+          setCriticalActionTarget(null);
+          router.refresh();
+        }, 200);
       }
 
       if (!result.ok) {
@@ -456,7 +460,9 @@ export function MasterDataEmployeesView({
   const handleCriticalActionDialogOpenChange = (open: boolean) => {
     setIsCriticalActionDialogOpen(open);
     if (!open) {
-      setCriticalActionTarget(null);
+      window.setTimeout(() => {
+        setCriticalActionTarget(null);
+      }, 200);
     }
   };
 

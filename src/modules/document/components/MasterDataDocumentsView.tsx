@@ -118,7 +118,9 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
   const handleCriticalActionDialogOpenChange = (open: boolean) => {
     setIsCriticalActionDialogOpen(open);
     if (!open) {
-      setCriticalActionTarget(null);
+      window.setTimeout(() => {
+        setCriticalActionTarget(null);
+      }, 200);
     }
   };
 
@@ -217,8 +219,10 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
             : `Dokumen "${doc.title}" berhasil dihapus.`,
         );
         setIsCriticalActionDialogOpen(false);
-        setCriticalActionTarget(null);
-        router.refresh();
+        window.setTimeout(() => {
+          setCriticalActionTarget(null);
+          router.refresh();
+        }, 200);
         return result;
       }
 
@@ -241,8 +245,10 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
       if (result.ok) {
         toast.success(`Dokumen "${doc.title}" berhasil dihapus permanen.`);
         setIsCriticalActionDialogOpen(false);
-        setCriticalActionTarget(null);
-        router.refresh();
+        window.setTimeout(() => {
+          setCriticalActionTarget(null);
+          router.refresh();
+        }, 200);
         return result;
       }
 

@@ -85,7 +85,7 @@ export function EmployeeImportView({
     link.download = "Template-Import-Pegawai_SiCantIK.csv";
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
     URL.revokeObjectURL(url);
   };
 
@@ -378,12 +378,10 @@ export function EmployeeImportView({
             </div>
             {rows.length > 0 && (
               <Button type="button" disabled={isPending} onClick={handleSaveAll} className="sm:self-end">
-                {isPending ? "Menyimpan..." : (
-                  <>
-                    <Save className="mr-2 size-4" />
-                    Simpan Semua ({rows.length})
-                  </>
-                )}
+                <span className="flex items-center gap-2">
+                  <Save className={`size-4 ${isPending ? "hidden" : "block"}`} />
+                  <span>{isPending ? "Menyimpan..." : `Simpan Semua (${rows.length})`}</span>
+                </span>
               </Button>
             )}
           </div>

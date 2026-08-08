@@ -176,7 +176,9 @@ export function DocumentsPageView({
   const handleArchiveDialogOpenChange = (open: boolean) => {
     setIsArchiveDialogOpen(open);
     if (!open) {
-      setArchiveTarget(null);
+      window.setTimeout(() => {
+        setArchiveTarget(null);
+      }, 200);
     }
   };
 
@@ -187,8 +189,10 @@ export function DocumentsPageView({
       if (result.ok) {
         toast.success(`Dokumen "${document.title}" berhasil dihapus.`);
         setIsArchiveDialogOpen(false);
-        setArchiveTarget(null);
-        router.refresh();
+        window.setTimeout(() => {
+          setArchiveTarget(null);
+          router.refresh();
+        }, 200);
         return result;
       }
 
