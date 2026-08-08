@@ -25,8 +25,8 @@ type ImportResult = {
 };
 
 const EMPLOYEE_IMPORT_TEMPLATE = [
-  "email;name;employeeId;nik;role;gender;birthPlace;birthDate;academicDegree;lastEducation;religion;maritalStatus;phone;address;joinDate;employmentStatusId;employeeGroupId;employeePositionId;employeeRankId;workplaceId",
-  "pegawai@example.com;Andri Saputra, S.Ked.;198501012010011001;7471010101010001;EMPLOYEE;Laki-laki;Kendari;1990-01-01;S.Ked.;S1;Islam;Kawin;081234567890;Jl. Contoh No. 1;2020-01-01;;;;;",
+  "email;name;employeeId;nik;role;gender;birthPlace;birthDate;academicDegree;lastEducation;religion;maritalStatus;phone;address;joinDate;employeeGroupId;employeePositionId;employeeRankId;workplaceId",
+  "pegawai@example.com;Andri Saputra, S.Ked.;198501012010011001;7471010101010001;EMPLOYEE;Laki-laki;Kendari;1990-01-01;S.Ked.;S1;Islam;Kawin;081234567890;Jl. Contoh No. 1;2020-01-01;;;;",
 ].join("\n");
 
 export function EmployeeCsvImportDialog() {
@@ -112,7 +112,7 @@ export function EmployeeCsvImportDialog() {
             </p>
             <p className="mt-2">
               Kolom opsional: <code>role</code>, <code>gender</code>, <code>birthDate</code>, <code>phone</code>,
-              <code>address</code>, <code>employmentStatusId</code>, <code>employeeGroupId</code>,
+              <code>address</code>, <code>employeeGroupId</code>,
               <code>employeePositionId</code>, <code>employeeRankId</code>, <code>workplaceId</code>.
             </p>
           </div>

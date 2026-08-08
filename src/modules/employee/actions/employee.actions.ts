@@ -276,6 +276,72 @@ export async function importEmployeesAction(formData: FormData) {
   }
 }
 
+export async function bulkCreateEmployeesAction(employees: any[]) {
+  try {
+    const session = await requireAuth("ADMIN");
+    const actorName = await getActorDisplayName(session.userId, "Admin");
+
+    let importedCount = 0;
+    let failedCount = 0;
+    const errors: Array<{ row: number; error: string }> = [];
+
+    for (let i = 0; i < employees.length; i++) {
+      const row = employees[i];
+      const rowNum = i + 1;
+
+      try {
+        if (!row.email || !row.name) {
+          throw new Error("Email dan Nama wajib diisi");
+        }
+        if (!row.employeeId && !row.nik) {
+          throw new Error("NIP atau NIK wajib diisi");
+        }
+
+        await handleEmployeeCrud(
+          "CREATE",
+          undefined,
+          {
+            email: row.email,
+            name: row.name,
+            role: row.role || "EMPLOYEE",
+            employeeId: row.employeeId || null,
+            nik: row.nik || null,
+            gender: row.gender || null,
+            birthPlace: row.birthPlace || null,
+            birthDate: row.birthDate || null,
+            academicDegree: row.academicDegree || null,
+            lastEducation: row.lastEducation || null,
+            religion: row.religion || null,
+            maritalStatus: row.maritalStatus || null,
+            phone: row.phone || null,
+            address: row.address || null,
+            joinDate: row.joinDate || null,
+            employmentStatusId: row.employmentStatusId || null,
+            employeeGroupId: row.employeeGroupId || null,
+            employeePositionId: row.employeePositionId || null,
+            employeeRankId: row.employeeRankId || null,
+            workplaceId: row.workplaceId || null,
+            status: row.status || "ACTIVE",
+          },
+          session.userId,
+          actorName,
+          session.role
+        );
+
+        importedCount++;
+      } catch (err: any) {
+        failedCount++;
+        errors.push({ row: rowNum, error: err.message });
+      }
+    }
+
+    return { ok: true as const, data: { importedCount, failedCount, errors } };
+  } catch (error: any) {
+    console.error("bulkCreateEmployeesAction error:", error);
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+  }
+}
+
 export async function getMasterDataListAction(
   entityType: string,
   query?: unknown

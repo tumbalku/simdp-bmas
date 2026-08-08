@@ -7,3 +7,4 @@ export * from "./MasterDataEmployeeForm";
 export * from "./MasterDataEmployeesView";
 export * from "./ProfileEditDialog";
 export * from "./ProfilePageView";
+export * from "./EmployeeImportView";

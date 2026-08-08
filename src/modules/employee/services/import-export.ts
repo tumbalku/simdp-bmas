@@ -84,7 +84,7 @@ export async function importFromCsv(
           email: row.email,
           name: row.name,
           role: row.role || "EMPLOYEE",
-          employeeId: row.employeeId || null,
+          employeeId: row.employeeId || row.nip || null,
           nik: row.nik || null,
           gender: canonicalGender(row.gender),
           birthPlace: row.birthPlace || null,
