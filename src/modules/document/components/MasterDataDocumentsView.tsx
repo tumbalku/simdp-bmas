@@ -118,7 +118,7 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
   const handleCriticalActionDialogOpenChange = (open: boolean) => {
     setIsCriticalActionDialogOpen(open);
     if (!open) {
-      window.setTimeout(() => setCriticalActionTarget(null), 200);
+      setCriticalActionTarget(null);
     }
   };
 
@@ -216,6 +216,8 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
             ? `Dokumen "${doc.title}" berhasil dipulihkan.`
             : `Dokumen "${doc.title}" berhasil dihapus.`,
         );
+        setIsCriticalActionDialogOpen(false);
+        setCriticalActionTarget(null);
         router.refresh();
         return result;
       }
@@ -238,6 +240,8 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
 
       if (result.ok) {
         toast.success(`Dokumen "${doc.title}" berhasil dihapus permanen.`);
+        setIsCriticalActionDialogOpen(false);
+        setCriticalActionTarget(null);
         router.refresh();
         return result;
       }
@@ -654,15 +658,22 @@ export function MasterDataDocumentsView({ documents, pagination, archiveView, do
         </div>
       )}
 
-      {criticalActionDialogProps ? (
-        <CriticalActionVerificationDialog
-          open={isCriticalActionDialogOpen}
-          onOpenChange={handleCriticalActionDialogOpenChange}
-          isPending={isActionPending}
-          onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
-          {...criticalActionDialogProps}
-        />
-      ) : null}
+      <CriticalActionVerificationDialog
+        open={isCriticalActionDialogOpen}
+        onOpenChange={handleCriticalActionDialogOpenChange}
+        isPending={isActionPending}
+        onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
+        title={criticalActionDialogProps?.title ?? ""}
+        description={criticalActionDialogProps?.description ?? ""}
+        actionLabel={criticalActionDialogProps?.actionLabel ?? ""}
+        targetLabel={criticalActionDialogProps?.targetLabel ?? ""}
+        targetValue={criticalActionDialogProps?.targetValue ?? ""}
+        confirmationPhrase={criticalActionDialogProps?.confirmationPhrase ?? ""}
+        impacts={criticalActionDialogProps?.impacts}
+        tone={criticalActionDialogProps?.tone}
+        icon={criticalActionDialogProps?.icon}
+        onConfirm={criticalActionDialogProps?.onConfirm ?? (() => {})}
+      />
     </div>
   );
 }

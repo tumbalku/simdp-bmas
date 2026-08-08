@@ -48,7 +48,7 @@ import {
   type EmployeeDirectoryFilterOptions,
   type EmployeeDirectoryFilterValues,
 } from "./EmployeeDirectoryFilter";
-import { EmployeeCsvImportDialog } from "./EmployeeCsvImportDialog";
+import { FileUp } from "lucide-react";
 
 type ViewMode = "grid" | "list";
 type CriticalEmployeeAction = "archive" | "restore" | "permanent-delete";
@@ -340,6 +340,8 @@ export function MasterDataEmployeesView({
             ? `Pegawai "${employee.name}" berhasil dipulihkan.`
             : `Pegawai "${employee.name}" berhasil diarsipkan.`,
         );
+        setIsCriticalActionDialogOpen(false);
+        setCriticalActionTarget(null);
         router.refresh();
       }
 
@@ -363,6 +365,8 @@ export function MasterDataEmployeesView({
 
       if (result.ok) {
         toast.success(`Pegawai "${employee.name}" berhasil dihapus permanen.`);
+        setIsCriticalActionDialogOpen(false);
+        setCriticalActionTarget(null);
         router.refresh();
       }
 
@@ -452,7 +456,7 @@ export function MasterDataEmployeesView({
   const handleCriticalActionDialogOpenChange = (open: boolean) => {
     setIsCriticalActionDialogOpen(open);
     if (!open) {
-      window.setTimeout(() => setCriticalActionTarget(null), 200);
+      setCriticalActionTarget(null);
     }
   };
 
@@ -500,24 +504,24 @@ export function MasterDataEmployeesView({
     </div>
   );
 
-  const verificationDialog = criticalActionDialogProps ? (
+  const verificationDialog = (
     <CriticalActionVerificationDialog
       open={isCriticalActionDialogOpen}
       onOpenChange={handleCriticalActionDialogOpenChange}
-      title={criticalActionDialogProps.title}
-      description={criticalActionDialogProps.description}
-      actionLabel={criticalActionDialogProps.actionLabel}
-      targetLabel={criticalActionDialogProps.targetLabel}
-      targetValue={criticalActionDialogProps.targetValue}
-      confirmationPhrase={criticalActionDialogProps.confirmationPhrase}
-      impacts={criticalActionDialogProps.impacts}
-      tone={criticalActionDialogProps.tone}
-      icon={criticalActionDialogProps.icon}
+      title={criticalActionDialogProps?.title ?? ""}
+      description={criticalActionDialogProps?.description ?? ""}
+      actionLabel={criticalActionDialogProps?.actionLabel ?? ""}
+      targetLabel={criticalActionDialogProps?.targetLabel ?? ""}
+      targetValue={criticalActionDialogProps?.targetValue ?? ""}
+      confirmationPhrase={criticalActionDialogProps?.confirmationPhrase ?? ""}
+      impacts={criticalActionDialogProps?.impacts}
+      tone={criticalActionDialogProps?.tone}
+      icon={criticalActionDialogProps?.icon}
       isPending={pendingEmployeeId === criticalActionTarget?.employee.id}
       onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
-      onConfirm={criticalActionDialogProps.onConfirm}
+      onConfirm={criticalActionDialogProps?.onConfirm ?? (() => {})}
     />
-  ) : null;
+  );
 
   const employeeColumns: DataTableColumn<EmployeeSummary>[] = [
     {
@@ -691,7 +695,10 @@ export function MasterDataEmployeesView({
         description="Kelola direktori pegawai, akun, unit kerja, dan ringkasan dokumen."
         trailing={
           <>
-            <EmployeeCsvImportDialog />
+            <Link className={buttonVariants({ variant: "outline" })} href="/master-data/employees/imports">
+              <FileUp className="size-3.5" />
+              Import CSV
+            </Link>
             <Link className={buttonVariants({ variant: "outline" })} href={buildExportUrl()}>
               <FileDown className="size-3.5" />
               Export CSV

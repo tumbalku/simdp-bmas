@@ -176,7 +176,7 @@ export function DocumentsPageView({
   const handleArchiveDialogOpenChange = (open: boolean) => {
     setIsArchiveDialogOpen(open);
     if (!open) {
-      window.setTimeout(() => setArchiveTarget(null), 200);
+      setArchiveTarget(null);
     }
   };
 
@@ -186,6 +186,8 @@ export function DocumentsPageView({
       const result = await softDeleteDocumentAction(document.id);
       if (result.ok) {
         toast.success(`Dokumen "${document.title}" berhasil dihapus.`);
+        setIsArchiveDialogOpen(false);
+        setArchiveTarget(null);
         router.refresh();
         return result;
       }
@@ -419,28 +421,26 @@ export function DocumentsPageView({
         </div>
       )}
 
-      {archiveTarget ? (
-        <CriticalActionVerificationDialog
-          open={isArchiveDialogOpen}
-          onOpenChange={handleArchiveDialogOpenChange}
-          title="Verifikasi hapus dokumen"
-          description="Tindakan ini membutuhkan verifikasi sebelum dokumen dihapus."
-          actionLabel="Hapus"
-          targetLabel="dokumen aktif"
-          targetValue={archiveTarget.fileName}
-          confirmationPhrase={archiveTarget.fileName}
-          impacts={[
-            "Dokumen akan terhapus.",
-            "Harus menghubungi ADMIN jika tidak sengaja menghapus dokumen.",
-            "Aktivitas penghapusan akan dicatat di audit.",
-          ]}
-          tone="destructive"
-          icon={<Trash2 className="size-4" />}
-          isPending={isActionPending}
-          onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
-          onConfirm={() => handleArchive(archiveTarget)}
-        />
-      ) : null}
+      <CriticalActionVerificationDialog
+        open={isArchiveDialogOpen}
+        onOpenChange={handleArchiveDialogOpenChange}
+        title="Verifikasi hapus dokumen"
+        description="Tindakan ini membutuhkan verifikasi sebelum dokumen dihapus."
+        actionLabel="Hapus"
+        targetLabel="dokumen aktif"
+        targetValue={archiveTarget?.fileName ?? ""}
+        confirmationPhrase={archiveTarget?.fileName ?? ""}
+        impacts={[
+          "Dokumen akan terhapus.",
+          "Harus menghubungi ADMIN jika tidak sengaja menghapus dokumen.",
+          "Aktivitas penghapusan akan dicatat di audit.",
+        ]}
+        tone="destructive"
+        icon={<Trash2 className="size-4" />}
+        isPending={isActionPending}
+        onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
+        onConfirm={archiveTarget ? () => handleArchive(archiveTarget) : () => {}}
+      />
     </div>
   );
 }

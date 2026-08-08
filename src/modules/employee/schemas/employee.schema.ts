@@ -75,6 +75,35 @@ export const crudEmployeeSchema = z.object({
     .optional(),
 });
 
+export const bulkCreateEmployeeRowSchema = z.object({
+  email: z.string().email("Format email tidak valid"),
+  name: z.string().min(1, "Nama wajib diisi"),
+  role: z.enum(["ADMIN", "STAFF", "EMPLOYEE"]).optional().default("EMPLOYEE"),
+  employeeId: z.string().nullable().optional(),
+  nik: z.string().nullable().optional(),
+  gender: genderSchema.nullable().optional(),
+  birthPlace: z.string().nullable().optional(),
+  birthDate: z.string().nullable().optional(),
+  academicDegree: z.string().nullable().optional(),
+  lastEducation: z.string().nullable().optional(),
+  religion: religionSchema.nullable().optional(),
+  maritalStatus: maritalStatusSchema.nullable().optional(),
+  phone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  joinDate: z.string().nullable().optional(),
+  employmentStatusId: z.string().nullable().optional(),
+  employeeGroupId: z.string().nullable().optional(),
+  employeePositionId: z.string().nullable().optional(),
+  employeeRankId: z.string().nullable().optional(),
+  workplaceId: z.string().nullable().optional(),
+  status: employeeStatusSchema.optional().default("ACTIVE"),
+}).refine((data) => data.employeeId || data.nik, {
+  message: "NIP atau NIK wajib diisi",
+  path: ["employeeId"],
+});
+
+export const bulkCreateEmployeesSchema = z.array(bulkCreateEmployeeRowSchema).min(1, "Minimal harus ada 1 pegawai untuk di-import").max(100, "Maksimal import adalah 100 pegawai sekaligus");
+
 export const addCareerHistorySchema = z.object({
   employeeId: z.string().min(1, "ID pegawai wajib diisi"),
   employmentStatusId: z.string().optional().nullable(),

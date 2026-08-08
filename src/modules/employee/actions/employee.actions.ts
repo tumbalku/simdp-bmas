@@ -24,6 +24,7 @@ import {
   employeeDirectorySchema,
   employeeDirectoryWithPaginationSchema,
   masterDataListQuerySchema,
+  bulkCreateEmployeesSchema,
 } from "../schema";
 
 export async function getEmployeeDirectoryAction(filter?: unknown) {
@@ -272,6 +273,77 @@ export async function importEmployeesAction(formData: FormData) {
     return { ok: true as const, data: result };
   } catch (error: any) {
     console.error("importEmployeesAction error:", error);
+    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+  }
+}
+
+export async function bulkCreateEmployeesAction(employees: any[]) {
+  try {
+    const session = await requireAuth("ADMIN");
+    const actorName = await getActorDisplayName(session.userId, "Admin");
+
+    const parsed = bulkCreateEmployeesSchema.safeParse(employees);
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Data input tidak valid: " + parsed.error.issues.map(i => i.message).join(", "),
+        },
+      };
+    }
+
+    const validatedEmployees = parsed.data;
+    let importedCount = 0;
+    let failedCount = 0;
+    const errors: Array<{ row: number; error: string }> = [];
+
+    for (let i = 0; i < validatedEmployees.length; i++) {
+      const row = validatedEmployees[i];
+      const rowNum = i + 1;
+
+      try {
+        await handleEmployeeCrud(
+          "CREATE",
+          undefined,
+          {
+            email: row.email,
+            name: row.name,
+            role: row.role,
+            employeeId: row.employeeId || null,
+            nik: row.nik || null,
+            gender: row.gender || null,
+            birthPlace: row.birthPlace || null,
+            birthDate: row.birthDate || null,
+            academicDegree: row.academicDegree || null,
+            lastEducation: row.lastEducation || null,
+            religion: row.religion || null,
+            maritalStatus: row.maritalStatus || null,
+            phone: row.phone || null,
+            address: row.address || null,
+            joinDate: row.joinDate || null,
+            employmentStatusId: row.employmentStatusId || null,
+            employeeGroupId: row.employeeGroupId || null,
+            employeePositionId: row.employeePositionId || null,
+            employeeRankId: row.employeeRankId || null,
+            workplaceId: row.workplaceId || null,
+            status: row.status,
+          },
+          session.userId,
+          actorName,
+          session.role
+        );
+
+        importedCount++;
+      } catch (err: any) {
+        failedCount++;
+        errors.push({ row: rowNum, error: err.message });
+      }
+    }
+
+    return { ok: true as const, data: { importedCount, failedCount, errors } };
+  } catch (error: any) {
+    console.error("bulkCreateEmployeesAction error:", error);
     return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
   }
 }
