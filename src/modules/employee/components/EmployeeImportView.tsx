@@ -30,8 +30,6 @@ type MasterDataRecord = {
 type Props = {
   employmentStatuses: MasterDataRecord[];
   employeeGroups: (MasterDataRecord & { employmentStatusId: string })[];
-  professionGroups: MasterDataRecord[];
-  employeePositions: (MasterDataRecord & { professionGroupId: string })[];
   employeeRanks: MasterDataRecord[];
   workplaces: MasterDataRecord[];
 };
@@ -61,6 +59,8 @@ type ImportRow = {
   status: "ACTIVE" | "RETIRED" | "STUDY_ASSIGNMENT";
   error?: string;
 };
+
+const SELECT_CLASS = "w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50";
 
 const EMPLOYEE_IMPORT_TEMPLATE = [
   "email;name;nip;nik;gender;birthPlace;birthDate;academicDegree;lastEducation;religion;maritalStatus;phone;address;joinDate",
@@ -168,7 +168,7 @@ export function EmployeeImportView({
         });
 
         newRows.push({
-          tempId: Math.random().toString(36).substring(7),
+          tempId: crypto.randomUUID(),
           email: rowData.email || "",
           name: rowData.name || "",
           employeeId: rowData.employeeId || rowData.nip || "",
@@ -206,7 +206,7 @@ export function EmployeeImportView({
     setRows((prev) => [
       ...prev,
       {
-        tempId: Math.random().toString(36).substring(7),
+        tempId: crypto.randomUUID(),
         email: "",
         name: "",
         employeeId: "",
@@ -235,6 +235,12 @@ export function EmployeeImportView({
   const handleUpdateRow = (tempId: string, field: keyof ImportRow, value: string | "ADMIN" | "STAFF" | "EMPLOYEE" | "ACTIVE" | "RETIRED" | "STUDY_ASSIGNMENT") => {
     setRows((prev) =>
       prev.map((row) => (row.tempId === tempId ? { ...row, [field]: value, error: undefined } : row))
+    );
+  };
+
+  const handleUpdateMultipleFields = (tempId: string, updates: Partial<ImportRow>) => {
+    setRows((prev) =>
+      prev.map((row) => (row.tempId === tempId ? { ...row, ...updates, error: undefined } : row))
     );
   };
 
@@ -340,7 +346,7 @@ export function EmployeeImportView({
                 Gunakan template CSV resmi agar pemetaan data kolom tidak salah saat diunggah.
               </p>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={handleDownloadTemplate}>
+            <Button type="button" variant="outline" size="sm" onClick={handleDownloadTemplate} disabled={isPending}>
               <Download className="mr-2 size-4" />
               Download Template
             </Button>
@@ -362,8 +368,9 @@ export function EmployeeImportView({
                   accept=".csv,text/csv"
                   onChange={handleFileChange}
                   className="max-w-xs"
+                  disabled={isPending}
                 />
-                <Button type="button" variant="outline" onClick={handleAddRow}>
+                <Button type="button" variant="outline" onClick={handleAddRow} disabled={isPending}>
                   <Plus className="mr-2 size-4" />
                   Tambah Manual
                 </Button>
@@ -414,6 +421,7 @@ export function EmployeeImportView({
                             onChange={(e) => handleUpdateRow(row.tempId, "name", e.target.value)}
                             placeholder="Nama lengkap pegawai"
                             className="h-8 text-xs"
+                            disabled={isPending}
                           />
                         </TableCell>
                         <TableCell>
@@ -423,6 +431,7 @@ export function EmployeeImportView({
                             onChange={(e) => handleUpdateRow(row.tempId, "email", e.target.value)}
                             placeholder="alamat.email@contoh.com"
                             className="h-8 text-xs"
+                            disabled={isPending}
                           />
                         </TableCell>
                         <TableCell>
@@ -431,6 +440,7 @@ export function EmployeeImportView({
                             onChange={(e) => handleUpdateRow(row.tempId, "employeeId", e.target.value)}
                             placeholder="NIP"
                             className="h-8 text-xs"
+                            disabled={isPending}
                           />
                         </TableCell>
                         <TableCell>
@@ -439,13 +449,15 @@ export function EmployeeImportView({
                             onChange={(e) => handleUpdateRow(row.tempId, "nik", e.target.value)}
                             placeholder="NIK"
                             className="h-8 text-xs"
+                            disabled={isPending}
                           />
                         </TableCell>
                         <TableCell>
                           <select
                             value={row.gender || ""}
                             onChange={(e) => handleUpdateRow(row.tempId, "gender", e.target.value)}
-                            className="w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring"
+                            className={SELECT_CLASS}
+                            disabled={isPending}
                           >
                             <option value="">Pilih...</option>
                             {GENDER_OPTIONS.map((opt) => (
@@ -459,10 +471,13 @@ export function EmployeeImportView({
                           <select
                             value={row.employmentStatusId || ""}
                             onChange={(e) => {
-                              handleUpdateRow(row.tempId, "employmentStatusId", e.target.value);
-                              handleUpdateRow(row.tempId, "employeeGroupId", "");
+                              handleUpdateMultipleFields(row.tempId, {
+                                employmentStatusId: e.target.value,
+                                employeeGroupId: "",
+                              });
                             }}
-                            className="w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring"
+                            className={SELECT_CLASS}
+                            disabled={isPending}
                           >
                             <option value="">Pilih...</option>
                             {employmentStatuses.map((item) => (
@@ -476,8 +491,8 @@ export function EmployeeImportView({
                           <select
                             value={row.employeeGroupId || ""}
                             onChange={(e) => handleUpdateRow(row.tempId, "employeeGroupId", e.target.value)}
-                            disabled={!row.employmentStatusId}
-                            className="w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
+                            disabled={!row.employmentStatusId || isPending}
+                            className={SELECT_CLASS}
                           >
                             <option value="">
                               {!row.employmentStatusId ? "Pilih status kepegawaian dulu" : "Pilih..."}
@@ -495,7 +510,8 @@ export function EmployeeImportView({
                           <select
                             value={row.employeeRankId || ""}
                             onChange={(e) => handleUpdateRow(row.tempId, "employeeRankId", e.target.value)}
-                            className="w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring"
+                            className={SELECT_CLASS}
+                            disabled={isPending}
                           >
                             <option value="">Pilih...</option>
                             {employeeRanks.map((item) => (
@@ -509,7 +525,8 @@ export function EmployeeImportView({
                           <select
                             value={row.workplaceId || ""}
                             onChange={(e) => handleUpdateRow(row.tempId, "workplaceId", e.target.value)}
-                            className="w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring"
+                            className={SELECT_CLASS}
+                            disabled={isPending}
                           >
                             <option value="">Pilih...</option>
                             {workplaces.map((item) => (
@@ -526,6 +543,7 @@ export function EmployeeImportView({
                             size="icon"
                             className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                             onClick={() => handleRemoveRow(row.tempId)}
+                            disabled={isPending}
                           >
                             <Trash2 className="size-4" />
                           </Button>

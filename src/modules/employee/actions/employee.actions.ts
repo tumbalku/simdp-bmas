@@ -24,6 +24,7 @@ import {
   employeeDirectorySchema,
   employeeDirectoryWithPaginationSchema,
   masterDataListQuerySchema,
+  bulkCreateEmployeesSchema,
 } from "../schema";
 
 export async function getEmployeeDirectoryAction(filter?: unknown) {
@@ -281,29 +282,34 @@ export async function bulkCreateEmployeesAction(employees: any[]) {
     const session = await requireAuth("ADMIN");
     const actorName = await getActorDisplayName(session.userId, "Admin");
 
+    const parsed = bulkCreateEmployeesSchema.safeParse(employees);
+    if (!parsed.success) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Data input tidak valid: " + parsed.error.issues.map(i => i.message).join(", "),
+        },
+      };
+    }
+
+    const validatedEmployees = parsed.data;
     let importedCount = 0;
     let failedCount = 0;
     const errors: Array<{ row: number; error: string }> = [];
 
-    for (let i = 0; i < employees.length; i++) {
-      const row = employees[i];
+    for (let i = 0; i < validatedEmployees.length; i++) {
+      const row = validatedEmployees[i];
       const rowNum = i + 1;
 
       try {
-        if (!row.email || !row.name) {
-          throw new Error("Email dan Nama wajib diisi");
-        }
-        if (!row.employeeId && !row.nik) {
-          throw new Error("NIP atau NIK wajib diisi");
-        }
-
         await handleEmployeeCrud(
           "CREATE",
           undefined,
           {
             email: row.email,
             name: row.name,
-            role: row.role || "EMPLOYEE",
+            role: row.role,
             employeeId: row.employeeId || null,
             nik: row.nik || null,
             gender: row.gender || null,
@@ -321,7 +327,7 @@ export async function bulkCreateEmployeesAction(employees: any[]) {
             employeePositionId: row.employeePositionId || null,
             employeeRankId: row.employeeRankId || null,
             workplaceId: row.workplaceId || null,
-            status: row.status || "ACTIVE",
+            status: row.status,
           },
           session.userId,
           actorName,

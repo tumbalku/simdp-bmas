@@ -175,6 +175,9 @@ export function DocumentsPageView({
 
   const handleArchiveDialogOpenChange = (open: boolean) => {
     setIsArchiveDialogOpen(open);
+    if (!open) {
+      setArchiveTarget(null);
+    }
   };
 
   const handleArchive = async (document: DocumentRecordListItem) => {
@@ -184,9 +187,8 @@ export function DocumentsPageView({
       if (result.ok) {
         toast.success(`Dokumen "${document.title}" berhasil dihapus.`);
         setIsArchiveDialogOpen(false);
-        window.setTimeout(() => {
-          router.refresh();
-        }, 100);
+        setArchiveTarget(null);
+        router.refresh();
         return result;
       }
 
