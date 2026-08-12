@@ -84,12 +84,12 @@ function renderRows(rows: EmployeeDirectoryPdfRow[]) {
           <td class="col-name">${escapeHtml(row.name)}</td>
           <td class="col-nip">${escapeHtml(row.employeeId)}</td>
           <td class="col-nik">${escapeHtml(row.nik)}</td>
-          <td>${escapeHtml(row.rank)}</td>
-          <td>${escapeHtml(row.position)}</td>
-          <td>${escapeHtml(row.workplace)}</td>
-          <td>${escapeHtml(formatBirth(row))}</td>
+          <td class="col-rank">${escapeHtml(row.rank)}</td>
+          <td class="col-position">${escapeHtml(row.position)}</td>
+          <td class="col-workplace">${escapeHtml(row.workplace)}</td>
+          <td class="col-birth">${escapeHtml(formatBirth(row))}</td>
           <td class="col-education">${escapeHtml(row.lastEducation)}</td>
-          <td>${escapeHtml(formatStatus(row))}</td>
+          <td class="col-status">${escapeHtml(formatStatus(row))}</td>
           <td class="col-tmt">${escapeHtml(row.tmt)}</td>
           <td class="col-gender">${escapeHtml(row.gender)}</td>
         </tr>
@@ -222,8 +222,13 @@ export function renderEmployeeDirectoryPdfHtml(
       font-weight: 500;
     }
     tbody tr:nth-child(even) td { background: #f8fafc; }
-    .col-no { width: 25px; text-align: center; }
-    .col-name { font-weight: 700; }
+    .col-no { 
+      width: 25px; 
+      text-align: center;
+    }
+    .col-name { 
+      font-weight: 700;
+    }
     .col-nip {
       font-size: 8px;
       line-height: 1.08;
@@ -236,13 +241,42 @@ export function renderEmployeeDirectoryPdfHtml(
       white-space: nowrap;
       text-align: center;
     }
-    .col-gender {
+    .col-rank {
       font-size: 8px;
-      line-height: 1.08;
-      text-align: center;
-      white-space: nowrap;
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-position {
+      font-size: 8px;
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-workplace {
+      font-size: 8px;
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-birth {
+      font-size: 8px;
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     .col-education {
+      font-size: 8px;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-status {
       font-size: 8px;
       text-align: center;
       white-space: normal;
@@ -255,6 +289,12 @@ export function renderEmployeeDirectoryPdfHtml(
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
+    }
+    .col-gender {
+      font-size: 8px;
+      line-height: 1.08;
+      text-align: center;
+      white-space: nowrap;
     }
     .compact-header {
       line-height: 1.08;
