@@ -33,8 +33,23 @@ export async function findEmployeesWithPagination(
   where: any,
   skip: number,
   take: number,
+  sortBy?: string,
+  sortOrder?: "asc" | "desc",
   tx?: PrismaClientOrTx
 ) {
+  let orderBy: any = { name: "asc" };
+
+  if (sortBy && sortOrder) {
+    if (sortBy === "name") {
+      orderBy = { name: sortOrder };
+    } else if (sortBy === "workplace") {
+      orderBy = { workplace: { name: sortOrder } };
+    } else if (sortBy === "documentCount") {
+      orderBy = { documentRecords: { _count: sortOrder } };
+    }
+    // Ignore invalid sortBy values - keep default ordering
+  }
+
   return getClient(tx).employee.findMany({
     where,
     include: {
@@ -43,7 +58,7 @@ export async function findEmployeesWithPagination(
       workplace: { select: { name: true } },
       _count: { select: { documentRecords: true } },
     },
-    orderBy: { name: "asc" },
+    orderBy,
     skip,
     take,
   });

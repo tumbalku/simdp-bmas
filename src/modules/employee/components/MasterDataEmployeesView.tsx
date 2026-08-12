@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Archive, Eye, FileDown, FileText, Pencil, RotateCcw, Trash2, UserPlus, Users } from "lucide-react";
+import { Archive, Eye, FileDown, FileText, Pencil, RotateCcw, Trash2, UserPlus, Users, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
@@ -33,6 +33,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -51,7 +57,13 @@ import {
 import { FileUp } from "lucide-react";
 
 type ViewMode = "grid" | "list";
-type CriticalEmployeeAction = "archive" | "restore" | "permanent-delete";
+type CriticalEmployeeAction = 
+  | "archive" 
+  | "restore" 
+  | "permanent-delete"
+  | "bulk-archive"
+  | "bulk-restore"
+  | "bulk-delete";
 
 type OfficialForm = {
   employeeId: string;
@@ -101,6 +113,8 @@ type MasterDataEmployeesViewProps = {
     position: string | null;
     rank: string | null;
   }>;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 };
 
 const FILTER_KEYS = [
@@ -147,6 +161,8 @@ export function MasterDataEmployeesView({
   archiveView,
   filterOptions,
   directorOptions,
+  sortBy,
+  sortOrder,
 }: MasterDataEmployeesViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -154,6 +170,9 @@ export function MasterDataEmployeesView({
   const [isCriticalActionDialogOpen, setIsCriticalActionDialogOpen] = useState(false);
   const [isExportPdfDialogOpen, setIsExportPdfDialogOpen] = useState(false);
   const [criticalActionTarget, setCriticalActionTarget] = useState<CriticalEmployeeActionTarget | null>(null);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [bulkSecretKey, setBulkSecretKey] = useState("");
+  const [isBulkPending, setIsBulkPending] = useState(false);
   const [officialForm, setOfficialForm] = useState<OfficialForm>({
     employeeId: "",
     name: "",
@@ -173,6 +192,127 @@ export function MasterDataEmployeesView({
 
   const isArchiveView = archiveView === "archived";
 
+  // Reset selection when archive view changes
+  useEffect(() => {
+    setSelectedEmployeeIds([]);
+  }, [isArchiveView]);
+
+  const generateRandomSecretKey = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let key = "";
+    for (let i = 0; i < 12; i++) {
+      key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return key;
+  };
+
+  const handleBulkConfirmArchive = async () => {
+    if (selectedEmployeeIds.length === 0) return;
+    setIsBulkPending(true);
+    try {
+      const results = await Promise.all(
+        selectedEmployeeIds.map((id) => crudEmployeeAction("DELETE", id)),
+      );
+      const failed = results.filter((res) => !res.ok);
+      if (failed.length > 0) {
+        toast.error(`${failed.length} pegawai gagal diarsipkan.`);
+      } else {
+        toast.success(`${selectedEmployeeIds.length} pegawai berhasil diarsipkan.`);
+      }
+      setSelectedEmployeeIds([]);
+      router.refresh();
+    } catch (err) {
+      toast.error("Gagal menjalankan pengarsipan massal.");
+      console.error("Bulk archive error:", err);
+    } finally {
+      setIsBulkPending(false);
+    }
+  };
+
+  const handleBulkConfirmRestore = async () => {
+    if (selectedEmployeeIds.length === 0) return;
+    setIsBulkPending(true);
+    try {
+      const results = await Promise.all(
+        selectedEmployeeIds.map((id) => crudEmployeeAction("RESTORE", id)),
+      );
+      const failed = results.filter((res) => !res.ok);
+      if (failed.length > 0) {
+        toast.error(`${failed.length} pegawai gagal dipulihkan.`);
+      } else {
+        toast.success(`${selectedEmployeeIds.length} pegawai berhasil dipulihkan.`);
+      }
+      setSelectedEmployeeIds([]);
+      router.refresh();
+    } catch (err) {
+      toast.error("Gagal menjalankan pemulihan massal.");
+      console.error("Bulk restore error:", err);
+    } finally {
+      setIsBulkPending(false);
+    }
+  };
+
+  const handleBulkConfirmDelete = async () => {
+    if (selectedEmployeeIds.length === 0) return;
+    setIsBulkPending(true);
+    try {
+      const results = await Promise.all(
+        selectedEmployeeIds.map((id) => crudEmployeeAction("PERMANENT_DELETE", id)),
+      );
+      const failed = results.filter((res) => !res.ok);
+      if (failed.length > 0) {
+        toast.error(`${failed.length} pegawai gagal dihapus permanen.`);
+      } else {
+        toast.success(`${selectedEmployeeIds.length} pegawai berhasil dihapus permanen.`);
+      }
+      setSelectedEmployeeIds([]);
+      router.refresh();
+    } catch (err) {
+      toast.error("Gagal menjalankan hapus massal.");
+      console.error("Bulk delete error:", err);
+    } finally {
+      setIsBulkPending(false);
+    }
+  };
+
+  const handleOpenBulkArchive = () => {
+    setBulkSecretKey(generateRandomSecretKey());
+    setCriticalActionTarget({
+      action: "bulk-archive",
+      employee: { id: "", name: "Semua", employeeId: null, nik: null, gender: null, phone: null, email: null, role: "", status: "", isActive: true, employmentStatus: null, workplace: null, documentCount: 0 },
+    });
+    setIsCriticalActionDialogOpen(true);
+  };
+
+  const handleOpenBulkRestore = () => {
+    setBulkSecretKey(generateRandomSecretKey());
+    setCriticalActionTarget({
+      action: "bulk-restore",
+      employee: { id: "", name: "Semua", employeeId: null, nik: null, gender: null, phone: null, email: null, role: "", status: "", isActive: true, employmentStatus: null, workplace: null, documentCount: 0 },
+    });
+    setIsCriticalActionDialogOpen(true);
+  };
+
+  const handleOpenBulkDelete = () => {
+    setBulkSecretKey(generateRandomSecretKey());
+    setCriticalActionTarget({
+      action: "bulk-delete",
+      employee: { id: "", name: "Semua", employeeId: null, nik: null, gender: null, phone: null, email: null, role: "", status: "", isActive: true, employmentStatus: null, workplace: null, documentCount: 0 },
+    });
+    setIsCriticalActionDialogOpen(true);
+  };
+
+  const handleSortChange = (
+    nextSortBy: string,
+    nextSortOrder: "asc" | "desc",
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("sortBy", nextSortBy);
+    params.set("sortOrder", nextSortOrder);
+    params.set("page", "1");
+    router.push(`/master-data/employees?${params.toString()}`);
+  };
+
   const buildPageUrl = (
     page: number,
     nextFilters = filters,
@@ -184,6 +324,8 @@ export function MasterDataEmployeesView({
     params.set("limit", limit);
     if (isArchiveView) params.set("archiveView", "archived");
     if (nextViewMode === "grid") params.set("view", "grid");
+    if (sortBy) params.set("sortBy", sortBy);
+    if (sortOrder) params.set("sortOrder", sortOrder);
 
     FILTER_KEYS.forEach((key) => {
       const value = nextFilters[key].trim();
@@ -199,6 +341,8 @@ export function MasterDataEmployeesView({
     params.set("limit", rowsPerPage);
     if (nextArchiveView === "archived") params.set("archiveView", "archived");
     if (viewMode === "grid") params.set("view", "grid");
+    if (sortBy) params.set("sortBy", sortBy);
+    if (sortOrder) params.set("sortOrder", sortOrder);
 
     FILTER_KEYS.forEach((key) => {
       const value = filters[key].trim();
@@ -392,6 +536,66 @@ export function MasterDataEmployeesView({
     const identifier = target.employee.employeeId || target.employee.nik || target.employee.email || target.employee.id;
     const confirmationPhrase = `${employeeName} (${identifier})`;
 
+    if (target.action === "bulk-archive") {
+      return {
+        title: "Verifikasi arsipkan massal pegawai",
+        description: `Tindakan ini membutuhkan verifikasi sebelum ${selectedEmployeeIds.length} pegawai dipindahkan ke arsip.`,
+        actionLabel: "Arsipkan Semua",
+        tone: "destructive" as const,
+        icon: <Archive className="size-4" />,
+        targetLabel: "pegawai terpilih",
+        targetValue: `${selectedEmployeeIds.length} pegawai`,
+        confirmationPhrase: bulkSecretKey,
+        allowCopyPhrase: false,
+        impacts: [
+          `Sebanyak ${selectedEmployeeIds.length} pegawai akan dipindahkan ke arsip.`,
+          "Akun terkait akan dinonaktifkan dan tidak dapat login.",
+          "Aktivitas pengarsipan massal akan dicatat di audit log.",
+        ],
+        onConfirm: handleBulkConfirmArchive,
+      };
+    }
+
+    if (target.action === "bulk-restore") {
+      return {
+        title: "Verifikasi pulihkan massal pegawai",
+        description: `Tindakan ini membutuhkan verifikasi sebelum ${selectedEmployeeIds.length} pegawai arsip dikembalikan ke daftar aktif.`,
+        actionLabel: "Pulihkan Semua",
+        tone: "success" as const,
+        icon: <RotateCcw className="size-4" />,
+        targetLabel: "pegawai terpilih",
+        targetValue: `${selectedEmployeeIds.length} pegawai`,
+        confirmationPhrase: bulkSecretKey,
+        allowCopyPhrase: false,
+        impacts: [
+          `Sebanyak ${selectedEmployeeIds.length} pegawai akan kembali muncul di daftar aktif.`,
+          "Akun terkait akan dipulihkan sesuai data pegawai.",
+          "Aktivitas pemulihan massal akan dicatat di audit log.",
+        ],
+        onConfirm: handleBulkConfirmRestore,
+      };
+    }
+
+    if (target.action === "bulk-delete") {
+      return {
+        title: "Verifikasi hapus permanen massal pegawai",
+        description: `Tindakan ini membutuhkan verifikasi sebelum ${selectedEmployeeIds.length} pegawai dihapus permanen dari sistem.`,
+        actionLabel: "Hapus Semua",
+        tone: "destructive" as const,
+        icon: <Trash2 className="size-4" />,
+        targetLabel: "pegawai terpilih",
+        targetValue: `${selectedEmployeeIds.length} pegawai`,
+        confirmationPhrase: bulkSecretKey,
+        allowCopyPhrase: false,
+        impacts: [
+          `Data dari ${selectedEmployeeIds.length} pegawai akan dihapus permanen dari database.`,
+          "Relasi akun, sesi, riwayat karier, dokumen, verifikasi, dan notifikasi terkait ikut terdampak.",
+          "Aksi ini tidak dapat dibatalkan dan akan dicatat di audit log.",
+        ],
+        onConfirm: handleBulkConfirmDelete,
+      };
+    }
+
     if (target.action === "restore") {
       return {
         title: "Verifikasi pulihkan pegawai",
@@ -520,13 +724,86 @@ export function MasterDataEmployeesView({
       targetLabel={criticalActionDialogProps?.targetLabel ?? ""}
       targetValue={criticalActionDialogProps?.targetValue ?? ""}
       confirmationPhrase={criticalActionDialogProps?.confirmationPhrase ?? ""}
+      allowCopyPhrase={criticalActionDialogProps?.allowCopyPhrase}
       impacts={criticalActionDialogProps?.impacts}
       tone={criticalActionDialogProps?.tone}
       icon={criticalActionDialogProps?.icon}
-      isPending={pendingEmployeeId === criticalActionTarget?.employee.id}
+      isPending={pendingEmployeeId === criticalActionTarget?.employee.id || isBulkPending}
       onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
       onConfirm={criticalActionDialogProps?.onConfirm ?? (() => {})}
     />
+  );
+
+  const renderTableActionsDropdown = () => (
+    <div className="flex items-center gap-2">
+      {selectedEmployeeIds.length > 0 && (
+        <>
+          {isArchiveView ? (
+            <>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                disabled={isBulkPending}
+                onClick={handleOpenBulkDelete}
+              >
+                <Trash2 className="size-3.5" />
+                Hapus Semua
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5 border-success/30 text-success hover:bg-success/10 hover:text-success"
+                disabled={isBulkPending}
+                onClick={handleOpenBulkRestore}
+              >
+                <RotateCcw className="size-3.5" />
+                Pulihkan Semua
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 text-xs gap-1.5"
+              disabled={isBulkPending}
+              onClick={handleOpenBulkArchive}
+            >
+              <Archive className="size-3.5" />
+              Arsipkan Semua
+            </Button>
+          )}
+        </>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+            >
+              <MoreVertical className="size-4" />
+              <span className="sr-only">Menu tabel</span>
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end" className="w-48 mt-1 rounded-lg">
+          <DropdownMenuItem onClick={() => router.push("/master-data/employees/imports")}>
+            <FileUp className="size-4 mr-2" />
+            Import CSV
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push(buildExportUrl())}>
+            <FileDown className="size-4 mr-2" />
+            Export CSV
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setIsExportPdfDialogOpen(true)}>
+            <FileText className="size-4 mr-2" />
+            Export PDF
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 
   const employeeColumns: DataTableColumn<EmployeeSummary>[] = [
@@ -534,6 +811,8 @@ export function MasterDataEmployeesView({
       key: "employee",
       header: "Pegawai",
       headClassName: "w-[300px]",
+      sortable: true,
+      sortKey: "name",
       cell: (emp) => (
         <div className="space-y-0.5">
           <div className="font-semibold text-foreground">{emp.name}</div>
@@ -571,6 +850,8 @@ export function MasterDataEmployeesView({
       key: "workplace",
       header: "Unit Kerja",
       cellClassName: "text-muted-foreground",
+      sortable: true,
+      sortKey: "workplace",
       cell: (emp) => emp.workplace || "-",
     },
     {
@@ -578,6 +859,8 @@ export function MasterDataEmployeesView({
       header: "Dokumen",
       headClassName: "w-[100px] text-center",
       cellClassName: "text-center font-medium",
+      sortable: true,
+      sortKey: "documentCount",
       cell: (emp) => emp.documentCount,
     },
     {
@@ -700,24 +983,10 @@ export function MasterDataEmployeesView({
         title="Data Pegawai"
         description="Kelola direktori pegawai, akun, unit kerja, dan ringkasan dokumen."
         trailing={
-          <>
-            <Link className={buttonVariants({ variant: "outline" })} href="/master-data/employees/imports">
-              <FileUp className="size-3.5" />
-              Import CSV
-            </Link>
-            <Link className={buttonVariants({ variant: "outline" })} href={buildExportUrl()}>
-              <FileDown className="size-3.5" />
-              Export CSV
-            </Link>
-            <Button type="button" variant="outline" onClick={() => setIsExportPdfDialogOpen(true)}>
-              <FileText className="size-3.5" />
-              Export PDF
-            </Button>
-            <Link className={buttonVariants()} href="/master-data/employees/add">
-              <UserPlus className="size-3.5" />
-              Tambah Pegawai
-            </Link>
-          </>
+          <Link className={buttonVariants()} href="/master-data/employees/add">
+            <UserPlus className="size-3.5" />
+            Tambah Pegawai
+          </Link>
         }
       />
 
@@ -759,11 +1028,14 @@ export function MasterDataEmployeesView({
               </Link>
             </div>
             {viewMode === "grid" ? (
-              <RowsPerPageControl
-                value={rowsPerPage}
-                onValueChange={handleRowsPerPageChange}
-                options={PAGINATION.pageSizeOptions}
-              />
+              <div className="flex items-center gap-2">
+                <RowsPerPageControl
+                  value={rowsPerPage}
+                  onValueChange={handleRowsPerPageChange}
+                  options={PAGINATION.pageSizeOptions}
+                />
+                {renderTableActionsDropdown()}
+              </div>
             ) : null}
           </div>
         }
@@ -781,12 +1053,19 @@ export function MasterDataEmployeesView({
             label: "Tampilkan",
             suffix: "row",
           }}
+          extraActions={renderTableActionsDropdown()}
           tableMinWidthClassName="min-w-[900px]"
           table={
             <DataTable
               data={employees}
               columns={employeeColumns}
               getRowKey={(emp) => emp.id}
+              selectable={true}
+              selectedIds={selectedEmployeeIds}
+              onSelectionChange={setSelectedEmployeeIds}
+              currentSortBy={sortBy}
+              currentSortOrder={sortOrder}
+              onSortChange={handleSortChange}
               emptyMessage={isArchiveView ? "Tidak ada pegawai arsip yang sesuai pencarian." : "Tidak ada pegawai aktif yang sesuai pencarian."}
               headerClassName="bg-muted/20"
             />
