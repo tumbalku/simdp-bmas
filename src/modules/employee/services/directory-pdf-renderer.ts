@@ -197,7 +197,7 @@ export function renderEmployeeDirectoryPdfHtml(
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
-      border: 2px solid var(--line);
+      border: 1.6px solid var(--line);
     }
     thead { display: table-header-group; }
     tr { break-inside: avoid; page-break-inside: avoid; }
