@@ -5,8 +5,10 @@ import {
   getGenderLabel,
   getMaritalStatusLabel,
   getReligionLabel,
+  mapEmployeeStatusLegacyToCanonical,
   mapGenderLegacyToCanonical,
   mapMaritalStatusLegacyToCanonical,
+  mapReligionLegacyToCanonical,
 } from "../constants";
 
 describe("employee constants label mapping", () => {
@@ -25,5 +27,8 @@ describe("employee constants label mapping", () => {
   it("keeps employee profile display labels Indonesian for other canonical enum fields", () => {
     expect(getEmployeeStatusLabel("ACTIVE")).toBe("Aktif");
     expect(getReligionLabel("ISLAM")).toBe("Islam");
+    expect(getReligionLabel("PROTESTANT")).toBe("Kristen (Protestan)");
+    expect(mapReligionLegacyToCanonical("Kristen (Protestan)")).toBe("PROTESTANT");
+    expect(mapEmployeeStatusLegacyToCanonical("Tugas Belajar (Tubel)")).toBe("STUDY_ASSIGNMENT");
   });
 });
