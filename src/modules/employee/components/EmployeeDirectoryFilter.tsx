@@ -136,7 +136,7 @@ export function EmployeeDirectoryFilter({
               <SelectValue placeholder="Status Kepegawaian" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Status Kepegawaian</SelectItem>
+              <SelectItem value={ALL_VALUE}>Status Kepegawaian</SelectItem>
               {options.employmentStatuses.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
                   {option.name}
@@ -160,7 +160,7 @@ export function EmployeeDirectoryFilter({
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Jenis Kepegawaian</SelectItem>
+              <SelectItem value={ALL_VALUE}>Jenis Kepegawaian</SelectItem>
               {filteredEmployeeGroups.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
                   {option.name}
@@ -180,7 +180,7 @@ export function EmployeeDirectoryFilter({
               <SelectValue placeholder="Kelompok Profesi" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Kelompok Profesi</SelectItem>
+              <SelectItem value={ALL_VALUE}>Kelompok Profesi</SelectItem>
               {options.professionGroups.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
                   {option.name}
@@ -204,7 +204,7 @@ export function EmployeeDirectoryFilter({
               />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Jabatan Pegawai</SelectItem>
+              <SelectItem value={ALL_VALUE}>Jabatan Pegawai</SelectItem>
               {filteredEmployeePositions.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
                   {option.name}
@@ -221,7 +221,7 @@ export function EmployeeDirectoryFilter({
               <SelectValue placeholder="Golongan" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Golongan</SelectItem>
+              <SelectItem value={ALL_VALUE}>Golongan</SelectItem>
               {options.employeeRanks.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
                   {option.name}
@@ -238,7 +238,7 @@ export function EmployeeDirectoryFilter({
               <SelectValue placeholder="Unit Kerja" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Unit Kerja</SelectItem>
+              <SelectItem value={ALL_VALUE}>Unit Kerja</SelectItem>
               {options.workplaces.map((option) => (
                 <SelectItem key={option.id} value={option.id}>
                   {option.name}
@@ -255,7 +255,7 @@ export function EmployeeDirectoryFilter({
               <SelectValue placeholder="Status Pernikahan" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Status Pernikahan</SelectItem>
+              <SelectItem value={ALL_VALUE}>Status Pernikahan</SelectItem>
               {MARITAL_STATUS_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -272,7 +272,7 @@ export function EmployeeDirectoryFilter({
               <SelectValue placeholder="Pendidikan Terakhir" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Pendidikan</SelectItem>
+              <SelectItem value={ALL_VALUE}>Pendidikan Terakhir</SelectItem>
               {EDUCATION_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -289,7 +289,7 @@ export function EmployeeDirectoryFilter({
               <SelectValue placeholder="Status Pegawai" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_VALUE}>Semua Status Pegawai</SelectItem>
+              <SelectItem value={ALL_VALUE}>Status Pegawai</SelectItem>
               {EMPLOYEE_STATUS_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}

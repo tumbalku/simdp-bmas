@@ -401,9 +401,7 @@ describe("Employee Module Service", () => {
       expect(html).toContain("ASN/PNS");
       expect(html).toContain("col-education");
       expect(html).toContain("col-tmt");
-      expect(html).toContain('<col style="width: 7.2%" />');
-      expect(html).toContain('<col style="width: 8%" />');
-      expect(html).toContain('<col style="width: 5.5%" />');
+      expect(html).toContain('<col style="width: 6.2%" />');
       expect(html).not.toContain("Status data:");
       expect(html).not.toContain("Total data sesuai pencarian:");
       expect(html).toContain("Dicetak: 29 Juli 2026 pukul");

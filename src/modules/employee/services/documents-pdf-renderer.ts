@@ -228,7 +228,8 @@ export function renderEmployeeDocumentsPdfHtml(
       overflow-wrap: anywhere;
     }
     table {
-      width: 100%;
+      width: 99.8%;
+      margin: 0 auto;
       border-collapse: collapse;
       table-layout: fixed;
       border: 1.6px solid var(--line);
