@@ -21,7 +21,10 @@ export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {})
 }
 
 export async function getEmployeeDirectoryWithPagination(
-  filter: EmployeeDirectoryFilter = {}
+  filter: EmployeeDirectoryFilter & {
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  } = {}
 ) {
   const page = filter.page || 1;
   const limit = filter.limit || 20;
@@ -30,7 +33,7 @@ export async function getEmployeeDirectoryWithPagination(
   const where = buildEmployeeDirectoryWhere(filter);
 
   const [employees, total] = await Promise.all([
-    repository.findEmployeesWithPagination(where, skip, limit),
+    repository.findEmployeesWithPagination(where, skip, limit, filter.sortBy, filter.sortOrder),
     repository.countEmployees(where),
   ]);
 

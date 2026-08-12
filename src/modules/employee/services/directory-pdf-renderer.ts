@@ -129,8 +129,8 @@ export function renderEmployeeDirectoryPdfHtml(
       color: var(--ink);
       background: #ffffff;
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 8.4px;
-      line-height: 1.14;
+      font-size: 10px;
+      line-height: 1.25;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -203,21 +203,22 @@ export function renderEmployeeDirectoryPdfHtml(
     tr { break-inside: avoid; page-break-inside: avoid; }
     th, td {
       border: .75px solid var(--soft-line);
-      padding: 3px 3px;
+      padding: 5px 4px;
       vertical-align: middle;
       overflow-wrap: anywhere;
     }
     th {
-      height: 29px;
+      height: auto;
+      min-height: 28px;
       text-align: center;
       font-family: "Times New Roman", Times, serif;
-      font-size: 7.5px;
+      font-size: 9px;
       font-weight: 900;
       text-transform: uppercase;
     }
     td {
-      min-height: 18px;
-      font-size: 7px;
+      min-height: 20px;
+      font-size: 8.5px;
       font-weight: 500;
     }
     tbody tr:nth-child(even) td { background: #f8fafc; }
@@ -225,11 +226,11 @@ export function renderEmployeeDirectoryPdfHtml(
     .col-name { font-weight: 700; }
     .col-nip,
     .col-nik {
-      font-size: 6.2px;
+      font-size: 8px;
       line-height: 1.08;
     }
     .col-gender {
-      font-size: 6.4px;
+      font-size: 8px;
       line-height: 1.08;
       text-align: center;
     }
@@ -237,14 +238,14 @@ export function renderEmployeeDirectoryPdfHtml(
       white-space: nowrap;
       overflow-wrap: normal;
       word-break: normal;
-      font-size: 6.4px;
+      font-size: 8px;
       text-align: center;
     }
     .col-tmt {
       white-space: nowrap;
       overflow-wrap: normal;
       word-break: normal;
-      font-size: 5.8px;
+      font-size: 8px;
       text-align: center;
     }
     .compact-header {
