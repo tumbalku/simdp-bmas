@@ -25,15 +25,38 @@ export async function findDocumentRecords(where: any) {
   });
 }
 
-export async function findDocumentRecordsWithPagination(where: any, skip: number, limit: number) {
+export async function findDocumentRecordsWithPagination(
+  where: any,
+  skip: number,
+  limit: number,
+  sortBy?: string,
+  sortOrder?: "asc" | "desc",
+) {
+  let orderBy: any = { uploadedAt: "desc" };
+
+  if (sortBy && sortOrder) {
+    if (sortBy === "name") {
+      orderBy = { owner: { name: sortOrder } };
+    } else if (sortBy === "documentType") {
+      orderBy = { documentType: { name: sortOrder } };
+    } else if (sortBy === "uploadedAt" || sortBy === "expiryDate" || sortBy === "title" || sortBy === "status") {
+      orderBy = { [sortBy]: sortOrder };
+    }
+    // Ignore invalid sortBy values - keep default ordering
+  }
+
   return Promise.all([
     prisma.documentRecord.findMany({
       where,
       include: {
-        documentType: { select: { id: true, name: true, archiveCategory: true } },
-        owner: { select: { id: true, name: true, employeeId: true, nik: true } },
+        documentType: {
+          select: { id: true, name: true, archiveCategory: true },
+        },
+        owner: {
+          select: { id: true, name: true, employeeId: true, nik: true },
+        },
       },
-      orderBy: { uploadedAt: "desc" },
+      orderBy,
       skip,
       take: limit,
     }),
@@ -41,11 +64,31 @@ export async function findDocumentRecordsWithPagination(where: any, skip: number
   ]);
 }
 
-export async function findDocumentRecordsForExport(where: any, take?: number) {
+export async function findDocumentRecordsForExport(
+  where: any,
+  take?: number,
+  sortBy?: string,
+  sortOrder?: "asc" | "desc",
+) {
+  let orderBy: any = [{ owner: { name: "asc" } }, { uploadedAt: "desc" }];
+
+  if (sortBy && sortOrder) {
+    if (sortBy === "name") {
+      orderBy = { owner: { name: sortOrder } };
+    } else if (sortBy === "documentType") {
+      orderBy = { documentType: { name: sortOrder } };
+    } else if (sortBy === "uploadedAt" || sortBy === "expiryDate" || sortBy === "title" || sortBy === "status") {
+      orderBy = { [sortBy]: sortOrder };
+    }
+    // Ignore invalid sortBy values - keep default ordering
+  }
+
   return prisma.documentRecord.findMany({
     where,
     include: {
-      documentType: { select: { id: true, code: true, name: true, archiveCategory: true } },
+      documentType: {
+        select: { id: true, code: true, name: true, archiveCategory: true },
+      },
       owner: {
         select: {
           id: true,
@@ -57,7 +100,7 @@ export async function findDocumentRecordsForExport(where: any, take?: number) {
         },
       },
     },
-    orderBy: [{ owner: { name: "asc" } }, { uploadedAt: "desc" }],
+    orderBy,
     take,
   });
 }
@@ -66,14 +109,32 @@ export async function findDocumentRecordDetailById(documentId: string) {
   return prisma.documentRecord.findUnique({
     where: { id: documentId, deletedAt: null },
     include: {
-      documentType: { select: { id: true, name: true, archiveCategory: true, code: true, description: true } },
-      owner: { select: { id: true, userId: true, name: true, employeeId: true, nik: true } },
+      documentType: {
+        select: {
+          id: true,
+          name: true,
+          archiveCategory: true,
+          code: true,
+          description: true,
+        },
+      },
+      owner: {
+        select: {
+          id: true,
+          userId: true,
+          name: true,
+          employeeId: true,
+          nik: true,
+        },
+      },
       verificationHistories: {
         orderBy: { reviewedAt: "desc" },
-        include: { reviewedBy: { select: { email: true, employee: { select: { name: true } } } } },
+        include: {
+          reviewedBy: {
+            select: { email: true, employee: { select: { name: true } } },
+          },
+        },
       },
     },
   });
 }
-
-

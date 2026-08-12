@@ -1,9 +1,15 @@
 "use client";
 
 import { type ReactNode, useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Loader2, ShieldAlert } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  ShieldAlert,
+} from "lucide-react";
 
 import { isConfirmationPhraseMatch } from "@/modules/verification";
+import { cn } from "@/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,17 +40,23 @@ export type CriticalActionVerificationDialogProps = {
   targetLabel: string;
   targetValue: string;
   confirmationPhrase?: string;
+  allowCopyPhrase?: boolean;
   impacts?: string[];
   icon?: ReactNode;
   tone?: "default" | "destructive" | "success";
   isPending?: boolean;
-  onVerifyPassword: (password: string) => Promise<CriticalActionVerificationResult>;
-  onConfirm: () => Promise<CriticalActionVerificationResult> | CriticalActionVerificationResult;
+  onVerifyPassword: (
+    password: string,
+  ) => Promise<CriticalActionVerificationResult>;
+  onConfirm: () =>
+    | Promise<CriticalActionVerificationResult>
+    | CriticalActionVerificationResult;
 };
 
 function isActionSuccess(result: CriticalActionVerificationResult) {
   if (result === false) return false;
-  if (typeof result === "object" && result !== null && "ok" in result) return result.ok;
+  if (typeof result === "object" && result !== null && "ok" in result)
+    return result.ok;
   return true;
 }
 
@@ -69,6 +81,7 @@ export function CriticalActionVerificationDialog({
   actionLabel,
   targetValue,
   confirmationPhrase = targetValue,
+  allowCopyPhrase = true,
   impacts = defaultImpacts,
   icon,
   tone = "destructive",
@@ -82,9 +95,17 @@ export function CriticalActionVerificationDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isDestructive = tone === "destructive";
   const isSuccess = tone === "success";
-  const phraseMatches = isConfirmationPhraseMatch(phraseInput, confirmationPhrase);
-  const canConfirm = phraseMatches && password.trim().length > 0 && !isVerifying && !isPending;
-  const toneClassName = isDestructive ? "text-destructive" : isSuccess ? "text-success" : "text-primary";
+  const phraseMatches = isConfirmationPhraseMatch(
+    phraseInput,
+    confirmationPhrase,
+  );
+  const canConfirm =
+    phraseMatches && password.trim().length > 0 && !isVerifying && !isPending;
+  const toneClassName = isDestructive
+    ? "text-destructive"
+    : isSuccess
+      ? "text-success"
+      : "text-primary";
   const alertClassName = isDestructive
     ? "border-destructive/30 bg-destructive/5"
     : isSuccess
@@ -116,19 +137,27 @@ export function CriticalActionVerificationDialog({
     try {
       const verificationResult = await onVerifyPassword(password);
       if (!isActionSuccess(verificationResult)) {
-        setErrorMessage(getActionError(verificationResult) || "Password tidak sesuai.");
+        setErrorMessage(
+          getActionError(verificationResult) || "Password tidak sesuai.",
+        );
         return;
       }
 
       const confirmResult = await onConfirm();
       if (!isActionSuccess(confirmResult)) {
-        setErrorMessage(getActionError(confirmResult) || "Aksi gagal dijalankan.");
+        setErrorMessage(
+          getActionError(confirmResult) || "Aksi gagal dijalankan.",
+        );
         return;
       }
 
       onOpenChange(false);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Verifikasi gagal. Coba ulangi.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Verifikasi gagal. Coba ulangi.",
+      );
     } finally {
       setIsVerifying(false);
     }
@@ -136,7 +165,10 @@ export function CriticalActionVerificationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-w-xl" showCloseButton={false}>
+      <DialogContent
+        className="max-h-[calc(100dvh-2rem)] overflow-hidden sm:max-w-xl"
+        showCloseButton={false}
+      >
         <DialogHeader>
           <DialogTitle className={`flex items-center gap-2 ${toneClassName}`}>
             {icon ?? <ShieldAlert className="size-4" />}
@@ -152,7 +184,9 @@ export function CriticalActionVerificationDialog({
           >
             <AlertTriangle className={toneClassName} />
             <div className="space-y-2">
-              <AlertTitle className="text-xs font-bold">Tindakan ini membutuhkan konfirmasi tambahan</AlertTitle>
+              <AlertTitle className="text-xs font-bold">
+                Tindakan ini membutuhkan konfirmasi tambahan
+              </AlertTitle>
               <AlertDescription className="space-y-1 text-[11px] leading-tight">
                 {impacts.map((impact) => (
                   <span key={impact} className="block text-foreground">
@@ -168,7 +202,13 @@ export function CriticalActionVerificationDialog({
               Ketik frasa berikut untuk konfirmasi.
             </Label>
             <div
-              className="max-w-full select-all overflow-x-auto rounded-md bg-muted px-2 py-1.5"
+              className={cn(
+                "max-w-full overflow-x-auto rounded-md bg-muted px-2 py-1.5",
+                allowCopyPhrase
+                  ? "select-all"
+                  : "select-none pointer-events-none",
+              )}
+              onCopy={allowCopyPhrase ? undefined : (e) => e.preventDefault()}
               aria-label="Frasa konfirmasi"
             >
               <code className="whitespace-nowrap break-normal font-mono text-xs font-semibold text-foreground">
@@ -179,11 +219,20 @@ export function CriticalActionVerificationDialog({
               id="critical-action-phrase"
               value={phraseInput}
               onChange={(event) => setPhraseInput(event.target.value)}
-              placeholder="Ketik atau tempel frasa di atas"
+              onPaste={allowCopyPhrase ? undefined : (e) => e.preventDefault()}
+              placeholder={
+                allowCopyPhrase
+                  ? "Ketik atau tempel frasa di atas"
+                  : "Ketik manual frasa di atas (paste dinonaktifkan)"
+              }
               className="h-9 font-mono text-xs"
               autoFocus
               aria-invalid={phraseInput.length > 0 && !phraseMatches}
             />
+            {/* Note: allowCopyPhrase=false is a UX deterrent to discourage copy-paste,
+                not a security control. It can be bypassed via keyboard shortcuts or
+                browser context menu. For critical actions requiring strong verification,
+                rely on server-side validation and password confirmation. */}
           </div>
 
           <div className="space-y-2">
@@ -215,7 +264,13 @@ export function CriticalActionVerificationDialog({
         </div>
 
         <DialogFooter className="gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isVerifying || isPending}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={isVerifying || isPending}
+          >
             Batal
           </Button>
           <Button
@@ -226,8 +281,16 @@ export function CriticalActionVerificationDialog({
             disabled={!canConfirm}
             onClick={() => void handleConfirm()}
           >
-            {isVerifying || isPending ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
-            {isVerifying || isPending ? "Memproses..." : actionLabel}
+            <span className="flex items-center gap-1.5">
+              {isVerifying || isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <CheckCircle2 />
+              )}
+              <span>
+                {isVerifying || isPending ? "Memproses..." : actionLabel}
+              </span>
+            </span>
           </Button>
         </DialogFooter>
       </DialogContent>

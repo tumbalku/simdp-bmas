@@ -14,27 +14,45 @@ import {
   attachDocumentVerificationFileHash,
   issueMasterDataDocumentsVerification,
 } from "@/modules/document-verification/server";
-import { getActorDisplayName, renderHtmlToPdfBuffer } from "@/modules/employee/server";
-import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import {
+  getActorDisplayName,
+  renderHtmlToPdfBuffer,
+} from "@/modules/employee/server";
+import {
+  logActivity,
+  SECURITY_EVENT_TYPE,
+  SECURITY_LOG_STATUS,
+} from "@/modules/security/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const archiveCategories = ["PERSONAL", "EDUCATION", "EMPLOYMENT", "CERTIFICATION", "LEGAL"] as const;
+const archiveCategories = [
+  "PERSONAL",
+  "EDUCATION",
+  "EMPLOYMENT",
+  "CERTIFICATION",
+  "LEGAL",
+] as const;
 
 const exportQuerySchema = z.object({
   archiveView: z.enum(["active", "archived"]).optional().default("active"),
   search: z.string().trim().max(120).optional(),
   documentTypeId: z.string().trim().max(120).optional(),
   archiveCategory: z.enum(archiveCategories).optional(),
+  sortBy: z.enum(["uploadedAt", "expiryDate", "title", "status", "name", "documentType"]).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
 function parseFilter(searchParams: URLSearchParams) {
   return exportQuerySchema.safeParse({
-    archiveView: searchParams.get("archiveView") === "archived" ? "archived" : "active",
+    archiveView:
+      searchParams.get("archiveView") === "archived" ? "archived" : "active",
     search: searchParams.get("search") || undefined,
     documentTypeId: searchParams.get("documentTypeId") || undefined,
     archiveCategory: searchParams.get("archiveCategory") || undefined,
+    sortBy: searchParams.get("sortBy") || undefined,
+    sortOrder: searchParams.get("sortOrder") || undefined,
   });
 }
 
@@ -45,22 +63,28 @@ function getTimestamp() {
 }
 
 function sanitizeFilenameSegment(value: string) {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 100) || "Laporan-Dokumen";
+  return (
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 100) || "Laporan-Dokumen"
+  );
 }
 
 export async function GET(request: Request) {
   try {
     const session = await requireAuth("ADMIN");
-    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
-      actorId: session.userId,
-      actorRole: session.role,
-      scope: "master-data-documents-pdf",
-    });
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.EXPORT,
+      {
+        actorId: session.userId,
+        actorRole: session.role,
+        scope: "master-data-documents-pdf",
+      },
+    );
     if (rateLimitResponse) return rateLimitResponse;
 
     const { searchParams } = new URL(request.url);
@@ -70,7 +94,10 @@ export async function GET(request: Request) {
       return errorResponse(
         "VALIDATION_ERROR",
         "Filter export PDF dokumen tidak valid.",
-        parsed.error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
+        parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
         400,
       );
     }
@@ -114,7 +141,7 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Length": String(pdf.byteLength),
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       },
@@ -133,6 +160,11 @@ export async function GET(request: Request) {
       return errorResponse(error.code, message, error.details, error.status);
     }
 
-    return errorResponse("INTERNAL_ERROR", "Terjadi kesalahan internal saat export PDF dokumen pegawai.", undefined, 500);
+    return errorResponse(
+      "INTERNAL_ERROR",
+      "Terjadi kesalahan internal saat export PDF dokumen pegawai.",
+      undefined,
+      500,
+    );
   }
 }

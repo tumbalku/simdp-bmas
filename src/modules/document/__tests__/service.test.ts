@@ -33,13 +33,19 @@ import { EVENT_NAMES, publishEvent } from "@/lib/events";
 vi.mock("@/lib/storage", () => ({
   storage: {
     upload: vi.fn().mockResolvedValue("uploads/PDF/PDF-1-user-1.pdf"),
-    getTemporaryUrl: vi.fn().mockResolvedValue("/api/v1/documents/download/stream?file=PDF-1-user-1.pdf"),
+    getTemporaryUrl: vi
+      .fn()
+      .mockResolvedValue(
+        "/api/v1/documents/download/stream?file=PDF-1-user-1.pdf",
+      ),
     delete: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 vi.mock("@/lib/malware-scanner", () => ({
-  scanFileBuffer: vi.fn().mockResolvedValue({ status: "CLEAN", provider: "clamav" }),
+  scanFileBuffer: vi
+    .fn()
+    .mockResolvedValue({ status: "CLEAN", provider: "clamav" }),
 }));
 
 import { scanFileBuffer } from "@/lib/malware-scanner";
@@ -47,13 +53,23 @@ import { scanFileBuffer } from "@/lib/malware-scanner";
 describe("Document Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(scanFileBuffer).mockResolvedValue({ status: "CLEAN", provider: "clamav" });
+    vi.mocked(scanFileBuffer).mockResolvedValue({
+      status: "CLEAN",
+      provider: "clamav",
+    });
   });
 
   describe("document list and detail queries", () => {
     it("should list only owned documents for employee sessions", async () => {
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
-      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1" });
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
+      mockPrisma.employee.findFirst.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+      });
       mockPrisma.documentRecord.findMany.mockResolvedValue([
         {
           id: "doc-1",
@@ -63,8 +79,17 @@ describe("Document Module Service", () => {
           expiryDate: null,
           fileName: "ktp.pdf",
           fileSize: BigInt(1024),
-          documentType: { id: "type-1", name: "KTP", archiveCategory: "PERSONAL" },
-          owner: { id: "emp-1", name: "John Doe", employeeId: "1990", nik: "7471" },
+          documentType: {
+            id: "type-1",
+            name: "KTP",
+            archiveCategory: "PERSONAL",
+          },
+          owner: {
+            id: "emp-1",
+            name: "John Doe",
+            employeeId: "1990",
+            nik: "7471",
+          },
         },
       ]);
 
@@ -73,30 +98,51 @@ describe("Document Module Service", () => {
       expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ ownerId: "emp-1", deletedAt: null }),
-        })
+        }),
       );
       expect(result).toEqual([
-        expect.objectContaining({ id: "doc-1", ownerName: "John Doe", fileSize: 1024 }),
+        expect.objectContaining({
+          id: "doc-1",
+          ownerName: "John Doe",
+          fileSize: 1024,
+        }),
       ]);
     });
 
     it("should keep employee ownership filter when listing archived documents", async () => {
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
-      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1" });
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
+      mockPrisma.employee.findFirst.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+      });
       mockPrisma.documentRecord.findMany.mockResolvedValue([]);
 
       await getDocumentRecordsForSession(session, { archiveView: "archived" });
 
       expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ ownerId: "emp-1", deletedAt: { not: null } }),
-        })
+          where: expect.objectContaining({
+            ownerId: "emp-1",
+            deletedAt: { not: null },
+          }),
+        }),
       );
     });
 
     it("should filter owned documents by document type and archive category", async () => {
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
-      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1" });
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
+      mockPrisma.employee.findFirst.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+      });
       mockPrisma.documentRecord.findMany.mockResolvedValue([]);
 
       await getDocumentRecordsForSession(session, {
@@ -111,7 +157,7 @@ describe("Document Module Service", () => {
             documentTypeId: "type-1",
             documentType: { archiveCategory: "CERTIFICATION" },
           }),
-        })
+        }),
       );
     });
 
@@ -134,26 +180,71 @@ describe("Document Module Service", () => {
           }),
           skip: 10,
           take: 10,
-        })
+        }),
+      );
+    });
+
+    it("should apply column sorting to paginated document query", async () => {
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+      mockPrisma.documentRecord.count.mockResolvedValue(0);
+
+      await getDocumentRecordsWithPagination({
+        page: 1,
+        limit: 10,
+        sortBy: "name",
+        sortOrder: "asc",
+      });
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { owner: { name: "asc" } },
+        }),
+      );
+
+      await getDocumentRecordsWithPagination({
+        page: 1,
+        limit: 10,
+        sortBy: "uploadedAt",
+        sortOrder: "desc",
+      });
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { uploadedAt: "desc" },
+        }),
       );
     });
 
     it("should also scope admin/staff self-service document lists to their own employee profile", async () => {
-      const session = { userId: "admin-user", role: "ADMIN", employeeId: "admin-emp" };
-      mockPrisma.employee.findFirst.mockResolvedValue({ id: "admin-emp", userId: "admin-user" });
+      const session = {
+        userId: "admin-user",
+        role: "ADMIN",
+        employeeId: "admin-emp",
+      };
+      mockPrisma.employee.findFirst.mockResolvedValue({
+        id: "admin-emp",
+        userId: "admin-user",
+      });
       mockPrisma.documentRecord.findMany.mockResolvedValue([]);
 
       await getDocumentRecordsForSession(session);
 
       expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ ownerId: "admin-emp", deletedAt: null }),
-        })
+          where: expect.objectContaining({
+            ownerId: "admin-emp",
+            deletedAt: null,
+          }),
+        }),
       );
     });
 
     it("should return an empty self-service document list when the user has no employee profile", async () => {
-      const session = { userId: "admin-user", role: "ADMIN", employeeId: "admin-emp" };
+      const session = {
+        userId: "admin-user",
+        role: "ADMIN",
+        employeeId: "admin-emp",
+      };
       mockPrisma.employee.findFirst.mockResolvedValue(null);
 
       const result = await getDocumentRecordsForSession(session);
@@ -163,7 +254,11 @@ describe("Document Module Service", () => {
     });
 
     it("should fetch document detail with ownership guard", async () => {
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
       mockPrisma.documentRecord.findUnique.mockResolvedValue({
         id: "doc-1",
         title: "KTP",
@@ -175,27 +270,53 @@ describe("Document Module Service", () => {
         documentNumber: null,
         issueDate: null,
         mimeType: "application/pdf",
-        owner: { id: "emp-1", userId: "user-1", name: "John Doe", employeeId: "1990", nik: "7471" },
-        documentType: { id: "type-1", name: "KTP", archiveCategory: "PERSONAL" },
+        owner: {
+          id: "emp-1",
+          userId: "user-1",
+          name: "John Doe",
+          employeeId: "1990",
+          nik: "7471",
+        },
+        documentType: {
+          id: "type-1",
+          name: "KTP",
+          archiveCategory: "PERSONAL",
+        },
         verificationHistories: [],
       });
 
       const result = await getDocumentRecordDetailForSession("doc-1", session);
 
-      expect(result).toEqual(expect.objectContaining({ id: "doc-1", ownerName: "John Doe" }));
+      expect(result).toEqual(
+        expect.objectContaining({ id: "doc-1", ownerName: "John Doe" }),
+      );
     });
 
     it("should list active document types for upload options", async () => {
       mockPrisma.documentType.findMany.mockResolvedValue([
-        { id: "type-1", code: "KTP", name: "KTP", archiveCategory: "PERSONAL", isMandatory: true, allowMultiple: false, requiresExpiryDate: false, requiresIssueDate: false, requiresDocumentNumber: false, allowedFormats: "pdf,jpg,png", maxSizeMb: 2 },
+        {
+          id: "type-1",
+          code: "KTP",
+          name: "KTP",
+          archiveCategory: "PERSONAL",
+          isMandatory: true,
+          allowMultiple: false,
+          requiresExpiryDate: false,
+          requiresIssueDate: false,
+          requiresDocumentNumber: false,
+          allowedFormats: "pdf,jpg,png",
+          maxSizeMb: 2,
+        },
       ]);
 
       const result = await getAvailableDocumentTypes();
 
       expect(mockPrisma.documentType.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { deletedAt: null } })
+        expect.objectContaining({ where: { deletedAt: null } }),
       );
-      expect(result[0]).toEqual(expect.objectContaining({ id: "type-1", name: "KTP" }));
+      expect(result[0]).toEqual(
+        expect.objectContaining({ id: "type-1", name: "KTP" }),
+      );
     });
 
     it("should filter employee upload options by target rules", async () => {
@@ -284,6 +405,25 @@ describe("Document Module Service", () => {
       expect(result[0]).toEqual(expect.objectContaining({ id: "type-1" }));
     });
 
+    it("should build admin PDF data with custom sorting option", async () => {
+      mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+
+      await getMasterDataDocumentsPdfData(
+        {
+          archiveView: "active",
+          sortBy: "expiryDate",
+          sortOrder: "asc",
+        },
+        { userId: "admin-1", role: "ADMIN", employeeId: "admin-emp" },
+      );
+
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { expiryDate: "asc" },
+        }),
+      );
+    });
+
     it("should build admin PDF data with a dynamic document type and archive category title", async () => {
       mockPrisma.documentType.findUnique.mockResolvedValue({
         id: "type-ktp",
@@ -300,7 +440,12 @@ describe("Document Module Service", () => {
           fileName: "siti-ktp.pdf",
           uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
           expiryDate: null,
-          documentType: { id: "type-ktp", code: "KTP", name: "KTP", archiveCategory: "PERSONAL" },
+          documentType: {
+            id: "type-ktp",
+            code: "KTP",
+            name: "KTP",
+            archiveCategory: "PERSONAL",
+          },
           owner: {
             id: "emp-1",
             name: "Siti Aminah",
@@ -331,7 +476,9 @@ describe("Document Module Service", () => {
             deletedAt: null,
             documentTypeId: "type-ktp",
             documentType: { archiveCategory: "PERSONAL" },
-            OR: expect.arrayContaining([{ owner: { name: { contains: "siti", mode: "insensitive" } } }]),
+            OR: expect.arrayContaining([
+              { owner: { name: { contains: "siti", mode: "insensitive" } } },
+            ]),
           }),
         }),
       );
@@ -372,24 +519,32 @@ describe("Document Module Service", () => {
 
     it("should reject master data document PDF exports above the row cap", async () => {
       mockPrisma.documentRecord.findMany.mockResolvedValue(
-        Array.from({ length: MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS + 1 }, (_, index) => ({
-          id: `doc-${index}`,
-          title: "Dokumen",
-          status: "APPROVED",
-          documentNumber: null,
-          fileName: "dokumen.pdf",
-          uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
-          expiryDate: null,
-          documentType: { id: "type-ktp", code: "KTP", name: "KTP", archiveCategory: "PERSONAL" },
-          owner: {
-            id: "emp-1",
-            name: "Siti Aminah",
-            employeeId: "19850101",
-            nik: "7471010101010001",
-            employeeGroup: { name: "ASN" },
-            employmentStatus: { name: "PNS" },
-          },
-        })),
+        Array.from(
+          { length: MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS + 1 },
+          (_, index) => ({
+            id: `doc-${index}`,
+            title: "Dokumen",
+            status: "APPROVED",
+            documentNumber: null,
+            fileName: "dokumen.pdf",
+            uploadedAt: new Date("2026-01-02T00:00:00.000Z"),
+            expiryDate: null,
+            documentType: {
+              id: "type-ktp",
+              code: "KTP",
+              name: "KTP",
+              archiveCategory: "PERSONAL",
+            },
+            owner: {
+              id: "emp-1",
+              name: "Siti Aminah",
+              employeeId: "19850101",
+              nik: "7471010101010001",
+              employeeGroup: { name: "ASN" },
+              employmentStatus: { name: "PNS" },
+            },
+          }),
+        ),
       );
 
       await expect(
@@ -397,11 +552,15 @@ describe("Document Module Service", () => {
           { archiveCategory: "PERSONAL" },
           { userId: "admin-1", role: "ADMIN", employeeId: "admin-emp" },
         ),
-      ).rejects.toThrow(`Export PDF dokumen dibatasi maksimal ${MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS} baris`);
+      ).rejects.toThrow(
+        `Export PDF dokumen dibatasi maksimal ${MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS} baris`,
+      );
 
-      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        take: MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS + 1,
-      }));
+      expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS + 1,
+        }),
+      );
     });
 
     it("should reject non-admin sessions from building master data document PDF data", async () => {
@@ -410,12 +569,14 @@ describe("Document Module Service", () => {
           { archiveCategory: "PERSONAL" },
           { userId: "staff-1", role: "STAFF", employeeId: "staff-emp" },
         ),
-      ).rejects.toThrow("Hanya Admin yang dapat mengunduh PDF laporan dokumen pegawai.");
+      ).rejects.toThrow(
+        "Hanya Admin yang dapat mengunduh PDF laporan dokumen pegawai.",
+      );
 
       expect(mockPrisma.documentRecord.findMany).not.toHaveBeenCalled();
     });
 
-    it("should render master data document PDF HTML with dynamic title, filters, and rows", () => {
+    it("should render master data document PDF HTML with dynamic title and rows", () => {
       const html = renderMasterDataDocumentsPdfHtml(
         {
           title: "Laporan Dokumen KTP (Personal) Pegawai",
@@ -452,7 +613,8 @@ describe("Document Module Service", () => {
           verification: {
             id: "verification-1",
             code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
-            verifyUrl: "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+            verifyUrl:
+              "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
             qrCodeDataUrl: "data:image/png;base64,qr",
           },
         },
@@ -460,29 +622,31 @@ describe("Document Module Service", () => {
 
       expect(html).toContain("RUMAH SAKIT UMUM DAERAH BAHTERAMAS");
       expect(html).toContain("Laporan Dokumen KTP (Personal) Pegawai");
-      expect(html).toContain("Status Data");
-      expect(html).toContain("Data berjalan");
-      expect(html).toContain("Jenis Dokumen");
-      expect(html).toContain("KTP");
-      expect(html).toContain("Kategori Arsip");
-      expect(html).toContain("Personal");
+      expect(html).not.toContain("Status Data");
+      expect(html).not.toContain("Data berjalan");
+      expect(html).not.toContain("Jenis Dokumen"); // Since it is now "Nama<br />Dokumen" or "Nama Dokumen"
+      expect(html).not.toContain("Kategori Arsip");
       expect(html).toContain("<th>Nama</th>");
       expect(html).toContain("<th>NIP</th>");
       expect(html).toContain("<th>NIK</th>");
-      expect(html).toContain("<th>Judul</th>");
-      expect(html).toContain("<th>Status/Jenis Kepegawaian</th>");
+      expect(html).not.toContain("<th>Judul</th>");
+      expect(html).toContain("<th>Status/Jenis<br />Kepegawaian</th>");
       expect(html).toContain("Siti Aminah");
       expect(html).toContain("19850101");
       expect(html).toContain("7471010101010001");
-      expect(html).toContain("KTP Utama");
+      expect(html).not.toContain("KTP Utama"); // Judul (KTP Utama) is removed from the table rows
       expect(html).toContain("ASN/PNS");
-      expect(html).toContain("<th>Nomor</th>");
-      expect(html).toContain("<th>Diunggah</th>");
-      expect(html).toContain("<th>Kadaluarsa</th>");
+      expect(html).toContain("<th>Nomor Dokumen</th>");
+      expect(html).not.toContain("<th>Diunggah</th>");
+      expect(html).toContain("<th>Masa Berakhir<br />Dokumen</th>");
       expect(html).not.toContain("<th>Pegawai</th>");
       expect(html).not.toContain("<th>Nama File</th>");
-      expect(html).toContain("Scan QR untuk mengecek keaslian PDF laporan dokumen pegawai ini.");
-      expect(html).toContain("http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
+      expect(html).toContain(
+        "Scan QR untuk mengecek keaslian PDF laporan dokumen pegawai ini.",
+      );
+      expect(html).toContain(
+        "http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
+      );
       expect(html).toContain("data:image/png;base64,qr");
       expect(html).not.toContain("padding-top: 10px");
       expect(html).toContain("Dokumen SiCantIK");
@@ -500,31 +664,67 @@ describe("Document Module Service", () => {
         professionGroupIds: ["prof-1"],
       };
 
-      mockPrisma.documentType.create.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
-      mockPrisma.documentTypeProfessionGroup.createMany.mockResolvedValue({ count: 1 });
+      mockPrisma.documentType.create.mockResolvedValue({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+      });
+      mockPrisma.documentTypeProfessionGroup.createMany.mockResolvedValue({
+        count: 1,
+      });
 
-      const result = await handleDocumentTypeCrud("CREATE", undefined, data, "admin-1", "Admin User", "ADMIN");
+      const result = await handleDocumentTypeCrud(
+        "CREATE",
+        undefined,
+        data,
+        "admin-1",
+        "Admin User",
+        "ADMIN",
+      );
       expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc" });
       expect(mockPrisma.documentType.create).toHaveBeenCalled();
     });
 
     it("should restore document type", async () => {
-      mockPrisma.documentType.findUnique.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
-      mockPrisma.documentType.update.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      mockPrisma.documentType.findUnique.mockResolvedValue({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+      });
+      mockPrisma.documentType.update.mockResolvedValue({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+      });
 
-      const result = await handleDocumentTypeCrud("RESTORE", "type-1", undefined, "admin-1", "Admin User", "ADMIN");
+      const result = await handleDocumentTypeCrud(
+        "RESTORE",
+        "type-1",
+        undefined,
+        "admin-1",
+        "Admin User",
+        "ADMIN",
+      );
       expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc" });
       expect(mockPrisma.documentType.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "type-1" },
           data: { deletedAt: null },
-        })
+        }),
       );
     });
 
     it("should update document type", async () => {
-      mockPrisma.documentType.findUnique.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
-      mockPrisma.documentType.update.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc Updated" });
+      mockPrisma.documentType.findUnique.mockResolvedValue({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+      });
+      mockPrisma.documentType.update.mockResolvedValue({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc Updated",
+      });
 
       const data = {
         code: "PDF",
@@ -535,22 +735,48 @@ describe("Document Module Service", () => {
         professionGroupIds: ["prof-1"],
       };
 
-      const result = await handleDocumentTypeCrud("UPDATE", "type-1", data, "admin-1", "Admin User", "ADMIN");
-      expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc Updated" });
+      const result = await handleDocumentTypeCrud(
+        "UPDATE",
+        "type-1",
+        data,
+        "admin-1",
+        "Admin User",
+        "ADMIN",
+      );
+      expect(result).toEqual({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc Updated",
+      });
       expect(mockPrisma.documentType.update).toHaveBeenCalled();
     });
 
     it("should delete document type", async () => {
-      mockPrisma.documentType.findUnique.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
-      mockPrisma.documentType.update.mockResolvedValue({ id: "type-1", code: "PDF", name: "PDF Doc" });
+      mockPrisma.documentType.findUnique.mockResolvedValue({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+      });
+      mockPrisma.documentType.update.mockResolvedValue({
+        id: "type-1",
+        code: "PDF",
+        name: "PDF Doc",
+      });
 
-      const result = await handleDocumentTypeCrud("DELETE", "type-1", undefined, "admin-1", "Admin User", "ADMIN");
+      const result = await handleDocumentTypeCrud(
+        "DELETE",
+        "type-1",
+        undefined,
+        "admin-1",
+        "Admin User",
+        "ADMIN",
+      );
       expect(result).toEqual({ id: "type-1", code: "PDF", name: "PDF Doc" });
       expect(mockPrisma.documentType.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "type-1" },
           data: expect.objectContaining({ deletedAt: expect.any(Date) }),
-        })
+        }),
       );
     });
 
@@ -564,13 +790,27 @@ describe("Document Module Service", () => {
       };
 
       await expect(
-        handleDocumentTypeCrud("CREATE", undefined, data, "admin-1", "Admin User", "ADMIN")
+        handleDocumentTypeCrud(
+          "CREATE",
+          undefined,
+          data,
+          "admin-1",
+          "Admin User",
+          "ADMIN",
+        ),
       ).rejects.toThrow("Field wajib DocumentType tidak boleh kosong");
     });
 
     it("should throw error when UPDATE is called without ID", async () => {
       await expect(
-        handleDocumentTypeCrud("UPDATE", undefined, {}, "admin-1", "Admin User", "ADMIN")
+        handleDocumentTypeCrud(
+          "UPDATE",
+          undefined,
+          {},
+          "admin-1",
+          "Admin User",
+          "ADMIN",
+        ),
       ).rejects.toThrow("ID jenis dokumen wajib diisi");
     });
 
@@ -578,7 +818,14 @@ describe("Document Module Service", () => {
       mockPrisma.documentType.findUnique.mockResolvedValue(null);
 
       await expect(
-        handleDocumentTypeCrud("UPDATE", "non-existent-id", {}, "admin-1", "Admin User", "ADMIN")
+        handleDocumentTypeCrud(
+          "UPDATE",
+          "non-existent-id",
+          {},
+          "admin-1",
+          "Admin User",
+          "ADMIN",
+        ),
       ).rejects.toThrow("Jenis dokumen tidak ditemukan");
     });
 
@@ -586,7 +833,14 @@ describe("Document Module Service", () => {
       mockPrisma.documentType.findUnique.mockResolvedValue(null);
 
       await expect(
-        handleDocumentTypeCrud("DELETE", "non-existent-id", undefined, "admin-1", "Admin User", "ADMIN")
+        handleDocumentTypeCrud(
+          "DELETE",
+          "non-existent-id",
+          undefined,
+          "admin-1",
+          "Admin User",
+          "ADMIN",
+        ),
       ).rejects.toThrow("Jenis dokumen tidak ditemukan");
     });
 
@@ -594,13 +848,27 @@ describe("Document Module Service", () => {
       mockPrisma.documentType.findUnique.mockResolvedValue(null);
 
       await expect(
-        handleDocumentTypeCrud("RESTORE", "non-existent-id", undefined, "admin-1", "Admin User", "ADMIN")
+        handleDocumentTypeCrud(
+          "RESTORE",
+          "non-existent-id",
+          undefined,
+          "admin-1",
+          "Admin User",
+          "ADMIN",
+        ),
       ).rejects.toThrow("Jenis dokumen tidak ditemukan");
     });
 
     it("should throw error for unsupported operation", async () => {
       await expect(
-        handleDocumentTypeCrud("INVALID_OP" as never, "type-1", undefined, "admin-1", "Admin User", "ADMIN")
+        handleDocumentTypeCrud(
+          "INVALID_OP" as never,
+          "type-1",
+          undefined,
+          "admin-1",
+          "Admin User",
+          "ADMIN",
+        ),
       ).rejects.toThrow("Operasi tidak didukung");
     });
   });
@@ -646,11 +914,19 @@ describe("Document Module Service", () => {
       });
 
       // Valid PDF magic bytes: %PDF (25 50 44 46)
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0x00])], "test.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00, 0x00])],
+        "test.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
 
       const result = await uploadDocumentRecord(
         {
@@ -658,18 +934,21 @@ describe("Document Module Service", () => {
           file: mockFile,
           issueDate: "2026-01-15",
         },
-        session
+        session,
       );
 
       expect(result).toBeDefined();
       expect(storage.upload).toHaveBeenCalledWith(
         "PDF/198501012010011001_PERSONAL_PDF_20260115_1.pdf",
         expect.any(Buffer),
-        "application/pdf"
+        "application/pdf",
       );
       expect(scanFileBuffer).toHaveBeenCalledWith(
         expect.any(Buffer),
-        expect.objectContaining({ fileName: "test.pdf", mimeType: "application/pdf" })
+        expect.objectContaining({
+          fileName: "test.pdf",
+          mimeType: "application/pdf",
+        }),
       );
       expect(mockPrisma.documentRecord.create).toHaveBeenCalled();
       expect(mockPrisma.documentRecord.create).toHaveBeenCalledWith(
@@ -678,15 +957,18 @@ describe("Document Module Service", () => {
             fileName: "198501012010011001_PERSONAL_PDF_20260115_1.pdf",
             storageProvider: "LOCAL",
           }),
-        })
+        }),
       );
-      expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
-        recipientUserIds: ["admin-1"],
-        documentRecordId: "doc-1",
-        documentTypeName: "PDF Doc",
-        ownerName: "John Doe",
-        action: "UPLOADED",
-      });
+      expect(publishEvent).toHaveBeenCalledWith(
+        EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED,
+        {
+          recipientUserIds: ["admin-1"],
+          documentRecordId: "doc-1",
+          documentTypeName: "PDF Doc",
+          ownerName: "John Doe",
+          action: "UPLOADED",
+        },
+      );
     });
 
     it("should throw error for invalid magic bytes", async () => {
@@ -708,7 +990,11 @@ describe("Document Module Service", () => {
         type: "application/pdf",
       });
 
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
 
       await expect(
         uploadDocumentRecord(
@@ -716,8 +1002,8 @@ describe("Document Module Service", () => {
             documentTypeId: "type-1",
             file: mockFile,
           },
-          session
-        )
+          session,
+        ),
       ).rejects.toThrow("Format file tidak dikenal atau tidak didukung");
     });
 
@@ -751,16 +1037,20 @@ describe("Document Module Service", () => {
       mockPrisma.employee.findUnique.mockResolvedValue(employee);
       mockPrisma.documentRecord.count.mockResolvedValue(0);
 
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00])], "test.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00])],
+        "test.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
       await expect(
         uploadDocumentRecord(
           { documentTypeId: "type-1", file: mockFile },
           { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
-          "127.0.0.1"
-        )
+          "127.0.0.1",
+        ),
       ).rejects.toThrow("Upload ditolak karena file terdeteksi berbahaya.");
 
       expect(storage.upload).not.toHaveBeenCalled();
@@ -771,9 +1061,11 @@ describe("Document Module Service", () => {
             eventType: "DOCUMENT_MALWARE_DETECTED",
             status: "FAILED",
             resource: "DocumentUpload:type-1",
-            metadata: expect.objectContaining({ signature: "Eicar-Test-Signature" }),
+            metadata: expect.objectContaining({
+              signature: "Eicar-Test-Signature",
+            }),
           }),
-        })
+        }),
       );
     });
 
@@ -807,17 +1099,23 @@ describe("Document Module Service", () => {
       mockPrisma.employee.findUnique.mockResolvedValue(employee);
       mockPrisma.documentRecord.count.mockResolvedValue(0);
 
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00])], "test.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x00])],
+        "test.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
       await expect(
         uploadDocumentRecord(
           { documentTypeId: "type-1", file: mockFile },
           { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
-          "127.0.0.1"
-        )
-      ).rejects.toThrow("Upload belum dapat diproses karena pemeriksaan keamanan tidak tersedia. Coba lagi nanti.");
+          "127.0.0.1",
+        ),
+      ).rejects.toThrow(
+        "Upload belum dapat diproses karena pemeriksaan keamanan tidak tersedia. Coba lagi nanti.",
+      );
 
       expect(storage.upload).not.toHaveBeenCalled();
       expect(mockPrisma.documentRecord.create).not.toHaveBeenCalled();
@@ -828,7 +1126,7 @@ describe("Document Module Service", () => {
             status: "FAILED",
             resource: "DocumentUpload:type-1",
           }),
-        })
+        }),
       );
     });
 
@@ -859,9 +1157,13 @@ describe("Document Module Service", () => {
       mockPrisma.documentType.findUnique.mockResolvedValue(docType);
       mockPrisma.employee.findUnique.mockResolvedValue(employee);
 
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+        "test.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
       await expect(
         uploadDocumentRecord(
@@ -869,8 +1171,8 @@ describe("Document Module Service", () => {
             documentTypeId: "type-1",
             file: mockFile,
           },
-          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
-        )
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
+        ),
       ).rejects.toThrow("Jenis dokumen ini tidak berlaku");
     });
 
@@ -886,15 +1188,24 @@ describe("Document Module Service", () => {
         employmentStatuses: [],
         employeeGroups: [],
       };
-      const employee = { id: "emp-1", userId: "user-1", employeeId: "empId-1", name: "John Doe" };
+      const employee = {
+        id: "emp-1",
+        userId: "user-1",
+        employeeId: "empId-1",
+        name: "John Doe",
+      };
 
       mockPrisma.documentType.findUnique.mockResolvedValue(docType);
       mockPrisma.employee.findUnique.mockResolvedValue(employee);
       mockPrisma.documentRecord.count.mockResolvedValueOnce(1);
 
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+        "test.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
       await expect(
         uploadDocumentRecord(
@@ -902,8 +1213,8 @@ describe("Document Module Service", () => {
             documentTypeId: "type-1",
             file: mockFile,
           },
-          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
-        )
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
+        ),
       ).rejects.toThrow("Gunakan tombol Ganti");
 
       expect(mockPrisma.documentRecord.create).not.toHaveBeenCalled();
@@ -921,7 +1232,7 @@ describe("Document Module Service", () => {
         owner: {
           id: "emp-1",
           userId: "user-1",
-        employeeId: "empId-1",
+          employeeId: "empId-1",
           nik: "198501012010011001",
           name: "John Doe",
           employeePosition: null,
@@ -973,20 +1284,24 @@ describe("Document Module Service", () => {
       });
       mockPrisma.securityLog.create.mockResolvedValue({});
 
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "ktp-baru.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+        "ktp-baru.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
       const result = await replaceDocumentFile(
         { documentId: "doc-1", file: mockFile, issueDate: "2026-01-15" },
-        { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
+        { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
       );
 
       expect(result.id).toBe("doc-1");
       expect(storage.upload).toHaveBeenCalledWith(
         "KTP/198501012010011001_PERSONAL_KTP_20260115_2.pdf",
         expect.any(Buffer),
-        "application/pdf"
+        "application/pdf",
       );
       expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -996,7 +1311,7 @@ describe("Document Module Service", () => {
             fileName: "198501012010011001_PERSONAL_KTP_20260115_2.pdf",
             storageProvider: "LOCAL",
           }),
-        })
+        }),
       );
       expect(mockPrisma.verificationHistory.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1005,15 +1320,18 @@ describe("Document Module Service", () => {
             status: "PENDING",
             reviewNote: expect.stringContaining("diganti"),
           }),
-        })
+        }),
       );
-      expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED, {
-        recipientUserIds: ["admin-1"],
-        documentRecordId: "doc-1",
-        documentTypeName: "KTP",
-        ownerName: "John Doe",
-        action: "REPLACED",
-      });
+      expect(publishEvent).toHaveBeenCalledWith(
+        EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED,
+        {
+          recipientUserIds: ["admin-1"],
+          documentRecordId: "doc-1",
+          documentTypeName: "KTP",
+          ownerName: "John Doe",
+          action: "REPLACED",
+        },
+      );
     });
 
     it("should reject replacing expired documents", async () => {
@@ -1037,15 +1355,19 @@ describe("Document Module Service", () => {
         },
       });
 
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+        "test.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
       await expect(
         replaceDocumentFile(
           { documentId: "doc-1", file: mockFile },
-          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
-        )
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
+        ),
       ).rejects.toThrow("Status dokumen tidak dapat diganti file.");
 
       expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
@@ -1058,15 +1380,19 @@ describe("Document Module Service", () => {
         documentType: { deletedAt: null },
       });
 
-      const mockFile = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], "test.pdf", {
-        type: "application/pdf",
-      });
+      const mockFile = new File(
+        [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+        "test.pdf",
+        {
+          type: "application/pdf",
+        },
+      );
 
       await expect(
         replaceDocumentFile(
           { documentId: "doc-1", file: mockFile },
-          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" }
-        )
+          { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
+        ),
       ).rejects.toThrow("OWNERSHIP_REQUIRED");
 
       expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
@@ -1082,7 +1408,11 @@ describe("Document Module Service", () => {
       };
       mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
 
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
       const url = await generateDownloadUrl("doc-1", session);
       expect(url).toBeDefined();
     });
@@ -1095,8 +1425,14 @@ describe("Document Module Service", () => {
       };
       mockPrisma.documentRecord.findUnique.mockResolvedValue(doc);
 
-      const session = { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" };
-      await expect(generateDownloadUrl("doc-1", session)).rejects.toThrow("OWNERSHIP_REQUIRED");
+      const session = {
+        userId: "user-1",
+        role: "EMPLOYEE",
+        employeeId: "emp-1",
+      };
+      await expect(generateDownloadUrl("doc-1", session)).rejects.toThrow(
+        "OWNERSHIP_REQUIRED",
+      );
     });
 
     it("should allow ADMIN to generate download URL for document owned by another employee", async () => {
@@ -1135,7 +1471,10 @@ describe("Document Module Service", () => {
         status: "PENDING",
         owner: { userId: "user-1", name: "John Doe" },
       });
-      mockPrisma.documentRecord.update.mockResolvedValue({ id: "doc-1", deletedAt: new Date() });
+      mockPrisma.documentRecord.update.mockResolvedValue({
+        id: "doc-1",
+        deletedAt: new Date(),
+      });
       mockPrisma.securityLog.create.mockResolvedValue({});
 
       const success = await softDeleteDocument("doc-1", {
@@ -1148,8 +1487,11 @@ describe("Document Module Service", () => {
       expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "doc-1" },
-          data: expect.objectContaining({ deletedAt: expect.any(Date), isCurrent: false }),
-        })
+          data: expect.objectContaining({
+            deletedAt: expect.any(Date),
+            isCurrent: false,
+          }),
+        }),
       );
       expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1161,7 +1503,7 @@ describe("Document Module Service", () => {
             resource: "DocumentRecord:doc-1",
             status: "SUCCESS",
           }),
-        })
+        }),
       );
     });
 
@@ -1171,7 +1513,10 @@ describe("Document Module Service", () => {
         status: "APPROVED",
         owner: { userId: "user-1", name: "John Doe" },
       });
-      mockPrisma.documentRecord.update.mockResolvedValue({ id: "doc-1", deletedAt: new Date() });
+      mockPrisma.documentRecord.update.mockResolvedValue({
+        id: "doc-1",
+        deletedAt: new Date(),
+      });
       mockPrisma.securityLog.create.mockResolvedValue({});
 
       // Approved document should not be soft deletable by employee in "self" mode, but let's test softDeleteDocument without mode restrictions or when role is checked
@@ -1195,7 +1540,7 @@ describe("Document Module Service", () => {
       });
 
       await expect(promise).rejects.toThrow(
-        "Anda hanya dapat mengarsipkan dokumen yang berstatus PENDING atau REJECTED."
+        "Anda hanya dapat mengarsipkan dokumen yang berstatus PENDING atau REJECTED.",
       );
     });
 
@@ -1211,7 +1556,7 @@ describe("Document Module Service", () => {
           userId: "user-1",
           role: "EMPLOYEE",
           employeeId: "emp-1",
-        })
+        }),
       ).rejects.toThrow("OWNERSHIP_REQUIRED");
 
       expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
@@ -1237,8 +1582,12 @@ describe("Document Module Service", () => {
       expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "doc-1" },
-          data: { deletedAt: null, isCurrent: true, allowMultipleSnapshot: false },
-        })
+          data: {
+            deletedAt: null,
+            isCurrent: true,
+            allowMultipleSnapshot: false,
+          },
+        }),
       );
     });
 
@@ -1258,7 +1607,11 @@ describe("Document Module Service", () => {
       });
 
       await expect(
-        restoreDocument("archived-doc", { userId: "admin-1", role: "ADMIN", employeeId: null })
+        restoreDocument("archived-doc", {
+          userId: "admin-1",
+          role: "ADMIN",
+          employeeId: null,
+        }),
       ).rejects.toThrow("Dokumen tidak bisa dipulihkan");
 
       expect(mockPrisma.documentRecord.update).not.toHaveBeenCalled();
@@ -1273,7 +1626,10 @@ describe("Document Module Service", () => {
         owner: { name: "John" },
         documentType: { allowMultiple: true },
       });
-      mockPrisma.documentRecord.update.mockResolvedValue({ id: "archived-doc", deletedAt: null });
+      mockPrisma.documentRecord.update.mockResolvedValue({
+        id: "archived-doc",
+        deletedAt: null,
+      });
       mockPrisma.securityLog.create.mockResolvedValue({});
 
       const success = await restoreDocument("archived-doc", {
@@ -1287,14 +1643,20 @@ describe("Document Module Service", () => {
       expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "archived-doc" },
-          data: { deletedAt: null, isCurrent: true, allowMultipleSnapshot: true },
-        })
+          data: {
+            deletedAt: null,
+            isCurrent: true,
+            allowMultipleSnapshot: true,
+          },
+        }),
       );
     });
 
     it("should reject non-ADMIN from restoring document", async () => {
       const session = { userId: "staff-1", role: "STAFF", employeeId: null };
-      await expect(restoreDocument("doc-1", session)).rejects.toThrow("FORBIDDEN");
+      await expect(restoreDocument("doc-1", session)).rejects.toThrow(
+        "FORBIDDEN",
+      );
     });
   });
 
@@ -1315,16 +1677,21 @@ describe("Document Module Service", () => {
       expect(success).toBe(true);
       expect(storage.delete).toHaveBeenCalledWith("uploads/KTP/KTP-1-1990.pdf");
       expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
-        where: { relatedEntityType: "DOCUMENT_RECORD", relatedEntityId: "doc-1" },
+        where: {
+          relatedEntityType: "DOCUMENT_RECORD",
+          relatedEntityId: "doc-1",
+        },
       });
-      expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({ where: { id: "doc-1" } });
+      expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({
+        where: { id: "doc-1" },
+      });
       expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             eventType: "DOCUMENT_PERMANENTLY_DELETED",
             resource: "DocumentRecord:doc-1",
           }),
-        })
+        }),
       );
     });
 
@@ -1338,8 +1705,14 @@ describe("Document Module Service", () => {
       });
 
       await expect(
-        permanentlyDeleteDocument("doc-active", { userId: "admin-1", role: "ADMIN", employeeId: null })
-      ).rejects.toThrow("Dokumen aktif harus diarsipkan terlebih dahulu sebelum dihapus permanen.");
+        permanentlyDeleteDocument("doc-active", {
+          userId: "admin-1",
+          role: "ADMIN",
+          employeeId: null,
+        }),
+      ).rejects.toThrow(
+        "Dokumen aktif harus diarsipkan terlebih dahulu sebelum dihapus permanen.",
+      );
 
       expect(storage.delete).not.toHaveBeenCalled();
       expect(mockPrisma.documentRecord.delete).not.toHaveBeenCalled();
@@ -1387,7 +1760,7 @@ describe("Document Module Service", () => {
         expect.objectContaining({
           where: { id: "doc-expired" },
           data: { status: "EXPIRED" },
-        })
+        }),
       );
       expect(publishEvent).toHaveBeenCalledWith(
         EVENT_NAMES.DOCUMENT_EXPIRY_REMINDER_CREATED,
@@ -1395,7 +1768,7 @@ describe("Document Module Service", () => {
           userId: "user-1",
           documentRecordId: "doc-remind-h30",
           reminderStage: "H30",
-        })
+        }),
       );
     });
   });

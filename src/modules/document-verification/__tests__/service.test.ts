@@ -112,7 +112,7 @@ describe("document verification service", () => {
 
     expect(mockPrisma.documentVerification.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        documentType: "EMPLOYEE_DOCUMENTS",
+        documentType: "MASTER_DATA_DOCUMENTS",
         subjectEmployeeId: null,
         issuedByUserId: "admin-1",
         metadata: { rowCount: 12 },

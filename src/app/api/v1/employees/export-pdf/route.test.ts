@@ -89,7 +89,7 @@ describe("GET /api/v1/employees/export-pdf", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(response.headers.get("Content-Disposition")).toMatch(
-      /^attachment; filename="Laporan-Kepegawaian_active_\d{8}_\d{4}\.pdf"$/,
+      /^attachment; filename="Laporan-Kepegawaian_active_\d{8}_\d{4}\.pdf"; filename\*=UTF-8''Laporan-Kepegawaian_active_\d{8}_\d{4}\.pdf$/,
     );
     expect(body).toBe("pdf body");
 
