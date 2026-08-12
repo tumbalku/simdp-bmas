@@ -90,7 +90,7 @@ describe("GET /api/v1/documents/export-pdf", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(response.headers.get("Content-Disposition")).toMatch(
-      /^attachment; filename="Laporan-Dokumen-KTP-Personal-Pegawai_\d{8}_\d{4}\.pdf"$/,
+      /^attachment; filename="Laporan-Dokumen-KTP-Personal-Pegawai_\d{8}_\d{4}\.pdf"; filename\*=UTF-8''Laporan-Dokumen-KTP-Personal-Pegawai_\d{8}_\d{4}\.pdf$/,
     );
     expect(body).toBe("document report pdf");
 

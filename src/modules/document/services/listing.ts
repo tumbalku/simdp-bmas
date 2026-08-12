@@ -71,7 +71,13 @@ export async function getDocumentRecordsWithPagination(
     ];
   }
 
-  const [records, total] = await repo.findDocumentRecordsWithPagination(where, skip, limit);
+  const [records, total] = await repo.findDocumentRecordsWithPagination(
+    where,
+    skip,
+    limit,
+    filter.sortBy,
+    filter.sortOrder
+  );
 
   return {
     data: records.map(mapDocumentRecord),
