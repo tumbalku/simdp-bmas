@@ -197,12 +197,12 @@ export function renderEmployeeDirectoryPdfHtml(
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
-      border: 1.6px solid var(--line);
+      border: 2px solid var(--line);
     }
     thead { display: table-header-group; }
     tr { break-inside: avoid; page-break-inside: avoid; }
     th, td {
-      border: .75px solid var(--soft-line);
+      border: 1px solid var(--soft-line);
       padding: 5px 4px;
       vertical-align: middle;
       overflow-wrap: anywhere;
@@ -215,11 +215,13 @@ export function renderEmployeeDirectoryPdfHtml(
       font-size: 9px;
       font-weight: 900;
       text-transform: uppercase;
+      vertical-align: middle;
     }
     td {
       min-height: 20px;
       font-size: 8.5px;
       font-weight: 500;
+      text-align: center;
     }
     tbody tr:nth-child(even) td { background: #f8fafc; }
     .col-no { 
@@ -228,6 +230,7 @@ export function renderEmployeeDirectoryPdfHtml(
     }
     .col-name { 
       font-weight: 700;
+      text-align: left;
     }
     .col-nip {
       font-size: 8px;
@@ -243,28 +246,28 @@ export function renderEmployeeDirectoryPdfHtml(
     }
     .col-rank {
       font-size: 8px;
-      text-align: left;
+      text-align: center;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-position {
       font-size: 8px;
-      text-align: left;
+      text-align: center;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-workplace {
       font-size: 8px;
-      text-align: left;
+      text-align: center;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-birth {
       font-size: 8px;
-      text-align: left;
+      text-align: center;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
