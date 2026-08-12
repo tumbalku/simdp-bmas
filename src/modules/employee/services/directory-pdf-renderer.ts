@@ -224,29 +224,37 @@ export function renderEmployeeDirectoryPdfHtml(
     tbody tr:nth-child(even) td { background: #f8fafc; }
     .col-no { width: 25px; text-align: center; }
     .col-name { font-weight: 700; }
-    .col-nip,
+    .col-nip {
+      font-size: 8px;
+      line-height: 1.08;
+      white-space: nowrap;
+      text-align: center;
+    }
     .col-nik {
       font-size: 8px;
       line-height: 1.08;
+      white-space: nowrap;
+      text-align: center;
     }
     .col-gender {
       font-size: 8px;
       line-height: 1.08;
       text-align: center;
+      white-space: nowrap;
     }
     .col-education {
-      white-space: nowrap;
-      overflow-wrap: normal;
-      word-break: normal;
       font-size: 8px;
       text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     .col-tmt {
-      white-space: nowrap;
-      overflow-wrap: normal;
-      word-break: normal;
       font-size: 8px;
       text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     .compact-header {
       line-height: 1.08;
@@ -344,17 +352,17 @@ export function renderEmployeeDirectoryPdfHtml(
     <table>
       <colgroup>
         <col style="width: 2.2%" />
-        <col style="width: 13.8%" />
-        <col style="width: 8.3%" />
-        <col style="width: 7.2%" />
-        <col style="width: 9.8%" />
-        <col style="width: 10.5%" />
+        <col style="width: 12%" />
+        <col style="width: 9.5%" />
+        <col style="width: 8.5%" />
+        <col style="width: 9%" />
+        <col style="width: 10%" />
         <col style="width: 9%" />
         <col style="width: 8.5%" />
-        <col style="width: 8%" />
         <col style="width: 9%" />
-        <col style="width: 8.2%" />
-        <col style="width: 5.5%" />
+        <col style="width: 9%" />
+        <col style="width: 8.3%" />
+        <col style="width: 5%" />
       </colgroup>
       <thead>
         <tr>
