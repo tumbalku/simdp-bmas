@@ -467,7 +467,7 @@ export function VerificationQueueView({
         <>
           {viewMode === "list" ? (
             <DataTableCard
-              title="Daftar Tunggu Pemeriksaan"
+              title="Daftar Tunggu"
               icon={<FileText className="size-5" />}
               description="Buka tinjauan berkas untuk membaca dokumen dan mengambil keputusan verifikasi."
               rowsPerPageControl={{

@@ -45,18 +45,18 @@ export function DataTableCard({
 }: DataTableCardProps) {
   return (
     <Card className={cn("border-muted-foreground/10 shadow-sm", className)}>
-      <CardHeader className="gap-3">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-3">
         <div className="min-w-0 space-y-0.5">
           <CardTitle className="flex items-center gap-2">
             {icon}
             {title}
           </CardTitle>
           {description ? (
-            <CardDescription>{description}</CardDescription>
+            <CardDescription className="hidden sm:block">{description}</CardDescription>
           ) : null}
         </div>
         {rowsPerPageControl || extraActions ? (
-          <CardAction className="flex items-center gap-2">
+          <CardAction className="col-auto row-auto flex shrink-0 items-center gap-2 self-center">
             {rowsPerPageControl ? (
               <RowsPerPageControl {...rowsPerPageControl} variant="table" />
             ) : null}
