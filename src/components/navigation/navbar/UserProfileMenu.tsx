@@ -65,7 +65,11 @@ export function UserProfileMenu({ profile, loading }: UserProfileMenuProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <button className="flex items-center justify-center rounded-full transition-transform hover:scale-105 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          <button
+            id="user-profile-dropdown-trigger"
+            suppressHydrationWarning
+            className="flex items-center justify-center rounded-full transition-transform hover:scale-105 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             <Avatar size="default">
               {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.name} />}
               <AvatarFallback className="bg-primary/10 text-primary font-semibold text-xs">

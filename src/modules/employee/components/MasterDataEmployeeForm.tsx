@@ -567,7 +567,7 @@ export function MasterDataEmployeeForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" suppressHydrationWarning>
               <Checkbox
                 id="hasTmt"
                 checked={hasTmt}
