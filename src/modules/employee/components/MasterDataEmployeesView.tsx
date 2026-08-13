@@ -18,7 +18,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { PAGINATION } from "@/constants";
+import { PAGINATION, ROUTES } from "@/constants";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { crudEmployeeAction } from "@/modules/employee";
 import {
@@ -471,7 +471,7 @@ export function MasterDataEmployeesView({
         title="Data Pegawai"
         description="Kelola direktori pegawai, akun, unit kerja, dan ringkasan dokumen."
         trailing={
-          <Link className={buttonVariants()} href="/master-data/employees/add">
+          <Link className={buttonVariants()} href={`${ROUTES.masterDataEmployees}/add`}>
             <UserPlus className="size-3.5" />
             Tambah Pegawai
           </Link>

@@ -15,7 +15,8 @@ import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
-import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
+import { ViewModeToggle, type ViewMode } from "@/components/tables/ViewModeToggle";
+import { type PaginationInfo } from "@/types/pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -63,15 +64,6 @@ type QueueItem = {
   uploadedAt: string;
 };
 
-type PaginationInfo = {
-  page: number;
-  pageSize: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-};
-
 type DocumentTypeOption = {
   id: string;
   code: string;
@@ -84,8 +76,6 @@ type VerificationQueueViewProps = {
   initialPagination: PaginationInfo;
   documentTypes: DocumentTypeOption[];
 };
-
-type ViewMode = "grid" | "list";
 
 /* -------------------------------------------------------------------------- */
 /*  Helper                                                                    */

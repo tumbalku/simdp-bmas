@@ -45,13 +45,16 @@ export async function getDocumentTypesWithPagination(filter: DocumentTypeListFil
 
   const [types, total] = await repo.findDocumentTypesWithPagination(where, skip, limit);
 
+  const totalPages = Math.ceil(total / limit);
   return {
     data: types.map(mapDocumentTypeSummary),
     pagination: {
       page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      pageSize: limit,
+      totalItems: total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
     },
   };
 }

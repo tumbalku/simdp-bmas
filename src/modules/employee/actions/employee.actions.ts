@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { requireAuth } from "@/lib/auth";
@@ -40,7 +39,7 @@ export async function getEmployeeDirectoryAction(filter?: unknown) {
 
     const data = await getEmployeeDirectory(parsed.data || {});
     return { ok: true as const, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getEmployeeDirectoryAction error:", error);
     return handleActionError(error);
   }
@@ -64,7 +63,7 @@ export async function getEmployeeDirectoryWithPaginationAction(
 
     const data = await getEmployeeDirectoryWithPagination(parsed.data || {});
     return { ok: true as const, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getEmployeeDirectoryWithPaginationAction error:", error);
     return handleActionError(error);
   }
@@ -82,7 +81,7 @@ export async function getEmployeeDetailAction(id: string) {
     }
 
     return { ok: true as const, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getEmployeeDetailAction error:", error);
     return handleActionError(error);
   }
@@ -107,7 +106,7 @@ export async function getCurrentProfile() {
 
     // Return profile matching standard envelope
     return { ok: true as const, data: profile };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getCurrentProfile error:", error);
     return handleActionError(error, {
       defaultMessage: "Terjadi kesalahan internal",
@@ -155,7 +154,7 @@ export async function updateProfileAction(data: unknown) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("updateProfileAction error:", error);
     return handleActionError(error, {
       defaultMessage: "Terjadi kesalahan internal",
@@ -186,7 +185,7 @@ export async function uploadProfileAvatarAction(formData: FormData) {
     );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("uploadProfileAvatarAction error:", error);
     return handleActionError(error, {
       defaultMessage: "Terjadi kesalahan internal",
@@ -229,7 +228,7 @@ export async function crudEmployeeAction(
     );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (!(error instanceof AppError)) {
       console.error("crudEmployeeAction error:", error);
     }
@@ -277,7 +276,7 @@ export async function addCareerHistoryAction(data: unknown) {
     const result = await addCareerHistory(cleanData);
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("addCareerHistoryAction error:", error);
     return handleActionError(error, {
       unauthenticatedMessage: "UNAUTHENTICATED",
@@ -323,7 +322,7 @@ export async function importEmployeesAction(formData: FormData) {
     );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("importEmployeesAction error:", error);
     return handleActionError(error, {
       unauthenticatedMessage: "UNAUTHENTICATED",
@@ -395,9 +394,9 @@ export async function bulkCreateEmployeesAction(employees: unknown) {
         );
 
         importedCount++;
-      } catch (err: any) {
+      } catch (err: unknown) {
         failedCount++;
-        const errMsg = err.message || "Gagal menyimpan data pegawai.";
+        const errMsg = err instanceof Error ? err.message : "Gagal menyimpan data pegawai.";
         errors.push({ row: rowNum, error: errMsg });
         console.warn(`[Bulk Import] Failed to import row ${rowNum}: ${errMsg}`);
       }
@@ -407,7 +406,7 @@ export async function bulkCreateEmployeesAction(employees: unknown) {
       `[Bulk Import] Completed best-effort import. Success: ${importedCount}, Failed: ${failedCount}.`,
     );
     return { ok: true as const, data: { importedCount, failedCount, errors } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("bulkCreateEmployeesAction error:", error);
     return handleActionError(error, {
       unauthenticatedMessage: "UNAUTHENTICATED",
@@ -463,7 +462,7 @@ export async function getMasterDataListAction(
       parsed.data || {},
     );
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getMasterDataListAction error:", error);
     return handleActionError(error, {
       unauthenticatedMessage: "UNAUTHENTICATED",
@@ -476,7 +475,7 @@ export async function crudMasterDataAction(
   entityType: string,
   operation: string,
   id?: string,
-  data?: any,
+  data?: unknown,
 ) {
   try {
     const session = await requireAuth();
@@ -531,8 +530,8 @@ export async function crudMasterDataAction(
     const actorName = await getActorDisplayName(session.userId, "User");
 
     const result = await handleMasterDataCrud(
-      entityType as any,
-      operation as any,
+      entityType as Parameters<typeof handleMasterDataCrud>[0],
+      operation as Parameters<typeof handleMasterDataCrud>[1],
       id,
       data,
       session.userId,
@@ -541,7 +540,7 @@ export async function crudMasterDataAction(
     );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("crudMasterDataAction error:", error);
     return handleActionError(error, {
       unauthenticatedMessage: "UNAUTHENTICATED",

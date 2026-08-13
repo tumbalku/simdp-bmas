@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { z } from "zod";
@@ -183,7 +182,7 @@ export async function loginAction(data: unknown) {
     await setAuthCookies(session.user.id, session.user.role, session.user.employeeId, session.refreshTokenPlain);
 
     return { ok: true as const, data: { user: result.user } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("loginAction error:", error);
     return {
       ok: false as const,
@@ -222,7 +221,7 @@ export async function verifyTwoFactorLoginAction(data: unknown) {
     await clearTwoFactorChallengeCookie();
     await logActivity({ actorId: user.id, actorName: user.employee?.name || user.email, actorRole: user.role, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_SUCCESS, resource: `User:${user.id}`, status: SECURITY_LOG_STATUS.SUCCESS });
     return { ok: true as const, data: { user: session.user } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("verifyTwoFactorLoginAction error:", error);
     return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan. Coba lagi." } };
   }
@@ -247,7 +246,7 @@ export async function sendTwoFactorEmailCodeAction() {
 
     await logActivity({ actorId: userId, actorName: user.employee?.name || user.email, actorRole: SECURITY_ACTOR_ROLE.PUBLIC, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_EMAIL_SENT, resource: `User:${userId}`, status: SECURITY_LOG_STATUS.SUCCESS, metadata: { expiresInSeconds: result.expiresInSeconds } });
     return { ok: true as const, data: { maskedEmail: result.maskedEmail, expiresInSeconds: result.expiresInSeconds } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("sendTwoFactorEmailCodeAction error:", error);
     return { ok: false as const, error: { code: "EMAIL_SEND_FAILED", message: "Kode email gagal dikirim. Coba lagi nanti." } };
   }
@@ -316,7 +315,7 @@ export async function forgotPasswordAction(data: unknown) {
     await requestPasswordReset(email);
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("forgotPasswordAction error:", error);
     return {
       ok: false as const,
@@ -357,7 +356,7 @@ export async function resetPasswordAction(data: unknown) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("resetPasswordAction error:", error);
     return {
       ok: false as const,
@@ -410,13 +409,14 @@ export async function changePasswordAction(data: unknown) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("changePasswordAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -497,13 +497,14 @@ export async function verifyCurrentPasswordAction(data: unknown) {
     });
 
     return { ok: true as const, data: { verified: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("verifyCurrentPasswordAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -524,13 +525,14 @@ export async function getCurrentAccountSettingsAction() {
     const sessions = await getActiveSessions(session.userId);
 
     return { ok: true as const, data: { account, sessions } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getCurrentAccountSettingsAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -579,13 +581,14 @@ export async function revokeSessionAction(tokenId: string) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("revokeSessionAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -612,13 +615,14 @@ export async function revokeAllSessionsAction() {
     await clearAuthCookies();
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("revokeAllSessionsAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -636,7 +640,7 @@ export async function logoutAction() {
     }
     await clearAuthCookies();
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("logoutAction error:", error);
     return {
       ok: false as const,

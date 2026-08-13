@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PAGINATION, ROUTES } from "@/constants";
 
-export type ViewMode = "grid" | "list";
+import { type ViewMode } from "@/components/tables/ViewModeToggle";
 
 export type UseDocumentsViewStateProps = {
   paginationLimit: number;

@@ -7,6 +7,7 @@ import { ShieldCheck } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
+import { type PaginationMeta } from "@/types/pagination";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,15 +40,6 @@ type SecurityLogItem = {
   ipAddress: string | null;
   status: string;
   metadata: unknown;
-};
-
-type PaginationMeta = {
-  page: number;
-  pageSize: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
 };
 
 type SecurityLogPageViewProps = {
