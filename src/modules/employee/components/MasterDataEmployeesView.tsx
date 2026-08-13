@@ -19,6 +19,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { PAGINATION, ROUTES } from "@/constants";
+import { generateAlphanumericKey } from "@/utils/crypto";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { crudEmployeeAction } from "@/modules/employee";
 import {
@@ -102,14 +103,7 @@ export function MasterDataEmployeesView({
     nip: "",
   });
 
-  const generateRandomSecretKey = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let key = "";
-    for (let i = 0; i < 12; i++) {
-      key += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return key;
-  };
+
 
   const handleBulkAction = async (
     action: "DELETE" | "RESTORE" | "PERMANENT_DELETE",
@@ -139,9 +133,9 @@ export function MasterDataEmployeesView({
   };
 
   const openBulkDialog = (
-    action: "bulk-archive" | "bulk-restore" | "bulk-delete",
-  ) => {
-    setBulkSecretKey(generateRandomSecretKey());
+      action: "bulk-archive" | "bulk-restore" | "bulk-delete",
+    ) => {
+      setBulkSecretKey(generateAlphanumericKey(12));
     setCriticalActionTarget({
       action,
       employee: {

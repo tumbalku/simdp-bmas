@@ -11,6 +11,7 @@ import {
   clearTwoFactorChallengeCookie,
 } from "@/lib/auth";
 import {
+  clearSharedRateLimitBucket,
   getSharedRateLimitBucket,
   incrementSharedRateLimitBucket,
 } from "@/lib/rate-limit-store";
@@ -485,6 +486,8 @@ export async function verifyCurrentPasswordAction(data: unknown) {
         error: { code: "UNAUTHENTICATED", message: "Password tidak sesuai." },
       };
     }
+
+    await clearSharedRateLimitBucket(`AUTH_PASSWORD_VERIFY:${throttleKey}`);
 
     await logActivity({
       actorId: session.userId,

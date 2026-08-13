@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { generateAlphanumericKey } from "@/utils/crypto";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/navigation/PageHeader";
@@ -343,15 +344,6 @@ function FlatCategoryCard({
   );
 }
 
-function generate12RandomSecretKey() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let key = "";
-  for (let i = 0; i < 12; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return key;
-}
-
 export function MasterDataCategoriesView({
   initialData,
 }: MasterDataCategoriesViewProps) {
@@ -381,7 +373,7 @@ export function MasterDataCategoriesView({
   const requiresParent = Boolean(selectedConfig.parentField);
 
   const handleOpenDelete = (item: DeleteTarget) => {
-    setDeleteSecretKey(generate12RandomSecretKey());
+    setDeleteSecretKey(generateAlphanumericKey(12));
     setDeleteTarget(item);
   };
 

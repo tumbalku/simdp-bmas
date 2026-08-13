@@ -9,3 +9,10 @@ export type PaginationMeta = {
 
 export type PaginationInfo = PaginationMeta;
 
+export type LegacyPaginationMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+

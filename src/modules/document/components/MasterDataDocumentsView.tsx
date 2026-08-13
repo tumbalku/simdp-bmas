@@ -14,6 +14,7 @@ import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { buttonVariants } from "@/components/ui/button";
 import { PAGINATION, ROUTES } from "@/constants";
+import { generateAlphanumericKey } from "@/utils/crypto";
 import {
   ARCHIVE_CATEGORY_OPTIONS,
   type DocumentTypeOption,
@@ -93,15 +94,6 @@ export function MasterDataDocumentsView({
   const [isExporting, setIsExporting] = useState(false);
 
   const isActionPending = pendingDocumentId !== null;
-
-  const generateRandomSecretKey = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let key = "";
-    for (let i = 0; i < 12; i++) {
-      key += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return key;
-  };
 
   const handleBulkConfirmDelete = async () => {
     if (selectedDocIds.length === 0) return;
@@ -191,13 +183,13 @@ export function MasterDataDocumentsView({
   };
 
   const handleOpenBulkDelete = () => {
-    setBulkSecretKey(generateRandomSecretKey());
+    setBulkSecretKey(generateAlphanumericKey(12));
     setCriticalActionTarget({ action: "bulk-delete" });
     setIsCriticalActionDialogOpen(true);
   };
 
   const handleOpenBulkRestore = () => {
-    setBulkSecretKey(generateRandomSecretKey());
+    setBulkSecretKey(generateAlphanumericKey(12));
     setCriticalActionTarget({ action: "bulk-restore" });
     setIsCriticalActionDialogOpen(true);
   };

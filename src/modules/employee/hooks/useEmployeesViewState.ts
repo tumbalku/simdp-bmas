@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { PAGINATION } from "@/constants";
+import { PAGINATION, ROUTES } from "@/constants";
 import type { EmployeeDirectoryFilterValues } from "../components/EmployeeDirectoryFilter";
 
 import { type ViewMode } from "@/components/tables/ViewModeToggle";
@@ -105,7 +105,7 @@ export function useEmployeesViewState({
       if (value) params.set(key, value);
     });
 
-    return `/master-data/employees?${params.toString()}`;
+    return `${ROUTES.masterDataEmployees}?${params.toString()}`;
   };
 
   const buildArchiveViewUrl = (nextArchiveView: "active" | "archived") => {
@@ -122,7 +122,7 @@ export function useEmployeesViewState({
       if (value) params.set(key, value);
     });
 
-    return `/master-data/employees?${params.toString()}`;
+    return `${ROUTES.masterDataEmployees}?${params.toString()}`;
   };
 
   const buildExportUrl = () => {
@@ -164,7 +164,7 @@ export function useEmployeesViewState({
     params.set("sortBy", nextSortBy);
     params.set("sortOrder", nextSortOrder);
     params.set("page", "1");
-    router.push(`/master-data/employees?${params.toString()}`);
+    router.push(`${ROUTES.masterDataEmployees}?${params.toString()}`);
   };
 
   const handleValueChange = (
@@ -201,7 +201,7 @@ export function useEmployeesViewState({
       if (filterValue) params.set(key, filterValue);
     });
 
-    router.push(`/master-data/employees?${params.toString()}`);
+    router.push(`${ROUTES.masterDataEmployees}?${params.toString()}`);
   };
 
   const handleResetFilter = () => {
