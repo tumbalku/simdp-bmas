@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { BellRing, DatabaseBackup, Loader2, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, UploadCloud } from "lucide-react";
+import { BellRing, Loader2, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/navigation/PageHeader";
@@ -242,25 +242,19 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <SummaryCard icon={BellRing} label="Reminder aktif" value={`${REMINDER_FIELDS.length} tahap`} />
-        <SummaryCard icon={UploadCloud} label="Foto profil" value={`${values.profile_image_max_upload_mb ?? "-"} MB`} />
-        <SummaryCard icon={DatabaseBackup} label="Retensi data" value={`${values.soft_delete_retention_days ?? "-"} hari`} />
-      </div>
-
       <Tabs defaultValue="reminder" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="reminder">
+        <TabsList className="w-full grid grid-cols-3 sm:flex sm:w-auto">
+          <TabsTrigger value="reminder" className="gap-2">
             <BellRing className="size-4" />
-            Reminder Dokumen
+            <span className="hidden sm:inline">Reminder Dokumen</span>
           </TabsTrigger>
-          <TabsTrigger value="upload">
+          <TabsTrigger value="upload" className="gap-2">
             <UploadCloud className="size-4" />
-            Upload & Retensi
+            <span className="hidden sm:inline">Upload & Retensi</span>
           </TabsTrigger>
-          <TabsTrigger value="security">
+          <TabsTrigger value="security" className="gap-2">
             <ShieldCheck className="size-4" />
-            Keamanan & Log Audit
+            <span className="hidden sm:inline">Keamanan & Log Audit</span>
           </TabsTrigger>
         </TabsList>
 
@@ -340,16 +334,16 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
                   {ALL_SECURITY_EVENTS.length} event dipilih).
                 </CardDescription>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={handleSelectAllEvents}>
+              <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:items-center">
+                <Button type="button" variant="outline" size="sm" onClick={handleSelectAllEvents} className="w-full sm:w-auto justify-start sm:justify-center">
                   <SquareCheck className="size-3.5" />
                   Pilih Semua
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={handleDeselectAllEvents}>
+                <Button type="button" variant="outline" size="sm" onClick={handleDeselectAllEvents} className="w-full sm:w-auto justify-start sm:justify-center">
                   <SquareX className="size-3.5" />
                   Hapus Semua
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={handleResetDefaultEvents}>
+                <Button type="button" variant="outline" size="sm" onClick={handleResetDefaultEvents} className="w-full sm:w-auto justify-start sm:justify-center">
                   <RotateCcw className="size-3.5" />
                   Reset Default
                 </Button>
@@ -359,14 +353,14 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
               {SECURITY_EVENT_GROUPS.map((group) => (
                 <div key={group.title} className="space-y-3">
                   <h4 className="text-sm font-semibold text-foreground">{group.title}</h4>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {group.events.map((event) => {
                       const isChecked = selectedEventsSet.has(event);
                       const id = `event-${event}`;
                       return (
                         <div
                           key={event}
-                          className="flex items-start space-x-3 rounded-lg border bg-muted/10 p-3 transition-colors hover:bg-muted/30"
+                          className="flex items-start space-x-3 rounded-lg border p-3 bg-muted/10 transition-colors hover:bg-muted/30"
                         >
                           <Checkbox
                             id={id}
@@ -465,28 +459,6 @@ function SettingsCard({
           );
         })}
       </CardContent>
-    </Card>
-  );
-}
-
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof BellRing;
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between gap-3">
-          <CardDescription>{label}</CardDescription>
-          <Icon className="size-4 text-primary" />
-        </div>
-        <CardTitle className="text-xl">{value}</CardTitle>
-      </CardHeader>
     </Card>
   );
 }
