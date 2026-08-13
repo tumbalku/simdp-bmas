@@ -4,6 +4,8 @@ import { twMerge } from "tailwind-merge"
 export * from "./crypto";
 export * from "./date";
 export * from "./format";
+export * from "./download";
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

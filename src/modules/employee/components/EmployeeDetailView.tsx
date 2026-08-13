@@ -1,12 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil, Download } from "lucide-react";
 import { InfoCard } from "@/components/cards/InfoCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from "@/components/ui/avatar";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ROLE_LABELS, getRoleBadgeStyle, routeTo, type UserRole } from "@/constants";
+import { downloadFileWithToast } from "@/utils/download";
 import { CareerHistoryDialog } from "./CareerHistoryDialog";
 import { EmployeeProfilePdfDownloadDialog } from "./EmployeeProfilePdfDownloadDialog";
 
@@ -215,14 +218,21 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
                 <CardDescription>Dokumen milik pegawai ini yang tersimpan di sistem ({employee.documentCount} berkas).</CardDescription>
               </div>
               <CardAction>
-                <Link
-                  className={buttonVariants({ variant: "default", size: "sm" })}
-                  href={`/api/v1/employees/${employee.id}/documents-pdf`}
-                  prefetch={false}
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() =>
+                    downloadFileWithToast({
+                      url: `/api/v1/employees/${employee.id}/documents-pdf`,
+                      loadingMessage: `Memproses unduhan dokumen PDF ${employee.name}...`,
+                      successMessage: `Dokumen PDF ${employee.name} berhasil diunduh.`,
+                      defaultFilename: `Dokumen_${employee.name}.pdf`,
+                    })
+                  }
                 >
                   <Download className="size-4" />
                   Download PDF
-                </Link>
+                </Button>
               </CardAction>
             </CardHeader>
             <CardContent className="space-y-3">

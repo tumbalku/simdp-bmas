@@ -2,6 +2,7 @@
 
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
+import { downloadFileWithToast } from "@/utils/download";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -71,12 +72,12 @@ export function ExportPdfOfficialDialog({
     }
 
     onOpenChange(false);
-    const anchor = document.createElement("a");
-    anchor.href = buildExportPdfUrl(normalizedOfficial);
-    anchor.rel = "noopener";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+    void downloadFileWithToast({
+      url: buildExportPdfUrl(normalizedOfficial),
+      loadingMessage: "Memproses laporan PDF kepegawaian...",
+      successMessage: "PDF laporan kepegawaian berhasil diunduh.",
+      defaultFilename: "Laporan_Pegawai.pdf",
+    });
   };
 
   return (

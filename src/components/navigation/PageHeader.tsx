@@ -2,12 +2,13 @@ import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/utils";
 
 type PageHeaderAction = {
   label: string;
-  href: string;
+  href?: string;
+  onClick?: () => void;
   icon?: ComponentType<{ className?: string }>;
   iconPosition?: "start" | "end";
   prefetch?: boolean;
@@ -62,9 +63,31 @@ export function PageHeader({
 
         {actions?.length || trailing ? (
           <div className="flex flex-wrap gap-2 sm:justify-end">
-            {actions?.map((action) => {
+            {actions?.map((action, index) => {
               const Icon = action.icon;
               const iconPosition = action.iconPosition ?? "start";
+
+              if (action.onClick) {
+                return (
+                  <Button
+                    key={action.href ? `${action.href}-${action.label}` : `action-${index}-${action.label}`}
+                    variant={action.variant ?? "default"}
+                    onClick={action.onClick}
+                  >
+                    {Icon && iconPosition === "start" ? (
+                      <Icon className="size-3.5" />
+                    ) : null}
+                    {action.label}
+                    {Icon && iconPosition === "end" ? (
+                      <Icon className="size-3.5" />
+                    ) : null}
+                  </Button>
+                );
+              }
+
+              if (!action.href) {
+                return null;
+              }
 
               return (
                 <Link

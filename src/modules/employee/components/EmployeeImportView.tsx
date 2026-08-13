@@ -79,17 +79,23 @@ export function EmployeeImportView({
   const [isPending, startTransition] = useTransition();
 
   const handleDownloadTemplate = () => {
-    const blob = new Blob([`\uFEFF${EMPLOYEE_IMPORT_TEMPLATE}`], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "Template-Import-Pegawai_SiCantIK.csv";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    const toastId = toast.loading("Menyiapkan template CSV impor pegawai...");
+    try {
+      const blob = new Blob([`\uFEFF${EMPLOYEE_IMPORT_TEMPLATE}`], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Template-Import-Pegawai_SiCantIK.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Template CSV berhasil diunduh.", { id: toastId });
+    } catch {
+      toast.error("Gagal mengunduh template CSV.", { id: toastId });
+    }
   };
 
   const parseCsvLine = (line: string, delimiter: string) => {

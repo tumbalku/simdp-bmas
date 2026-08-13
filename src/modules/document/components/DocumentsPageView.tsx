@@ -22,6 +22,7 @@ import {
 import { ARCHIVE_CATEGORY_OPTIONS, softDeleteDocumentAction } from "@/modules/document";
 import { calculateMandatoryDocumentCompleteness } from "@/modules/document";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
+import { downloadFileWithToast } from "@/utils/download";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 import {
   archiveCategoryIcons,
@@ -255,9 +256,14 @@ export function DocumentsPageView({
             ? [
                 {
                   label: "Download PDF",
-                  href: `/api/v1/employees/${currentEmployeeId}/documents-pdf`,
+                  onClick: () =>
+                    downloadFileWithToast({
+                      url: `/api/v1/employees/${currentEmployeeId}/documents-pdf`,
+                      loadingMessage: "Memproses unduhan berkas PDF...",
+                      successMessage: "Berkas PDF berhasil diunduh.",
+                      defaultFilename: "dokumen-pegawai.pdf",
+                    }),
                   icon: Download,
-                  prefetch: false,
                   variant: "default",
                 },
               ]
