@@ -13,6 +13,8 @@ type PageHeaderAction = {
   iconPosition?: "start" | "end";
   prefetch?: boolean;
   variant?: "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
+  hideLabelOnMobile?: boolean;
+  className?: string;
 };
 
 type PageHeaderProps = {
@@ -48,7 +50,7 @@ export function PageHeader({
         </Link>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex items-center justify-between gap-3 sm:items-end">
         <div>
           {eyebrow ? (
             <p className="text-xs font-medium text-primary">{eyebrow}</p>
@@ -57,12 +59,12 @@ export function PageHeader({
             {title}
           </h1>
           {description ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+            <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{description}</p>
           ) : null}
         </div>
 
         {actions?.length || trailing ? (
-          <div className="flex flex-wrap gap-2 sm:justify-end">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             {actions?.map((action, index) => {
               const Icon = action.icon;
               const iconPosition = action.iconPosition ?? "start";
@@ -73,11 +75,20 @@ export function PageHeader({
                     key={action.href ? `${action.href}-${action.label}` : `action-${index}-${action.label}`}
                     variant={action.variant ?? "default"}
                     onClick={action.onClick}
+                    aria-label={action.hideLabelOnMobile ? action.label : undefined}
+                    className={cn(
+                      action.hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
+                      action.className
+                    )}
                   >
                     {Icon && iconPosition === "start" ? (
                       <Icon className="size-3.5" />
                     ) : null}
-                    {action.label}
+                    {action.hideLabelOnMobile ? (
+                      <span className="hidden sm:inline">{action.label}</span>
+                    ) : (
+                      action.label
+                    )}
                     {Icon && iconPosition === "end" ? (
                       <Icon className="size-3.5" />
                     ) : null}
@@ -94,15 +105,24 @@ export function PageHeader({
                   key={`${action.href}-${action.label}`}
                   href={action.href}
                   prefetch={action.prefetch}
-                  className={buttonVariants({
-                    variant: action.variant ?? "default",
-                    size: "default",
-                  })}
+                  aria-label={action.hideLabelOnMobile ? action.label : undefined}
+                  className={cn(
+                    buttonVariants({
+                      variant: action.variant ?? "default",
+                      size: "default",
+                    }),
+                    action.hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-9 sm:px-4",
+                    action.className
+                  )}
                 >
                   {Icon && iconPosition === "start" ? (
                     <Icon className="size-3.5" />
                   ) : null}
-                  {action.label}
+                  {action.hideLabelOnMobile ? (
+                    <span className="hidden sm:inline">{action.label}</span>
+                  ) : (
+                    action.label
+                  )}
                   {Icon && iconPosition === "end" ? (
                     <Icon className="size-3.5" />
                   ) : null}

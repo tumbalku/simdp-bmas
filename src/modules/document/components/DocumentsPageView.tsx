@@ -265,6 +265,7 @@ export function DocumentsPageView({
                     }),
                   icon: Download,
                   variant: "default",
+                  hideLabelOnMobile: true,
                 },
               ]
             : undefined
