@@ -1,8 +1,12 @@
 import { z } from "zod";
 import {
+  EMPLOYEE_STATUS_LABELS,
   EMPLOYEE_STATUS_VALUE,
+  GENDER_LABELS,
   GENDER_VALUE,
+  MARITAL_STATUS_LABELS,
   MARITAL_STATUS_VALUE,
+  RELIGION_LABELS,
   RELIGION_VALUE,
 } from "../constants";
 
@@ -11,10 +15,44 @@ const genderValues = Object.values(GENDER_VALUE) as [string, ...string[]];
 const maritalStatusValues = Object.values(MARITAL_STATUS_VALUE) as [string, ...string[]];
 const religionValues = Object.values(RELIGION_VALUE) as [string, ...string[]];
 
-const employeeStatusSchema = z.enum(employeeStatusValues);
-const genderSchema = z.enum(genderValues);
-const maritalStatusSchema = z.enum(maritalStatusValues);
-const religionSchema = z.enum(religionValues);
+function normalizeEnumValue<T extends Record<string, string>>(
+  val: unknown,
+  canonicalMap: Record<string, string>,
+  labelsMap: T
+): unknown {
+  if (typeof val !== "string") return val;
+  const trimmed = val.trim();
+  if (!trimmed) return val;
+
+  if (trimmed in canonicalMap) return trimmed;
+
+  for (const [key, label] of Object.entries(labelsMap)) {
+    if (label.toLowerCase() === trimmed.toLowerCase()) {
+      return key;
+    }
+  }
+  return trimmed;
+}
+
+const employeeStatusSchema = z.preprocess(
+  (val) => normalizeEnumValue(val, EMPLOYEE_STATUS_VALUE, EMPLOYEE_STATUS_LABELS),
+  z.enum(employeeStatusValues)
+);
+
+const genderSchema = z.preprocess(
+  (val) => normalizeEnumValue(val, GENDER_VALUE, GENDER_LABELS),
+  z.enum(genderValues)
+);
+
+const maritalStatusSchema = z.preprocess(
+  (val) => normalizeEnumValue(val, MARITAL_STATUS_VALUE, MARITAL_STATUS_LABELS),
+  z.enum(maritalStatusValues)
+);
+
+const religionSchema = z.preprocess(
+  (val) => normalizeEnumValue(val, RELIGION_VALUE, RELIGION_LABELS),
+  z.enum(religionValues)
+);
 
 export const updateProfileSchema = z.object({
   phone: z.string().regex(/^[0-9+\-\s]*$/, "Format telepon tidak valid").optional().nullable(),

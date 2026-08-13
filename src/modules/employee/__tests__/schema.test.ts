@@ -23,13 +23,17 @@ describe("Employee Module Schemas", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should reject legacy profile enum labels", () => {
+    it("should accept canonical or label profile enum values and normalize to canonical", () => {
       const result = updateProfileSchema.safeParse({
-        religion: "Islam",
+        religion: "Kristen (Protestan)",
         maritalStatus: "Kawin",
       });
 
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.religion).toBe("PROTESTANT");
+        expect(result.data.maritalStatus).toBe("MARRIED");
+      }
     });
 
     it("should fail when phone format is invalid", () => {
