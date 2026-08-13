@@ -16,6 +16,8 @@ describe("Settings Module Service", () => {
         { key: "default_max_upload_mb", value: "10" },
         { key: "profile_image_max_upload_mb", value: "2" },
         { key: "soft_delete_retention_days", value: "30" },
+        { key: "security_log_enabled_events", value: "[]" },
+        { key: "security_log_retention_days", value: "30" },
       ];
       mockPrisma.systemSetting.findMany.mockResolvedValue(mockSettings);
 

@@ -61,3 +61,13 @@ export function countRecentFailedLoginAttemptsByIp(input: {
     },
   });
 }
+
+export function deleteSecurityLogsBeforeDate(beforeDate: Date) {
+  return prisma.securityLog.deleteMany({
+    where: {
+      timestamp: {
+        lt: beforeDate,
+      },
+    },
+  });
+}
