@@ -165,7 +165,7 @@ describe("Document Module Service", () => {
       mockPrisma.documentRecord.findMany.mockResolvedValue([]);
       mockPrisma.documentRecord.count.mockResolvedValue(0);
 
-      await getDocumentRecordsWithPagination({
+      const result = await getDocumentRecordsWithPagination({
         documentTypeId: "type-1",
         archiveCategory: "LEGAL",
         page: 2,
@@ -182,6 +182,14 @@ describe("Document Module Service", () => {
           take: 10,
         }),
       );
+      expect(result.pagination).toEqual({
+        page: 2,
+        pageSize: 10,
+        totalItems: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
     });
 
     it("should apply column sorting to paginated document query", async () => {

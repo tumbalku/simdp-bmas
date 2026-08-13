@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
+import type { PaginationMeta } from "@/types/pagination";
 import { mapDocumentRecord, mapDocumentDetail } from "../mappers";
 import * as repo from "../repository";
 import type { DocumentListFilter } from "./shared";
@@ -41,7 +42,7 @@ export async function getDocumentRecordsForSession(session: TokenPayload, filter
 
 export async function getDocumentRecordsWithPagination(
   filter: DocumentListFilter & { page?: number; limit?: number } = {}
-) {
+): Promise<{ data: ReturnType<typeof mapDocumentRecord>[]; pagination: PaginationMeta }> {
   const page = filter.page || 1;
   const limit = filter.limit || 20;
   const skip = (page - 1) * limit;
@@ -79,13 +80,17 @@ export async function getDocumentRecordsWithPagination(
     filter.sortOrder
   );
 
+  const totalPages = Math.ceil(total / limit);
+
   return {
     data: records.map(mapDocumentRecord),
     pagination: {
       page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
+      pageSize: limit,
+      totalItems: total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
     },
   };
 }

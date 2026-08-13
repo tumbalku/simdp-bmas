@@ -21,6 +21,7 @@ import {
   ROUTES,
   routeTo,
 } from "@/constants";
+import { type PaginationMeta } from "@/types/pagination";
 import {
   DOCUMENT_STATUS_OPTIONS,
   DOCUMENT_STATUS_VARIANTS,
@@ -50,13 +51,6 @@ export type CriticalDocumentAction =
 export type CriticalActionTarget = {
   doc?: DocumentRecord;
   action: CriticalDocumentAction;
-};
-
-export type PaginationMeta = {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 };
 
 export type DocumentTableViewProps = {
@@ -275,7 +269,7 @@ export function DocumentTableView({
 
   const footerSummary = (
     <p className="text-xs text-muted-foreground">
-      Menampilkan {documents.length} dari {pagination.total} dokumen{" "}
+      Menampilkan {documents.length} dari {pagination.totalItems} dokumen{" "}
       {isArchiveView ? "arsip" : "aktif"}.
     </p>
   );
@@ -284,7 +278,7 @@ export function DocumentTableView({
     <DataTableCard
       title="Daftar Dokumen"
       icon={<FileText className="size-5" />}
-      description={`Total ${pagination.total} dokumen ${isArchiveView ? "arsip" : "aktif"} - Halaman ${pagination.page} dari ${pagination.totalPages || 1}`}
+      description={`Total ${pagination.totalItems} dokumen ${isArchiveView ? "arsip" : "aktif"} - Halaman ${pagination.page} dari ${pagination.totalPages || 1}`}
       rowsPerPageControl={{
         value: rowsPerPage,
         onValueChange: onRowsPerPageChange,

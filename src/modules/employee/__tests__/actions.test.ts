@@ -65,7 +65,15 @@ describe("Employee Module Actions", () => {
   });
 
   it("should accept advanced paginated employee directory filters", async () => {
-    mocks.getEmployeeDirectoryWithPagination.mockResolvedValue({ data: [], pagination: { total: 0 } });
+    const mockPagination = {
+      page: 1,
+      pageSize: 10,
+      totalItems: 0,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    };
+    mocks.getEmployeeDirectoryWithPagination.mockResolvedValue({ data: [], pagination: mockPagination });
 
     const result = await getEmployeeDirectoryWithPaginationAction({
       search: "andi",
@@ -105,7 +113,7 @@ describe("Employee Module Actions", () => {
         status: "ACTIVE",
       })
     );
-    expect(result).toEqual({ ok: true, data: { data: [], pagination: { total: 0 } } });
+    expect(result).toEqual({ ok: true, data: { data: [], pagination: mockPagination } });
   });
 
   it("should validate and pass nullable profile data to the service", async () => {

@@ -10,6 +10,7 @@ import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
+import type { PaginationMeta } from "@/types/pagination";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Pagination,
@@ -35,7 +36,6 @@ import {
   EmployeeTableView,
   type CriticalEmployeeActionTarget,
   type EmployeeSummary,
-  type PaginationMeta,
 } from "./EmployeeTableView";
 import { EmployeeGridView } from "./EmployeeGridView";
 import {
@@ -82,7 +82,7 @@ export function MasterDataEmployeesView({
     handleRowsPerPageChange,
     handleResetFilter,
   } = useEmployeesViewState({
-    paginationLimit: pagination.limit,
+    paginationLimit: pagination.pageSize,
     paginationPage: pagination.page,
     archiveView,
     sortBy,
@@ -412,7 +412,7 @@ export function MasterDataEmployeesView({
 
   const footerSummary = (
     <p className="text-xs text-muted-foreground">
-      Menampilkan {employees.length} dari {pagination.total} pegawai.
+      Menampilkan {employees.length} dari {pagination.totalItems} pegawai.
     </p>
   );
 

@@ -26,8 +26,8 @@ import {
 import type {
   CriticalActionTarget,
   DocumentRecord,
-  PaginationMeta,
 } from "./DocumentTableView";
+import { type PaginationMeta } from "@/types/pagination";
 
 export type DocumentGridViewProps = {
   documents: DocumentRecord[];
@@ -157,7 +157,7 @@ export function DocumentGridView({
 
   const footerSummary = (
     <p className="text-xs text-muted-foreground">
-      Menampilkan {documents.length} dari {pagination.total} dokumen{" "}
+      Menampilkan {documents.length} dari {pagination.totalItems} dokumen{" "}
       {isArchiveView ? "arsip" : "aktif"}.
     </p>
   );

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Eye, Pencil, RotateCcw, Trash2, Users } from "lucide-react";
+import type { PaginationMeta } from "@/types/pagination";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +24,6 @@ export type EmployeeSummary = {
   employmentStatus: string | null;
   workplace: string | null;
   documentCount: number;
-};
-
-export type PaginationMeta = {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 };
 
 export type CriticalEmployeeAction =
@@ -206,7 +200,7 @@ export function EmployeeTableView({
   return (
     <DataTableCard
       title="Daftar Pegawai"
-      description={`Total ${pagination.total} pegawai ${isArchiveView ? "arsip" : "aktif"} - Halaman ${pagination.page} dari ${pagination.totalPages || 1}`}
+      description={`Total ${pagination.totalItems} pegawai ${isArchiveView ? "arsip" : "aktif"} - Halaman ${pagination.page} dari ${pagination.totalPages || 1}`}
       icon={<Users className="size-4 text-muted-foreground" />}
       rowsPerPageControl={{
         value: rowsPerPage,

@@ -73,22 +73,44 @@ describe("Document Module Actions", () => {
   });
 
   it("should call paginated document list service with parsed pagination", async () => {
-    mocks.getDocumentRecordsWithPagination.mockResolvedValue({ data: [], total: 0 });
+    const paginatedResult = {
+      data: [],
+      pagination: {
+        page: 2,
+        pageSize: 25,
+        totalItems: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      },
+    };
+    mocks.getDocumentRecordsWithPagination.mockResolvedValue(paginatedResult);
 
     const result = await getDocumentRecordsWithPaginationAction({ page: 2, limit: 25, search: "sk" });
 
     expect(mocks.requireAuth).toHaveBeenCalledWith("ADMIN");
     expect(mocks.getDocumentRecordsWithPagination).toHaveBeenCalledWith({ page: 2, limit: 25, search: "sk" });
-    expect(result).toEqual({ ok: true, data: { data: [], total: 0 } });
+    expect(result).toEqual({ ok: true, data: paginatedResult });
   });
 
   it("should accept archived document list filter", async () => {
-    mocks.getDocumentRecordsWithPagination.mockResolvedValue({ data: [], total: 0 });
+    const paginatedResult = {
+      data: [],
+      pagination: {
+        page: 1,
+        pageSize: 20,
+        totalItems: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+    mocks.getDocumentRecordsWithPagination.mockResolvedValue(paginatedResult);
 
     const result = await getDocumentRecordsWithPaginationAction({ archiveView: "archived", page: 1 });
 
     expect(mocks.getDocumentRecordsWithPagination).toHaveBeenCalledWith({ archiveView: "archived", page: 1 });
-    expect(result).toEqual({ ok: true, data: { data: [], total: 0 } });
+    expect(result).toEqual({ ok: true, data: paginatedResult });
   });
 
   it("should return validation error when upload file is missing", async () => {

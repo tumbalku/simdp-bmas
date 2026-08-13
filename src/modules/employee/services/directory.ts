@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { PaginationMeta } from "@/types/pagination";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repository from "../repository";
@@ -37,14 +38,20 @@ export async function getEmployeeDirectoryWithPagination(
     repository.countEmployees(where),
   ]);
 
+  const totalPages = Math.ceil(total / limit);
+
+  const pagination: PaginationMeta = {
+    page,
+    pageSize: limit,
+    totalItems: total,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1,
+  };
+
   return {
     data: employees.map(mapEmployeeSummary),
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
+    pagination,
   };
 }
 

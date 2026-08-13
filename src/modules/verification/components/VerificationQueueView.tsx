@@ -16,7 +16,7 @@ import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
 import { ViewModeToggle, type ViewMode } from "@/components/tables/ViewModeToggle";
-import { type PaginationInfo } from "@/types/pagination";
+import { type PaginationMeta } from "@/types/pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -73,7 +73,7 @@ type DocumentTypeOption = {
 type VerificationQueueViewProps = {
   initialData: QueueItem[];
   /** The nested pagination object from the server action meta */
-  initialPagination: PaginationInfo;
+  initialPagination: PaginationMeta;
   documentTypes: DocumentTypeOption[];
 };
 
@@ -96,7 +96,7 @@ export function VerificationQueueView({
 
   /* data */
   const [items, setItems] = useState<QueueItem[]>(initialData);
-  const [pagination, setPagination] = useState<PaginationInfo>(
+  const [pagination, setPagination] = useState<PaginationMeta>(
     initialPagination
   );
 

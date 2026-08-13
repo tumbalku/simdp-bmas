@@ -29,10 +29,10 @@ import {
   DocumentTableView,
   type CriticalActionTarget,
   type DocumentRecord,
-  type PaginationMeta,
 } from "./DocumentTableView";
+import { type PaginationMeta } from "@/types/pagination";
 
-export type { DocumentRecord, PaginationMeta, CriticalActionTarget };
+export type { DocumentRecord, CriticalActionTarget };
 
 type MasterDataDocumentsViewProps = {
   documents: DocumentRecord[];
@@ -75,7 +75,7 @@ export function MasterDataDocumentsView({
     handleRowsPerPageChange,
     handleResetFilter,
   } = useDocumentsViewState({
-    paginationLimit: pagination.limit,
+    paginationLimit: pagination.pageSize,
     paginationPage: pagination.page,
     archiveView,
     sortBy,
