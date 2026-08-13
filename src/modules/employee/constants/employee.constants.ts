@@ -89,13 +89,6 @@ export const EMPLOYEE_STATUS_LABELS = {
   STUDY_ASSIGNMENT: "Tugas Belajar (Tubel)",
 } as const satisfies Record<EmployeeStatusValue, string>;
 
-export const EMPLOYEE_STATUS_LEGACY_TO_CANONICAL = {
-  Aktif: EMPLOYEE_STATUS_VALUE.ACTIVE,
-  Pensiun: EMPLOYEE_STATUS_VALUE.RETIRED,
-  Tubel: EMPLOYEE_STATUS_VALUE.STUDY_ASSIGNMENT,
-  "Tugas Belajar (Tubel)": EMPLOYEE_STATUS_VALUE.STUDY_ASSIGNMENT,
-} as const;
-
 export const GENDER_VALUE = {
   MALE: "MALE",
   FEMALE: "FEMALE",
@@ -107,14 +100,6 @@ export const GENDER_LABELS = {
   MALE: "Pria",
   FEMALE: "Wanita",
 } as const satisfies Record<GenderValue, string>;
-
-export const GENDER_LEGACY_TO_CANONICAL = {
-  Pria: GENDER_VALUE.MALE,
-  LakiLaki: GENDER_VALUE.MALE,
-  "Laki-laki": GENDER_VALUE.MALE,
-  Wanita: GENDER_VALUE.FEMALE,
-  Perempuan: GENDER_VALUE.FEMALE,
-} as const;
 
 export const RELIGION_VALUE = {
   ISLAM: "ISLAM",
@@ -136,18 +121,6 @@ export const RELIGION_LABELS = {
   CONFUCIAN: "Khonghucu",
 } as const satisfies Record<ReligionValue, string>;
 
-export const RELIGION_LEGACY_TO_CANONICAL = {
-  Islam: RELIGION_VALUE.ISLAM,
-  Kristen: RELIGION_VALUE.PROTESTANT,
-  Protestan: RELIGION_VALUE.PROTESTANT,
-  "Kristen (Protestan)": RELIGION_VALUE.PROTESTANT,
-  Katolik: RELIGION_VALUE.CATHOLIC,
-  Hindu: RELIGION_VALUE.HINDU,
-  Buddha: RELIGION_VALUE.BUDDHIST,
-  Khonghucu: RELIGION_VALUE.CONFUCIAN,
-  Konghucu: RELIGION_VALUE.CONFUCIAN,
-} as const;
-
 export const MARITAL_STATUS_VALUE = {
   SINGLE: "SINGLE",
   MARRIED: "MARRIED",
@@ -163,13 +136,6 @@ export const MARITAL_STATUS_LABELS = {
   DIVORCED: "Cerai Hidup",
   WIDOWED: "Cerai Meninggal",
 } as const satisfies Record<MaritalStatusValue, string>;
-
-export const MARITAL_STATUS_LEGACY_TO_CANONICAL = {
-  "Belum Kawin": MARITAL_STATUS_VALUE.SINGLE,
-  Kawin: MARITAL_STATUS_VALUE.MARRIED,
-  "Cerai Hidup": MARITAL_STATUS_VALUE.DIVORCED,
-  "Cerai Meninggal": MARITAL_STATUS_VALUE.WIDOWED,
-} as const;
 
 export const GENDER_OPTIONS = [
   { value: GENDER_VALUE.MALE, label: GENDER_LABELS.MALE },
@@ -208,69 +174,20 @@ export const EDUCATION_LEVEL_LABELS = {
   SPECIALIST_2: "Sp-2",
 } as const satisfies Record<EducationLevelValue, string>;
 
-export const EDUCATION_LEVEL_LEGACY_TO_CANONICAL = {
-  SD: EDUCATION_LEVEL_VALUE.ELEMENTARY_SCHOOL,
-  SMP: EDUCATION_LEVEL_VALUE.JUNIOR_HIGH_SCHOOL,
-  SMA: EDUCATION_LEVEL_VALUE.SENIOR_HIGH_SCHOOL,
-  D1: EDUCATION_LEVEL_VALUE.DIPLOMA_1,
-  D2: EDUCATION_LEVEL_VALUE.DIPLOMA_2,
-  D3: EDUCATION_LEVEL_VALUE.DIPLOMA_3,
-  D4: EDUCATION_LEVEL_VALUE.DIPLOMA_4,
-  S1: EDUCATION_LEVEL_VALUE.BACHELOR,
-  S2: EDUCATION_LEVEL_VALUE.MASTER,
-  S3: EDUCATION_LEVEL_VALUE.DOCTORATE,
-  Profesi: EDUCATION_LEVEL_VALUE.PROFESSIONAL,
-  "Sp-1": EDUCATION_LEVEL_VALUE.PROFESSIONAL,
-  "Sp-2": EDUCATION_LEVEL_VALUE.SPECIALIST_2,
-} as const;
-
-export function mapEmployeeStatusLegacyToCanonical(value: string | null | undefined) {
-  if (!value) return null;
-  if (value in EMPLOYEE_STATUS_LABELS) return value as EmployeeStatusValue;
-  return EMPLOYEE_STATUS_LEGACY_TO_CANONICAL[value as keyof typeof EMPLOYEE_STATUS_LEGACY_TO_CANONICAL] ?? null;
-}
-
-export function mapGenderLegacyToCanonical(value: string | null | undefined) {
-  if (!value) return null;
-  if (value in GENDER_LABELS) return value as GenderValue;
-  return GENDER_LEGACY_TO_CANONICAL[value as keyof typeof GENDER_LEGACY_TO_CANONICAL] ?? null;
-}
-
-export function mapMaritalStatusLegacyToCanonical(value: string | null | undefined) {
-  if (!value) return null;
-  if (value in MARITAL_STATUS_LABELS) return value as MaritalStatusValue;
-  return MARITAL_STATUS_LEGACY_TO_CANONICAL[value as keyof typeof MARITAL_STATUS_LEGACY_TO_CANONICAL] ?? null;
-}
-
-export function mapReligionLegacyToCanonical(value: string | null | undefined) {
-  if (!value) return null;
-  if (value in RELIGION_LABELS) return value as ReligionValue;
-  return RELIGION_LEGACY_TO_CANONICAL[value as keyof typeof RELIGION_LEGACY_TO_CANONICAL] ?? null;
-}
-
 export function getEmployeeStatusLabel(value: string | null | undefined) {
-  const canonical = mapEmployeeStatusLegacyToCanonical(value);
-  return canonical ? EMPLOYEE_STATUS_LABELS[canonical] : value ?? null;
+  return value && value in EMPLOYEE_STATUS_LABELS ? EMPLOYEE_STATUS_LABELS[value as EmployeeStatusValue] : value ?? null;
 }
 
 export function getGenderLabel(value: string | null | undefined) {
-  const canonical = mapGenderLegacyToCanonical(value);
-  return canonical ? GENDER_LABELS[canonical] : value ?? null;
+  return value && value in GENDER_LABELS ? GENDER_LABELS[value as GenderValue] : value ?? null;
 }
 
 export function getMaritalStatusLabel(value: string | null | undefined) {
-  const canonical = mapMaritalStatusLegacyToCanonical(value);
-  return canonical ? MARITAL_STATUS_LABELS[canonical] : value ?? null;
+  return value && value in MARITAL_STATUS_LABELS ? MARITAL_STATUS_LABELS[value as MaritalStatusValue] : value ?? null;
 }
 
 export function getReligionLabel(value: string | null | undefined) {
-  const canonical = mapReligionLegacyToCanonical(value);
-  return canonical ? RELIGION_LABELS[canonical] : value ?? null;
-}
-
-export function mapEducationLevelLegacyToCanonical(value: string | null | undefined) {
-  if (!value) return null;
-  return EDUCATION_LEVEL_LEGACY_TO_CANONICAL[value as keyof typeof EDUCATION_LEVEL_LEGACY_TO_CANONICAL] ?? null;
+  return value && value in RELIGION_LABELS ? RELIGION_LABELS[value as ReligionValue] : value ?? null;
 }
 
 export const RELIGION_OPTIONS = [

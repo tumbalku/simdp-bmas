@@ -85,13 +85,13 @@ describe("Employee Module Actions", () => {
       employeePositionId: "position-1",
       employeeRankId: "rank-1",
       workplaceId: "workplace-1",
-      maritalStatus: "Kawin",
+      maritalStatus: "MARRIED",
       lastEducation: "S1",
       tmtStartDate: "2020-01-01",
       tmtEndDate: "2026-12-31",
       retirementAgeFrom: 50,
       retirementAgeTo: 58,
-      status: "Aktif",
+      status: "ACTIVE",
     });
 
     expect(mocks.requireAuth).toHaveBeenCalledWith("ADMIN");

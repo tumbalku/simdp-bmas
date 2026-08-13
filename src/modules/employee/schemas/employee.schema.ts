@@ -4,10 +4,6 @@ import {
   GENDER_VALUE,
   MARITAL_STATUS_VALUE,
   RELIGION_VALUE,
-  mapEmployeeStatusLegacyToCanonical,
-  mapGenderLegacyToCanonical,
-  mapMaritalStatusLegacyToCanonical,
-  mapReligionLegacyToCanonical,
 } from "../constants";
 
 const employeeStatusValues = Object.values(EMPLOYEE_STATUS_VALUE) as [string, ...string[]];
@@ -15,22 +11,10 @@ const genderValues = Object.values(GENDER_VALUE) as [string, ...string[]];
 const maritalStatusValues = Object.values(MARITAL_STATUS_VALUE) as [string, ...string[]];
 const religionValues = Object.values(RELIGION_VALUE) as [string, ...string[]];
 
-const employeeStatusSchema = z.preprocess(
-  (value) => (typeof value === "string" ? mapEmployeeStatusLegacyToCanonical(value) ?? value : value),
-  z.enum(employeeStatusValues)
-);
-const genderSchema = z.preprocess(
-  (value) => (typeof value === "string" ? mapGenderLegacyToCanonical(value) ?? value : value),
-  z.enum(genderValues)
-);
-const maritalStatusSchema = z.preprocess(
-  (value) => (typeof value === "string" ? mapMaritalStatusLegacyToCanonical(value) ?? value : value),
-  z.enum(maritalStatusValues)
-);
-const religionSchema = z.preprocess(
-  (value) => (typeof value === "string" ? mapReligionLegacyToCanonical(value) ?? value : value),
-  z.enum(religionValues)
-);
+const employeeStatusSchema = z.enum(employeeStatusValues);
+const genderSchema = z.enum(genderValues);
+const maritalStatusSchema = z.enum(maritalStatusValues);
+const religionSchema = z.enum(religionValues);
 
 export const updateProfileSchema = z.object({
   phone: z.string().regex(/^[0-9+\-\s]*$/, "Format telepon tidak valid").optional().nullable(),

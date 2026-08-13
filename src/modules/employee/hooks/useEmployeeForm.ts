@@ -4,12 +4,6 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { crudEmployeeAction } from "@/modules/employee";
-import {
-  mapEmployeeStatusLegacyToCanonical,
-  mapGenderLegacyToCanonical,
-  mapMaritalStatusLegacyToCanonical,
-  mapReligionLegacyToCanonical,
-} from "@/modules/employee";
 import type { EmployeeFormInitialData } from "../components/MasterDataEmployeeForm";
 
 export type MasterDataRecord = {
@@ -80,9 +74,7 @@ export function useEmployeeForm({
   const [employeeId, setEmployeeId] = useState(initialData?.employeeId ?? "");
   const [nik, setNik] = useState(initialData?.nik ?? "");
   const [name, setName] = useState(initialData?.name ?? "");
-  const [gender, setGender] = useState(
-    mapGenderLegacyToCanonical(initialData?.gender) ?? ""
-  );
+  const [gender, setGender] = useState(initialData?.gender ?? "");
   const [birthPlace, setBirthPlace] = useState(initialData?.birthPlace ?? "");
   const [birthDate, setBirthDate] = useState(
     toDateInputValue(initialData?.birthDate)
@@ -93,15 +85,9 @@ export function useEmployeeForm({
   const [lastEducation, setLastEducation] = useState(
     initialData?.lastEducation ?? ""
   );
-  const [religion, setReligion] = useState(
-    mapReligionLegacyToCanonical(initialData?.religion) ?? ""
-  );
-  const [maritalStatus, setMaritalStatus] = useState(
-    mapMaritalStatusLegacyToCanonical(initialData?.maritalStatus) ?? ""
-  );
-  const [employeeStatus, setEmployeeStatus] = useState(
-    mapEmployeeStatusLegacyToCanonical(initialData?.status) ?? "ACTIVE"
-  );
+  const [religion, setReligion] = useState(initialData?.religion ?? "");
+  const [maritalStatus, setMaritalStatus] = useState(initialData?.maritalStatus ?? "");
+  const [employeeStatus, setEmployeeStatus] = useState(initialData?.status ?? "ACTIVE");
   const [phone, setPhone] = useState(initialData?.phone ?? "");
   const [address, setAddress] = useState(initialData?.address ?? "");
   const [joinDate, setJoinDate] = useState(

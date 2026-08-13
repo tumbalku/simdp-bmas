@@ -16,11 +16,20 @@ describe("Employee Module Schemas", () => {
         address: "Jalan Sudirman No. 1",
         birthPlace: "Jakarta",
         birthDate: "1990-01-01",
-        religion: "Islam",
-        maritalStatus: "Kawin",
+        religion: "ISLAM",
+        maritalStatus: "MARRIED",
       };
       const result = updateProfileSchema.safeParse(payload);
       expect(result.success).toBe(true);
+    });
+
+    it("should reject legacy profile enum labels", () => {
+      const result = updateProfileSchema.safeParse({
+        religion: "Islam",
+        maritalStatus: "Kawin",
+      });
+
+      expect(result.success).toBe(false);
     });
 
     it("should fail when phone format is invalid", () => {

@@ -1,10 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  EMPLOYEE_STATUS_LABELS,
   EMPLOYEE_STATUS_VALUE,
-  mapEmployeeStatusLegacyToCanonical,
-  mapGenderLegacyToCanonical,
-  mapMaritalStatusLegacyToCanonical,
-  mapReligionLegacyToCanonical,
+  GENDER_LABELS,
+  MARITAL_STATUS_LABELS,
+  RELIGION_LABELS,
+  type EmployeeStatusValue,
+  type GenderValue,
+  type MaritalStatusValue,
+  type ReligionValue,
 } from "../constants";
 
 export type EmployeeDirectoryFilter = {
@@ -108,19 +112,19 @@ export function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
 }
 
 export function canonicalEmployeeStatus(value: string | null | undefined) {
-  return mapEmployeeStatusLegacyToCanonical(value) ?? EMPLOYEE_STATUS_VALUE.ACTIVE;
+  return value && value in EMPLOYEE_STATUS_LABELS ? (value as EmployeeStatusValue) : EMPLOYEE_STATUS_VALUE.ACTIVE;
 }
 
 export function canonicalGender(value: string | null | undefined) {
-  return mapGenderLegacyToCanonical(value);
+  return value && value in GENDER_LABELS ? (value as GenderValue) : null;
 }
 
 export function canonicalMaritalStatus(value: string | null | undefined) {
-  return mapMaritalStatusLegacyToCanonical(value);
+  return value && value in MARITAL_STATUS_LABELS ? (value as MaritalStatusValue) : null;
 }
 
 export function canonicalReligion(value: string | null | undefined) {
-  return mapReligionLegacyToCanonical(value);
+  return value && value in RELIGION_LABELS ? (value as ReligionValue) : null;
 }
 
 export function escapeCsvCell(value: unknown) {
