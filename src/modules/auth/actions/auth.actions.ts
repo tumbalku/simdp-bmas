@@ -11,6 +11,10 @@ import {
   getTwoFactorChallengeUserId,
   clearTwoFactorChallengeCookie,
 } from "@/lib/auth";
+import {
+  getSharedRateLimitBucket,
+  incrementSharedRateLimitBucket,
+} from "@/lib/rate-limit-store";
 import { logActivity, SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import {
   changePassword,
@@ -93,47 +97,35 @@ const PASSWORD_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
 const TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS = 10 * 60 * 1000;
 const TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
 
-const passwordVerificationAttempts = new Map<string, { count: number; firstAttemptAt: number }>();
-const twoFactorVerificationAttempts = new Map<string, { count: number; firstAttemptAt: number }>();
-
-function isTwoFactorRateLimited(userId: string) {
-  const current = twoFactorVerificationAttempts.get(userId);
-  if (!current || Date.now() - current.firstAttemptAt > TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS) return false;
-  return current.count >= TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS;
+async function isTwoFactorRateLimited(userId: string) {
+  const bucket = await getSharedRateLimitBucket(`AUTH_2FA_VERIFY:${userId}`);
+  return bucket ? bucket.count >= TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS : false;
 }
 
-function recordTwoFactorFailure(userId: string) {
-  const current = twoFactorVerificationAttempts.get(userId);
-  const next = !current || Date.now() - current.firstAttemptAt > TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS
-    ? { count: 1, firstAttemptAt: Date.now() }
-    : { ...current, count: current.count + 1 };
-  twoFactorVerificationAttempts.set(userId, next);
-  return next.count;
+async function recordTwoFactorFailure(userId: string) {
+  const bucket = await incrementSharedRateLimitBucket({
+    key: `AUTH_2FA_VERIFY:${userId}`,
+    category: "AUTH_2FA_VERIFY",
+    windowMs: TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS,
+  });
+  return bucket.count;
 }
 
-function getPasswordVerificationThrottle(key: string) {
-  const now = Date.now();
-  const current = passwordVerificationAttempts.get(key);
-
-  if (!current || now - current.firstAttemptAt > PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS) {
-    const next = { count: 0, firstAttemptAt: now };
-    passwordVerificationAttempts.set(key, next);
-    return next;
-  }
-
-  return current;
+async function getPasswordVerificationThrottle(key: string) {
+  const bucket = await getSharedRateLimitBucket(`AUTH_PASSWORD_VERIFY:${key}`);
+  return { count: bucket?.count ?? 0 };
 }
 
-function recordPasswordVerificationFailure(key: string) {
-  const current = getPasswordVerificationThrottle(key);
-  current.count += 1;
-  passwordVerificationAttempts.set(key, current);
-  return current.count;
+async function recordPasswordVerificationFailure(key: string) {
+  const bucket = await incrementSharedRateLimitBucket({
+    key: `AUTH_PASSWORD_VERIFY:${key}`,
+    category: "AUTH_PASSWORD_VERIFY",
+    windowMs: PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS,
+  });
+  return bucket.count;
 }
 
-function clearPasswordVerificationThrottle(key: string) {
-  passwordVerificationAttempts.delete(key);
-}
+
 
 /* -------------------------------------------------------------------------- */
 /*  loginAction                                                                 */
@@ -209,13 +201,12 @@ export async function verifyTwoFactorLoginAction(data: unknown) {
     if (!userId) {
       return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
     }
-    if (isTwoFactorRateLimited(userId)) return { ok: false as const, error: { code: "RATE_LIMITED", message: "Terlalu banyak percobaan 2FA. Coba lagi 10 menit kemudian." } };
+    if (await isTwoFactorRateLimited(userId)) return { ok: false as const, error: { code: "RATE_LIMITED", message: "Terlalu banyak percobaan 2FA. Coba lagi 10 menit kemudian." } };
     if (!(await verifyTwoFactorToken(userId, parsed.data.token))) {
-      const count = recordTwoFactorFailure(userId);
+      const count = await recordTwoFactorFailure(userId);
       await logActivity({ actorId: userId, actorName: "User", actorRole: SECURITY_ACTOR_ROLE.PUBLIC, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_CHALLENGE_FAILED, resource: `User:${userId}`, status: SECURITY_LOG_STATUS.FAILED, metadata: { attempt: count } });
       return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
     }
-    twoFactorVerificationAttempts.delete(userId);
 
     const user = await findUserWithEmployeeById(userId);
     if (!user || !user.isActive || user.deletedAt) {
@@ -437,7 +428,7 @@ export async function verifyCurrentPasswordAction(data: unknown) {
     const headersList = await headers();
     const ipAddress = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const throttleKey = `${session.userId}:${ipAddress}`;
-    const throttle = getPasswordVerificationThrottle(throttleKey);
+    const throttle = await getPasswordVerificationThrottle(throttleKey);
     const user = await findUserWithEmployeeById(session.userId);
     const actorName = user?.employee?.name || user?.email || "User";
 
@@ -477,7 +468,7 @@ export async function verifyCurrentPasswordAction(data: unknown) {
     const isValid = await verifyCurrentPassword(session.userId, parsed.data.password);
 
     if (!isValid) {
-      const failedAttemptCount = recordPasswordVerificationFailure(throttleKey);
+      const failedAttemptCount = await recordPasswordVerificationFailure(throttleKey);
 
       await logActivity({
         actorId: session.userId,
@@ -494,8 +485,6 @@ export async function verifyCurrentPasswordAction(data: unknown) {
         error: { code: "UNAUTHENTICATED", message: "Password tidak sesuai." },
       };
     }
-
-    clearPasswordVerificationThrottle(throttleKey);
 
     await logActivity({
       actorId: session.userId,
