@@ -1,9 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { PageHeaderButton } from "@/components/navigation/PageHeader";
 import { fetchDocumentPreviewUrl } from "@/modules/document/api";
 
 type DownloadDocumentButtonProps = {
@@ -28,8 +28,11 @@ export function DownloadDocumentButton({ documentId }: DownloadDocumentButtonPro
   }
 
   return (
-    <Button type="button" onClick={handleDownload} disabled={isPending}>
-      <Download className="size-4" /> {isPending ? "Membuka..." : "Unduh"}
-    </Button>
+    <PageHeaderButton
+      label={isPending ? "Membuka..." : "Unduh"}
+      icon={isPending ? Loader2 : Download}
+      onClick={handleDownload}
+      disabled={isPending}
+    />
   );
 }

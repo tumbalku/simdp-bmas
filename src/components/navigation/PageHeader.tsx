@@ -5,19 +5,116 @@ import { ArrowLeft } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/utils";
 
-type PageHeaderAction = {
+export type PageHeaderButtonVariant =
+  | "default"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "destructive"
+  | "link";
+
+export type PageHeaderLinkProps = {
+  href: string;
+  label: string;
+  icon?: ComponentType<{ className?: string }>;
+  iconPosition?: "start" | "end";
+  variant?: PageHeaderButtonVariant;
+  hideLabelOnMobile?: boolean;
+  prefetch?: boolean;
+  className?: string;
+};
+
+export function PageHeaderLink({
+  href,
+  label,
+  icon: Icon,
+  iconPosition = "start",
+  variant = "default",
+  hideLabelOnMobile = true,
+  prefetch,
+  className,
+}: PageHeaderLinkProps) {
+  return (
+    <Link
+      href={href}
+      prefetch={prefetch}
+      aria-label={hideLabelOnMobile ? label : undefined}
+      className={cn(
+        buttonVariants({ variant, size: "default" }),
+        hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
+        className
+      )}
+    >
+      {Icon && iconPosition === "start" ? <Icon className="size-3.5" /> : null}
+      {hideLabelOnMobile ? (
+        <span className="hidden sm:inline">{label}</span>
+      ) : (
+        label
+      )}
+      {Icon && iconPosition === "end" ? <Icon className="size-3.5" /> : null}
+    </Link>
+  );
+}
+
+export type PageHeaderButtonProps = {
+  label: string;
+  onClick?: () => void;
+  icon?: ComponentType<{ className?: string }>;
+  iconPosition?: "start" | "end";
+  variant?: PageHeaderButtonVariant;
+  hideLabelOnMobile?: boolean;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
+  className?: string;
+};
+
+export function PageHeaderButton({
+  label,
+  onClick,
+  icon: Icon,
+  iconPosition = "start",
+  variant = "default",
+  hideLabelOnMobile = true,
+  disabled = false,
+  type = "button",
+  className,
+}: PageHeaderButtonProps) {
+  return (
+    <Button
+      type={type}
+      variant={variant}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={hideLabelOnMobile ? label : undefined}
+      className={cn(
+        hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
+        className
+      )}
+    >
+      {Icon && iconPosition === "start" ? <Icon className="size-3.5" /> : null}
+      {hideLabelOnMobile ? (
+        <span className="hidden sm:inline">{label}</span>
+      ) : (
+        label
+      )}
+      {Icon && iconPosition === "end" ? <Icon className="size-3.5" /> : null}
+    </Button>
+  );
+}
+
+export type PageHeaderAction = {
   label: string;
   href?: string;
   onClick?: () => void;
   icon?: ComponentType<{ className?: string }>;
   iconPosition?: "start" | "end";
   prefetch?: boolean;
-  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
+  variant?: PageHeaderButtonVariant;
   hideLabelOnMobile?: boolean;
   className?: string;
 };
 
-type PageHeaderProps = {
+export type PageHeaderProps = {
   eyebrow?: string;
   title: ReactNode;
   description?: ReactNode;
@@ -66,33 +163,18 @@ export function PageHeader({
         {actions?.length || trailing ? (
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             {actions?.map((action, index) => {
-              const Icon = action.icon;
-              const iconPosition = action.iconPosition ?? "start";
-
               if (action.onClick) {
                 return (
-                  <Button
+                  <PageHeaderButton
                     key={action.href ? `${action.href}-${action.label}` : `action-${index}-${action.label}`}
-                    variant={action.variant ?? "default"}
+                    label={action.label}
                     onClick={action.onClick}
-                    aria-label={action.hideLabelOnMobile ? action.label : undefined}
-                    className={cn(
-                      action.hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
-                      action.className
-                    )}
-                  >
-                    {Icon && iconPosition === "start" ? (
-                      <Icon className="size-3.5" />
-                    ) : null}
-                    {action.hideLabelOnMobile ? (
-                      <span className="hidden sm:inline">{action.label}</span>
-                    ) : (
-                      action.label
-                    )}
-                    {Icon && iconPosition === "end" ? (
-                      <Icon className="size-3.5" />
-                    ) : null}
-                  </Button>
+                    icon={action.icon}
+                    iconPosition={action.iconPosition}
+                    variant={action.variant}
+                    hideLabelOnMobile={action.hideLabelOnMobile}
+                    className={action.className}
+                  />
                 );
               }
 
@@ -101,32 +183,17 @@ export function PageHeader({
               }
 
               return (
-                <Link
+                <PageHeaderLink
                   key={`${action.href}-${action.label}`}
                   href={action.href}
+                  label={action.label}
+                  icon={action.icon}
+                  iconPosition={action.iconPosition}
+                  variant={action.variant}
+                  hideLabelOnMobile={action.hideLabelOnMobile}
                   prefetch={action.prefetch}
-                  aria-label={action.hideLabelOnMobile ? action.label : undefined}
-                  className={cn(
-                    buttonVariants({
-                      variant: action.variant ?? "default",
-                      size: "default",
-                    }),
-                    action.hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-9 sm:px-4",
-                    action.className
-                  )}
-                >
-                  {Icon && iconPosition === "start" ? (
-                    <Icon className="size-3.5" />
-                  ) : null}
-                  {action.hideLabelOnMobile ? (
-                    <span className="hidden sm:inline">{action.label}</span>
-                  ) : (
-                    action.label
-                  )}
-                  {Icon && iconPosition === "end" ? (
-                    <Icon className="size-3.5" />
-                  ) : null}
-                </Link>
+                  className={action.className}
+                />
               );
             })}
             {trailing}
