@@ -23,10 +23,13 @@ import { PAGINATION, ROUTES } from "@/constants";
 import { generateAlphanumericKey } from "@/utils/crypto";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { crudEmployeeAction } from "@/modules/employee";
+import { DataFilterCard } from "@/components/tables/DataFilterCard";
+import type { EmployeeDirectoryFilterOptions } from "../types/filter.types";
 import {
-  EmployeeDirectoryFilter,
-  type EmployeeDirectoryFilterOptions,
-} from "./EmployeeDirectoryFilter";
+  EDUCATION_OPTIONS,
+  EMPLOYEE_STATUS_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
+} from "@/modules/employee";
 import {
   useEmployeesViewState,
   type OfficialForm,
@@ -473,10 +476,165 @@ export function MasterDataEmployeesView({
         }
       />
 
-      <EmployeeDirectoryFilter
-        values={filters}
-        options={filterOptions}
-        onValueChange={handleValueChange}
+      <DataFilterCard
+        title="Filter & Pencarian"
+        description="Cari dan saring pegawai berdasarkan data kepegawaian, pendidikan, TMT, usia, dan status."
+        searchValue={filters.search}
+        onSearchChange={(val) => handleValueChange("search", val)}
+        searchPlaceholder="Cari nama, NIP, NIK, atau email..."
+        selectFilters={[
+          {
+            key: "employmentStatusId",
+            value: filters.employmentStatusId || "all",
+            onValueChange: (val) => {
+              handleValueChange("employmentStatusId", !val || val === "all" ? "" : val);
+              handleValueChange("employeeGroupId", "");
+            },
+            placeholder: "Status Kepegawaian",
+            ariaLabel: "Status kepegawaian",
+            options: [
+              { value: "all", label: "Status Kepegawaian" },
+              ...filterOptions.employmentStatuses.map((opt) => ({ value: opt.id, label: opt.name })),
+            ],
+          },
+          {
+            key: "employeeGroupId",
+            value: filters.employeeGroupId || "all",
+            onValueChange: (val) => handleValueChange("employeeGroupId", !val || val === "all" ? "" : val),
+            disabled: !filters.employmentStatusId,
+            placeholder: filters.employmentStatusId ? "Jenis Kepegawaian" : "Pilih status dulu",
+            ariaLabel: "Jenis kepegawaian",
+            options: [
+              { value: "all", label: "Jenis Kepegawaian" },
+              ...(filters.employmentStatusId
+                ? filterOptions.employeeGroups.filter((g) => g.employmentStatusId === filters.employmentStatusId)
+                : []
+              ).map((opt) => ({ value: opt.id, label: opt.name })),
+            ],
+          },
+          {
+            key: "professionGroupId",
+            value: filters.professionGroupId || "all",
+            onValueChange: (val) => {
+              handleValueChange("professionGroupId", !val || val === "all" ? "" : val);
+              handleValueChange("employeePositionId", "");
+            },
+            placeholder: "Kelompok Profesi",
+            ariaLabel: "Kelompok profesi",
+            options: [
+              { value: "all", label: "Kelompok Profesi" },
+              ...filterOptions.professionGroups.map((opt) => ({ value: opt.id, label: opt.name })),
+            ],
+          },
+          {
+            key: "employeePositionId",
+            value: filters.employeePositionId || "all",
+            onValueChange: (val) => handleValueChange("employeePositionId", !val || val === "all" ? "" : val),
+            disabled: !filters.professionGroupId,
+            placeholder: filters.professionGroupId ? "Jabatan Pegawai" : "Pilih profesi dulu",
+            ariaLabel: "Jabatan pegawai",
+            options: [
+              { value: "all", label: "Jabatan Pegawai" },
+              ...(filters.professionGroupId
+                ? filterOptions.employeePositions.filter((p) => p.professionGroupId === filters.professionGroupId)
+                : []
+              ).map((opt) => ({ value: opt.id, label: opt.name })),
+            ],
+          },
+          {
+            key: "employeeRankId",
+            value: filters.employeeRankId || "all",
+            onValueChange: (val) => handleValueChange("employeeRankId", !val || val === "all" ? "" : val),
+            placeholder: "Golongan",
+            ariaLabel: "Golongan",
+            options: [
+              { value: "all", label: "Golongan" },
+              ...filterOptions.employeeRanks.map((opt) => ({ value: opt.id, label: opt.name })),
+            ],
+          },
+          {
+            key: "workplaceId",
+            value: filters.workplaceId || "all",
+            onValueChange: (val) => handleValueChange("workplaceId", !val || val === "all" ? "" : val),
+            placeholder: "Unit Kerja",
+            ariaLabel: "Unit kerja",
+            options: [
+              { value: "all", label: "Unit Kerja" },
+              ...filterOptions.workplaces.map((opt) => ({ value: opt.id, label: opt.name })),
+            ],
+          },
+          {
+            key: "maritalStatus",
+            value: filters.maritalStatus || "all",
+            onValueChange: (val) => handleValueChange("maritalStatus", !val || val === "all" ? "" : val),
+            placeholder: "Status Pernikahan",
+            ariaLabel: "Status pernikahan",
+            options: [
+              { value: "all", label: "Status Pernikahan" },
+              ...MARITAL_STATUS_OPTIONS,
+            ],
+          },
+          {
+            key: "lastEducation",
+            value: filters.lastEducation || "all",
+            onValueChange: (val) => handleValueChange("lastEducation", !val || val === "all" ? "" : val),
+            placeholder: "Pendidikan Terakhir",
+            ariaLabel: "Pendidikan terakhir",
+            options: [
+              { value: "all", label: "Pendidikan Terakhir" },
+              ...EDUCATION_OPTIONS,
+            ],
+          },
+          {
+            key: "status",
+            value: filters.status || "all",
+            onValueChange: (val) => handleValueChange("status", !val || val === "all" ? "" : val),
+            placeholder: "Status Pegawai",
+            ariaLabel: "Status pegawai",
+            options: [
+              { value: "all", label: "Status Pegawai" },
+              ...EMPLOYEE_STATUS_OPTIONS,
+            ],
+          },
+        ]}
+        customFields={[
+          {
+            key: "tmtStartDate",
+            label: "TMT Awal",
+            ariaLabel: "TMT awal",
+            type: "date",
+            value: filters.tmtStartDate,
+            onChange: (val) => handleValueChange("tmtStartDate", val),
+          },
+          {
+            key: "tmtEndDate",
+            label: "TMT Akhir",
+            ariaLabel: "TMT akhir",
+            type: "date",
+            value: filters.tmtEndDate,
+            onChange: (val) => handleValueChange("tmtEndDate", val),
+          },
+          {
+            key: "retirementAgeFrom",
+            label: "Usia Pensiun Dari",
+            ariaLabel: "Usia pensiun dari",
+            type: "number",
+            min: 0,
+            inputMode: "numeric",
+            value: filters.retirementAgeFrom,
+            onChange: (val) => handleValueChange("retirementAgeFrom", val),
+          },
+          {
+            key: "retirementAgeTo",
+            label: "Usia Pensiun Sampai",
+            ariaLabel: "Usia pensiun sampai",
+            type: "number",
+            min: 0,
+            inputMode: "numeric",
+            value: filters.retirementAgeTo,
+            onChange: (val) => handleValueChange("retirementAgeTo", val),
+          },
+        ]}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />

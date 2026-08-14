@@ -1,7 +1,6 @@
 export * from "./CareerHistoryDialog";
 export * from "./EmployeeBulkActionsBar";
 export * from "./EmployeeDetailView";
-export * from "./EmployeeDirectoryFilter";
 export * from "./EmployeeGridView";
 export * from "./EmployeeImportView";
 export * from "./EmployeeTableView";
@@ -11,3 +10,4 @@ export * from "./MasterDataEmployeeForm";
 export * from "./MasterDataEmployeesView";
 export * from "./ProfileEditDialog";
 export * from "./ProfilePageView";
+export * from "../types/filter.types";

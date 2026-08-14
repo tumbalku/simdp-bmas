@@ -7,7 +7,7 @@ import { Archive, FileText, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { downloadMasterDataDocumentsPdf } from "../api";
-import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { DataFilterCard } from "@/components/tables/DataFilterCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
@@ -414,34 +414,38 @@ export function MasterDataDocumentsView({
         ]}
       />
 
-      <DocumentSearchFilter
+      <DataFilterCard
         description="Cari berdasarkan nama pegawai, nama file, atau jenis dokumen."
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Cari nama pegawai..."
-        primaryFilter={{
-          value: documentTypeId || "all",
-          onValueChange: handleDocumentTypeChange,
-          placeholder: "Semua jenis dokumen",
-          ariaLabel: "Jenis dokumen",
-          options: [
-            { value: "all", label: "Semua jenis dokumen" },
-            ...documentTypes.map((documentType) => ({
-              value: documentType.id,
-              label: documentType.name,
-            })),
-          ],
-        }}
-        secondaryFilter={{
-          value: archiveCategory || "all",
-          onValueChange: handleArchiveCategoryChange,
-          placeholder: "Semua kategori arsip",
-          ariaLabel: "Kategori arsip",
-          options: [
-            { value: "all", label: "Semua kategori arsip" },
-            ...ARCHIVE_CATEGORY_OPTIONS,
-          ],
-        }}
+        selectFilters={[
+          {
+            key: "documentTypeId",
+            value: documentTypeId || "all",
+            onValueChange: handleDocumentTypeChange,
+            placeholder: "Jenis dokumen",
+            ariaLabel: "Jenis dokumen",
+            options: [
+              { value: "all", label: "Jenis dokumen" },
+              ...documentTypes.map((documentType) => ({
+                value: documentType.id,
+                label: documentType.name,
+              })),
+            ],
+          },
+          {
+            key: "archiveCategory",
+            value: archiveCategory || "all",
+            onValueChange: handleArchiveCategoryChange,
+            placeholder: "Kategori arsip",
+            ariaLabel: "Kategori arsip",
+            options: [
+              { value: "all", label: "Kategori arsip" },
+              ...ARCHIVE_CATEGORY_OPTIONS,
+            ],
+          },
+        ]}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />

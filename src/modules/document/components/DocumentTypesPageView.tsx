@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
-import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { DataFilterCard } from "@/components/tables/DataFilterCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
@@ -346,21 +346,24 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
         ]}
       />
 
-      <DocumentSearchFilter
+      <DataFilterCard
         description="Cari berdasarkan kode, nama, deskripsi, atau kategori arsip."
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Kode atau nama jenis dokumen..."
-        primaryFilter={{
-          value: categoryFilter,
-          onValueChange: (value) => setCategoryFilter(value || "all"),
-          placeholder: "Semua Kategori",
-          ariaLabel: "Kategori arsip",
-          options: [
-            { value: "all", label: "Semua Kategori" },
-            ...ARCHIVE_CATEGORY_OPTIONS,
-          ],
-        }}
+        selectFilters={[
+          {
+            key: "categoryFilter",
+            value: categoryFilter,
+            onValueChange: (value) => setCategoryFilter(value || "all"),
+            placeholder: "Kategori Arsip",
+            ariaLabel: "Kategori arsip",
+            options: [
+              { value: "all", label: "Kategori Arsip" },
+              ...ARCHIVE_CATEGORY_OPTIONS,
+            ],
+          },
+        ]}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />

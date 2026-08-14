@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PAGINATION, ROUTES } from "@/constants";
-import type { EmployeeDirectoryFilterValues } from "../components/EmployeeDirectoryFilter";
+import type { EmployeeDirectoryFilterValues } from "../types/filter.types";
 
 import { type ViewMode } from "@/components/tables/ViewModeToggle";
 

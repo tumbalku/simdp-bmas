@@ -11,7 +11,7 @@ import {
 
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
-import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { DataFilterCard } from "@/components/tables/DataFilterCard";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
@@ -373,34 +373,38 @@ export function VerificationQueueView({
         description="Tinjau berkas pegawai yang masih berstatus menunggu pemeriksaan."
       />
 
-      <DocumentSearchFilter
+      <DataFilterCard
         description="Cari berdasarkan nama pegawai atau jenis dokumen."
         searchValue={search}
         onSearchChange={setSearch}
         searchPlaceholder="Cari nama pegawai..."
-        primaryFilter={{
-          value: documentTypeId || "all",
-          onValueChange: handleDocumentTypeChange,
-          placeholder: "Semua jenis dokumen",
-          ariaLabel: "Jenis dokumen",
-          options: [
-            { value: "all", label: "Semua jenis dokumen" },
-            ...documentTypes.map((documentType) => ({
-              value: documentType.id,
-              label: documentType.name,
-            })),
-          ],
-        }}
-        secondaryFilter={{
-          value: archiveCategory || "all",
-          onValueChange: handleArchiveCategoryChange,
-          placeholder: "Semua kategori arsip",
-          ariaLabel: "Kategori arsip",
-          options: [
-            { value: "all", label: "Semua kategori arsip" },
-            ...ARCHIVE_CATEGORY_OPTIONS,
-          ],
-        }}
+        selectFilters={[
+          {
+            key: "documentTypeId",
+            value: documentTypeId || "all",
+            onValueChange: handleDocumentTypeChange,
+            placeholder: "Jenis dokumen",
+            ariaLabel: "Jenis dokumen",
+            options: [
+              { value: "all", label: "Jenis dokumen" },
+              ...documentTypes.map((documentType) => ({
+                value: documentType.id,
+                label: documentType.name,
+              })),
+            ],
+          },
+          {
+            key: "archiveCategory",
+            value: archiveCategory || "all",
+            onValueChange: handleArchiveCategoryChange,
+            placeholder: "Kategori arsip",
+            ariaLabel: "Kategori arsip",
+            options: [
+              { value: "all", label: "Kategori arsip" },
+              ...ARCHIVE_CATEGORY_OPTIONS,
+            ],
+          },
+        ]}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />

@@ -27,7 +27,7 @@ import {
   SECURITY_LOG_STATUS,
   SECURITY_LOG_STATUS_LABELS,
 } from "../constants";
-import { SecurityLogFilters } from "./SecurityLogFilters";
+import { DataFilterCard } from "@/components/tables/DataFilterCard";
 import { SecurityLogMetrics } from "./SecurityLogMetrics";
 
 type SecurityLogItem = {
@@ -48,17 +48,17 @@ type SecurityLogPageViewProps = {
 };
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "Semua status" },
+  { value: "all", label: "Status" },
   ...Object.values(SECURITY_LOG_STATUS).map((value) => ({ value, label: SECURITY_LOG_STATUS_LABELS[value] })),
 ] as const;
 
 const ACTOR_OPTIONS = [
-  { value: "all", label: "Semua aktor" },
+  { value: "all", label: "Aktor" },
   ...Object.values(SECURITY_ACTOR_ROLE).map((value) => ({ value, label: SECURITY_ACTOR_ROLE_LABELS[value] })),
 ] as const;
 
 const EVENT_OPTIONS = [
-  { value: "all", label: "Semua event" },
+  { value: "all", label: "Event" },
   ...SECURITY_EVENT_TYPE_OPTIONS,
 ] as const;
 
@@ -244,20 +244,51 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
 
       <SecurityLogMetrics totalItems={pagination.totalItems} success={stats.success} failed={stats.failed} />
 
-      <SecurityLogFilters
-        actorRole={actorRole}
-        eventType={eventType}
-        status={status}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        actorOptions={ACTOR_OPTIONS}
-        eventOptions={EVENT_OPTIONS}
-        statusOptions={STATUS_OPTIONS}
-        onActorRoleChange={setActorRole}
-        onEventTypeChange={setEventType}
-        onStatusChange={setStatus}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
+      <DataFilterCard
+        title="Filter & Pencarian"
+        description="Saring berdasarkan aktor, event, status, dan rentang tanggal."
+        selectFilters={[
+          {
+            key: "actor-role",
+            label: "Aktor",
+            value: actorRole,
+            onValueChange: (val) => setActorRole(val ?? "all"),
+            placeholder: "Aktor",
+            options: ACTOR_OPTIONS,
+          },
+          {
+            key: "event-type",
+            label: "Event",
+            value: eventType,
+            onValueChange: (val) => setEventType(val ?? "all"),
+            placeholder: "Event",
+            options: EVENT_OPTIONS,
+          },
+          {
+            key: "security-status",
+            label: "Status",
+            value: status,
+            onValueChange: (val) => setStatus(val ?? "all"),
+            placeholder: "Status",
+            options: STATUS_OPTIONS,
+          },
+        ]}
+        customFields={[
+          {
+            key: "date-from",
+            label: "Dari tanggal",
+            type: "date",
+            value: dateFrom,
+            onChange: setDateFrom,
+          },
+          {
+            key: "date-to",
+            label: "Sampai tanggal",
+            type: "date",
+            value: dateTo,
+            onChange: setDateTo,
+          },
+        ]}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />
