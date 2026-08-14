@@ -77,7 +77,7 @@ export default function StatisticsView() {
       />
 
       {/* KPI Cards Grid */}
-      <div className={`grid ${getResponsiveMetricGridClass(["Pegawai", "Dokumen", "Upload", "Verifikasi", "Kurang", "Expired"])} gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6`}>
+      <div className={`grid ${getResponsiveMetricGridClass(["Pegawai", "Dokumen", "Upload", "Verifikasi", "Kurang", "Expired"])} gap-1.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6`}>
         <ResponsiveMetricCard
           title="Total Pegawai"
           compactTitle="Pegawai"
