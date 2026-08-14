@@ -6,7 +6,10 @@ import { AlertCircle, AlertTriangle, Clock, FileText, RefreshCw, ShieldCheck, Tr
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/navigation/PageHeader";
-import { ResponsiveMetricCard } from "@/components/cards/ResponsiveMetricCard";
+import {
+  getResponsiveMetricGridClass,
+  ResponsiveMetricCard,
+} from "@/components/cards/ResponsiveMetricCard";
 import { EmptyState } from "./StatisticsCharts";
 import { StatisticsSkeleton } from "./StatisticsSkeleton";
 import { StatisticsTabs } from "./StatisticsTabs";
@@ -74,7 +77,7 @@ export default function StatisticsView() {
       />
 
       {/* KPI Cards Grid */}
-      <div className="flex flex-wrap justify-center gap-1.5 sm:grid sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 [&>div]:w-[calc(25%-0.375rem)] sm:[&>div]:w-auto">
+      <div className={`grid ${getResponsiveMetricGridClass(["Pegawai", "Dokumen", "Upload", "Verifikasi", "Kurang", "Expired"])} justify-center gap-1.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6`}>
         <ResponsiveMetricCard
           title="Total Pegawai"
           compactTitle="Pegawai"
