@@ -11,7 +11,7 @@ import {
 
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
-import { DataFilterCard } from "@/components/tables/DataFilterCard";
+import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
@@ -373,38 +373,17 @@ export function VerificationQueueView({
         description="Tinjau berkas pegawai yang masih berstatus menunggu pemeriksaan."
       />
 
-      <DataFilterCard
+      <DocumentFilterCard
         description="Cari berdasarkan nama pegawai atau jenis dokumen."
-        searchValue={search}
+        search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Cari nama pegawai..."
-        selectFilters={[
-          {
-            key: "documentTypeId",
-            value: documentTypeId || "all",
-            onValueChange: handleDocumentTypeChange,
-            placeholder: "Jenis dokumen",
-            ariaLabel: "Jenis dokumen",
-            options: [
-              { value: "all", label: "Jenis dokumen" },
-              ...documentTypes.map((documentType) => ({
-                value: documentType.id,
-                label: documentType.name,
-              })),
-            ],
-          },
-          {
-            key: "archiveCategory",
-            value: archiveCategory || "all",
-            onValueChange: handleArchiveCategoryChange,
-            placeholder: "Kategori arsip",
-            ariaLabel: "Kategori arsip",
-            options: [
-              { value: "all", label: "Kategori arsip" },
-              ...ARCHIVE_CATEGORY_OPTIONS,
-            ],
-          },
-        ]}
+        documentTypeId={documentTypeId}
+        onDocumentTypeChange={handleDocumentTypeChange}
+        documentTypes={documentTypes}
+        categoryFilter={archiveCategory}
+        onCategoryChange={handleArchiveCategoryChange}
+        archiveCategoryOptions={ARCHIVE_CATEGORY_OPTIONS}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />

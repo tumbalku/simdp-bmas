@@ -1,5 +1,7 @@
 "use client";
 
+import { Briefcase, FileCheck2, TrendingUp, Users } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,11 +20,23 @@ export function StatisticsTabs({ data, totalEmployees }: StatisticsTabsProps) {
     <>
       {/* Main Tabbed Analytics Layout */}
       <Tabs defaultValue="demographics" className="space-y-4">
-        <TabsList className="flex flex-wrap w-fit bg-muted p-1 rounded-lg gap-1">
-          <TabsTrigger value="demographics" className="text-xs sm:text-sm">Demografi</TabsTrigger>
-          <TabsTrigger value="employment" className="text-xs sm:text-sm">Status & Jabatan</TabsTrigger>
-          <TabsTrigger value="compliance" className="text-xs sm:text-sm">Kepatuhan & Dokumen</TabsTrigger>
-          <TabsTrigger value="trends" className="text-xs sm:text-sm">Tren Upload</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-4 sm:flex sm:w-auto">
+          <TabsTrigger value="demographics" className="gap-2">
+            <Users className="size-4" />
+            <span className="hidden sm:inline">Demografi</span>
+          </TabsTrigger>
+          <TabsTrigger value="employment" className="gap-2">
+            <Briefcase className="size-4" />
+            <span className="hidden sm:inline">Status & Jabatan</span>
+          </TabsTrigger>
+          <TabsTrigger value="compliance" className="gap-2">
+            <FileCheck2 className="size-4" />
+            <span className="hidden sm:inline">Kepatuhan & Dokumen</span>
+          </TabsTrigger>
+          <TabsTrigger value="trends" className="gap-2">
+            <TrendingUp className="size-4" />
+            <span className="hidden sm:inline">Tren Upload</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Demografi Pegawai */}

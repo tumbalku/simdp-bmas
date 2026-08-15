@@ -62,10 +62,12 @@ export type PageHeaderButtonProps = {
   icon?: ComponentType<{ className?: string }>;
   iconPosition?: "start" | "end";
   variant?: PageHeaderButtonVariant;
+  size?: "default" | "sm" | "lg" | "icon";
   hideLabelOnMobile?: boolean;
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
   className?: string;
+  iconClassName?: string;
 };
 
 export function PageHeaderButton({
@@ -74,30 +76,33 @@ export function PageHeaderButton({
   icon: Icon,
   iconPosition = "start",
   variant = "default",
+  size,
   hideLabelOnMobile = true,
   disabled = false,
   type = "button",
   className,
+  iconClassName,
 }: PageHeaderButtonProps) {
   return (
     <Button
       type={type}
       variant={variant}
+      size={size}
       onClick={onClick}
       disabled={disabled}
       aria-label={hideLabelOnMobile ? label : undefined}
       className={cn(
-        hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
+        hideLabelOnMobile && !size && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
         className
       )}
     >
-      {Icon && iconPosition === "start" ? <Icon className="size-3.5" /> : null}
+      {Icon && iconPosition === "start" ? <Icon className={cn("size-3.5", iconClassName)} /> : null}
       {hideLabelOnMobile ? (
         <span className="hidden sm:inline">{label}</span>
       ) : (
         label
       )}
-      {Icon && iconPosition === "end" ? <Icon className="size-3.5" /> : null}
+      {Icon && iconPosition === "end" ? <Icon className={cn("size-3.5", iconClassName)} /> : null}
     </Button>
   );
 }

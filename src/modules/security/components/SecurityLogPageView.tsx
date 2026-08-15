@@ -27,7 +27,7 @@ import {
   SECURITY_LOG_STATUS,
   SECURITY_LOG_STATUS_LABELS,
 } from "../constants";
-import { DataFilterCard } from "@/components/tables/DataFilterCard";
+import { SecurityLogFilterCard } from "./SecurityLogFilterCard";
 import { SecurityLogMetrics } from "./SecurityLogMetrics";
 
 type SecurityLogItem = {
@@ -65,6 +65,7 @@ const EVENT_OPTIONS = [
 export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [actorRole, setActorRole] = useState(() => searchParams.get("actorRole") ?? "all");
   const [eventType, setEventType] = useState(() => searchParams.get("eventType") ?? "all");
   const [status, setStatus] = useState(() => searchParams.get("status") ?? "all");
@@ -81,6 +82,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
   const buildPageUrl = (
     page: number,
     pageSize = rowsPerPage,
+    nextSearch = search,
     nextActorRole = actorRole,
     nextEventType = eventType,
     nextStatus = status,
@@ -90,6 +92,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
     const params = new URLSearchParams();
     params.set("page", page.toString());
     params.set("pageSize", pageSize);
+    if (nextSearch) params.set("search", nextSearch);
     if (nextActorRole !== "all") params.set("actorRole", nextActorRole);
     if (nextEventType !== "all") params.set("eventType", nextEventType);
     if (nextStatus !== "all") params.set("status", nextStatus);
@@ -101,6 +104,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
   const applyFilters = ({
     nextPage = PAGINATION.defaultPage,
     nextRowsPerPage = rowsPerPage,
+    nextSearch = search,
     nextActorRole = actorRole,
     nextEventType = eventType,
     nextStatus = status,
@@ -109,19 +113,21 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
   }: {
     nextPage?: number;
     nextRowsPerPage?: string;
+    nextSearch?: string;
     nextActorRole?: string;
     nextEventType?: string;
     nextStatus?: string;
     nextDateFrom?: string;
     nextDateTo?: string;
   } = {}) => {
+    setSearch(nextSearch);
     setActorRole(nextActorRole);
     setEventType(nextEventType);
     setStatus(nextStatus);
     setDateFrom(nextDateFrom);
     setDateTo(nextDateTo);
     setRowsPerPage(nextRowsPerPage);
-    router.push(buildPageUrl(nextPage, nextRowsPerPage, nextActorRole, nextEventType, nextStatus, nextDateFrom, nextDateTo));
+    router.push(buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextActorRole, nextEventType, nextStatus, nextDateFrom, nextDateTo));
   };
 
   const handleFilter = () => applyFilters();
@@ -130,6 +136,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
     applyFilters({
       nextPage: PAGINATION.defaultPage,
       nextRowsPerPage: String(PAGINATION.defaultSecurityLogPageSize),
+      nextSearch: "",
       nextActorRole: "all",
       nextEventType: "all",
       nextStatus: "all",
@@ -244,51 +251,20 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
 
       <SecurityLogMetrics totalItems={pagination.totalItems} success={stats.success} failed={stats.failed} />
 
-      <DataFilterCard
-        title="Filter & Pencarian"
-        description="Saring berdasarkan aktor, event, status, dan rentang tanggal."
-        selectFilters={[
-          {
-            key: "actor-role",
-            label: "Aktor",
-            value: actorRole,
-            onValueChange: (val) => setActorRole(val ?? "all"),
-            placeholder: "Aktor",
-            options: ACTOR_OPTIONS,
-          },
-          {
-            key: "event-type",
-            label: "Event",
-            value: eventType,
-            onValueChange: (val) => setEventType(val ?? "all"),
-            placeholder: "Event",
-            options: EVENT_OPTIONS,
-          },
-          {
-            key: "security-status",
-            label: "Status",
-            value: status,
-            onValueChange: (val) => setStatus(val ?? "all"),
-            placeholder: "Status",
-            options: STATUS_OPTIONS,
-          },
-        ]}
-        customFields={[
-          {
-            key: "date-from",
-            label: "Dari tanggal",
-            type: "date",
-            value: dateFrom,
-            onChange: setDateFrom,
-          },
-          {
-            key: "date-to",
-            label: "Sampai tanggal",
-            type: "date",
-            value: dateTo,
-            onChange: setDateTo,
-          },
-        ]}
+      <SecurityLogFilterCard
+        actorRole={actorRole}
+        setActorRole={setActorRole}
+        eventType={eventType}
+        setEventType={setEventType}
+        status={status}
+        setStatus={setStatus}
+        dateFrom={dateFrom}
+        setDateFrom={setDateFrom}
+        dateTo={dateTo}
+        setDateTo={setDateTo}
+        actorOptions={ACTOR_OPTIONS}
+        eventOptions={EVENT_OPTIONS}
+        statusOptions={STATUS_OPTIONS}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />

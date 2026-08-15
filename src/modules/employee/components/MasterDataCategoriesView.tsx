@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { generateAlphanumericKey } from "@/utils/crypto";
 import { toast } from "sonner";
 
-import { PageHeader } from "@/components/navigation/PageHeader";
+import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -490,12 +490,12 @@ export function MasterDataCategoriesView({
         title={COPY.pageTitle}
         description={COPY.pageDescription}
         trailing={
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <Button size="lg" onClick={() => openCreate("STATUS")}>
-              <Plus className="size-4" />
-              {COPY.addMaster}
-            </Button>
-          </div>
+          <PageHeaderButton
+            label={COPY.addMaster}
+            icon={Plus}
+            size="lg"
+            onClick={() => openCreate("STATUS")}
+          />
         }
       />
 

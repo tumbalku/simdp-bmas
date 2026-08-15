@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { BellRing, Loader2, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader } from "@/components/navigation/PageHeader";
+import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -235,10 +235,13 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
         title="Pengaturan Sistem"
         description="Atur parameter operasional SiCantIK seperti jadwal reminder, batas upload, dan masa retensi data."
         trailing={
-          <Button type="submit" disabled={isPending}>
-            {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-            Simpan
-          </Button>
+          <PageHeaderButton
+            label="Simpan"
+            type="submit"
+            disabled={isPending}
+            icon={isPending ? Loader2 : Save}
+            iconClassName={isPending ? "animate-spin" : undefined}
+          />
         }
       />
 

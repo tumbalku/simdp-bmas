@@ -11,7 +11,7 @@ import {
 } from "@/components/cards/ResponsiveMetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
-import { DataFilterCard } from "@/components/tables/DataFilterCard";
+import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -299,38 +299,17 @@ export function DocumentsPageView({
       />
 
 
-      <DataFilterCard
+      <DocumentFilterCard
         description="Cari berdasarkan nama file, judul, atau jenis dokumen."
-        searchValue={tempSearch}
+        search={tempSearch}
         onSearchChange={setTempSearch}
         searchPlaceholder="Cari dokumen..."
-        selectFilters={[
-          {
-            key: "documentTypeId",
-            value: tempDocumentTypeId || "all",
-            onValueChange: handleDocumentTypeChange,
-            placeholder: "Jenis dokumen",
-            ariaLabel: "Jenis dokumen",
-            options: [
-              { value: "all", label: "Jenis dokumen" },
-              ...documentTypes.map((documentType) => ({
-                value: documentType.id,
-                label: documentType.name,
-              })),
-            ],
-          },
-          {
-            key: "archiveCategory",
-            value: tempArchiveCategory || "all",
-            onValueChange: handleArchiveCategoryChange,
-            placeholder: "Kategori arsip",
-            ariaLabel: "Kategori arsip",
-            options: [
-              { value: "all", label: "Kategori arsip" },
-              ...ARCHIVE_CATEGORY_OPTIONS,
-            ],
-          },
-        ]}
+        documentTypeId={tempDocumentTypeId}
+        onDocumentTypeChange={handleDocumentTypeChange}
+        documentTypes={documentTypes}
+        categoryFilter={tempArchiveCategory}
+        onCategoryChange={handleArchiveCategoryChange}
+        archiveCategoryOptions={ARCHIVE_CATEGORY_OPTIONS}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />

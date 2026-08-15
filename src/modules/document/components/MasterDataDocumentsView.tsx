@@ -7,7 +7,7 @@ import { Archive, FileText, RotateCcw, Settings2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { downloadMasterDataDocumentsPdf } from "../api";
-import { DataFilterCard } from "@/components/tables/DataFilterCard";
+import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
@@ -414,38 +414,17 @@ export function MasterDataDocumentsView({
         ]}
       />
 
-      <DataFilterCard
+      <DocumentFilterCard
         description="Cari berdasarkan nama pegawai, nama file, atau jenis dokumen."
-        searchValue={search}
+        search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Cari nama pegawai..."
-        selectFilters={[
-          {
-            key: "documentTypeId",
-            value: documentTypeId || "all",
-            onValueChange: handleDocumentTypeChange,
-            placeholder: "Jenis dokumen",
-            ariaLabel: "Jenis dokumen",
-            options: [
-              { value: "all", label: "Jenis dokumen" },
-              ...documentTypes.map((documentType) => ({
-                value: documentType.id,
-                label: documentType.name,
-              })),
-            ],
-          },
-          {
-            key: "archiveCategory",
-            value: archiveCategory || "all",
-            onValueChange: handleArchiveCategoryChange,
-            placeholder: "Kategori arsip",
-            ariaLabel: "Kategori arsip",
-            options: [
-              { value: "all", label: "Kategori arsip" },
-              ...ARCHIVE_CATEGORY_OPTIONS,
-            ],
-          },
-        ]}
+        documentTypeId={documentTypeId}
+        onDocumentTypeChange={handleDocumentTypeChange}
+        documentTypes={documentTypes}
+        categoryFilter={archiveCategory}
+        onCategoryChange={handleArchiveCategoryChange}
+        archiveCategoryOptions={ARCHIVE_CATEGORY_OPTIONS}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />
