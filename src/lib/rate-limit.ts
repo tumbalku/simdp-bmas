@@ -3,15 +3,8 @@ import type { NextRequest } from "next/server";
 
 import { errorResponse } from "@/lib/api-response";
 import {
-  claimSharedRateLimitLimitedLog,
   incrementSharedRateLimitBucket,
 } from "@/lib/rate-limit-store";
-import {
-  logActivity,
-  SECURITY_ACTOR_ROLE,
-  SECURITY_EVENT_TYPE,
-  SECURITY_LOG_STATUS,
-} from "@/modules/security/server";
 
 export const API_RATE_LIMIT_CATEGORY = {
   AUTH_PUBLIC: "AUTH_PUBLIC",
@@ -96,7 +89,6 @@ export async function enforceApiRateLimit(
   const config = API_RATE_LIMIT_CONFIG[category];
   const now = Date.now();
   const ipAddress = getClientIp(request);
-  const scope = normalizeRateLimitScope(actor?.scope);
   const key = buildRateLimitKey(category, ipAddress, actor);
   const resource = buildRateLimitResource(category, key);
 
@@ -109,25 +101,6 @@ export async function enforceApiRateLimit(
 
   if (bucket.count <= config.limit) {
     return null;
-  }
-
-  if (await claimSharedRateLimitLimitedLog(resource, new Date(now))) {
-    await logActivity({
-      actorId: actor?.actorId ?? null,
-      actorName: actor?.actorName ?? (actor?.actorId ? "User" : "System"),
-      actorRole: actor?.actorRole ?? SECURITY_ACTOR_ROLE.PUBLIC,
-      eventType: SECURITY_EVENT_TYPE.API_RATE_LIMIT_CHECK,
-      resource,
-      ipAddress,
-      status: SECURITY_LOG_STATUS.FAILED,
-      metadata: {
-        category,
-        limit: config.limit,
-        scope,
-        windowMs: config.windowMs,
-        reason: "RATE_LIMITED",
-      },
-    });
   }
 
   return errorResponse(

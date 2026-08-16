@@ -60,7 +60,8 @@ type ImportRow = {
   error?: string;
 };
 
-const SELECT_CLASS = "w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50";
+const SELECT_CLASS =
+  "w-full h-8 text-xs rounded-lg border border-input bg-transparent px-2 py-1 outline-hidden focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50";
 
 const EMPLOYEE_IMPORT_TEMPLATE = [
   "email;name;nip;nik;gender;birthPlace;birthDate;academicDegree;lastEducation;religion;maritalStatus;phone;address;joinDate",
@@ -78,15 +79,23 @@ export function EmployeeImportView({
   const [isPending, startTransition] = useTransition();
 
   const handleDownloadTemplate = () => {
-    const blob = new Blob([`\uFEFF${EMPLOYEE_IMPORT_TEMPLATE}`], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "Template-Import-Pegawai_SiCantIK.csv";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    const toastId = toast.loading("Menyiapkan template CSV impor pegawai...");
+    try {
+      const blob = new Blob([`\uFEFF${EMPLOYEE_IMPORT_TEMPLATE}`], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Template-Import-Pegawai_SiCantIK.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Template CSV berhasil diunduh.", { id: toastId });
+    } catch {
+      toast.error("Gagal mengunduh template CSV.", { id: toastId });
+    }
   };
 
   const parseCsvLine = (line: string, delimiter: string) => {
@@ -124,16 +133,29 @@ export function EmployeeImportView({
 
   const getCanonicalGender = (value: string): string => {
     const normalized = value.trim().toLowerCase();
-    if (normalized === "pria" || normalized === "laki-laki" || normalized === "laki_laki" || normalized === "male" || normalized === "m") {
+    if (
+      normalized === "pria" ||
+      normalized === "laki-laki" ||
+      normalized === "laki_laki" ||
+      normalized === "male" ||
+      normalized === "m"
+    ) {
       return "MALE";
     }
-    if (normalized === "wanita" || normalized === "perempuan" || normalized === "female" || normalized === "f") {
+    if (
+      normalized === "wanita" ||
+      normalized === "perempuan" ||
+      normalized === "female" ||
+      normalized === "f"
+    ) {
       return "FEMALE";
     }
     return "";
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -155,14 +177,16 @@ export function EmployeeImportView({
       }
 
       const delimiter = lines[0].includes(";") ? ";" : ",";
-      const headers = parseCsvLine(lines[0], delimiter).map((h) => h.replace(/^\uFEFF/, "").trim());
-      
+      const headers = parseCsvLine(lines[0], delimiter).map((h) =>
+        h.replace(/^\uFEFF/, "").trim(),
+      );
+
       const newRows: ImportRow[] = [];
 
       for (let i = 1; i < lines.length; i++) {
         const values = parseCsvLine(lines[i], delimiter);
         const rowData: Record<string, string> = {};
-        
+
         headers.forEach((header, idx) => {
           rowData[header] = values[idx] || "";
         });
@@ -232,15 +256,35 @@ export function EmployeeImportView({
     ]);
   };
 
-  const handleUpdateRow = (tempId: string, field: keyof ImportRow, value: string | "ADMIN" | "STAFF" | "EMPLOYEE" | "ACTIVE" | "RETIRED" | "STUDY_ASSIGNMENT") => {
+  const handleUpdateRow = (
+    tempId: string,
+    field: keyof ImportRow,
+    value:
+      | string
+      | "ADMIN"
+      | "STAFF"
+      | "EMPLOYEE"
+      | "ACTIVE"
+      | "RETIRED"
+      | "STUDY_ASSIGNMENT",
+  ) => {
     setRows((prev) =>
-      prev.map((row) => (row.tempId === tempId ? { ...row, [field]: value, error: undefined } : row))
+      prev.map((row) =>
+        row.tempId === tempId
+          ? { ...row, [field]: value, error: undefined }
+          : row,
+      ),
     );
   };
 
-  const handleUpdateMultipleFields = (tempId: string, updates: Partial<ImportRow>) => {
+  const handleUpdateMultipleFields = (
+    tempId: string,
+    updates: Partial<ImportRow>,
+  ) => {
     setRows((prev) =>
-      prev.map((row) => (row.tempId === tempId ? { ...row, ...updates, error: undefined } : row))
+      prev.map((row) =>
+        row.tempId === tempId ? { ...row, ...updates, error: undefined } : row,
+      ),
     );
   };
 
@@ -265,26 +309,6 @@ export function EmployeeImportView({
         toast.error(`Baris ${i + 1}: NIP atau NIK wajib diisi.`);
         return;
       }
-      if (!r.gender) {
-        toast.error(`Baris ${i + 1}: Jenis Kelamin wajib dipilih.`);
-        return;
-      }
-      if (!r.employmentStatusId) {
-        toast.error(`Baris ${i + 1}: Status Kepegawaian wajib dipilih.`);
-        return;
-      }
-      if (!r.employeeGroupId) {
-        toast.error(`Baris ${i + 1}: Kelompok Kepegawaian wajib dipilih.`);
-        return;
-      }
-      if (!r.employeeRankId) {
-        toast.error(`Baris ${i + 1}: Pangkat/Golongan wajib dipilih.`);
-        return;
-      }
-      if (!r.workplaceId) {
-        toast.error(`Baris ${i + 1}: Unit Kerja wajib dipilih.`);
-        return;
-      }
     }
 
     startTransition(async () => {
@@ -303,7 +327,7 @@ export function EmployeeImportView({
 
       if (failedCount > 0) {
         toast.warning(
-          `Selesai: ${importedCount} berhasil disimpan, ${failedCount} gagal.`
+          `Selesai: ${importedCount} berhasil disimpan, ${failedCount} gagal.`,
         );
         // filter out successfully imported rows and assign error messages to failed rows
         const errorMap = new Map<number, string>();
@@ -343,10 +367,17 @@ export function EmployeeImportView({
             <div className="space-y-1">
               <h3 className="text-sm font-medium">Download Template File</h3>
               <p className="text-xs text-muted-foreground">
-                Gunakan template CSV resmi agar pemetaan data kolom tidak salah saat diunggah.
+                Gunakan template CSV resmi agar pemetaan data kolom tidak salah
+                saat diunggah.
               </p>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={handleDownloadTemplate} disabled={isPending}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadTemplate}
+              disabled={isPending}
+            >
               <Download className="mr-2 size-4" />
               Download Template
             </Button>
@@ -370,17 +401,33 @@ export function EmployeeImportView({
                   className="max-w-xs"
                   disabled={isPending}
                 />
-                <Button type="button" variant="outline" onClick={handleAddRow} disabled={isPending}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddRow}
+                  disabled={isPending}
+                >
                   <Plus className="mr-2 size-4" />
                   Tambah Manual
                 </Button>
               </div>
             </div>
             {rows.length > 0 && (
-              <Button type="button" disabled={isPending} onClick={handleSaveAll} className="sm:self-end">
+              <Button
+                type="button"
+                disabled={isPending}
+                onClick={handleSaveAll}
+                className="sm:self-end"
+              >
                 <span className="flex items-center gap-2">
-                  <Save className={`size-4 ${isPending ? "hidden" : "block"}`} />
-                  <span>{isPending ? "Menyimpan..." : `Simpan Semua (${rows.length})`}</span>
+                  <Save
+                    className={`size-4 ${isPending ? "hidden" : "block"}`}
+                  />
+                  <span>
+                    {isPending
+                      ? "Menyimpan..."
+                      : `Simpan Semua (${rows.length})`}
+                  </span>
                 </span>
               </Button>
             )}
@@ -389,34 +436,56 @@ export function EmployeeImportView({
           <div className="rounded-md border overflow-x-auto">
             <Table className="min-w-[1200px]">
               <TableHeader className="bg-muted/50">
-                  <TableRow>
-                    <TableHead className="w-[180px]">Nama Lengkap *</TableHead>
-                    <TableHead className="w-[160px]">Email *</TableHead>
-                    <TableHead className="w-[140px]">NIP</TableHead>
-                    <TableHead className="w-[140px]">NIK</TableHead>
-                    <TableHead className="w-[110px]">Jenis Kelamin *</TableHead>
-                    <TableHead className="w-[130px]">Status Kepegawaian *</TableHead>
-                    <TableHead className="w-[130px]">Kelompok Kepegawaian *</TableHead>
-                    <TableHead className="w-[130px]">Pangkat/Golongan *</TableHead>
-                    <TableHead className="w-[130px]">Unit Kerja *</TableHead>
-                    <TableHead className="w-[70px] text-center">Aksi</TableHead>
-                  </TableRow>
+                <TableRow>
+                  <TableHead className="w-[180px]">Nama Lengkap *</TableHead>
+                  <TableHead className="w-[160px]">Email *</TableHead>
+                  <TableHead className="w-[140px]">NIP</TableHead>
+                  <TableHead className="w-[140px]">NIK</TableHead>
+                  <TableHead className="w-[110px]">Jenis Kelamin *</TableHead>
+                  <TableHead className="w-[130px]">
+                    Status Kepegawaian *
+                  </TableHead>
+                  <TableHead className="w-[130px]">
+                    Kelompok Kepegawaian *
+                  </TableHead>
+                  <TableHead className="w-[130px]">
+                    Pangkat/Golongan *
+                  </TableHead>
+                  <TableHead className="w-[130px]">Unit Kerja *</TableHead>
+                  <TableHead className="w-[70px] text-center">Aksi</TableHead>
+                </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
-                      Belum ada data. Silakan upload file CSV atau tambahkan baris manual.
+                    <TableCell
+                      colSpan={10}
+                      className="h-32 text-center text-muted-foreground"
+                    >
+                      Belum ada data. Silakan upload file CSV atau tambahkan
+                      baris manual.
                     </TableCell>
                   </TableRow>
                 ) : (
                   rows.map((row) => (
                     <Fragment key={row.tempId}>
-                      <TableRow className={row.error ? "border-b-0 bg-destructive/5 hover:bg-destructive/10" : ""}>
+                      <TableRow
+                        className={
+                          row.error
+                            ? "border-b-0 bg-destructive/5 hover:bg-destructive/10"
+                            : ""
+                        }
+                      >
                         <TableCell>
                           <Input
                             value={row.name}
-                            onChange={(e) => handleUpdateRow(row.tempId, "name", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(
+                                row.tempId,
+                                "name",
+                                e.target.value,
+                              )
+                            }
                             placeholder="Nama lengkap pegawai"
                             className="h-8 text-xs"
                             disabled={isPending}
@@ -426,7 +495,13 @@ export function EmployeeImportView({
                           <Input
                             type="email"
                             value={row.email}
-                            onChange={(e) => handleUpdateRow(row.tempId, "email", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(
+                                row.tempId,
+                                "email",
+                                e.target.value,
+                              )
+                            }
                             placeholder="alamat.email@contoh.com"
                             className="h-8 text-xs"
                             disabled={isPending}
@@ -435,7 +510,13 @@ export function EmployeeImportView({
                         <TableCell>
                           <Input
                             value={row.employeeId}
-                            onChange={(e) => handleUpdateRow(row.tempId, "employeeId", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(
+                                row.tempId,
+                                "employeeId",
+                                e.target.value,
+                              )
+                            }
                             placeholder="NIP"
                             className="h-8 text-xs"
                             disabled={isPending}
@@ -444,7 +525,9 @@ export function EmployeeImportView({
                         <TableCell>
                           <Input
                             value={row.nik}
-                            onChange={(e) => handleUpdateRow(row.tempId, "nik", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(row.tempId, "nik", e.target.value)
+                            }
                             placeholder="NIK"
                             className="h-8 text-xs"
                             disabled={isPending}
@@ -453,7 +536,13 @@ export function EmployeeImportView({
                         <TableCell>
                           <select
                             value={row.gender || ""}
-                            onChange={(e) => handleUpdateRow(row.tempId, "gender", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(
+                                row.tempId,
+                                "gender",
+                                e.target.value,
+                              )
+                            }
                             className={SELECT_CLASS}
                             disabled={isPending}
                           >
@@ -488,15 +577,27 @@ export function EmployeeImportView({
                         <TableCell>
                           <select
                             value={row.employeeGroupId || ""}
-                            onChange={(e) => handleUpdateRow(row.tempId, "employeeGroupId", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(
+                                row.tempId,
+                                "employeeGroupId",
+                                e.target.value,
+                              )
+                            }
                             disabled={!row.employmentStatusId || isPending}
                             className={SELECT_CLASS}
                           >
                             <option value="">
-                              {!row.employmentStatusId ? "Pilih status kepegawaian dulu" : "Pilih..."}
+                              {!row.employmentStatusId
+                                ? "Pilih status kepegawaian dulu"
+                                : "Pilih..."}
                             </option>
                             {employeeGroups
-                              .filter((g) => g.employmentStatusId === row.employmentStatusId)
+                              .filter(
+                                (g) =>
+                                  g.employmentStatusId ===
+                                  row.employmentStatusId,
+                              )
                               .map((item) => (
                                 <option key={item.id} value={item.id}>
                                   {item.name}
@@ -507,7 +608,13 @@ export function EmployeeImportView({
                         <TableCell>
                           <select
                             value={row.employeeRankId || ""}
-                            onChange={(e) => handleUpdateRow(row.tempId, "employeeRankId", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(
+                                row.tempId,
+                                "employeeRankId",
+                                e.target.value,
+                              )
+                            }
                             className={SELECT_CLASS}
                             disabled={isPending}
                           >
@@ -522,7 +629,13 @@ export function EmployeeImportView({
                         <TableCell>
                           <select
                             value={row.workplaceId || ""}
-                            onChange={(e) => handleUpdateRow(row.tempId, "workplaceId", e.target.value)}
+                            onChange={(e) =>
+                              handleUpdateRow(
+                                row.tempId,
+                                "workplaceId",
+                                e.target.value,
+                              )
+                            }
                             className={SELECT_CLASS}
                             disabled={isPending}
                           >
@@ -549,7 +662,10 @@ export function EmployeeImportView({
                       </TableRow>
                       {row.error && (
                         <TableRow className="border-t-0 bg-destructive/5 hover:bg-destructive/10">
-                          <TableCell colSpan={10} className="pt-0 pb-2 text-xs font-semibold text-destructive">
+                          <TableCell
+                            colSpan={10}
+                            className="pt-0 pb-2 text-xs font-semibold text-destructive"
+                          >
                             <div className="flex items-center gap-1.5 pl-2">
                               <span>Gagal:</span>
                               <span>{row.error}</span>

@@ -13,7 +13,7 @@ type SecurityLogMetricsProps = {
 
 export function SecurityLogMetrics({ totalItems, success, failed }: SecurityLogMetricsProps) {
   return (
-      <div className={`grid ${getResponsiveMetricGridClass(["Total log", "Berhasil", "Gagal"])} gap-3 md:grid-cols-3`}>
+      <div className={`grid ${getResponsiveMetricGridClass(["Total log", "Berhasil", "Gagal"])} gap-1.5 sm:gap-4 sm:grid-cols-3`}>
         <ResponsiveMetricCard
           title="Total log"
           compactTitle="Total"

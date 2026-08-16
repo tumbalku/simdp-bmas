@@ -106,6 +106,12 @@ export async function claimSharedRateLimitLimitedLog(key: string, now?: Date): P
   return updated.count === 1;
 }
 
+export async function clearSharedRateLimitBucket(key: string): Promise<void> {
+  await prisma.rateLimitBucket.deleteMany({
+    where: { key },
+  });
+}
+
 async function cleanupExpiredRateLimitBuckets(now: Date) {
   if (now.getTime() - lastCleanupAt < RATE_LIMIT_CLEANUP_INTERVAL_MS) return;
 

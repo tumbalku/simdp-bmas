@@ -206,7 +206,7 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
         description="Ringkasan pribadi kondisi dokumen kepegawaian Anda."
       />
 
-      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
+      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
         {metricCards.map((metric) => (
           <ResponsiveMetricCard key={metric.title} {...metric} />
         ))}

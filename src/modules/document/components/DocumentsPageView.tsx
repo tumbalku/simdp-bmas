@@ -11,7 +11,7 @@ import {
 } from "@/components/cards/ResponsiveMetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
-import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -22,6 +22,7 @@ import {
 import { ARCHIVE_CATEGORY_OPTIONS, softDeleteDocumentAction } from "@/modules/document";
 import { calculateMandatoryDocumentCompleteness } from "@/modules/document";
 import { verifyCurrentPasswordAction } from "@/modules/auth";
+import { downloadFileWithToast } from "@/utils/download";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 import {
   archiveCategoryIcons,
@@ -255,10 +256,16 @@ export function DocumentsPageView({
             ? [
                 {
                   label: "Download PDF",
-                  href: `/api/v1/employees/${currentEmployeeId}/documents-pdf`,
+                  onClick: () =>
+                    downloadFileWithToast({
+                      url: `/api/v1/employees/${currentEmployeeId}/documents-pdf`,
+                      loadingMessage: "Memproses unduhan berkas PDF...",
+                      successMessage: "Berkas PDF berhasil diunduh.",
+                      defaultFilename: "dokumen-pegawai.pdf",
+                    }),
                   icon: Download,
-                  prefetch: false,
                   variant: "default",
+                  hideLabelOnMobile: true,
                 },
               ]
             : undefined
@@ -292,34 +299,17 @@ export function DocumentsPageView({
       />
 
 
-      <DocumentSearchFilter
+      <DocumentFilterCard
         description="Cari berdasarkan nama file, judul, atau jenis dokumen."
-        searchValue={tempSearch}
+        search={tempSearch}
         onSearchChange={setTempSearch}
         searchPlaceholder="Cari dokumen..."
-        primaryFilter={{
-          value: tempDocumentTypeId || "all",
-          onValueChange: handleDocumentTypeChange,
-          placeholder: "Semua jenis dokumen",
-          ariaLabel: "Jenis dokumen",
-          options: [
-            { value: "all", label: "Semua jenis dokumen" },
-            ...documentTypes.map((documentType) => ({
-              value: documentType.id,
-              label: documentType.name,
-            })),
-          ],
-        }}
-        secondaryFilter={{
-          value: tempArchiveCategory || "all",
-          onValueChange: handleArchiveCategoryChange,
-          placeholder: "Semua kategori arsip",
-          ariaLabel: "Kategori arsip",
-          options: [
-            { value: "all", label: "Semua kategori arsip" },
-            ...ARCHIVE_CATEGORY_OPTIONS,
-          ],
-        }}
+        documentTypeId={tempDocumentTypeId}
+        onDocumentTypeChange={handleDocumentTypeChange}
+        documentTypes={documentTypes}
+        categoryFilter={tempArchiveCategory}
+        onCategoryChange={handleArchiveCategoryChange}
+        archiveCategoryOptions={ARCHIVE_CATEGORY_OPTIONS}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />

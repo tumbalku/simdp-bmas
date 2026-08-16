@@ -8,11 +8,12 @@ import { toast } from "sonner";
 
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
-import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
-import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
+import { ViewModeToggle, type ViewMode } from "@/components/tables/ViewModeToggle";
+import { type PaginationMeta } from "@/types/pagination";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,8 +44,6 @@ import {
 import { crudDocumentTypeAction } from "@/modules/document";
 import { routeTo } from "@/constants/routes";
 
-type ViewMode = "grid" | "list";
-
 type TargetSummary = {
   employmentStatuses: string[];
   employeeGroups: string[];
@@ -68,13 +67,6 @@ type DocumentTypeItem = {
   allowedFormats: string;
   maxSizeMb: number;
   targetSummary: TargetSummary;
-};
-
-type PaginationMeta = {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
 };
 
 type DocumentTypesPageViewProps = {
@@ -166,7 +158,7 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
     () => searchParams.get("archiveCategory") ?? "all",
   );
   const [rowsPerPage, setRowsPerPage] = useState(() =>
-    String(pagination.limit || PAGINATION.defaultPageSize),
+    String(pagination.pageSize || PAGINATION.defaultPageSize),
   );
   const [viewMode, setViewMode] = useState<ViewMode>(() =>
     searchParams.get("view") === "grid" ? "grid" : "list",
@@ -334,7 +326,7 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
 
   const footerSummary = (
     <p className="text-xs text-muted-foreground">
-      Menampilkan {documentTypes.length} dari {pagination.total} jenis dokumen.
+      Menampilkan {documentTypes.length} dari {pagination.totalItems} jenis dokumen.
     </p>
   );
 
@@ -354,21 +346,14 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
         ]}
       />
 
-      <DocumentSearchFilter
+      <DocumentFilterCard
         description="Cari berdasarkan kode, nama, deskripsi, atau kategori arsip."
-        searchValue={search}
+        search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Kode atau nama jenis dokumen..."
-        primaryFilter={{
-          value: categoryFilter,
-          onValueChange: (value) => setCategoryFilter(value || "all"),
-          placeholder: "Semua Kategori",
-          ariaLabel: "Kategori arsip",
-          options: [
-            { value: "all", label: "Semua Kategori" },
-            ...ARCHIVE_CATEGORY_OPTIONS,
-          ],
-        }}
+        categoryFilter={categoryFilter}
+        onCategoryChange={(value) => setCategoryFilter(value || "all")}
+        archiveCategoryOptions={ARCHIVE_CATEGORY_OPTIONS}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />

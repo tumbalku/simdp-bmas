@@ -90,6 +90,7 @@ enum DocumentVerificationType {
   EMPLOYEE_PROFILE
   EMPLOYEE_DIRECTORY
   EMPLOYEE_DOCUMENTS
+  MASTER_DATA_DOCUMENTS
 }
 
 model User {

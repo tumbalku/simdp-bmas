@@ -25,7 +25,7 @@ export function RowsPerPageControl({
   onValueChange,
   options,
   label = "Tampilkan",
-  suffix = "row",
+  suffix = "baris",
   variant = "card",
 }: RowsPerPageControlProps) {
   return (
@@ -37,7 +37,7 @@ export function RowsPerPageControl({
           : "border border-transparent bg-transparent shadow-none"
       )}
     >
-      <span>{label}</span>
+      <span className="hidden sm:inline">{label}</span>
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger className="h-7 w-14 px-2 text-xs">
           <SelectValue />

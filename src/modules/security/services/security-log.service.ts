@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PAGINATION } from "@/constants/pagination";
+import { getSystemSettingValue } from "@/modules/settings/server";
 import {
   SECURITY_EVENT_TYPE,
   SECURITY_LOG_STATUS,
@@ -85,4 +86,25 @@ export function countRecentFailedLoginAttemptsByIp(ipAddress: string, since: Dat
     eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
     status: SECURITY_LOG_STATUS.FAILED,
   });
+}
+
+export async function cleanupExpiredSecurityLogs(): Promise<{
+  deletedCount: number;
+  retentionDays: number;
+}> {
+  const rawDays = await getSystemSettingValue("security_log_retention_days", "30");
+  let retentionDays = parseInt(rawDays, 10);
+  if (isNaN(retentionDays) || retentionDays <= 0) {
+    retentionDays = 30;
+  }
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+  const result = await repo.deleteSecurityLogsBeforeDate(cutoffDate);
+
+  return {
+    deletedCount: result.count,
+    retentionDays,
+  };
 }

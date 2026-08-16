@@ -130,16 +130,6 @@ export async function loginUser(
 
   await repo.updateUserLastLoginAt(user.id);
 
-  await logActivity({
-    actorId: user.id,
-    actorName: user.employee?.name || user.email,
-    actorRole: user.role,
-    eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
-    resource: `User:${user.id}`,
-    ipAddress: normalizedIpAddress,
-    status: SECURITY_LOG_STATUS.SUCCESS,
-  });
-
   return {
     user: {
       id: user.id,
@@ -181,15 +171,6 @@ export async function createSessionForAuthenticatedUser(
     ipAddress: normalizeLoginIpAddress(ipAddress),
   });
   await repo.updateUserLastLoginAt(user.id);
-  await logActivity({
-    actorId: user.id,
-    actorName: user.email,
-    actorRole: user.role,
-    eventType: SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
-    resource: `User:${user.id}`,
-    ipAddress: normalizeLoginIpAddress(ipAddress),
-    status: SECURITY_LOG_STATUS.SUCCESS,
-  });
 
   return { user, refreshTokenPlain };
 }
@@ -244,16 +225,6 @@ export async function rotateSession(
     ipAddress,
   });
 
-  await logActivity({
-    actorId: user.id,
-    actorName: user.employee?.name || user.email,
-    actorRole: user.role,
-    eventType: SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS,
-    resource: `User:${user.id}`,
-    ipAddress,
-    status: SECURITY_LOG_STATUS.SUCCESS,
-  });
-
   return {
     user: {
       id: user.id,
@@ -265,24 +236,13 @@ export async function rotateSession(
   };
 }
 
-export async function logoutUser(tokenPlain: string, userId: string, actorRole: string): Promise<boolean> {
+export async function logoutUser(tokenPlain: string, userId: string): Promise<boolean> {
   const hashedToken = hashRefreshToken(tokenPlain);
-  const user = await repo.findUserWithEmployeeById(userId);
-  const actorName = user?.employee?.name || user?.email || "User";
   const refreshTokenRecord = await repo.findRefreshTokenByTokenAndUserId(hashedToken, userId);
 
   if (refreshTokenRecord) {
     await repo.revokeRefreshTokenById(refreshTokenRecord.id);
   }
-
-  await logActivity({
-    actorId: userId,
-    actorName,
-    actorRole,
-    eventType: SECURITY_EVENT_TYPE.AUTH_LOGOUT,
-    resource: `User:${userId}`,
-    status: SECURITY_LOG_STATUS.SUCCESS,
-  });
 
   return true;
 }

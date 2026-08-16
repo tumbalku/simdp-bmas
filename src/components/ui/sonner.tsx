@@ -10,6 +10,8 @@ const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      position="top-center"
+      richColors={false}
       className="toaster group"
       icons={{
         success: (
@@ -33,18 +35,18 @@ const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
-          "--success-bg": "color-mix(in srgb, var(--success) 12%, var(--popover))",
-          "--success-border": "color-mix(in srgb, var(--success) 28%, var(--border))",
-          "--success-text": "var(--success)",
-          "--info-bg": "color-mix(in srgb, var(--info) 12%, var(--popover))",
-          "--info-border": "color-mix(in srgb, var(--info) 28%, var(--border))",
-          "--info-text": "var(--info)",
-          "--warning-bg": "color-mix(in srgb, var(--warning) 14%, var(--popover))",
-          "--warning-border": "color-mix(in srgb, var(--warning) 32%, var(--border))",
-          "--warning-text": "var(--warning)",
-          "--error-bg": "color-mix(in srgb, var(--destructive) 12%, var(--popover))",
-          "--error-border": "color-mix(in srgb, var(--destructive) 30%, var(--border))",
-          "--error-text": "var(--destructive)",
+          "--success-bg": "rgb(236, 253, 245)",
+          "--success-border": "rgb(110, 231, 183)",
+          "--success-text": "rgb(4, 120, 87)",
+          "--info-bg": "rgb(240, 249, 255)",
+          "--info-border": "rgb(125, 211, 252)",
+          "--info-text": "rgb(3, 105, 161)",
+          "--warning-bg": "rgb(254, 243, 199)",
+          "--warning-border": "rgb(252, 211, 77)",
+          "--warning-text": "rgb(180, 83, 9)",
+          "--error-bg": "rgb(255, 241, 242)",
+          "--error-border": "rgb(253, 164, 175)",
+          "--error-text": "rgb(190, 18, 60)",
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
@@ -52,16 +54,16 @@ const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
         ...toastOptions,
         classNames: {
           toast:
-            "cn-toast border-border bg-popover text-popover-foreground shadow-sm",
+            "cn-toast border shadow-md rounded-lg font-sans text-xs sm:text-sm",
           success:
-            "border-success/20 bg-success/10 text-success [&_[data-description]]:text-success/80",
-          info: "border-info/20 bg-info/10 text-info [&_[data-description]]:text-info/80",
+            "!bg-emerald-50 !border-emerald-300 !text-emerald-800 dark:!bg-emerald-950/80 dark:!border-emerald-700/50 dark:!text-emerald-200 [&_[data-description]]:!text-emerald-700 dark:[&_[data-description]]:!text-emerald-300",
+          info: "!bg-sky-50 !border-sky-300 !text-sky-800 dark:!bg-sky-950/80 dark:!border-sky-700/50 dark:!text-sky-200 [&_[data-description]]:!text-sky-700 dark:[&_[data-description]]:!text-sky-300",
           warning:
-            "border-warning/20 bg-warning/10 text-warning [&_[data-description]]:text-warning/80",
+            "!bg-amber-50 !border-amber-300 !text-amber-800 dark:!bg-amber-950/80 dark:!border-amber-700/50 dark:!text-amber-200 [&_[data-description]]:!text-amber-700 dark:[&_[data-description]]:!text-amber-300",
           error:
-            "border-destructive/20 bg-destructive/10 text-destructive [&_[data-description]]:text-destructive/80",
+            "!bg-rose-50 !border-rose-300 !text-rose-800 dark:!bg-rose-950/80 dark:!border-rose-700/50 dark:!text-rose-200 [&_[data-description]]:!text-rose-700 dark:[&_[data-description]]:!text-rose-300",
           loading:
-            "border-muted-foreground/20 bg-muted text-muted-foreground",
+            "!bg-slate-50 !border-slate-300 !text-slate-800 dark:!bg-slate-900 dark:!border-slate-700 dark:!text-slate-200",
           ...toastOptions?.classNames,
         },
       }}
