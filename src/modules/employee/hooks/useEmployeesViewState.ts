@@ -211,8 +211,9 @@ export function useEmployeesViewState({
       status: "",
     };
     setFilters(resetFilters);
-    setRowsPerPage(String(PAGINATION.defaultPageSize));
-    router.push(buildPageUrl(PAGINATION.defaultPage, resetFilters));
+    const defaultLimit = String(PAGINATION.defaultPageSize);
+    setRowsPerPage(defaultLimit);
+    router.push(buildPageUrl(PAGINATION.defaultPage, resetFilters, defaultLimit));
   };
 
   return {

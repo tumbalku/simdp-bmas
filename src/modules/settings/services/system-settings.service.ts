@@ -1,14 +1,8 @@
-import { logActivity, invalidateEnabledSecurityEventsCache, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import { logActivity, invalidateEnabledSecurityEventsCache, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS, DEFAULT_ENABLED_EVENTS } from "@/modules/security/server";
 import * as repo from "../repositories/common";
 
 function getDefaults() {
-  const enabledEvents = SECURITY_EVENT_TYPE
-    ? JSON.stringify(
-        Object.values(SECURITY_EVENT_TYPE).filter(
-          (event) => event !== SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS
-        )
-      )
-    : "[]";
+  const enabledEvents = JSON.stringify(DEFAULT_ENABLED_EVENTS);
 
   return [
     {

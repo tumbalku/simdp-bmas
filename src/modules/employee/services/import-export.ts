@@ -3,6 +3,7 @@ import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import { handleEmployeeCrud } from "./crud";
 import { canonicalGender, canonicalMaritalStatus, canonicalReligion } from "./shared";
+import { bulkCreateEmployeeRowSchema } from "../schemas/employee.schema";
 
 export async function importFromCsv(
   csvText: string,
@@ -70,37 +71,53 @@ export async function importFromCsv(
     const rowNum = i + 2; // 1-indexed plus header
 
     try {
-      if (!row.email || !row.name) {
-        throw new Error("Email dan Nama wajib diisi");
-      }
-      if (!row.employeeId && !row.nik) {
-        throw new Error("NIP (employeeId) atau NIK wajib diisi");
-      }
+      const parsedRow = bulkCreateEmployeeRowSchema.parse({
+        email: row.email,
+        name: row.name,
+        role: row.role || "EMPLOYEE",
+        employeeId: row.employeeId || row.nip || null,
+        nik: row.nik || null,
+        gender: row.gender || null,
+        birthPlace: row.birthPlace || null,
+        birthDate: row.birthDate || null,
+        academicDegree: row.academicDegree || null,
+        lastEducation: row.lastEducation || null,
+        religion: row.religion || null,
+        maritalStatus: row.maritalStatus || null,
+        phone: row.phone || null,
+        address: row.address || null,
+        joinDate: row.joinDate || null,
+        employmentStatusId: row.employmentStatusId || null,
+        employeeGroupId: row.employeeGroupId || null,
+        employeePositionId: row.employeePositionId || null,
+        employeeRankId: row.employeeRankId || null,
+        workplaceId: row.workplaceId || null,
+      });
 
       await handleEmployeeCrud(
         "CREATE",
         undefined,
         {
-          email: row.email,
-          name: row.name,
-          role: row.role || "EMPLOYEE",
-          employeeId: row.employeeId || row.nip || null,
-          nik: row.nik || null,
-          gender: canonicalGender(row.gender),
-          birthPlace: row.birthPlace || null,
-          birthDate: row.birthDate || null,
-          academicDegree: row.academicDegree || null,
-          lastEducation: row.lastEducation || null,
-          religion: canonicalReligion(row.religion),
-          maritalStatus: canonicalMaritalStatus(row.maritalStatus),
-          phone: row.phone || null,
-          address: row.address || null,
-          joinDate: row.joinDate || null,
-          employmentStatusId: row.employmentStatusId || null,
-          employeeGroupId: row.employeeGroupId || null,
-          employeePositionId: row.employeePositionId || null,
-          employeeRankId: row.employeeRankId || null,
-          workplaceId: row.workplaceId || null,
+          email: parsedRow.email,
+          name: parsedRow.name,
+          role: parsedRow.role,
+          employeeId: parsedRow.employeeId ?? null,
+          nik: parsedRow.nik ?? null,
+          gender: canonicalGender(parsedRow.gender),
+          birthPlace: parsedRow.birthPlace ?? null,
+          birthDate: parsedRow.birthDate ?? null,
+          academicDegree: parsedRow.academicDegree ?? null,
+          lastEducation: parsedRow.lastEducation ?? null,
+          religion: canonicalReligion(parsedRow.religion),
+          maritalStatus: canonicalMaritalStatus(parsedRow.maritalStatus),
+          phone: parsedRow.phone ?? null,
+          address: parsedRow.address ?? null,
+          joinDate: parsedRow.joinDate ?? null,
+          employmentStatusId: parsedRow.employmentStatusId ?? null,
+          employeeGroupId: parsedRow.employeeGroupId ?? null,
+          employeePositionId: parsedRow.employeePositionId ?? null,
+          employeeRankId: parsedRow.employeeRankId ?? null,
+          workplaceId: parsedRow.workplaceId ?? null,
         },
         actorId,
         actorName,

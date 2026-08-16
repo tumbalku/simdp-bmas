@@ -26,8 +26,17 @@ function normalizeEnumValue<T extends Record<string, string>>(
 
   if (trimmed in canonicalMap) return trimmed;
 
+  const lowerTrimmed = trimmed.toLowerCase();
+
+  // Special aliases for common variations (e.g. "Laki-laki" -> MALE)
+  if (canonicalMap === (GENDER_VALUE as Record<string, string>)) {
+    if (lowerTrimmed === "laki-laki" || lowerTrimmed === "pria" || lowerTrimmed === "l") return GENDER_VALUE.MALE;
+    if (lowerTrimmed === "perempuan" || lowerTrimmed === "wanita" || lowerTrimmed === "p") return GENDER_VALUE.FEMALE;
+  }
+
   for (const [key, label] of Object.entries(labelsMap)) {
-    if (label.toLowerCase() === trimmed.toLowerCase()) {
+    const lowerLabel = label.toLowerCase();
+    if (lowerLabel === lowerTrimmed) {
       return key;
     }
   }
