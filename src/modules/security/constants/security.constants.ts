@@ -127,6 +127,17 @@ export const SECURITY_EVENT_TYPE_OPTIONS = Object.values(SECURITY_EVENT_TYPE).ma
   label: SECURITY_EVENT_TYPE_LABELS[value],
 }));
 
+// Exclude high-frequency routine events from default logging to prevent DB bloat & performance degradation
+export const HIGH_FREQUENCY_SECURITY_EVENTS = new Set<string>([
+  SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS,
+  SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
+  SECURITY_EVENT_TYPE.AUTH_LOGOUT,
+]);
+
+export const DEFAULT_ENABLED_EVENTS = Object.values(SECURITY_EVENT_TYPE).filter(
+  (event) => !HIGH_FREQUENCY_SECURITY_EVENTS.has(event)
+);
+
 export function normalizeSecurityLogStatus(value: string | null | undefined): SecurityLogStatus {
   return value === SECURITY_LOG_STATUS.SUCCESS ? SECURITY_LOG_STATUS.SUCCESS : SECURITY_LOG_STATUS.FAILED;
 }

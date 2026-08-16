@@ -638,7 +638,7 @@ export async function logoutAction() {
       const cookieStore = await cookies();
       const refreshToken = cookieStore.get("refresh_token")?.value;
       if (refreshToken) {
-        await logoutUser(refreshToken, session.userId, session.role);
+        await logoutUser(refreshToken, session.userId);
       }
     }
     await clearAuthCookies();

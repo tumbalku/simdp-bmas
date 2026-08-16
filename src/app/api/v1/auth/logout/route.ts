@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const refreshToken = request.cookies.get("refresh_token")?.value;
 
     if (refreshToken) {
-      await logoutUser(refreshToken, session.userId, session.role);
+      await logoutUser(refreshToken, session.userId);
     }
 
     await clearAuthCookies();

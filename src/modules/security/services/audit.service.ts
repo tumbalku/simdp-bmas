@@ -2,7 +2,7 @@
 import crypto from "crypto";
 import { getSystemSettingValue } from "@/modules/settings/server";
 import {
-  SECURITY_EVENT_TYPE,
+  DEFAULT_ENABLED_EVENTS,
   normalizeSecurityActorRole,
   normalizeSecurityLogStatus,
   type SecurityActorRole,
@@ -20,17 +20,6 @@ export type LogActivityInput = {
   status: SecurityLogStatus | string;
   metadata?: Record<string, any>;
 };
-
-// Exclude high-frequency routine events from default logging to prevent DB bloat & performance degradation
-const HIGH_FREQUENCY_EVENTS = new Set<string>([
-  SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS,
-  SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
-  SECURITY_EVENT_TYPE.AUTH_LOGOUT,
-]);
-
-export const DEFAULT_ENABLED_EVENTS = Object.values(SECURITY_EVENT_TYPE).filter(
-  (event) => !HIGH_FREQUENCY_EVENTS.has(event)
-);
 
 // 60-second in-memory TTL cache to eliminate DB queries on every logActivity call
 let cachedEnabledEvents: { data: string[]; expiresAt: number } | null = null;

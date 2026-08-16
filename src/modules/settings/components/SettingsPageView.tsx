@@ -12,7 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DATE_FORMATS, DATE_LOCALE } from "@/constants";
-import { SECURITY_EVENT_TYPE, SECURITY_EVENT_TYPE_LABELS, type SecurityEventType } from "@/modules/security";
+import {
+  SECURITY_EVENT_TYPE,
+  SECURITY_EVENT_TYPE_LABELS,
+  DEFAULT_ENABLED_EVENTS,
+  type SecurityEventType,
+} from "@/modules/security";
 import { updateSystemSettingAction } from "@/modules/settings";
 
 type SystemSetting = {
@@ -87,10 +92,7 @@ const SECURITY_EVENT_GROUPS: { title: string; events: SecurityEventType[] }[] = 
   {
     title: "Autentikasi & Sesi",
     events: [
-      SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
       SECURITY_EVENT_TYPE.AUTH_LOGIN_FAILED,
-      SECURITY_EVENT_TYPE.AUTH_LOGOUT,
-      SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS,
       SECURITY_EVENT_TYPE.AUTH_REFRESH_FAILED,
       SECURITY_EVENT_TYPE.AUTH_FORCE_LOGOUT_OTHERS,
       SECURITY_EVENT_TYPE.AUTH_SESSION_REVOKED,
@@ -144,15 +146,12 @@ const SECURITY_EVENT_GROUPS: { title: string; events: SecurityEventType[] }[] = 
       SECURITY_EVENT_TYPE.MASTER_DATA_UPDATED,
       SECURITY_EVENT_TYPE.MASTER_DATA_DELETED,
       SECURITY_EVENT_TYPE.SYSTEM_SETTING_UPDATED,
-      SECURITY_EVENT_TYPE.API_RATE_LIMIT_CHECK,
     ],
   },
 ];
 
 const ALL_SECURITY_EVENTS = Object.values(SECURITY_EVENT_TYPE);
-const DEFAULT_ENABLED_SECURITY_EVENTS = ALL_SECURITY_EVENTS.filter(
-  (event) => event !== SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS
-);
+const DEFAULT_ENABLED_SECURITY_EVENTS = DEFAULT_ENABLED_EVENTS;
 
 export function SettingsPageView({ settings }: SettingsPageViewProps) {
   const [values, setValues] = useState(() => createInitialValues(settings));

@@ -41,13 +41,13 @@ describe("Security Module Service", () => {
 
     it("should bypass creating security log record when eventType is not in enabled list", async () => {
       vi.mocked(settingsServer.getSystemSettingValue).mockResolvedValue(
-        JSON.stringify(["AUTH_LOGIN_SUCCESS"])
+        JSON.stringify(["DOCUMENT_APPROVED"])
       );
 
       await logActivity({
         actorName: "John Doe",
         actorRole: "EMPLOYEE",
-        eventType: "AUTH_REFRESH_SUCCESS",
+        eventType: "EMPLOYEE_UPDATED",
         resource: "Auth",
         status: "SUCCESS",
       });
