@@ -1,4 +1,4 @@
-import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import { logActivity, invalidateEnabledSecurityEventsCache, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repo from "../repositories/common";
 
 function getDefaults() {
@@ -93,6 +93,8 @@ export async function updateSettings(
   await getSystemSettings();
 
   await repo.updateSystemSettings(settingsList, userId);
+
+  invalidateEnabledSecurityEventsCache();
 
   await logActivity({
     actorId: userId,

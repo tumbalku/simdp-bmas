@@ -21,22 +21,41 @@ export type LogActivityInput = {
   metadata?: Record<string, any>;
 };
 
-const DEFAULT_ENABLED_EVENTS = Object.values(SECURITY_EVENT_TYPE).filter(
-  (event) => event !== SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS
+// Exclude high-frequency routine events from default logging to prevent DB bloat & performance degradation
+const HIGH_FREQUENCY_EVENTS = new Set<string>([
+  SECURITY_EVENT_TYPE.AUTH_REFRESH_SUCCESS,
+  SECURITY_EVENT_TYPE.AUTH_LOGIN_SUCCESS,
+  SECURITY_EVENT_TYPE.AUTH_LOGOUT,
+]);
+
+export const DEFAULT_ENABLED_EVENTS = Object.values(SECURITY_EVENT_TYPE).filter(
+  (event) => !HIGH_FREQUENCY_EVENTS.has(event)
 );
 
+// 60-second in-memory TTL cache to eliminate DB queries on every logActivity call
+let cachedEnabledEvents: { data: string[]; expiresAt: number } | null = null;
+
+export function invalidateEnabledSecurityEventsCache(): void {
+  cachedEnabledEvents = null;
+}
+
 async function getEnabledSecurityEvents(): Promise<string[]> {
+  const now = Date.now();
+  if (cachedEnabledEvents && now < cachedEnabledEvents.expiresAt) {
+    return cachedEnabledEvents.data;
+  }
+
   try {
     const rawSetting = await getSystemSettingValue(
       "security_log_enabled_events",
       JSON.stringify(DEFAULT_ENABLED_EVENTS)
     );
     const parsed = JSON.parse(rawSetting);
-    if (Array.isArray(parsed)) {
-      return parsed.map((item) => String(item));
-    }
-    return DEFAULT_ENABLED_EVENTS;
+    const data = Array.isArray(parsed) ? parsed.map((item) => String(item)) : DEFAULT_ENABLED_EVENTS;
+    cachedEnabledEvents = { data, expiresAt: now + 60_000 };
+    return data;
   } catch {
+    cachedEnabledEvents = { data: DEFAULT_ENABLED_EVENTS, expiresAt: now + 60_000 };
     return DEFAULT_ENABLED_EVENTS;
   }
 }

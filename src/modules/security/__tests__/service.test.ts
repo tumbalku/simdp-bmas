@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { logActivity, getSecurityLogs, cleanupExpiredSecurityLogs } from "../service";
+import { logActivity, getSecurityLogs, cleanupExpiredSecurityLogs, invalidateEnabledSecurityEventsCache } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 import * as settingsServer from "@/modules/settings/server";
 
@@ -56,20 +56,21 @@ describe("Security Module Service", () => {
     });
 
     it("should fallback safely when getSystemSettingValue returns invalid JSON", async () => {
+      invalidateEnabledSecurityEventsCache();
       vi.mocked(settingsServer.getSystemSettingValue).mockResolvedValue("invalid json string");
 
       await logActivity({
         actorName: "John Doe",
         actorRole: "EMPLOYEE",
-        eventType: "AUTH_LOGIN_SUCCESS",
-        resource: "Auth",
+        eventType: "DOCUMENT_APPROVED",
+        resource: "Document",
         status: "SUCCESS",
       });
 
       expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            eventType: "AUTH_LOGIN_SUCCESS",
+            eventType: "DOCUMENT_APPROVED",
           }),
         })
       );
