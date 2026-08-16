@@ -16,7 +16,10 @@ import { generateAlphanumericKey } from "@/utils/crypto";
 import { toast } from "sonner";
 
 import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
-import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
+import {
+  CriticalActionVerificationDialog,
+  type CriticalActionVerificationResult,
+} from "@/components/verification/CriticalActionVerificationDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -454,34 +457,39 @@ export function MasterDataCategoriesView({
     });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteTarget) return { ok: false, error: { message: "Data tidak ditemukan" } };
-
-    const config = TYPE_CONFIG[deleteTarget.type];
-    const result = await crudMasterDataAction(
-      config.entity,
-      "DELETE",
-      deleteTarget.id
-    );
-
-    if (!result.ok) {
-      toast.error(result.error.message);
-      return result;
-    }
 
     const deletedItemName = deleteTarget.name;
     const deletedItemType = deleteTarget.type;
     const deletedItemId = deleteTarget.id;
+    const config = TYPE_CONFIG[deletedItemType];
 
-    setData((current) =>
-      setTypeItems(current, deletedItemType, (items) =>
-        items.filter((item) => item.id !== deletedItemId)
-      )
-    );
-    toast.success(`Data "${deletedItemName}" berhasil dihapus.`);
-    setDeleteTarget(null);
-    router.refresh();
-    return { ok: true };
+    return new Promise<CriticalActionVerificationResult>((resolve) => {
+      startTransition(async () => {
+        const result = await crudMasterDataAction(
+          config.entity,
+          "DELETE",
+          deletedItemId
+        );
+
+        if (!result.ok) {
+          toast.error(result.error.message);
+          resolve(result);
+          return;
+        }
+
+        setData((current) =>
+          setTypeItems(current, deletedItemType, (items) =>
+            items.filter((item) => item.id !== deletedItemId)
+          )
+        );
+        toast.success(`Data "${deletedItemName}" berhasil dihapus.`);
+        setDeleteTarget(null);
+        router.refresh();
+        resolve({ ok: true });
+      });
+    });
   };
 
   return (
