@@ -20,7 +20,6 @@
 
 ## In Progress
 
-- [ ] [#279](https://github.com/tumbalku/simdp-bmas/issues/279) fix(employee): wrap master data categories delete action in startTransition for pending UI feedback
 - [ ] [#280](https://github.com/tumbalku/simdp-bmas/issues/280) fix(security): eliminate timing oracle in cron secret length comparison
 - [ ] [#281](https://github.com/tumbalku/simdp-bmas/issues/281) refactor(crypto): remove insecure Math.random fallback in crypto utilities
 - [ ] [#222](https://github.com/tumbalku/simdp-bmas/issues/222) Multi-instance rate limiting strategy
@@ -46,6 +45,7 @@
 
 ## Done
 
+- [x] [#279](https://github.com/tumbalku/simdp-bmas/issues/279) fix(employee): wrap master data categories delete action in startTransition for pending UI feedback (selesai: 2026-08-16)
 - [x] [#278](https://github.com/tumbalku/simdp-bmas/issues/278) perf(security): prune high-frequency audit logs and add in-memory TTL cache to logActivity (selesai: 2026-08-16)
 - [x] [#277](https://github.com/tumbalku/simdp-bmas/issues/277) refactor(employee): enforce strict canonical enum key referencing in service layer (selesai: 2026-08-16)
 - [x] [#237](https://github.com/tumbalku/simdp-bmas/issues/237) Add Backup & Disaster Recovery plan for DB and document storage (selesai: 2026-07-27)
