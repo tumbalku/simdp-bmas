@@ -93,7 +93,7 @@ describe("GET /api/v1/employees/[id]/documents-pdf", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(response.headers.get("Content-Disposition")).toMatch(
-      /^attachment; filename="Laporan-Dokumen_Siti-Aminah_\d{4}-\d{2}-\d{2}\.pdf"$/,
+      /^attachment; filename="Laporan-Dokumen_Siti-Aminah_\d{4}-\d{2}-\d{2}\.pdf"; filename\*=UTF-8''Laporan-Dokumen_Siti-Aminah_\d{4}-\d{2}-\d{2}\.pdf$/,
     );
     expect(body).toBe("documents pdf");
 

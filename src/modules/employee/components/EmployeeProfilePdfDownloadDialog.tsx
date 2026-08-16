@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Download, FileCheck2, FileText, Layers3 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadFileWithToast } from "@/utils/download";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -78,7 +79,12 @@ export function EmployeeProfilePdfDownloadDialog({
     }
 
     setOpen(false);
-    window.location.href = `/api/v1/employees/${employeeId}/profile-pdf?${params.toString()}`;
+    void downloadFileWithToast({
+      url: `/api/v1/employees/${employeeId}/profile-pdf?${params.toString()}`,
+      loadingMessage: `Memproses ringkasan profil PDF ${employeeName}...`,
+      successMessage: `PDF profil ${employeeName} berhasil diunduh.`,
+      defaultFilename: `Profil_${employeeName}.pdf`,
+    });
   };
 
   return (

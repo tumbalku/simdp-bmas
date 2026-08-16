@@ -286,7 +286,7 @@ describe("Auth Module Service", () => {
     it("should revoke token and log out user", async () => {
       mockPrisma.refreshToken.findFirst.mockResolvedValue({ id: "token-record-1" });
 
-      const result = await logoutUser("token-plain", "user-1", "EMPLOYEE");
+      const result = await logoutUser("token-plain", "user-1");
       expect(result).toBe(true);
 
       expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith(

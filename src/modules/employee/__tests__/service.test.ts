@@ -162,13 +162,13 @@ describe("Employee Module Service", () => {
         employeePositionId: "position-1",
         employeeRankId: "rank-1",
         workplaceId: "workplace-1",
-        maritalStatus: "Kawin",
+        maritalStatus: "MARRIED",
         lastEducation: "S1",
         tmtStartDate: "2020-01-01",
         tmtEndDate: "2026-12-31",
         retirementAgeFrom: 50,
         retirementAgeTo: 58,
-        status: "Aktif",
+        status: "ACTIVE",
       });
 
       expect(mockPrisma.employee.findMany).toHaveBeenCalledWith(
@@ -401,9 +401,7 @@ describe("Employee Module Service", () => {
       expect(html).toContain("ASN/PNS");
       expect(html).toContain("col-education");
       expect(html).toContain("col-tmt");
-      expect(html).toContain('<col style="width: 7.2%" />');
-      expect(html).toContain('<col style="width: 8%" />');
-      expect(html).toContain('<col style="width: 5.5%" />');
+      expect(html).toContain('<col style="width: 6.2%" />');
       expect(html).not.toContain("Status data:");
       expect(html).not.toContain("Total data sesuai pencarian:");
       expect(html).toContain("Dicetak: 29 Juli 2026 pukul");
@@ -496,16 +494,15 @@ describe("Employee Module Service", () => {
       expect(html).toContain("<div class=\"detail-value\">UGD</div>");
       expect(html).toContain("grid-template-columns: 1fr;");
       expect(html).toContain("<th>Kode</th>");
-      expect(html).toContain("<th>Judul</th>");
-      expect(html).toContain("<th>Jenis Dokumen</th>");
-      expect(html).toContain("<th>Kategori</th>");
-      expect(html).toContain("<th>Nomor</th>");
+      expect(html).toContain("<th>Nama Dokumen</th>");
+      expect(html).toContain("<th>Nomor Dokumen</th>");
       expect(html).toContain("<th>Diunggah</th>");
-      expect(html).toContain("<th>Kadaluarsa</th>");
+      expect(html).toContain("<th>Masa Berakhir</th>");
       expect(html).toContain("<th>Status</th>");
+      expect(html).not.toContain("<th>Judul</th>");
+      expect(html).not.toContain("<th>Kategori</th>");
       expect(html).not.toContain("<th>Pegawai</th>");
       expect(html).not.toContain("<span>Status/Jenis</span><span>Kepegawaian</span>");
-      expect(html).toContain("KTP Utama");
       expect(html).toContain("4701/KTP/2026");
       expect(html).toContain("Scan QR untuk mengecek keaslian PDF laporan dokumen ini.");
       expect(html).toContain("http://localhost:3000/verify-document?code=SIMDP-ABC123DEF456ABC123DEF456ABC123DE");

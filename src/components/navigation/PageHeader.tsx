@@ -2,19 +2,124 @@ import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/utils";
 
-type PageHeaderAction = {
-  label: string;
+export type PageHeaderButtonVariant =
+  | "default"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "destructive"
+  | "link";
+
+export type PageHeaderLinkProps = {
   href: string;
+  label: string;
+  icon?: ComponentType<{ className?: string }>;
+  iconPosition?: "start" | "end";
+  variant?: PageHeaderButtonVariant;
+  hideLabelOnMobile?: boolean;
+  prefetch?: boolean;
+  className?: string;
+};
+
+export function PageHeaderLink({
+  href,
+  label,
+  icon: Icon,
+  iconPosition = "start",
+  variant = "default",
+  hideLabelOnMobile = true,
+  prefetch,
+  className,
+}: PageHeaderLinkProps) {
+  return (
+    <Link
+      href={href}
+      prefetch={prefetch}
+      aria-label={hideLabelOnMobile ? label : undefined}
+      className={cn(
+        buttonVariants({ variant, size: "default" }),
+        hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
+        className
+      )}
+    >
+      {Icon && iconPosition === "start" ? <Icon className="size-3.5" /> : null}
+      {hideLabelOnMobile ? (
+        <span className="hidden sm:inline">{label}</span>
+      ) : (
+        label
+      )}
+      {Icon && iconPosition === "end" ? <Icon className="size-3.5" /> : null}
+    </Link>
+  );
+}
+
+export type PageHeaderButtonProps = {
+  label: string;
+  onClick?: () => void;
+  icon?: ComponentType<{ className?: string }>;
+  iconPosition?: "start" | "end";
+  variant?: PageHeaderButtonVariant;
+  size?: "default" | "sm" | "lg" | "icon";
+  hideLabelOnMobile?: boolean;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
+  className?: string;
+  iconClassName?: string;
+};
+
+export function PageHeaderButton({
+  label,
+  onClick,
+  icon: Icon,
+  iconPosition = "start",
+  variant = "default",
+  size,
+  hideLabelOnMobile = true,
+  disabled = false,
+  type = "button",
+  className,
+  iconClassName,
+}: PageHeaderButtonProps) {
+  return (
+    <Button
+      type={type}
+      variant={variant}
+      size={size}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={hideLabelOnMobile ? label : undefined}
+      className={cn(
+        hideLabelOnMobile && !size && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
+        className
+      )}
+    >
+      {Icon && iconPosition === "start" ? <Icon className={cn("size-3.5", iconClassName)} /> : null}
+      {hideLabelOnMobile ? (
+        <span className="hidden sm:inline">{label}</span>
+      ) : (
+        label
+      )}
+      {Icon && iconPosition === "end" ? <Icon className={cn("size-3.5", iconClassName)} /> : null}
+    </Button>
+  );
+}
+
+export type PageHeaderAction = {
+  label: string;
+  href?: string;
+  onClick?: () => void;
   icon?: ComponentType<{ className?: string }>;
   iconPosition?: "start" | "end";
   prefetch?: boolean;
-  variant?: "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
+  variant?: PageHeaderButtonVariant;
+  hideLabelOnMobile?: boolean;
+  className?: string;
 };
 
-type PageHeaderProps = {
+export type PageHeaderProps = {
   eyebrow?: string;
   title: ReactNode;
   description?: ReactNode;
@@ -47,7 +152,7 @@ export function PageHeader({
         </Link>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex items-center justify-between gap-3 sm:items-end">
         <div>
           {eyebrow ? (
             <p className="text-xs font-medium text-primary">{eyebrow}</p>
@@ -56,34 +161,44 @@ export function PageHeader({
             {title}
           </h1>
           {description ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+            <p className="mt-0.5 hidden text-xs text-muted-foreground sm:block">{description}</p>
           ) : null}
         </div>
 
         {actions?.length || trailing ? (
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            {actions?.map((action) => {
-              const Icon = action.icon;
-              const iconPosition = action.iconPosition ?? "start";
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            {actions?.map((action, index) => {
+              if (action.onClick) {
+                return (
+                  <PageHeaderButton
+                    key={action.href ? `${action.href}-${action.label}` : `action-${index}-${action.label}`}
+                    label={action.label}
+                    onClick={action.onClick}
+                    icon={action.icon}
+                    iconPosition={action.iconPosition}
+                    variant={action.variant}
+                    hideLabelOnMobile={action.hideLabelOnMobile}
+                    className={action.className}
+                  />
+                );
+              }
+
+              if (!action.href) {
+                return null;
+              }
 
               return (
-                <Link
+                <PageHeaderLink
                   key={`${action.href}-${action.label}`}
                   href={action.href}
+                  label={action.label}
+                  icon={action.icon}
+                  iconPosition={action.iconPosition}
+                  variant={action.variant}
+                  hideLabelOnMobile={action.hideLabelOnMobile}
                   prefetch={action.prefetch}
-                  className={buttonVariants({
-                    variant: action.variant ?? "default",
-                    size: "default",
-                  })}
-                >
-                  {Icon && iconPosition === "start" ? (
-                    <Icon className="size-3.5" />
-                  ) : null}
-                  {action.label}
-                  {Icon && iconPosition === "end" ? (
-                    <Icon className="size-3.5" />
-                  ) : null}
-                </Link>
+                  className={action.className}
+                />
               );
             })}
             {trailing}

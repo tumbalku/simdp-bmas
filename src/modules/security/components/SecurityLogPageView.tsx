@@ -7,6 +7,7 @@ import { ShieldCheck } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
+import { type PaginationMeta } from "@/types/pagination";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,7 +27,7 @@ import {
   SECURITY_LOG_STATUS,
   SECURITY_LOG_STATUS_LABELS,
 } from "../constants";
-import { SecurityLogFilters } from "./SecurityLogFilters";
+import { SecurityLogFilterCard } from "./SecurityLogFilterCard";
 import { SecurityLogMetrics } from "./SecurityLogMetrics";
 
 type SecurityLogItem = {
@@ -41,38 +42,30 @@ type SecurityLogItem = {
   metadata: unknown;
 };
 
-type PaginationMeta = {
-  page: number;
-  pageSize: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-};
-
 type SecurityLogPageViewProps = {
   logs: SecurityLogItem[];
   pagination: PaginationMeta;
 };
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "Semua status" },
+  { value: "all", label: "Status" },
   ...Object.values(SECURITY_LOG_STATUS).map((value) => ({ value, label: SECURITY_LOG_STATUS_LABELS[value] })),
 ] as const;
 
 const ACTOR_OPTIONS = [
-  { value: "all", label: "Semua aktor" },
+  { value: "all", label: "Aktor" },
   ...Object.values(SECURITY_ACTOR_ROLE).map((value) => ({ value, label: SECURITY_ACTOR_ROLE_LABELS[value] })),
 ] as const;
 
 const EVENT_OPTIONS = [
-  { value: "all", label: "Semua event" },
+  { value: "all", label: "Event" },
   ...SECURITY_EVENT_TYPE_OPTIONS,
 ] as const;
 
 export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [actorRole, setActorRole] = useState(() => searchParams.get("actorRole") ?? "all");
   const [eventType, setEventType] = useState(() => searchParams.get("eventType") ?? "all");
   const [status, setStatus] = useState(() => searchParams.get("status") ?? "all");
@@ -89,6 +82,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
   const buildPageUrl = (
     page: number,
     pageSize = rowsPerPage,
+    nextSearch = search,
     nextActorRole = actorRole,
     nextEventType = eventType,
     nextStatus = status,
@@ -98,6 +92,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
     const params = new URLSearchParams();
     params.set("page", page.toString());
     params.set("pageSize", pageSize);
+    if (nextSearch) params.set("search", nextSearch);
     if (nextActorRole !== "all") params.set("actorRole", nextActorRole);
     if (nextEventType !== "all") params.set("eventType", nextEventType);
     if (nextStatus !== "all") params.set("status", nextStatus);
@@ -109,6 +104,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
   const applyFilters = ({
     nextPage = PAGINATION.defaultPage,
     nextRowsPerPage = rowsPerPage,
+    nextSearch = search,
     nextActorRole = actorRole,
     nextEventType = eventType,
     nextStatus = status,
@@ -117,19 +113,21 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
   }: {
     nextPage?: number;
     nextRowsPerPage?: string;
+    nextSearch?: string;
     nextActorRole?: string;
     nextEventType?: string;
     nextStatus?: string;
     nextDateFrom?: string;
     nextDateTo?: string;
   } = {}) => {
+    setSearch(nextSearch);
     setActorRole(nextActorRole);
     setEventType(nextEventType);
     setStatus(nextStatus);
     setDateFrom(nextDateFrom);
     setDateTo(nextDateTo);
     setRowsPerPage(nextRowsPerPage);
-    router.push(buildPageUrl(nextPage, nextRowsPerPage, nextActorRole, nextEventType, nextStatus, nextDateFrom, nextDateTo));
+    router.push(buildPageUrl(nextPage, nextRowsPerPage, nextSearch, nextActorRole, nextEventType, nextStatus, nextDateFrom, nextDateTo));
   };
 
   const handleFilter = () => applyFilters();
@@ -138,6 +136,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
     applyFilters({
       nextPage: PAGINATION.defaultPage,
       nextRowsPerPage: String(PAGINATION.defaultSecurityLogPageSize),
+      nextSearch: "",
       nextActorRole: "all",
       nextEventType: "all",
       nextStatus: "all",
@@ -252,20 +251,20 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
 
       <SecurityLogMetrics totalItems={pagination.totalItems} success={stats.success} failed={stats.failed} />
 
-      <SecurityLogFilters
+      <SecurityLogFilterCard
         actorRole={actorRole}
+        setActorRole={setActorRole}
         eventType={eventType}
+        setEventType={setEventType}
         status={status}
+        setStatus={setStatus}
         dateFrom={dateFrom}
+        setDateFrom={setDateFrom}
         dateTo={dateTo}
+        setDateTo={setDateTo}
         actorOptions={ACTOR_OPTIONS}
         eventOptions={EVENT_OPTIONS}
         statusOptions={STATUS_OPTIONS}
-        onActorRoleChange={setActorRole}
-        onEventTypeChange={setEventType}
-        onStatusChange={setStatus}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
         onApply={handleFilter}
         onReset={handleResetFilter}
       />

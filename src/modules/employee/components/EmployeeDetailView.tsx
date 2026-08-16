@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil, Download } from "lucide-react";
+import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil } from "lucide-react";
 import { InfoCard } from "@/components/cards/InfoCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { ROLE_LABELS, getRoleBadgeStyle, routeTo, type UserRole } from "@/constants";
 import { CareerHistoryDialog } from "./CareerHistoryDialog";
 import { EmployeeProfilePdfDownloadDialog } from "./EmployeeProfilePdfDownloadDialog";
+import { DownloadDocumentsPdfButton } from "./DownloadDocumentsPdfButton";
 
 type MasterDataOption = {
   id: string;
@@ -215,14 +216,10 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
                 <CardDescription>Dokumen milik pegawai ini yang tersimpan di sistem ({employee.documentCount} berkas).</CardDescription>
               </div>
               <CardAction>
-                <Link
-                  className={buttonVariants({ variant: "default", size: "sm" })}
-                  href={`/api/v1/employees/${employee.id}/documents-pdf`}
-                  prefetch={false}
-                >
-                  <Download className="size-4" />
-                  Download PDF
-                </Link>
+                <DownloadDocumentsPdfButton
+                  employeeId={employee.id}
+                  employeeName={employee.name}
+                />
               </CardAction>
             </CardHeader>
             <CardContent className="space-y-3">

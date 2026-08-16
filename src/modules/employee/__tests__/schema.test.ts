@@ -16,11 +16,24 @@ describe("Employee Module Schemas", () => {
         address: "Jalan Sudirman No. 1",
         birthPlace: "Jakarta",
         birthDate: "1990-01-01",
-        religion: "Islam",
-        maritalStatus: "Kawin",
+        religion: "ISLAM",
+        maritalStatus: "MARRIED",
       };
       const result = updateProfileSchema.safeParse(payload);
       expect(result.success).toBe(true);
+    });
+
+    it("should accept canonical or label profile enum values and normalize to canonical", () => {
+      const result = updateProfileSchema.safeParse({
+        religion: "Kristen (Protestan)",
+        maritalStatus: "Kawin",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.religion).toBe("PROTESTANT");
+        expect(result.data.maritalStatus).toBe("MARRIED");
+      }
     });
 
     it("should fail when phone format is invalid", () => {

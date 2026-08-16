@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { PaginationMeta } from "@/types/pagination";
 import { logActivity } from "@/modules/security/server";
 import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repository from "../repository";
@@ -21,7 +22,10 @@ export async function getEmployeeDirectory(filter: EmployeeDirectoryFilter = {})
 }
 
 export async function getEmployeeDirectoryWithPagination(
-  filter: EmployeeDirectoryFilter = {}
+  filter: EmployeeDirectoryFilter & {
+    sortBy?: string;
+    sortOrder?: "asc" | "desc";
+  } = {}
 ) {
   const page = filter.page || 1;
   const limit = filter.limit || 20;
@@ -30,18 +34,24 @@ export async function getEmployeeDirectoryWithPagination(
   const where = buildEmployeeDirectoryWhere(filter);
 
   const [employees, total] = await Promise.all([
-    repository.findEmployeesWithPagination(where, skip, limit),
+    repository.findEmployeesWithPagination(where, skip, limit, filter.sortBy, filter.sortOrder),
     repository.countEmployees(where),
   ]);
 
+  const totalPages = Math.ceil(total / limit);
+
+  const pagination: PaginationMeta = {
+    page,
+    pageSize: limit,
+    totalItems: total,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1,
+  };
+
   return {
     data: employees.map(mapEmployeeSummary),
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
+    pagination,
   };
 }
 

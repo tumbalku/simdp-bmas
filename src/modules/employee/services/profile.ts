@@ -5,7 +5,7 @@ import { getSystemSettingValue } from "@/modules/settings/server";
 import { AppError } from "@/lib/errors";
 import * as repository from "../repository";
 import { mapEmployeeDetail } from "../mappers";
-import { canonicalReligion } from "./shared";
+import { canonicalMaritalStatus, canonicalReligion } from "./shared";
 
 const PROFILE_IMAGE_MAX_UPLOAD_MB_KEY = "profile_image_max_upload_mb";
 const DEFAULT_PROFILE_IMAGE_MAX_UPLOAD_MB = "2";
@@ -128,7 +128,7 @@ export async function updateProfile(
       birthPlace: data.birthPlace,
       birthDate: data.birthDate === undefined ? undefined : data.birthDate ? new Date(data.birthDate) : null,
       religion: data.religion === undefined ? undefined : canonicalReligion(data.religion),
-      maritalStatus: data.maritalStatus,
+      maritalStatus: data.maritalStatus === undefined ? undefined : canonicalMaritalStatus(data.maritalStatus),
     }).filter(([, value]) => value !== undefined)
   );
 

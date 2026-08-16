@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { requireAuth } from "@/lib/auth";
@@ -32,29 +31,39 @@ export async function getEmployeeDirectoryAction(filter?: unknown) {
     await requireAuth("ADMIN");
     const parsed = employeeDirectorySchema.optional().safeParse(filter);
     if (!parsed.success) {
-      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
+      return {
+        ok: false as const,
+        error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." },
+      };
     }
 
     const data = await getEmployeeDirectory(parsed.data || {});
     return { ok: true as const, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getEmployeeDirectoryAction error:", error);
     return handleActionError(error);
   }
 }
 
-export async function getEmployeeDirectoryWithPaginationAction(filter?: unknown) {
+export async function getEmployeeDirectoryWithPaginationAction(
+  filter?: unknown,
+) {
   try {
     await requireAuth("ADMIN");
-    const parsed = employeeDirectoryWithPaginationSchema.optional().safeParse(filter);
+    const parsed = employeeDirectoryWithPaginationSchema
+      .optional()
+      .safeParse(filter);
 
     if (!parsed.success) {
-      return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." } };
+      return {
+        ok: false as const,
+        error: { code: "VALIDATION_ERROR", message: "Filter tidak valid." },
+      };
     }
 
     const data = await getEmployeeDirectoryWithPagination(parsed.data || {});
     return { ok: true as const, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getEmployeeDirectoryWithPaginationAction error:", error);
     return handleActionError(error);
   }
@@ -65,11 +74,14 @@ export async function getEmployeeDetailAction(id: string) {
     await requireAuth("ADMIN");
     const data = await getEmployeeDetail(id);
     if (!data) {
-      return { ok: false as const, error: { code: "NOT_FOUND", message: "Pegawai tidak ditemukan." } };
+      return {
+        ok: false as const,
+        error: { code: "NOT_FOUND", message: "Pegawai tidak ditemukan." },
+      };
     }
 
     return { ok: true as const, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getEmployeeDetailAction error:", error);
     return handleActionError(error);
   }
@@ -94,9 +106,11 @@ export async function getCurrentProfile() {
 
     // Return profile matching standard envelope
     return { ok: true as const, data: profile };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getCurrentProfile error:", error);
-    return handleActionError(error, { defaultMessage: "Terjadi kesalahan internal" });
+    return handleActionError(error, {
+      defaultMessage: "Terjadi kesalahan internal",
+    });
   }
 }
 
@@ -111,7 +125,10 @@ export async function updateProfileAction(data: unknown) {
         error: {
           code: "VALIDATION_ERROR",
           message: "Input tidak valid.",
-          details: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+          details: parsed.error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          })),
         },
       };
     }
@@ -119,7 +136,12 @@ export async function updateProfileAction(data: unknown) {
     // Resolve actor name
     const actorName = await getActorDisplayName(session.userId, "User");
 
-    const success = await updateProfile(session.userId, parsed.data, actorName, session.role);
+    const success = await updateProfile(
+      session.userId,
+      parsed.data,
+      actorName,
+      session.role,
+    );
 
     if (!success) {
       return {
@@ -132,9 +154,11 @@ export async function updateProfileAction(data: unknown) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("updateProfileAction error:", error);
-    return handleActionError(error, { defaultMessage: "Terjadi kesalahan internal" });
+    return handleActionError(error, {
+      defaultMessage: "Terjadi kesalahan internal",
+    });
   }
 }
 
@@ -154,16 +178,26 @@ export async function uploadProfileAvatarAction(formData: FormData) {
     }
 
     const actorName = await getActorDisplayName(session.userId, "User");
-    const result = await uploadProfileAvatar({ file }, { userId: session.userId, role: session.role }, actorName);
+    const result = await uploadProfileAvatar(
+      { file },
+      { userId: session.userId, role: session.role },
+      actorName,
+    );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("uploadProfileAvatarAction error:", error);
-    return handleActionError(error, { defaultMessage: "Terjadi kesalahan internal" });
+    return handleActionError(error, {
+      defaultMessage: "Terjadi kesalahan internal",
+    });
   }
 }
 
-export async function crudEmployeeAction(operation: string, id?: string, data?: unknown) {
+export async function crudEmployeeAction(
+  operation: string,
+  id?: string,
+  data?: unknown,
+) {
   try {
     const session = await requireAuth("ADMIN");
 
@@ -174,7 +208,10 @@ export async function crudEmployeeAction(operation: string, id?: string, data?: 
         error: {
           code: "VALIDATION_ERROR",
           message: "Input tidak valid.",
-          details: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+          details: parsed.error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          })),
         },
       };
     }
@@ -187,15 +224,18 @@ export async function crudEmployeeAction(operation: string, id?: string, data?: 
       parsed.data.data,
       session.userId,
       actorName,
-      session.role
+      session.role,
     );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (!(error instanceof AppError)) {
       console.error("crudEmployeeAction error:", error);
     }
-    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+    return handleActionError(error, {
+      unauthenticatedMessage: "UNAUTHENTICATED",
+      forbiddenMessage: "FORBIDDEN",
+    });
   }
 }
 
@@ -210,7 +250,10 @@ export async function addCareerHistoryAction(data: unknown) {
         error: {
           code: "VALIDATION_ERROR",
           message: "Input tidak valid.",
-          details: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+          details: parsed.error.issues.map((i) => ({
+            path: i.path.join("."),
+            message: i.message,
+          })),
         },
       };
     }
@@ -233,9 +276,12 @@ export async function addCareerHistoryAction(data: unknown) {
     const result = await addCareerHistory(cleanData);
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("addCareerHistoryAction error:", error);
-    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+    return handleActionError(error, {
+      unauthenticatedMessage: "UNAUTHENTICATED",
+      forbiddenMessage: "FORBIDDEN",
+    });
   }
 }
 
@@ -268,16 +314,24 @@ export async function importEmployeesAction(formData: FormData) {
 
     const actorName = await getActorDisplayName(session.userId, "Admin");
 
-    const result = await importFromCsv(csvText, session.userId, actorName, session.role);
+    const result = await importFromCsv(
+      csvText,
+      session.userId,
+      actorName,
+      session.role,
+    );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("importEmployeesAction error:", error);
-    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+    return handleActionError(error, {
+      unauthenticatedMessage: "UNAUTHENTICATED",
+      forbiddenMessage: "FORBIDDEN",
+    });
   }
 }
 
-export async function bulkCreateEmployeesAction(employees: any[]) {
+export async function bulkCreateEmployeesAction(employees: unknown) {
   try {
     const session = await requireAuth("ADMIN");
     const actorName = await getActorDisplayName(session.userId, "Admin");
@@ -288,12 +342,17 @@ export async function bulkCreateEmployeesAction(employees: any[]) {
         ok: false as const,
         error: {
           code: "VALIDATION_ERROR",
-          message: "Data input tidak valid: " + parsed.error.issues.map(i => i.message).join(", "),
+          message:
+            "Data input tidak valid: " +
+            parsed.error.issues.map((i) => i.message).join(", "),
         },
       };
     }
 
     const validatedEmployees = parsed.data;
+    console.log(
+      `[Bulk Import] Starting best-effort import of ${validatedEmployees.length} employee records.`,
+    );
     let importedCount = 0;
     let failedCount = 0;
     const errors: Array<{ row: number; error: string }> = [];
@@ -331,26 +390,34 @@ export async function bulkCreateEmployeesAction(employees: any[]) {
           },
           session.userId,
           actorName,
-          session.role
+          session.role,
         );
 
         importedCount++;
-      } catch (err: any) {
+      } catch (err: unknown) {
         failedCount++;
-        errors.push({ row: rowNum, error: err.message });
+        const errMsg = err instanceof Error ? err.message : "Gagal menyimpan data pegawai.";
+        errors.push({ row: rowNum, error: errMsg });
+        console.warn(`[Bulk Import] Failed to import row ${rowNum}: ${errMsg}`);
       }
     }
 
+    console.log(
+      `[Bulk Import] Completed best-effort import. Success: ${importedCount}, Failed: ${failedCount}.`,
+    );
     return { ok: true as const, data: { importedCount, failedCount, errors } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("bulkCreateEmployeesAction error:", error);
-    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+    return handleActionError(error, {
+      unauthenticatedMessage: "UNAUTHENTICATED",
+      forbiddenMessage: "FORBIDDEN",
+    });
   }
 }
 
 export async function getMasterDataListAction(
   entityType: string,
-  query?: unknown
+  query?: unknown,
 ) {
   try {
     const session = await requireAuth();
@@ -392,12 +459,15 @@ export async function getMasterDataListAction(
 
     const result = await getMasterDataList(
       entityType as Parameters<typeof getMasterDataList>[0],
-      parsed.data || {}
+      parsed.data || {},
     );
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getMasterDataListAction error:", error);
-    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+    return handleActionError(error, {
+      unauthenticatedMessage: "UNAUTHENTICATED",
+      forbiddenMessage: "FORBIDDEN",
+    });
   }
 }
 
@@ -405,13 +475,17 @@ export async function crudMasterDataAction(
   entityType: string,
   operation: string,
   id?: string,
-  data?: any
+  data?: unknown,
 ) {
   try {
     const session = await requireAuth();
 
     // Check minimum roles
-    if (operation === "CREATE" || operation === "UPDATE" || operation === "DELETE") {
+    if (
+      operation === "CREATE" ||
+      operation === "UPDATE" ||
+      operation === "DELETE"
+    ) {
       if (session.role !== "ADMIN") {
         return {
           ok: false as const,
@@ -456,18 +530,21 @@ export async function crudMasterDataAction(
     const actorName = await getActorDisplayName(session.userId, "User");
 
     const result = await handleMasterDataCrud(
-      entityType as any,
-      operation as any,
+      entityType as Parameters<typeof handleMasterDataCrud>[0],
+      operation as Parameters<typeof handleMasterDataCrud>[1],
       id,
       data,
       session.userId,
       actorName,
-      session.role
+      session.role,
     );
 
     return { ok: true as const, data: result };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("crudMasterDataAction error:", error);
-    return handleActionError(error, { unauthenticatedMessage: "UNAUTHENTICATED", forbiddenMessage: "FORBIDDEN" });
+    return handleActionError(error, {
+      unauthenticatedMessage: "UNAUTHENTICATED",
+      forbiddenMessage: "FORBIDDEN",
+    });
   }
 }

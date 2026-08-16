@@ -31,10 +31,13 @@ function formatDate(value: string | null | undefined) {
   return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(date);
 }
 
-function formatBirth(row: EmployeeDirectoryPdfRow) {
+function formatBirthHtml(row: EmployeeDirectoryPdfRow) {
   const place = row.birthPlace || "-";
   const date = formatDate(row.birthDate);
-  return `${place}, ${date}`;
+  if (place === "-" && date === "-") return "-";
+  if (place === "-") return escapeHtml(date);
+  if (date === "-") return `${escapeHtml(place)},`;
+  return `${escapeHtml(place)},<br />${escapeHtml(date)}`;
 }
 
 function formatStatus(row: EmployeeDirectoryPdfRow) {
@@ -67,6 +70,15 @@ function getLetterheadLogoDataUrl() {
   return `data:image/png;base64,${buffer.toString("base64")}`;
 }
 
+function formatTmtHtml(tmt: string | null) {
+  if (!tmt) return "-";
+  if (tmt.includes(" s.d. ")) {
+    const parts = tmt.split(" s.d. ");
+    return `${escapeHtml(parts[0])}<br />s.d<br />${escapeHtml(parts[1])}`;
+  }
+  return escapeHtml(tmt);
+}
+
 function renderRows(rows: EmployeeDirectoryPdfRow[]) {
   if (rows.length === 0) {
     return `
@@ -84,13 +96,13 @@ function renderRows(rows: EmployeeDirectoryPdfRow[]) {
           <td class="col-name">${escapeHtml(row.name)}</td>
           <td class="col-nip">${escapeHtml(row.employeeId)}</td>
           <td class="col-nik">${escapeHtml(row.nik)}</td>
-          <td>${escapeHtml(row.rank)}</td>
-          <td>${escapeHtml(row.position)}</td>
-          <td>${escapeHtml(row.workplace)}</td>
-          <td>${escapeHtml(formatBirth(row))}</td>
+          <td class="col-rank">${escapeHtml(row.rank)}</td>
+          <td class="col-position">${escapeHtml(row.position)}</td>
+          <td class="col-workplace">${escapeHtml(row.workplace)}</td>
+          <td class="col-birth">${formatBirthHtml(row)}</td>
           <td class="col-education">${escapeHtml(row.lastEducation)}</td>
-          <td>${escapeHtml(formatStatus(row))}</td>
-          <td class="col-tmt">${escapeHtml(row.tmt)}</td>
+          <td class="col-status">${escapeHtml(formatStatus(row))}</td>
+          <td class="col-tmt">${formatTmtHtml(row.tmt)}</td>
           <td class="col-gender">${escapeHtml(row.gender)}</td>
         </tr>
       `,
@@ -129,8 +141,8 @@ export function renderEmployeeDirectoryPdfHtml(
       color: var(--ink);
       background: #ffffff;
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 8.4px;
-      line-height: 1.14;
+      font-size: 10px;
+      line-height: 1.25;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -194,7 +206,8 @@ export function renderEmployeeDirectoryPdfHtml(
       text-transform: uppercase;
     }
     table {
-      width: 100%;
+      width: 99.8%;
+      margin: 0 auto;
       border-collapse: collapse;
       table-layout: fixed;
       border: 1.6px solid var(--line);
@@ -202,50 +215,102 @@ export function renderEmployeeDirectoryPdfHtml(
     thead { display: table-header-group; }
     tr { break-inside: avoid; page-break-inside: avoid; }
     th, td {
-      border: .75px solid var(--soft-line);
-      padding: 3px 3px;
+      border: 1px solid var(--soft-line);
+      padding: 5px 4px;
       vertical-align: middle;
       overflow-wrap: anywhere;
     }
     th {
-      height: 29px;
+      height: auto;
+      min-height: 28px;
       text-align: center;
       font-family: "Times New Roman", Times, serif;
-      font-size: 7.5px;
+      font-size: 9px;
       font-weight: 900;
       text-transform: uppercase;
+      vertical-align: middle;
     }
     td {
-      min-height: 18px;
-      font-size: 7px;
+      min-height: 20px;
+      font-size: 8.5px;
       font-weight: 500;
+      text-align: center;
     }
     tbody tr:nth-child(even) td { background: #f8fafc; }
-    .col-no { width: 25px; text-align: center; }
-    .col-name { font-weight: 700; }
-    .col-nip,
-    .col-nik {
-      font-size: 6.2px;
-      line-height: 1.08;
-    }
-    .col-gender {
-      font-size: 6.4px;
-      line-height: 1.08;
+    .col-no { 
+      width: 25px; 
       text-align: center;
+    }
+    .col-name { 
+      font-weight: 700;
+      text-align: left;
+    }
+    .col-nip {
+      font-size: 8.5px;
+      line-height: 1.08;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .col-nik {
+      font-size: 8.5px;
+      line-height: 1.08;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .col-rank {
+      font-size: 8.5px;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-position {
+      font-size: 8.5px;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-workplace {
+      font-size: 8.5px;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-birth {
+      font-size: 8.5px;
+      line-height: 1.15;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     .col-education {
-      white-space: nowrap;
-      overflow-wrap: normal;
-      word-break: normal;
-      font-size: 6.4px;
+      font-size: 8.5px;
       text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+    .col-status {
+      font-size: 8.5px;
+      text-align: center;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     .col-tmt {
-      white-space: nowrap;
-      overflow-wrap: normal;
-      word-break: normal;
-      font-size: 5.8px;
+      font-size: 8.5px;
+      line-height: 1.1;
       text-align: center;
+      white-space: nowrap;
+    }
+    .col-gender {
+      font-size: 8.5px;
+      line-height: 1.08;
+      text-align: center;
+      white-space: nowrap;
     }
     .compact-header {
       line-height: 1.08;
@@ -343,17 +408,17 @@ export function renderEmployeeDirectoryPdfHtml(
     <table>
       <colgroup>
         <col style="width: 2.2%" />
-        <col style="width: 13.8%" />
-        <col style="width: 8.3%" />
-        <col style="width: 7.2%" />
-        <col style="width: 9.8%" />
-        <col style="width: 10.5%" />
-        <col style="width: 9%" />
+        <col style="width: 12.8%" />
+        <col style="width: 9.5%" />
         <col style="width: 8.5%" />
-        <col style="width: 8%" />
+        <col style="width: 9.5%" />
+        <col style="width: 10.5%" />
+        <col style="width: 9.5%" />
+        <col style="width: 7%" />
         <col style="width: 9%" />
-        <col style="width: 8.2%" />
-        <col style="width: 5.5%" />
+        <col style="width: 9%" />
+        <col style="width: 6.2%" />
+        <col style="width: 6.3%" />
       </colgroup>
       <thead>
         <tr>

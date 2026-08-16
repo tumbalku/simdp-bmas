@@ -43,6 +43,14 @@
 
 ## Done
 
+- [x] [#284](https://github.com/tumbalku/simdp-bmas/issues/284) perf(security): prune high-frequency routine logs across service and UI (selesai: 2026-08-16)
+- [x] [#283](https://github.com/tumbalku/simdp-bmas/issues/283) fix(employee/settings): resolve CSV import label normalization, security log default seed, and reset pagination limit (selesai: 2026-08-16)
+- [x] [#282](https:...[truncated]
+- [x] [#281](https://github.com/tumbalku/simdp-bmas/issues/281) refactor(crypto): remove insecure Math.random fallback in crypto utilities (selesai: 2026-08-16)
+- [x] [#280](https://github.com/tumbalku/simdp-bmas/issues/280) fix(security): eliminate timing oracle in cron secret length comparison (selesai: 2026-08-16)
+- [x] [#279](https://github.com/tumbalku/simdp-bmas/issues/279) fix(employee): wrap master data categories delete action in startTransition for pending UI feedback (selesai: 2026-08-16)
+- [x] [#278](https://github.com/tumbalku/simdp-bmas/issues/278) perf(security): prune high-frequency audit logs and add in-memory TTL cache to logActivity (selesai: 2026-08-16)
+- [x] [#277](https://github.com/tumbalku/simdp-bmas/issues/277) refactor(employee): enforce strict canonical enum key referencing in service layer (selesai: 2026-08-16)
 - [x] [#237](https://github.com/tumbalku/simdp-bmas/issues/237) Add Backup & Disaster Recovery plan for DB and document storage (selesai: 2026-07-27)
 - [x] [#61](https://github.com/tumbalku/simdp-bmas/issues/61) SIMDP-ROADMAP-002: Fase 2 — Verification & Notification (selesai: 2026-07-14)
 - [x] [#50](https://github.com/tumbalku/simdp-bmas/issues/50) SIMDP-UI-006: Fase 2 implement dashboard feature UI pages (selesai: 2026-07-10)

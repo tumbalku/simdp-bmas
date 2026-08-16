@@ -3,7 +3,10 @@ import path from "path";
 
 import type { IssuedDocumentVerification } from "@/modules/document-verification/server";
 
-import type { MasterDataDocumentsPdfData, MasterDataDocumentsPdfRow } from "./master-data-pdf";
+import type {
+  MasterDataDocumentsPdfData,
+  MasterDataDocumentsPdfRow,
+} from "./master-data-pdf";
 
 type RenderMasterDataDocumentsPdfHtmlOptions = {
   verification: IssuedDocumentVerification;
@@ -45,37 +48,21 @@ function formatPrintedAt(value: string) {
 }
 
 function getLetterheadLogoDataUrl() {
-  const logoPath = path.join(process.cwd(), "public", "images", "logo-anoa-sultra.png");
+  const logoPath = path.join(
+    process.cwd(),
+    "public",
+    "images",
+    "logo-anoa-sultra.png",
+  );
   const buffer = fs.readFileSync(logoPath);
   return `data:image/png;base64,${buffer.toString("base64")}`;
-}
-
-function renderFilterSummary(data: MasterDataDocumentsPdfData) {
-  const filters = [
-    ["Status Data", data.archiveView === "archived" ? "Arsip" : "Data berjalan"],
-    ["Jenis Dokumen", data.filters.documentTypeName],
-    ["Kategori Arsip", data.filters.archiveCategoryLabel],
-    ["Pencarian", data.filters.search],
-    ["Total Data", `${data.rowCount} dokumen`],
-  ];
-
-  return filters
-    .map(
-      ([label, value]) => `
-        <div class="filter-row">
-          <span class="filter-label">${escapeHtml(label)}</span>
-          <span class="filter-value">${escapeHtml(value)}</span>
-        </div>
-      `,
-    )
-    .join("");
 }
 
 function renderRows(rows: MasterDataDocumentsPdfRow[]) {
   if (rows.length === 0) {
     return `
       <tr>
-        <td class="empty-cell" colspan="13">Tidak ada dokumen yang sesuai dengan filter.</td>
+        <td class="empty-cell" colspan="10">Tidak ada dokumen yang sesuai dengan filter.</td>
       </tr>
     `;
   }
@@ -89,12 +76,9 @@ function renderRows(rows: MasterDataDocumentsPdfRow[]) {
           <td class="col-name">${escapeHtml(row.ownerName)}</td>
           <td class="col-identity">${escapeHtml(row.ownerEmployeeId)}</td>
           <td class="col-identity">${escapeHtml(row.ownerNik)}</td>
-          <td class="col-title">${escapeHtml(row.title)}</td>
-          <td class="col-type">${escapeHtml(row.documentTypeName)}</td>
-          <td class="col-category">${escapeHtml(row.archiveCategoryLabel)}</td>
+          <td class="col-name-doc">${escapeHtml(row.documentTypeName)}</td>
           <td class="col-number">${escapeHtml(row.documentNumber)}</td>
           <td class="col-employment">${escapeHtml(row.employmentType)}</td>
-          <td class="col-date">${escapeHtml(formatDate(row.uploadedAt))}</td>
           <td class="col-date">${escapeHtml(formatDate(row.expiryDate))}</td>
           <td class="col-status">${escapeHtml(row.statusLabel)}</td>
         </tr>
@@ -129,8 +113,8 @@ export function renderMasterDataDocumentsPdfHtml(
       color: var(--ink);
       background: #ffffff;
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 8px;
-      line-height: 1.14;
+      font-size: 10px;
+      line-height: 1.25;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
@@ -186,40 +170,16 @@ export function renderMasterDataDocumentsPdfHtml(
       border-bottom: 1px solid var(--line);
     }
     .title {
-      margin: 0 0 8px;
+      margin: 0 0 12px;
       text-align: center;
       font-size: 16px;
       font-weight: 900;
       letter-spacing: .01em;
       text-transform: uppercase;
     }
-    .filter-summary {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 5px;
-      margin-bottom: 8px;
-    }
-    .filter-row {
-      min-width: 0;
-      border: .75px solid #cbd5e1;
-      padding: 4px 5px;
-    }
-    .filter-label {
-      display: block;
-      color: var(--muted);
-      font-size: 6.3px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-    .filter-value {
-      display: block;
-      margin-top: 2px;
-      font-size: 7.2px;
-      font-weight: 800;
-      overflow-wrap: anywhere;
-    }
     table {
-      width: 100%;
+      width: 99.8%;
+      margin: 0 auto;
       border-collapse: collapse;
       table-layout: fixed;
       border: 1.6px solid var(--line);
@@ -228,45 +188,68 @@ export function renderMasterDataDocumentsPdfHtml(
     tr { break-inside: avoid; page-break-inside: avoid; }
     th, td {
       border: .75px solid var(--soft-line);
-      padding: 3px;
+      padding: 5px 4px;
       vertical-align: middle;
       overflow-wrap: anywhere;
     }
     th {
-      height: 28px;
+      height: auto;
+      min-height: 28px;
       text-align: center;
       font-family: "Times New Roman", Times, serif;
-      font-size: 7px;
+      font-size: 9px;
       font-weight: 900;
       text-transform: uppercase;
-      white-space: nowrap;
+      white-space: normal;
     }
     td {
-      min-height: 18px;
-      font-size: 6.5px;
+      min-height: 20px;
+      font-size: 8.5px;
       font-weight: 500;
     }
     tbody tr:nth-child(even) td { background: #f8fafc; }
     .col-no { text-align: center; }
-    .col-code,
-    .col-name,
-    .col-identity,
-    .col-title,
-    .col-type,
-    .col-category,
-    .col-employment,
-    .col-date,
-    .col-status {
+    .col-code {
       text-align: center;
-      font-size: 5.6px;
-      line-height: 1.08;
+      font-size: 8px;
       white-space: nowrap;
-      overflow-wrap: normal;
-      word-break: normal;
+    }
+    .col-name {
+      text-align: left;
+      font-size: 8px;
+      font-weight: 600;
+      white-space: normal;
+    }
+    .col-identity {
+      text-align: center;
+      font-size: 8px;
+      white-space: nowrap;
+    }
+    .col-name-doc {
+      text-align: left;
+      font-size: 8px;
+      white-space: normal;
     }
     .col-number {
-      font-size: 6.6px;
+      text-align: left;
+      font-size: 8.5px;
       line-height: 1.12;
+      white-space: normal;
+    }
+    .col-employment {
+      text-align: center;
+      font-size: 8px;
+      white-space: normal;
+    }
+    .col-date {
+      text-align: center;
+      font-size: 8px;
+      white-space: nowrap;
+    }
+    .col-status {
+      text-align: center;
+      font-size: 8px;
+      white-space: nowrap;
     }
     .empty-cell {
       height: 54px;
@@ -343,23 +326,18 @@ export function renderMasterDataDocumentsPdfHtml(
 
     <h1 class="title">${escapeHtml(data.title)}</h1>
 
-    <section class="filter-summary">${renderFilterSummary(data)}</section>
-
     <table>
       <colgroup>
-        <col style="width: 2.5%" />
-        <col style="width: 5%" />
-        <col style="width: 12.5%" />
-        <col style="width: 7.5%" />
-        <col style="width: 7.5%" />
-        <col style="width: 11%" />
-        <col style="width: 13%" />
-        <col style="width: 7%" />
-        <col style="width: 8%" />
-        <col style="width: 11.5%" />
-        <col style="width: 5%" />
-        <col style="width: 6%" />
         <col style="width: 3%" />
+        <col style="width: 8%" />
+        <col style="width: 22%" />
+        <col style="width: 9%" />
+        <col style="width: 8%" />
+        <col style="width: 14%" />
+        <col style="width: 10%" />
+        <col style="width: 12%" />
+        <col style="width: 9%" />
+        <col style="width: 5%" />
       </colgroup>
       <thead>
         <tr>
@@ -368,13 +346,10 @@ export function renderMasterDataDocumentsPdfHtml(
           <th>Nama</th>
           <th>NIP</th>
           <th>NIK</th>
-          <th>Judul</th>
-          <th>Jenis Dokumen</th>
-          <th>Kategori</th>
-          <th>Nomor</th>
-          <th>Status/Jenis Kepegawaian</th>
-          <th>Diunggah</th>
-          <th>Kadaluarsa</th>
+          <th>Nama Dokumen</th>
+          <th>Nomor Dokumen</th>
+          <th>Status/Jenis<br />Kepegawaian</th>
+          <th>Masa Berakhir<br />Dokumen</th>
           <th>Status</th>
         </tr>
       </thead>

@@ -29,8 +29,6 @@ import { updateProfileAction } from "@/modules/employee";
 import {
   MARITAL_STATUS_OPTIONS,
   RELIGION_OPTIONS,
-  mapMaritalStatusLegacyToCanonical,
-  mapReligionLegacyToCanonical,
 } from "@/modules/employee";
 
 type EditableProfileData = {
@@ -55,11 +53,7 @@ export function ProfileEditDialog({ initialData }: ProfileEditDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState({
-    ...initialData,
-    religion: mapReligionLegacyToCanonical(initialData.religion) ?? "",
-    maritalStatus: mapMaritalStatusLegacyToCanonical(initialData.maritalStatus) ?? "",
-  });
+  const [form, setForm] = useState(initialData);
 
   const updateField = (field: keyof EditableProfileData, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));

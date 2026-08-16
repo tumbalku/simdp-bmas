@@ -89,7 +89,7 @@ function renderDocumentRows(data: EmployeeProfilePdfData) {
   if (documents.length === 0) {
     return `
       <tr>
-        <td class="empty-cell" colspan="9">Belum ada dokumen pegawai yang tersimpan di sistem.</td>
+        <td class="empty-cell" colspan="7">Belum ada dokumen pegawai yang tersimpan di sistem.</td>
       </tr>
     `;
   }
@@ -100,9 +100,7 @@ function renderDocumentRows(data: EmployeeProfilePdfData) {
         <tr>
           <td class="col-no">${index + 1}</td>
           <td class="col-code">${escapeHtml(document.documentTypeCode)}</td>
-          <td class="col-title">${escapeHtml(document.title)}</td>
           <td class="col-type">${escapeHtml(document.documentTypeName)}</td>
-          <td class="col-category">${escapeHtml(document.archiveCategoryLabel)}</td>
           <td class="col-number">${escapeHtml(document.documentNumber)}</td>
           <td class="col-date">${escapeHtml(formatDate(document.uploadedAt))}</td>
           <td class="col-date">${escapeHtml(formatDate(document.expiryDate))}</td>
@@ -228,7 +226,8 @@ export function renderEmployeeDocumentsPdfHtml(
       overflow-wrap: anywhere;
     }
     table {
-      width: 100%;
+      width: 99.8%;
+      margin: 0 auto;
       border-collapse: collapse;
       table-layout: fixed;
       border: 1.6px solid var(--line);
@@ -242,37 +241,36 @@ export function renderEmployeeDocumentsPdfHtml(
       overflow-wrap: anywhere;
     }
     th {
-      height: 28px;
+      height: 30px;
       text-align: center;
-      font-family: "Times New Roman", Times, serif;
-      font-size: 6.7px;
-      font-weight: 900;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 8.5px;
+      font-weight: 800;
       text-transform: uppercase;
       white-space: nowrap;
     }
     td {
-      min-height: 20px;
-      font-size: 7px;
+      min-height: 22px;
+      font-size: 8.5px;
       font-weight: 500;
     }
     tbody tr:nth-child(even) td { background: #f8fafc; }
-    .col-no { text-align: center; }
+    .col-no { text-align: center; font-size: 8.5px; }
     .col-code,
-    .col-title,
     .col-type,
-    .col-category,
     .col-date,
     .col-status {
       text-align: center;
-      font-size: 5.8px;
-      line-height: 1.04;
+      font-size: 8.5px;
+      line-height: 1.2;
       white-space: nowrap;
       overflow-wrap: normal;
       word-break: normal;
     }
     .col-number {
-      font-size: 6.6px;
-      line-height: 1.16;
+      font-size: 8.5px;
+      line-height: 1.2;
+      text-align: center;
     }
     .empty-cell {
       height: 56px;
@@ -354,25 +352,21 @@ export function renderEmployeeDocumentsPdfHtml(
     <table>
       <colgroup>
         <col style="width: 4%" />
-        <col style="width: 8%" />
-        <col style="width: 16%" />
-        <col style="width: 17%" />
-        <col style="width: 10%" />
-        <col style="width: 18%" />
-        <col style="width: 8%" />
-        <col style="width: 10%" />
         <col style="width: 9%" />
+        <col style="width: 22%" />
+        <col style="width: 25%" />
+        <col style="width: 10%" />
+        <col style="width: 19%" />
+        <col style="width: 11%" />
       </colgroup>
       <thead>
         <tr>
           <th>No</th>
           <th>Kode</th>
-          <th>Judul</th>
-          <th>Jenis Dokumen</th>
-          <th>Kategori</th>
-          <th>Nomor</th>
+          <th>Nama Dokumen</th>
+          <th>Nomor Dokumen</th>
           <th>Diunggah</th>
-          <th>Kadaluarsa</th>
+          <th>Masa Berakhir</th>
           <th>Status</th>
         </tr>
       </thead>

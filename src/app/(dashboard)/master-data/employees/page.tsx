@@ -24,6 +24,8 @@ type PageProps = {
     retirementAgeTo?: string;
     status?: string;
     archiveView?: string;
+    sortBy?: string;
+    sortOrder?: string;
   }>;
 };
 
@@ -74,6 +76,8 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
         retirementAgeFrom: parseNonNegativeInt(params.retirementAgeFrom),
         retirementAgeTo: parseNonNegativeInt(params.retirementAgeTo),
         status: params.status,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder as "asc" | "desc" | undefined,
       }),
       getMasterDataList("EmploymentStatus", { limit: PAGINATION.masterDataEntityLimit }),
       getMasterDataList("EmployeeGroup", { limit: PAGINATION.masterDataEntityLimit }),
@@ -98,6 +102,8 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
         workplaces: workplaces.data,
       }}
       directorOptions={directorOptions}
+      sortBy={params.sortBy}
+      sortOrder={params.sortOrder as "asc" | "desc" | undefined}
     />
   );
 }

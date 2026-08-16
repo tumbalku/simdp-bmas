@@ -11,11 +11,12 @@ import {
 
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
-import { DocumentSearchFilter } from "@/components/tables/DocumentSearchFilter";
+import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
-import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
+import { ViewModeToggle, type ViewMode } from "@/components/tables/ViewModeToggle";
+import { type PaginationMeta } from "@/types/pagination";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -63,15 +64,6 @@ type QueueItem = {
   uploadedAt: string;
 };
 
-type PaginationInfo = {
-  page: number;
-  pageSize: number;
-  totalItems: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
-};
-
 type DocumentTypeOption = {
   id: string;
   code: string;
@@ -81,11 +73,9 @@ type DocumentTypeOption = {
 type VerificationQueueViewProps = {
   initialData: QueueItem[];
   /** The nested pagination object from the server action meta */
-  initialPagination: PaginationInfo;
+  initialPagination: PaginationMeta;
   documentTypes: DocumentTypeOption[];
 };
-
-type ViewMode = "grid" | "list";
 
 /* -------------------------------------------------------------------------- */
 /*  Helper                                                                    */
@@ -106,7 +96,7 @@ export function VerificationQueueView({
 
   /* data */
   const [items, setItems] = useState<QueueItem[]>(initialData);
-  const [pagination, setPagination] = useState<PaginationInfo>(
+  const [pagination, setPagination] = useState<PaginationMeta>(
     initialPagination
   );
 
@@ -383,34 +373,17 @@ export function VerificationQueueView({
         description="Tinjau berkas pegawai yang masih berstatus menunggu pemeriksaan."
       />
 
-      <DocumentSearchFilter
+      <DocumentFilterCard
         description="Cari berdasarkan nama pegawai atau jenis dokumen."
-        searchValue={search}
+        search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Cari nama pegawai..."
-        primaryFilter={{
-          value: documentTypeId || "all",
-          onValueChange: handleDocumentTypeChange,
-          placeholder: "Semua jenis dokumen",
-          ariaLabel: "Jenis dokumen",
-          options: [
-            { value: "all", label: "Semua jenis dokumen" },
-            ...documentTypes.map((documentType) => ({
-              value: documentType.id,
-              label: documentType.name,
-            })),
-          ],
-        }}
-        secondaryFilter={{
-          value: archiveCategory || "all",
-          onValueChange: handleArchiveCategoryChange,
-          placeholder: "Semua kategori arsip",
-          ariaLabel: "Kategori arsip",
-          options: [
-            { value: "all", label: "Semua kategori arsip" },
-            ...ARCHIVE_CATEGORY_OPTIONS,
-          ],
-        }}
+        documentTypeId={documentTypeId}
+        onDocumentTypeChange={handleDocumentTypeChange}
+        documentTypes={documentTypes}
+        categoryFilter={archiveCategory}
+        onCategoryChange={handleArchiveCategoryChange}
+        archiveCategoryOptions={ARCHIVE_CATEGORY_OPTIONS}
         onApply={handleApplyFilters}
         onReset={handleResetFilters}
       />
@@ -477,7 +450,7 @@ export function VerificationQueueView({
         <>
           {viewMode === "list" ? (
             <DataTableCard
-              title="Daftar Tunggu Pemeriksaan"
+              title="Daftar Tunggu"
               icon={<FileText className="size-5" />}
               description="Buka tinjauan berkas untuk membaca dokumen dan mengambil keputusan verifikasi."
               rowsPerPageControl={{

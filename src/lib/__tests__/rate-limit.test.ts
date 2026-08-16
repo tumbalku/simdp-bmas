@@ -7,10 +7,6 @@ import {
   enforceApiRateLimit,
   getClientIp,
 } from "@/lib/rate-limit";
-import {
-  SECURITY_EVENT_TYPE,
-  SECURITY_LOG_STATUS,
-} from "@/modules/security/server";
 import { mockPrisma } from "../../../tests/setup";
 
 let uploadBucketCount = 0;
@@ -121,22 +117,6 @@ describe("rate-limit helper", () => {
     });
 
     expect(response?.status).toBe(429);
-    expect(mockPrisma.securityLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          actorId: "user-1",
-          actorRole: "ADMIN",
-          eventType: SECURITY_EVENT_TYPE.API_RATE_LIMIT_CHECK,
-          ipAddress: "203.0.113.12",
-          status: SECURITY_LOG_STATUS.FAILED,
-          metadata: expect.objectContaining({
-            category: API_RATE_LIMIT_CATEGORY.FILE_UPLOAD,
-            reason: "RATE_LIMITED",
-            scope: "global",
-          }),
-        }),
-      })
-    );
 
     const body = await response!.json();
     expect(body.ok).toBe(false);

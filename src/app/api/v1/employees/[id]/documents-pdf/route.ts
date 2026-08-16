@@ -15,28 +15,41 @@ import {
   attachDocumentVerificationFileHash,
   issueEmployeeDocumentsVerification,
 } from "@/modules/document-verification/server";
-import { logActivity, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
+import {
+  logActivity,
+  SECURITY_EVENT_TYPE,
+  SECURITY_LOG_STATUS,
+} from "@/modules/security/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function sanitizeFilenameSegment(value: string) {
-  return value
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "pegawai";
+  return (
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "pegawai"
+  );
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     const session = await requireAuth();
-    const rateLimitResponse = await enforceApiRateLimit(request, API_RATE_LIMIT_CATEGORY.EXPORT, {
-      actorId: session.userId,
-      actorRole: session.role,
-      scope: "employee-documents-pdf",
-    });
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.EXPORT,
+      {
+        actorId: session.userId,
+        actorRole: session.role,
+        scope: "employee-documents-pdf",
+      },
+    );
     if (rateLimitResponse) return rateLimitResponse;
 
     const { id } = await params;
@@ -58,7 +71,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!data) {
-      return errorResponse("NOT_FOUND", "Pegawai tidak ditemukan.", undefined, 404);
+      return errorResponse(
+        "NOT_FOUND",
+        "Pegawai tidak ditemukan.",
+        undefined,
+        404,
+      );
     }
 
     const verification = await issueEmployeeDocumentsVerification({
@@ -97,7 +115,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       headers: {
         "Content-Type": "application/pdf",
         "Content-Length": String(pdf.byteLength),
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       },
@@ -116,6 +134,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return errorResponse(error.code, message, error.details, error.status);
     }
 
-    return errorResponse("INTERNAL_ERROR", "Terjadi kesalahan internal saat membuat PDF dokumen pegawai.", undefined, 500);
+    return errorResponse(
+      "INTERNAL_ERROR",
+      "Terjadi kesalahan internal saat membuat PDF dokumen pegawai.",
+      undefined,
+      500,
+    );
   }
 }

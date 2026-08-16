@@ -5,7 +5,7 @@ import { LayoutGrid, Table2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-type ViewMode = "grid" | "list";
+export type ViewMode = "grid" | "list";
 
 type ViewModeToggleProps = {
   value: ViewMode;

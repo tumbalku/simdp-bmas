@@ -44,6 +44,8 @@ export function NotificationPanel({ enabled, userId }: NotificationPanelProps) {
       <DropdownMenuTrigger
         render={
           <button
+            id="notification-dropdown-trigger"
+            suppressHydrationWarning
             className="relative flex size-9 items-center justify-center rounded-lg outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-label={notificationCopy.open}
           >

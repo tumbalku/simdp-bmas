@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { TokenPayload } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
-import { ARCHIVE_CATEGORY_LABELS, DOCUMENT_STATUS_LABELS, type ArchiveCategory } from "../constants";
+import {
+  ARCHIVE_CATEGORY_LABELS,
+  DOCUMENT_STATUS_LABELS,
+  type ArchiveCategory,
+} from "../constants";
 import * as repo from "../repository";
 import type { DocumentListFilter } from "./shared";
 
@@ -40,7 +44,9 @@ export type MasterDataDocumentsPdfData = {
 export const MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS = 1000;
 
 function buildDocumentWhere(filter: DocumentListFilter = {}) {
-  const where: any = { deletedAt: filter.archiveView === "archived" ? { not: null } : null };
+  const where: any = {
+    deletedAt: filter.archiveView === "archived" ? { not: null } : null,
+  };
 
   if (filter.status) {
     where.status = filter.status;
@@ -60,7 +66,11 @@ function buildDocumentWhere(filter: DocumentListFilter = {}) {
     where.OR = [
       { title: { contains: filter.search, mode: "insensitive" } },
       { fileName: { contains: filter.search, mode: "insensitive" } },
-      { documentType: { name: { contains: filter.search, mode: "insensitive" } } },
+      {
+        documentType: {
+          name: { contains: filter.search, mode: "insensitive" },
+        },
+      },
       { owner: { name: { contains: filter.search, mode: "insensitive" } } },
     ];
   }
@@ -92,7 +102,10 @@ function buildReportTitle(input: {
   documentTypeName?: string | null;
   archiveCategoryLabel?: string | null;
 }) {
-  const prefix = input.archiveView === "archived" ? "Laporan Arsip Dokumen" : "Laporan Dokumen";
+  const prefix =
+    input.archiveView === "archived"
+      ? "Laporan Arsip Dokumen"
+      : "Laporan Dokumen";
 
   if (input.documentTypeName && input.archiveCategoryLabel) {
     return `${prefix} ${input.documentTypeName} (${input.archiveCategoryLabel}) Pegawai`;
@@ -124,7 +137,11 @@ export async function getMasterDataDocumentsPdfData(
   session: TokenPayload,
 ): Promise<MasterDataDocumentsPdfData> {
   if (session.role !== "ADMIN") {
-    throw new AppError("FORBIDDEN", "Hanya Admin yang dapat mengunduh PDF laporan dokumen pegawai.", 403);
+    throw new AppError(
+      "FORBIDDEN",
+      "Hanya Admin yang dapat mengunduh PDF laporan dokumen pegawai.",
+      403,
+    );
   }
 
   const archiveView = filter.archiveView === "archived" ? "archived" : "active";
@@ -140,6 +157,8 @@ export async function getMasterDataDocumentsPdfData(
   const records = await repo.findDocumentRecordsForExport(
     buildDocumentWhere({ ...filter, archiveView }),
     MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS + 1,
+    filter.sortBy,
+    filter.sortOrder,
   );
 
   if (records.length > MASTER_DATA_DOCUMENTS_PDF_EXPORT_MAX_ROWS) {
@@ -161,7 +180,8 @@ export async function getMasterDataDocumentsPdfData(
       archiveCategoryLabel,
     },
     rows: records.map((record, index) => {
-      const archiveCategory = record.documentType?.archiveCategory || "PERSONAL";
+      const archiveCategory =
+        record.documentType?.archiveCategory || "PERSONAL";
 
       return {
         no: index + 1,
@@ -169,7 +189,8 @@ export async function getMasterDataDocumentsPdfData(
         documentTypeName: record.documentType?.name || "Jenis dokumen",
         documentTypeCode: record.documentType?.code || null,
         archiveCategory,
-        archiveCategoryLabel: getArchiveCategoryLabel(archiveCategory) || archiveCategory,
+        archiveCategoryLabel:
+          getArchiveCategoryLabel(archiveCategory) || archiveCategory,
         ownerName: record.owner?.name || "Pegawai",
         ownerEmployeeId: record.owner?.employeeId || null,
         ownerNik: record.owner?.nik || null,

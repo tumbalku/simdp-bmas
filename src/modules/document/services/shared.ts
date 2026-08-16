@@ -6,6 +6,8 @@ export type DocumentListFilter = {
   archiveCategory?: "PERSONAL" | "EDUCATION" | "EMPLOYMENT" | "CERTIFICATION" | "LEGAL";
   page?: number;
   limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 };
 
 export type DocumentTypeListFilter = {

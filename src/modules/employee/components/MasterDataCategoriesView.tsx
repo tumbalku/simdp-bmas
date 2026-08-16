@@ -12,9 +12,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { generateAlphanumericKey } from "@/utils/crypto";
 import { toast } from "sonner";
 
-import { PageHeader } from "@/components/navigation/PageHeader";
+import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
+import {
+  CriticalActionVerificationDialog,
+  type CriticalActionVerificationResult,
+} from "@/components/verification/CriticalActionVerificationDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -34,17 +39,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { cn } from "@/utils";
+import { verifyCurrentPasswordAction } from "@/modules/auth";
 import { crudMasterDataAction } from "@/modules/employee";
 import {
   EMPLOYEE_CATEGORY_COPY,
@@ -363,6 +359,7 @@ export function MasterDataCategoriesView({
   const [parentId, setParentId] = useState("");
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteSecretKey, setDeleteSecretKey] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const employmentHierarchy = useMemo(
@@ -377,6 +374,11 @@ export function MasterDataCategoriesView({
   const selectedConfig = TYPE_CONFIG[selectedType];
   const parentOptions = getParentOptions(data, selectedType);
   const requiresParent = Boolean(selectedConfig.parentField);
+
+  const handleOpenDelete = (item: DeleteTarget) => {
+    setDeleteSecretKey(generateAlphanumericKey(12));
+    setDeleteTarget(item);
+  };
 
   const openCreate = (type: CategoryType = "STATUS", initialParentId = "") => {
     setDialogMode("create");
@@ -456,29 +458,37 @@ export function MasterDataCategoriesView({
   };
 
   const handleDelete = () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) return { ok: false, error: { message: "Data tidak ditemukan" } };
 
-    startTransition(async () => {
-      const config = TYPE_CONFIG[deleteTarget.type];
-      const result = await crudMasterDataAction(
-        config.entity,
-        "DELETE",
-        deleteTarget.id
-      );
+    const deletedItemName = deleteTarget.name;
+    const deletedItemType = deleteTarget.type;
+    const deletedItemId = deleteTarget.id;
+    const config = TYPE_CONFIG[deletedItemType];
 
-      if (!result.ok) {
-        toast.error(result.error.message);
-        return;
-      }
+    return new Promise<CriticalActionVerificationResult>((resolve) => {
+      startTransition(async () => {
+        const result = await crudMasterDataAction(
+          config.entity,
+          "DELETE",
+          deletedItemId
+        );
 
-      setData((current) =>
-        setTypeItems(current, deleteTarget.type, (items) =>
-          items.filter((item) => item.id !== deleteTarget.id)
-        )
-      );
-      toast.success(`Data "${deleteTarget.name}" berhasil dihapus.`);
-      setDeleteTarget(null);
-      router.refresh();
+        if (!result.ok) {
+          toast.error(result.error.message);
+          resolve(result);
+          return;
+        }
+
+        setData((current) =>
+          setTypeItems(current, deletedItemType, (items) =>
+            items.filter((item) => item.id !== deletedItemId)
+          )
+        );
+        toast.success(`Data "${deletedItemName}" berhasil dihapus.`);
+        setDeleteTarget(null);
+        router.refresh();
+        resolve({ ok: true });
+      });
     });
   };
 
@@ -488,12 +498,12 @@ export function MasterDataCategoriesView({
         title={COPY.pageTitle}
         description={COPY.pageDescription}
         trailing={
-          <div className="flex flex-wrap gap-2 sm:justify-end">
-            <Button size="lg" onClick={() => openCreate("STATUS")}>
-              <Plus className="size-4" />
-              {COPY.addMaster}
-            </Button>
-          </div>
+          <PageHeaderButton
+            label={COPY.addMaster}
+            icon={Plus}
+            size="lg"
+            onClick={() => openCreate("STATUS")}
+          />
         }
       />
 
@@ -510,7 +520,7 @@ export function MasterDataCategoriesView({
           parentType="STATUS"
           childType="GROUP"
           onEdit={openEdit}
-          onDelete={setDeleteTarget}
+          onDelete={handleOpenDelete}
         />
 
         <HierarchyCard
@@ -525,7 +535,7 @@ export function MasterDataCategoriesView({
           parentType="PROFESSION"
           childType="POSITION"
           onEdit={openEdit}
-          onDelete={setDeleteTarget}
+          onDelete={handleOpenDelete}
         />
 
         <FlatCategoryCard
@@ -537,7 +547,7 @@ export function MasterDataCategoriesView({
           items={data.employeeRanks}
           type="RANK"
           onEdit={openEdit}
-          onDelete={setDeleteTarget}
+          onDelete={handleOpenDelete}
         />
 
         <FlatCategoryCard
@@ -549,7 +559,7 @@ export function MasterDataCategoriesView({
           items={data.workplaces}
           type="WORKPLACE"
           onEdit={openEdit}
-          onDelete={setDeleteTarget}
+          onDelete={handleOpenDelete}
         />
       </div>
 
@@ -642,31 +652,26 @@ export function MasterDataCategoriesView({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
+      <CriticalActionVerificationDialog
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Data</AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus{" "}
-              <strong>{deleteTarget?.name}</strong>? Tindakan ini tidak dapat
-              dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isPending}
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isPending ? "Menghapus..." : "Ya, Hapus"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        title="Verifikasi Hapus Data Kategori"
+        description={`Tindakan ini membutuhkan verifikasi sebelum ${TYPE_CONFIG[deleteTarget?.type ?? "STATUS"].label.toLowerCase()} "${deleteTarget?.name ?? ""}" dihapus.`}
+        actionLabel="Hapus Data"
+        targetLabel="nama kategori"
+        targetValue={deleteTarget?.name ?? ""}
+        confirmationPhrase={deleteSecretKey}
+        allowCopyPhrase={false}
+        impacts={[
+          `Data kategori "${deleteTarget?.name ?? ""}" akan dihapus permanen dari sistem.`,
+          "Pastikan tidak ada data pegawai atau referensi aktif yang masih terhubung dengan kategori ini.",
+          "Aksi penghapusan ini akan dicatat di audit log server.",
+        ]}
+        tone="destructive"
+        isPending={isPending}
+        onVerifyPassword={(password) => verifyCurrentPasswordAction({ password })}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import { z } from "zod";
@@ -11,6 +10,11 @@ import {
   getTwoFactorChallengeUserId,
   clearTwoFactorChallengeCookie,
 } from "@/lib/auth";
+import {
+  clearSharedRateLimitBucket,
+  getSharedRateLimitBucket,
+  incrementSharedRateLimitBucket,
+} from "@/lib/rate-limit-store";
 import { logActivity, SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import {
   changePassword,
@@ -93,47 +97,35 @@ const PASSWORD_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
 const TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS = 10 * 60 * 1000;
 const TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS = 5;
 
-const passwordVerificationAttempts = new Map<string, { count: number; firstAttemptAt: number }>();
-const twoFactorVerificationAttempts = new Map<string, { count: number; firstAttemptAt: number }>();
-
-function isTwoFactorRateLimited(userId: string) {
-  const current = twoFactorVerificationAttempts.get(userId);
-  if (!current || Date.now() - current.firstAttemptAt > TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS) return false;
-  return current.count >= TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS;
+async function isTwoFactorRateLimited(userId: string) {
+  const bucket = await getSharedRateLimitBucket(`AUTH_2FA_VERIFY:${userId}`);
+  return bucket ? bucket.count >= TWO_FACTOR_VERIFICATION_MAX_FAILED_ATTEMPTS : false;
 }
 
-function recordTwoFactorFailure(userId: string) {
-  const current = twoFactorVerificationAttempts.get(userId);
-  const next = !current || Date.now() - current.firstAttemptAt > TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS
-    ? { count: 1, firstAttemptAt: Date.now() }
-    : { ...current, count: current.count + 1 };
-  twoFactorVerificationAttempts.set(userId, next);
-  return next.count;
+async function recordTwoFactorFailure(userId: string) {
+  const bucket = await incrementSharedRateLimitBucket({
+    key: `AUTH_2FA_VERIFY:${userId}`,
+    category: "AUTH_2FA_VERIFY",
+    windowMs: TWO_FACTOR_VERIFICATION_THROTTLE_WINDOW_MS,
+  });
+  return bucket.count;
 }
 
-function getPasswordVerificationThrottle(key: string) {
-  const now = Date.now();
-  const current = passwordVerificationAttempts.get(key);
-
-  if (!current || now - current.firstAttemptAt > PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS) {
-    const next = { count: 0, firstAttemptAt: now };
-    passwordVerificationAttempts.set(key, next);
-    return next;
-  }
-
-  return current;
+async function getPasswordVerificationThrottle(key: string) {
+  const bucket = await getSharedRateLimitBucket(`AUTH_PASSWORD_VERIFY:${key}`);
+  return { count: bucket?.count ?? 0 };
 }
 
-function recordPasswordVerificationFailure(key: string) {
-  const current = getPasswordVerificationThrottle(key);
-  current.count += 1;
-  passwordVerificationAttempts.set(key, current);
-  return current.count;
+async function recordPasswordVerificationFailure(key: string) {
+  const bucket = await incrementSharedRateLimitBucket({
+    key: `AUTH_PASSWORD_VERIFY:${key}`,
+    category: "AUTH_PASSWORD_VERIFY",
+    windowMs: PASSWORD_VERIFICATION_THROTTLE_WINDOW_MS,
+  });
+  return bucket.count;
 }
 
-function clearPasswordVerificationThrottle(key: string) {
-  passwordVerificationAttempts.delete(key);
-}
+
 
 /* -------------------------------------------------------------------------- */
 /*  loginAction                                                                 */
@@ -191,7 +183,7 @@ export async function loginAction(data: unknown) {
     await setAuthCookies(session.user.id, session.user.role, session.user.employeeId, session.refreshTokenPlain);
 
     return { ok: true as const, data: { user: result.user } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("loginAction error:", error);
     return {
       ok: false as const,
@@ -209,13 +201,12 @@ export async function verifyTwoFactorLoginAction(data: unknown) {
     if (!userId) {
       return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
     }
-    if (isTwoFactorRateLimited(userId)) return { ok: false as const, error: { code: "RATE_LIMITED", message: "Terlalu banyak percobaan 2FA. Coba lagi 10 menit kemudian." } };
+    if (await isTwoFactorRateLimited(userId)) return { ok: false as const, error: { code: "RATE_LIMITED", message: "Terlalu banyak percobaan 2FA. Coba lagi 10 menit kemudian." } };
     if (!(await verifyTwoFactorToken(userId, parsed.data.token))) {
-      const count = recordTwoFactorFailure(userId);
+      const count = await recordTwoFactorFailure(userId);
       await logActivity({ actorId: userId, actorName: "User", actorRole: SECURITY_ACTOR_ROLE.PUBLIC, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_CHALLENGE_FAILED, resource: `User:${userId}`, status: SECURITY_LOG_STATUS.FAILED, metadata: { attempt: count } });
       return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
     }
-    twoFactorVerificationAttempts.delete(userId);
 
     const user = await findUserWithEmployeeById(userId);
     if (!user || !user.isActive || user.deletedAt) {
@@ -231,7 +222,7 @@ export async function verifyTwoFactorLoginAction(data: unknown) {
     await clearTwoFactorChallengeCookie();
     await logActivity({ actorId: user.id, actorName: user.employee?.name || user.email, actorRole: user.role, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_SUCCESS, resource: `User:${user.id}`, status: SECURITY_LOG_STATUS.SUCCESS });
     return { ok: true as const, data: { user: session.user } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("verifyTwoFactorLoginAction error:", error);
     return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan. Coba lagi." } };
   }
@@ -256,7 +247,7 @@ export async function sendTwoFactorEmailCodeAction() {
 
     await logActivity({ actorId: userId, actorName: user.employee?.name || user.email, actorRole: SECURITY_ACTOR_ROLE.PUBLIC, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_EMAIL_SENT, resource: `User:${userId}`, status: SECURITY_LOG_STATUS.SUCCESS, metadata: { expiresInSeconds: result.expiresInSeconds } });
     return { ok: true as const, data: { maskedEmail: result.maskedEmail, expiresInSeconds: result.expiresInSeconds } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("sendTwoFactorEmailCodeAction error:", error);
     return { ok: false as const, error: { code: "EMAIL_SEND_FAILED", message: "Kode email gagal dikirim. Coba lagi nanti." } };
   }
@@ -325,7 +316,7 @@ export async function forgotPasswordAction(data: unknown) {
     await requestPasswordReset(email);
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("forgotPasswordAction error:", error);
     return {
       ok: false as const,
@@ -366,7 +357,7 @@ export async function resetPasswordAction(data: unknown) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("resetPasswordAction error:", error);
     return {
       ok: false as const,
@@ -419,13 +410,14 @@ export async function changePasswordAction(data: unknown) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("changePasswordAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -437,7 +429,7 @@ export async function verifyCurrentPasswordAction(data: unknown) {
     const headersList = await headers();
     const ipAddress = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const throttleKey = `${session.userId}:${ipAddress}`;
-    const throttle = getPasswordVerificationThrottle(throttleKey);
+    const throttle = await getPasswordVerificationThrottle(throttleKey);
     const user = await findUserWithEmployeeById(session.userId);
     const actorName = user?.employee?.name || user?.email || "User";
 
@@ -477,7 +469,7 @@ export async function verifyCurrentPasswordAction(data: unknown) {
     const isValid = await verifyCurrentPassword(session.userId, parsed.data.password);
 
     if (!isValid) {
-      const failedAttemptCount = recordPasswordVerificationFailure(throttleKey);
+      const failedAttemptCount = await recordPasswordVerificationFailure(throttleKey);
 
       await logActivity({
         actorId: session.userId,
@@ -495,7 +487,7 @@ export async function verifyCurrentPasswordAction(data: unknown) {
       };
     }
 
-    clearPasswordVerificationThrottle(throttleKey);
+    await clearSharedRateLimitBucket(`AUTH_PASSWORD_VERIFY:${throttleKey}`);
 
     await logActivity({
       actorId: session.userId,
@@ -508,13 +500,14 @@ export async function verifyCurrentPasswordAction(data: unknown) {
     });
 
     return { ok: true as const, data: { verified: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("verifyCurrentPasswordAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -535,13 +528,14 @@ export async function getCurrentAccountSettingsAction() {
     const sessions = await getActiveSessions(session.userId);
 
     return { ok: true as const, data: { account, sessions } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("getCurrentAccountSettingsAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -590,13 +584,14 @@ export async function revokeSessionAction(tokenId: string) {
     }
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("revokeSessionAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -623,13 +618,14 @@ export async function revokeAllSessionsAction() {
     await clearAuthCookies();
 
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("revokeAllSessionsAction error:", error);
+    const isUnauth = error instanceof Error && error.message === "UNAUTHENTICATED";
     return {
       ok: false as const,
       error: {
-        code: error.message === "UNAUTHENTICATED" ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
-        message: error.message === "UNAUTHENTICATED" ? "User belum login" : "Terjadi kesalahan internal",
+        code: isUnauth ? "UNAUTHENTICATED" : "INTERNAL_ERROR",
+        message: isUnauth ? "User belum login" : "Terjadi kesalahan internal",
       },
     };
   }
@@ -642,12 +638,12 @@ export async function logoutAction() {
       const cookieStore = await cookies();
       const refreshToken = cookieStore.get("refresh_token")?.value;
       if (refreshToken) {
-        await logoutUser(refreshToken, session.userId, session.role);
+        await logoutUser(refreshToken, session.userId);
       }
     }
     await clearAuthCookies();
     return { ok: true as const, data: { success: true } };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("logoutAction error:", error);
     return {
       ok: false as const,
