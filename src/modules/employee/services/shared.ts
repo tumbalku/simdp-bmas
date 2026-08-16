@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-  EMPLOYEE_STATUS_LABELS,
   EMPLOYEE_STATUS_VALUE,
-  GENDER_LABELS,
-  MARITAL_STATUS_LABELS,
-  RELIGION_LABELS,
+  GENDER_VALUE,
+  MARITAL_STATUS_VALUE,
+  RELIGION_VALUE,
   type EmployeeStatusValue,
   type GenderValue,
   type MaritalStatusValue,
@@ -112,19 +111,19 @@ export function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
 }
 
 export function canonicalEmployeeStatus(value: string | null | undefined) {
-  return value && value in EMPLOYEE_STATUS_LABELS ? (value as EmployeeStatusValue) : EMPLOYEE_STATUS_VALUE.ACTIVE;
+  return value && value in EMPLOYEE_STATUS_VALUE ? (value as EmployeeStatusValue) : EMPLOYEE_STATUS_VALUE.ACTIVE;
 }
 
 export function canonicalGender(value: string | null | undefined) {
-  return value && value in GENDER_LABELS ? (value as GenderValue) : null;
+  return value && value in GENDER_VALUE ? (value as GenderValue) : null;
 }
 
 export function canonicalMaritalStatus(value: string | null | undefined) {
-  return value && value in MARITAL_STATUS_LABELS ? (value as MaritalStatusValue) : null;
+  return value && value in MARITAL_STATUS_VALUE ? (value as MaritalStatusValue) : null;
 }
 
 export function canonicalReligion(value: string | null | undefined) {
-  return value && value in RELIGION_LABELS ? (value as ReligionValue) : null;
+  return value && value in RELIGION_VALUE ? (value as ReligionValue) : null;
 }
 
 export function escapeCsvCell(value: unknown) {
