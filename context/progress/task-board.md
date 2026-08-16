@@ -43,6 +43,7 @@
 
 ## Done
 
+- [x] [#282](https://github.com/tumbalku/simdp-bmas/issues/282) refactor(ui): resolve client boundary, blob memory leak, and sort state preservation gaps (selesai: 2026-08-16)
 - [x] [#281](https://github.com/tumbalku/simdp-bmas/issues/281) refactor(crypto): remove insecure Math.random fallback in crypto utilities (selesai: 2026-08-16)
 - [x] [#280](https://github.com/tumbalku/simdp-bmas/issues/280) fix(security): eliminate timing oracle in cron secret length comparison (selesai: 2026-08-16)
 - [x] [#279](https://github.com/tumbalku/simdp-bmas/issues/279) fix(employee): wrap master data categories delete action in startTransition for pending UI feedback (selesai: 2026-08-16)
