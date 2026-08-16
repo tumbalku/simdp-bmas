@@ -32,12 +32,12 @@ async function handleCleanup(request: NextRequest) {
     if (headerSecret && env.CRON_SECRET) {
       const secretBuf = Buffer.from(headerSecret);
       const expectedBuf = Buffer.from(env.CRON_SECRET);
-      if (secretBuf.length === expectedBuf.length) {
-        isAuthorized = crypto.timingSafeEqual(secretBuf, expectedBuf);
-      } else {
-        crypto.timingSafeEqual(secretBuf, secretBuf);
-        isAuthorized = false;
-      }
+      const maxLen = Math.max(secretBuf.length, expectedBuf.length);
+      const paddedSecret = Buffer.concat([secretBuf], maxLen);
+      const paddedExpected = Buffer.concat([expectedBuf], maxLen);
+
+      const match = crypto.timingSafeEqual(paddedSecret, paddedExpected);
+      isAuthorized = match && secretBuf.length === expectedBuf.length;
     }
 
     if (!isAuthorized) {
