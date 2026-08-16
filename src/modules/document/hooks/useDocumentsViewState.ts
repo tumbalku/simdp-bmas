@@ -138,6 +138,8 @@ export function useDocumentsViewState({
     params.set("page", String(PAGINATION.defaultPage));
     params.set("limit", defaultLimit);
     if (isArchiveView) params.set("archiveView", "archived");
+    if (sortBy) params.set("sortBy", sortBy);
+    if (sortOrder) params.set("sortOrder", sortOrder);
     router.push(`${ROUTES.masterDataDocuments}?${params.toString()}`);
   };
 

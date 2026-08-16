@@ -190,18 +190,7 @@ export function useEmployeesViewState({
   const handleRowsPerPageChange = (value: string | null) => {
     const nextLimit = value ?? rowsPerPage;
     setRowsPerPage(nextLimit);
-    const params = new URLSearchParams();
-    params.set("page", String(PAGINATION.defaultPage));
-    params.set("limit", nextLimit);
-    if (isArchiveView) params.set("archiveView", "archived");
-    if (viewMode === "grid") params.set("view", "grid");
-
-    FILTER_KEYS.forEach((key) => {
-      const filterValue = filters[key].trim();
-      if (filterValue) params.set(key, filterValue);
-    });
-
-    router.push(`${ROUTES.masterDataEmployees}?${params.toString()}`);
+    router.push(buildPageUrl(PAGINATION.defaultPage, filters, nextLimit));
   };
 
   const handleResetFilter = () => {

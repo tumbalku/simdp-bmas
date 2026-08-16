@@ -44,6 +44,7 @@ export async function downloadFileWithToast({
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       window.open(blobUrl, "_blank", "noopener,noreferrer");
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 30_000);
       toast.success(successMessage, { id: toastId });
       return true;
     }
