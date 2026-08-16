@@ -12,12 +12,7 @@ export function generateRandomKey(length: number = 32): string {
     const nodeCrypto = require("crypto");
     return nodeCrypto.randomBytes(length).toString("hex");
   } catch {
-    const hex = "0123456789abcdef";
-    let result = "";
-    for (let i = 0; i < length * 2; i++) {
-      result += hex[Math.floor(Math.random() * 16)];
-    }
-    return result;
+    throw new Error("Cryptographic random source is unavailable in this environment.");
   }
 }
 
@@ -44,11 +39,8 @@ export function generateAlphanumericKey(length: number = 12): string {
       return result;
     }
   } catch {
-    // Fallback to Math.random below
+    // fall through to error
   }
 
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  throw new Error("Cryptographic random source is unavailable in this environment.");
 }
