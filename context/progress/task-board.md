@@ -43,6 +43,7 @@
 
 ## Done
 
+- [x] [#284](https://github.com/tumbalku/simdp-bmas/issues/284) perf(security): prune high-frequency routine logs across service and UI (selesai: 2026-08-16)
 - [x] [#283](https://github.com/tumbalku/simdp-bmas/issues/283) fix(employee/settings): resolve CSV import label normalization, security log default seed, and reset pagination limit (selesai: 2026-08-16)
 - [x] [#282](https:...[truncated]
 - [x] [#281](https://github.com/tumbalku/simdp-bmas/issues/281) refactor(crypto): remove insecure Math.random fallback in crypto utilities (selesai: 2026-08-16)
