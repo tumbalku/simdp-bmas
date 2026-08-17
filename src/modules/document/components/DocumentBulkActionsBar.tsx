@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -28,53 +29,51 @@ export function DocumentBulkActionsBar({
   onOpenBulkRestore,
   onDownloadPdf,
 }: DocumentBulkActionsBarProps) {
+  const hasSelection = selectedDocCount > 0;
+
   return (
-    <div className="flex items-center gap-2">
-      {isArchiveView && selectedDocCount > 0 && (
-        <>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="h-8 text-xs gap-1.5"
-            disabled={isBulkPending}
-            onClick={onOpenBulkDelete}
-          >
-            <Trash2 className="size-3.5" />
-            Hapus Semua
-          </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs gap-1.5 border-success/30 text-success hover:bg-success/10 hover:text-success"
-            disabled={isBulkPending}
-            onClick={onOpenBulkRestore}
+            className="h-8 w-8 p-0"
+            disabled={isExporting}
           >
-            <RotateCcw className="size-3.5" />
-            Pulihkan Semua
+            <MoreVertical className="size-4" />
+            <span className="sr-only">Menu tabel</span>
           </Button>
-        </>
-      )}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={isExporting}
+        }
+      />
+      <DropdownMenuContent align="end" className="w-52 mt-1 rounded-lg">
+        {isArchiveView && hasSelection && (
+          <>
+            <DropdownMenuItem
+              disabled={isBulkPending}
+              onClick={onOpenBulkRestore}
+              className="text-success focus:text-success focus:bg-success/10 cursor-pointer"
             >
-              <MoreVertical className="size-4" />
-              <span className="sr-only">Menu tabel</span>
-            </Button>
-          }
-        />
-        <DropdownMenuContent align="end" className="w-48 mt-1 rounded-lg">
-          <DropdownMenuItem onClick={onDownloadPdf}>
-            <Download className="size-4 mr-2" />
-            Download PDF
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+              <RotateCcw className="size-4 mr-2 text-success" />
+              Pulihkan Semua ({selectedDocCount})
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={isBulkPending}
+              onClick={onOpenBulkDelete}
+              className="cursor-pointer"
+            >
+              <Trash2 className="size-4 mr-2" />
+              Hapus Semua ({selectedDocCount})
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        <DropdownMenuItem onClick={onDownloadPdf} className="cursor-pointer">
+          <Download className="size-4 mr-2" />
+          Download PDF
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
