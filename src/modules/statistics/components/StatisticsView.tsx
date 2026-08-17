@@ -1,10 +1,9 @@
 "use client";
 
 import { useStatisticsCharts } from "../hooks";
-import { AlertCircle, AlertTriangle, Clock, FileText, RefreshCw, ShieldCheck, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, Clock, FileText, ShieldCheck, TrendingUp, Users } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import {
   ResponsiveMetricCard,
@@ -25,18 +24,16 @@ export default function StatisticsView() {
       <div className="space-y-4">
         <PageHeader
           title="Statistik Kepegawaian"
-          description="Gagal memuat visualisasi statistik data pegawai."
+          description="Visualisasi data demografi, status kepegawaian, dan kepatuhan arsip dokumen pegawai RSUD Bahteramas."
         />
-        <Alert variant="destructive" className="my-6">
-          <AlertCircle className="size-4" />
-          <AlertTitle>Gagal Memuat Statistik</AlertTitle>
-          <AlertDescription className="flex flex-col gap-4 mt-2 items-start">
-            <span>{error instanceof Error ? error.message : "Terjadi kesalahan saat memuat data statistik."}</span>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="bg-background text-foreground">
-              <RefreshCw className="size-3 mr-2" /> Coba Lagi
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <ErrorState
+          title="Gagal Memuat Data Statistik"
+          description="Terjadi kendala saat mengambil data statistik dari server. Silakan coba lagi."
+          primaryAction={{
+            label: "Coba Lagi",
+            onClick: () => refetch(),
+          }}
+        />
       </div>
     );
   }
