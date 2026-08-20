@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, FileText, RotateCcw, Trash2 } from "lucide-react";
+import { AlertTriangle, Clock3, Eye, FileText, RotateCcw, Trash2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/tables/DataTable";
 import { DataTableCard } from "@/components/tables/DataTableCard";
 import { PaginationItems } from "@/components/tables/PaginationItems";
@@ -25,6 +25,7 @@ import { type PaginationMeta } from "@/types/pagination";
 import {
   DOCUMENT_STATUS_OPTIONS,
   DOCUMENT_STATUS_VARIANTS,
+  getExpiryStatusInfo,
 } from "@/modules/document";
 
 export type DocumentRecord = {
@@ -176,13 +177,20 @@ export function DocumentTableView({
     {
       key: "document",
       header: "Dokumen",
+      headClassName: "max-w-[220px] md:max-w-[280px]",
+      cellClassName: "max-w-[220px] md:max-w-[280px]",
       cell: (doc) => (
-        <>
-          <div className="font-medium">{doc.title}</div>
-          <div className="text-xs text-muted-foreground">
+        <div className="max-w-[220px] md:max-w-[280px]">
+          <div className="truncate font-medium text-foreground" title={doc.title}>
+            {doc.title}
+          </div>
+          <div
+            className="truncate text-xs text-muted-foreground"
+            title={`${doc.fileName} - ${formatFileSize(doc.fileSize)}`}
+          >
             {doc.fileName} - {formatFileSize(doc.fileSize)}
           </div>
-        </>
+        </div>
       ),
     },
     {
@@ -191,26 +199,33 @@ export function DocumentTableView({
       sortable: true,
       sortKey: "name",
       cell: (doc) => (
-        <>
-          <div className="truncate max-w-[200px]" title={doc.ownerName}>
+        <div className="max-w-[200px]">
+          <div className="truncate font-medium" title={doc.ownerName}>
             {doc.ownerName}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="truncate text-xs text-muted-foreground">
             {doc.ownerEmployeeId || "NIP belum ada"}
           </div>
-        </>
+        </div>
       ),
     },
     {
       key: "type",
       header: "Jenis",
+      headClassName: "max-w-[180px]",
+      cellClassName: "max-w-[180px]",
       cell: (doc) => (
-        <>
-          <div>{doc.documentTypeName}</div>
-          <div className="text-xs text-muted-foreground">
+        <div className="max-w-[180px]">
+          <div className="truncate" title={doc.documentTypeName}>
+            {doc.documentTypeName}
+          </div>
+          <div
+            className="truncate text-xs text-muted-foreground"
+            title={doc.archiveCategory}
+          >
             {doc.archiveCategory}
           </div>
-        </>
+        </div>
       ),
     },
     {
@@ -233,7 +248,27 @@ export function DocumentTableView({
       header: "Kedaluwarsa",
       sortable: true,
       sortKey: "expiryDate",
-      cell: (doc) => formatDate(doc.expiryDate),
+      cell: (doc) => {
+        const expiry = getExpiryStatusInfo(doc.expiryDate);
+        if (!expiry) return "-";
+        if (expiry.type === "EXPIRED") {
+          return (
+            <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-medium" title={expiry.label}>
+              <AlertTriangle className="size-3 shrink-0" />
+              <span>{expiry.formattedDate}</span>
+            </div>
+          );
+        }
+        if (expiry.type === "EXPIRING_SOON") {
+          return (
+            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium" title={expiry.label}>
+              <Clock3 className="size-3 shrink-0" />
+              <span>{expiry.formattedDate}</span>
+            </div>
+          );
+        }
+        return expiry.formattedDate;
+      },
     },
     {
       key: "action",
@@ -246,7 +281,7 @@ export function DocumentTableView({
 
   const paginationControls =
     pagination.totalPages > 1 ? (
-      <Pagination className="mx-0 w-auto justify-end">
+      <Pagination className="sm:ml-auto sm:w-auto">
         <PaginationContent>
           {pagination.page > 1 && (
             <PaginationItem>
@@ -284,7 +319,7 @@ export function DocumentTableView({
         onValueChange: onRowsPerPageChange,
         options: PAGINATION.pageSizeOptions,
         label: "Tampilkan",
-        suffix: "row",
+        suffix: "baris",
       }}
       extraActions={extraActions}
       tableMinWidthClassName="min-w-[980px]"

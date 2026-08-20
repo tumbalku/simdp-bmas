@@ -403,6 +403,7 @@ export function MasterDataDocumentsView({
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Dokumen"
         title="Dokumen Pegawai"
         description="Pantau seluruh dokumen pegawai, status verifikasi, dan metadata berkas."
         actions={[
@@ -433,13 +434,13 @@ export function MasterDataDocumentsView({
         value={viewMode}
         onValueChange={handleViewModeChange}
         leading={
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="inline-flex w-full rounded-md border border-muted-foreground/10 bg-card p-1 shadow-sm sm:w-auto">
+          <div className="flex w-full flex-row items-center justify-between gap-2 sm:w-auto sm:justify-start">
+            <div className="inline-flex rounded-md border border-muted-foreground/10 bg-card p-1 shadow-sm sm:w-auto">
               <Link
                 className={buttonVariants({
                   variant: !isArchiveView ? "default" : "ghost",
                   size: "sm",
-                  className: "flex-1 gap-2 sm:flex-none",
+                  className: "gap-2",
                 })}
                 href={buildArchiveViewUrl("active")}
               >
@@ -450,7 +451,7 @@ export function MasterDataDocumentsView({
                 className={buttonVariants({
                   variant: isArchiveView ? "default" : "ghost",
                   size: "sm",
-                  className: "flex-1 gap-2 sm:flex-none",
+                  className: "gap-2",
                 })}
                 href={buildArchiveViewUrl("archived")}
               >

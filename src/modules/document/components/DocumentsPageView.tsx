@@ -12,6 +12,7 @@ import {
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -249,6 +250,7 @@ export function DocumentsPageView({
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Dokumen"
         title="Dokumen pegawai"
         description="Unggah, pantau status, dan buka dokumen kepegawaian milik Anda."
         actions={
@@ -343,7 +345,14 @@ export function DocumentsPageView({
                         <Icon className="size-3.5 text-primary" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="truncate text-sm font-medium">{group.documentTypeName}</CardTitle>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <CardTitle className="truncate text-sm font-medium">{group.documentTypeName}</CardTitle>
+                          {group.isMandatory ? (
+                            <Badge variant="default" className="h-4 shrink-0 px-1 text-[10px] font-semibold">
+                              Wajib
+                            </Badge>
+                          ) : null}
+                        </div>
                         <CardDescription className="text-xs">
                           {group.documents.length} dokumen · {group.archiveCategory}
                         </CardDescription>
@@ -353,7 +362,7 @@ export function DocumentsPageView({
                   </CardHeader>
                   <CardContent className="px-3 pt-0">
                     <Accordion>
-                      <AccordionItem value="documents" className="border-b-0">
+                      <AccordionItem value={`docs-${group.documentTypeId}`} className="border-b-0">
                         <AccordionTrigger className="text-xs font-medium hover:no-underline">Lihat daftar dokumen</AccordionTrigger>
                         <AccordionContent className="pb-0">
                         <DocumentList
@@ -381,19 +390,26 @@ export function DocumentsPageView({
                       <AccordionItem key={group.documentTypeId} value={group.documentTypeId}>
                         <div className="flex w-full items-center gap-2">
                           <AccordionTrigger className="min-w-0 flex-1 overflow-hidden">
-                            <div className="flex min-w-0 flex-1 items-center gap-3 pr-2">
-                              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                            <span className="flex min-w-0 flex-1 items-center gap-3 pr-2">
+                              <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                                 <Icon className="size-5 text-primary" />
-                              </div>
-                              <div className="min-w-0 max-w-[10rem] flex-1 overflow-hidden text-left sm:max-w-none">
-                                <div className="block max-w-full truncate text-sm font-medium" title={group.documentTypeName}>
-                                  {group.documentTypeName}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
+                              </span>
+                              <span className="min-w-0 max-w-[10rem] flex-1 overflow-hidden text-left sm:max-w-none">
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                  <span className="block truncate text-sm font-medium" title={group.documentTypeName}>
+                                    {group.documentTypeName}
+                                  </span>
+                                  {group.isMandatory ? (
+                                    <Badge variant="default" className="h-4 shrink-0 px-1 text-[10px] font-semibold">
+                                      Wajib
+                                    </Badge>
+                                  ) : null}
+                                </span>
+                                <span className="block text-xs text-muted-foreground">
                                   {group.documents.length} dokumen
-                                </div>
-                              </div>
-                            </div>
+                                </span>
+                              </span>
+                            </span>
                           </AccordionTrigger>
                           {canUpload ? <DocumentTypeUploadAction group={group} documentTypes={documentTypes} /> : null}
                         </div>

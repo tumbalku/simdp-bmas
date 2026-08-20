@@ -224,7 +224,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
 
   const paginationControls =
     pagination.totalPages > 1 ? (
-      <Pagination className="mx-0 w-auto justify-end">
+      <Pagination className="sm:ml-auto sm:w-auto">
         <PaginationContent>
           {pagination.hasPreviousPage ? (
             <PaginationItem>
@@ -278,7 +278,7 @@ export function SecurityLogPageView({ logs, pagination }: SecurityLogPageViewPro
           onValueChange: handleRowsPerPageChange,
           options: PAGINATION.pageSizeOptions,
           label: "Tampilkan",
-          suffix: "row",
+          suffix: "baris",
         }}
         tableMinWidthClassName="min-w-[900px]"
         table={

@@ -202,6 +202,7 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Ikhtisar"
         title="Dashboard"
         description="Ringkasan pribadi kondisi dokumen kepegawaian Anda."
       />

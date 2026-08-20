@@ -30,7 +30,7 @@ export function UserSettingsPageView({ account, sessions }: UserSettingsPageView
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Akun Saya"
+        eyebrow="Akun"
         title="Pengaturan"
         description="Kelola keamanan akun dan preferensi pribadi SiCantIK."
       />

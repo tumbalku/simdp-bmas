@@ -298,6 +298,7 @@ export function VerificationDetailView({ document }: VerificationDetailViewProps
   return (
     <div className="space-y-4">
       <PageHeader
+        eyebrow="Verifikasi"
         backHref="/verification"
         backLabel="Kembali ke antrian"
         title={document.title || document.documentTypeName}

@@ -355,6 +355,7 @@ export function EmployeeImportView({
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Kepegawaian"
         title="Import Pegawai"
         description="Preview, modifikasi, dan simpan data pegawai dari file CSV secara massal."
         backHref="/master-data/employees"

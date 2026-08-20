@@ -67,6 +67,7 @@ export default function StatisticsView() {
   return (
     <div className="space-y-4">
       <PageHeader
+        eyebrow="Analitik"
         title="Statistik Kepegawaian"
         description="Visualisasi data demografi, status kepegawaian, dan kepatuhan arsip dokumen pegawai RSUD Bahteramas."
         className="pb-0"

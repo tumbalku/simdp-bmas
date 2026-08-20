@@ -303,7 +303,7 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
 
   const paginationControls =
     pagination.totalPages > 1 ? (
-      <Pagination className="mx-0 w-auto justify-end">
+      <Pagination className="sm:ml-auto sm:w-auto">
         <PaginationContent>
           {pagination.page > 1 && (
             <PaginationItem>
@@ -333,6 +333,7 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Konfigurasi"
         title="Kelola Jenis Dokumen"
         description="Atur konfigurasi jenis dokumen, format berkas, validasi, dan target pegawai."
         backHref={ROUTES.masterDataDocuments}
@@ -382,7 +383,7 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
             onValueChange: handleRowsPerPageChange,
             options: PAGINATION.pageSizeOptions,
             label: "Tampilkan",
-            suffix: "row",
+            suffix: "baris",
           }}
           tableMinWidthClassName="min-w-[1180px]"
           table={

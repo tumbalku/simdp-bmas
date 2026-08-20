@@ -21,8 +21,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DATE_FORMATS, DATE_LOCALE, routeTo } from "@/constants";
+import { cn } from "@/utils";
 import { DocumentUploadForm } from "@/modules/document/components/DocumentUploadForm";
-import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document";
+import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS, getExpiryStatusInfo } from "@/modules/document";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 
 const statusConfig: Record<
@@ -60,6 +61,7 @@ export type GroupedDocuments = {
   documentTypeName: string;
   archiveCategory: string;
   allowMultiple: boolean;
+  isMandatory: boolean;
   documentType?: DocumentTypeOption;
   documents: DocumentRecordListItem[];
 };
@@ -81,6 +83,7 @@ export function groupDocumentsByAvailableTypes(
     documentTypeName: type.name,
     archiveCategory: type.archiveCategory,
     allowMultiple: type.allowMultiple,
+    isMandatory: Boolean(type.isMandatory),
     documentType: type,
     documents: documentsByType.get(type.id) ?? [],
   }));
@@ -94,6 +97,7 @@ export function groupDocumentsByAvailableTypes(
       documentTypeName: document.documentTypeName,
       archiveCategory: document.archiveCategory,
       allowMultiple: true,
+      isMandatory: false,
       documents: documentsByType.get(document.documentTypeId) ?? [],
     });
     knownTypeIds.add(document.documentTypeId);
@@ -226,10 +230,15 @@ export function DocumentList({
         const config = statusConfig[document.status] ?? statusConfig.PENDING;
         const Icon = config.icon;
         const canArchive = document.status === "PENDING" || document.status === "REJECTED";
+        const expiry = getExpiryStatusInfo(document.expiryDate);
+
         return (
           <div
             key={document.id}
-            className="flex flex-col gap-2 rounded-md border bg-card px-2.5 py-2 text-card-foreground sm:flex-row sm:items-center sm:justify-between"
+            className={cn(
+              "flex flex-col gap-2 rounded-md border bg-card px-2.5 py-2 text-card-foreground sm:flex-row sm:items-center sm:justify-between transition-colors",
+              expiry?.bgHighlightClass
+            )}
           >
             <div className="flex-1 space-y-0.5">
               <div className="text-sm font-medium">{document.title}</div>
@@ -239,18 +248,35 @@ export function DocumentList({
                 <span>{formatFileSize(document.fileSize)}</span>
                 <span>·</span>
                 <span>Upload: {formatDate(document.uploadedAt)}</span>
-                {document.expiryDate && (
+                {document.expiryDate && expiry && (
                   <>
                     <span>·</span>
-                    <span>Exp: {formatDate(document.expiryDate)}</span>
+                    <span className={expiry.textClass}>
+                      Exp: {formatDate(document.expiryDate)}
+                      {expiry.type === "EXPIRED" && " (Kedaluwarsa)"}
+                      {expiry.type === "EXPIRING_SOON" && ` (${expiry.shortLabel})`}
+                    </span>
                   </>
                 )}
               </div>
-              <div className="flex items-center gap-2 pt-0.5">
+              <div className="flex flex-wrap items-center gap-2 pt-0.5">
                 <Badge variant={config.variant} className="h-5 gap-1 px-1.5 text-[11px]">
                   <Icon className="size-3" />
                   {config.label}
                 </Badge>
+                {expiry && expiry.type !== "ACTIVE" ? (
+                  <Badge
+                    variant="outline"
+                    className={cn("h-5 gap-1 px-1.5 text-[11px]", expiry.badgeClass)}
+                  >
+                    {expiry.type === "EXPIRED" ? (
+                      <AlertTriangle className="size-3 text-rose-600 dark:text-rose-400" />
+                    ) : (
+                      <Clock3 className="size-3 text-amber-600 dark:text-amber-400" />
+                    )}
+                    {expiry.label}
+                  </Badge>
+                ) : null}
                 <span className="text-xs text-muted-foreground">
                   {document.ownerName} · {document.ownerEmployeeId || "NIP belum ada"}
                 </span>

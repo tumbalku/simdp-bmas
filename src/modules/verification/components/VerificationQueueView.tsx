@@ -334,7 +334,7 @@ export function VerificationQueueView({
 
   const paginationControls =
     pagination.totalPages > 1 ? (
-      <Pagination className="mx-0 w-auto justify-end">
+      <Pagination className="sm:ml-auto sm:w-auto">
         <PaginationContent>
           {pagination.page > 1 && (
             <PaginationItem>
@@ -369,6 +369,7 @@ export function VerificationQueueView({
     <div className="space-y-6">
       {/* Page header */}
       <PageHeader
+        eyebrow="Verifikasi"
         title="Verifikasi Dokumen"
         description="Tinjau berkas pegawai yang masih berstatus menunggu pemeriksaan."
       />
@@ -458,7 +459,7 @@ export function VerificationQueueView({
                 onValueChange: handleRowsPerPageChange,
                 options: PAGINATION.pageSizeOptions,
                 label: "Tampilkan",
-                suffix: "row",
+                suffix: "baris",
               }}
               tableMinWidthClassName="min-w-[760px]"
               table={

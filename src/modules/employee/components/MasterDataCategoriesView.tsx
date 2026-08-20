@@ -495,6 +495,7 @@ export function MasterDataCategoriesView({
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Kategori"
         title={COPY.pageTitle}
         description={COPY.pageDescription}
         trailing={

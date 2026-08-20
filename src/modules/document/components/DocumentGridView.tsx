@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, RotateCcw, Trash2 } from "lucide-react";
+import { AlertTriangle, Clock3, Eye, RotateCcw, Trash2 } from "lucide-react";
+import { cn } from "@/utils";
 import { PaginationItems } from "@/components/tables/PaginationItems";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import {
 import {
   DOCUMENT_STATUS_OPTIONS,
   DOCUMENT_STATUS_VARIANTS,
+  getExpiryStatusInfo,
 } from "@/modules/document";
 import type {
   CriticalActionTarget,
@@ -134,7 +136,7 @@ export function DocumentGridView({
 
   const paginationControls =
     pagination.totalPages > 1 ? (
-      <Pagination className="mx-0 w-auto justify-end">
+      <Pagination className="sm:ml-auto sm:w-auto">
         <PaginationContent>
           {pagination.page > 1 && (
             <PaginationItem>
@@ -183,11 +185,15 @@ export function DocumentGridView({
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {documents.map((doc) => {
             const config = statusConfig[doc.status] ?? statusConfig.PENDING;
+            const expiry = getExpiryStatusInfo(doc.expiryDate);
 
             return (
               <Card
                 key={doc.id}
-                className="border-muted-foreground/10 shadow-sm"
+                className={cn(
+                  "border-muted-foreground/10 shadow-sm transition-colors",
+                  expiry?.bgHighlightClass
+                )}
               >
                 <CardContent className="p-4">
                   <div className="space-y-3">
@@ -198,9 +204,24 @@ export function DocumentGridView({
                           {doc.fileName} - {formatFileSize(doc.fileSize)}
                         </div>
                       </div>
-                      <Badge variant={config.variant} className="shrink-0">
-                        {config.label}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge variant={config.variant}>
+                          {config.label}
+                        </Badge>
+                        {expiry && expiry.type !== "ACTIVE" ? (
+                          <Badge
+                            variant="outline"
+                            className={cn("h-5 gap-1 px-1.5 text-[10px]", expiry.badgeClass)}
+                          >
+                            {expiry.type === "EXPIRED" ? (
+                              <AlertTriangle className="size-2.5" />
+                            ) : (
+                              <Clock3 className="size-2.5" />
+                            )}
+                            {expiry.shortLabel}
+                          </Badge>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="grid gap-2 text-sm">
@@ -236,7 +257,21 @@ export function DocumentGridView({
                           <p className="text-xs text-muted-foreground">
                             Kedaluwarsa
                           </p>
-                          <p>{formatDate(doc.expiryDate)}</p>
+                          <p className={expiry?.textClass}>
+                            {expiry?.type === "EXPIRED" ? (
+                              <span className="flex items-center gap-1">
+                                <AlertTriangle className="size-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                                {formatDate(doc.expiryDate)}
+                              </span>
+                            ) : expiry?.type === "EXPIRING_SOON" ? (
+                              <span className="flex items-center gap-1" title={`${expiry.daysRemaining} hari lagi`}>
+                                <Clock3 className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                {formatDate(doc.expiryDate)}
+                              </span>
+                            ) : (
+                              formatDate(doc.expiryDate)
+                            )}
+                          </p>
                         </div>
                       </div>
                     </div>
