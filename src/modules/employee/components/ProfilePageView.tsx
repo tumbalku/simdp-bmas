@@ -107,7 +107,7 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Profil Saya"
+        eyebrow="Profil"
         title="Profil Pegawai"
         description="Lihat dan perbarui data pribadi yang aman dikelola mandiri."
         trailing={

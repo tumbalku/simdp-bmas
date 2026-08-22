@@ -85,9 +85,17 @@ export function ProfileEditDialog({ initialData }: ProfileEditDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm" />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="default"
+            aria-label="Edit Profil"
+            className="size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5"
+          />
+        }
+      >
         <Pencil className="size-3.5" />
-        Edit Profil
+        <span className="hidden sm:inline">Edit Profil</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">

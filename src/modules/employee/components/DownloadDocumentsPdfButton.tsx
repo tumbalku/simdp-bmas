@@ -16,7 +16,7 @@ export function DownloadDocumentsPdfButton({
   return (
     <Button
       variant="default"
-      size="sm"
+      size="xs"
       onClick={() =>
         void downloadFileWithToast({
           url: `/api/v1/employees/${employeeId}/documents-pdf`,

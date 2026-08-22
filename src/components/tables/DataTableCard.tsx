@@ -75,7 +75,7 @@ export function DataTableCard({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {footerSummary ? <div>{footerSummary}</div> : null}
             {pagination ? (
-              <div className="flex justify-end sm:ml-auto">{pagination}</div>
+              <div className="flex justify-center sm:justify-end sm:ml-auto">{pagination}</div>
             ) : null}
           </div>
         ) : null}

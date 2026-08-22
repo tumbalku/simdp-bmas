@@ -122,13 +122,13 @@ export default function Home() {
                 const Icon = item.icon;
 
                 return (
-                  <div key={item.label} className="flex min-w-0 flex-col items-center justify-center gap-1 text-center sm:flex-row sm:gap-3 sm:text-left">
+                  <div key={item.label} className="flex min-w-0 max-w-full flex-col items-center justify-center gap-1 text-center sm:flex-row sm:gap-3 sm:text-left">
                     <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent p-1.5 text-accent-foreground sm:size-8 sm:p-2">
                       <Icon className="size-3.5 sm:size-4" aria-hidden="true" />
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-base font-bold tracking-tight sm:text-2xl">{item.value}</p>
-                      <p className="whitespace-nowrap text-[9px] leading-4 text-muted-foreground sm:text-xs">{item.label}</p>
+                    <div className="min-w-0 max-w-full">
+                      <p className="text-sm font-bold tracking-tight sm:text-2xl">{item.value}</p>
+                      <p className="truncate text-[9px] leading-4 text-muted-foreground sm:text-xs">{item.label}</p>
                     </div>
                   </div>
                 );
@@ -200,18 +200,18 @@ export default function Home() {
             <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">
               SiCantIK menjadi ruang kerja bersama untuk mengelola data pegawai, dokumen, verifikasi, dan ringkasan statistik dengan alur yang mudah dipahami.
             </p>
-            <div className="mt-7 grid grid-cols-2 gap-4 border-t border-border pt-6 sm:grid-cols-3">
-              <div>
-                <p className="text-2xl font-bold text-primary">Aman</p>
-                <p className="mt-1 text-xs text-muted-foreground">akses sesuai role</p>
+            <div className="mt-7 grid grid-cols-3 gap-2 border-t border-border pt-6 sm:gap-4">
+              <div className="min-w-0">
+                <p className="truncate text-xl font-bold text-primary sm:text-2xl">Aman</p>
+                <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">akses sesuai role</p>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-primary">Rapi</p>
-                <p className="mt-1 text-xs text-muted-foreground">dokumen terpusat</p>
+              <div className="min-w-0">
+                <p className="truncate text-xl font-bold text-primary sm:text-2xl">Rapi</p>
+                <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">dokumen terpusat</p>
               </div>
-              <div className="col-span-2 sm:col-span-1">
-                <p className="text-2xl font-bold text-primary">Jelas</p>
-                <p className="mt-1 text-xs text-muted-foreground">status mudah dipantau</p>
+              <div className="min-w-0">
+                <p className="truncate text-xl font-bold text-primary sm:text-2xl">Jelas</p>
+                <p className="mt-1 text-[11px] text-muted-foreground sm:text-xs">mudah dipantau</p>
               </div>
             </div>
           </div>

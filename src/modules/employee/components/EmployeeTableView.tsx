@@ -207,7 +207,7 @@ export function EmployeeTableView({
         onValueChange: onRowsPerPageChange,
         options: pageSizeOptions,
         label: "Tampilkan",
-        suffix: "row",
+        suffix: "baris",
       }}
       extraActions={extraActions}
       tableMinWidthClassName="min-w-[900px]"

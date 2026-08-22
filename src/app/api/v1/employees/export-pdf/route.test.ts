@@ -134,6 +134,9 @@ describe("GET /api/v1/employees/export-pdf", () => {
           id: "verification-1",
           code: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
         }),
+        paperSize: "A4",
+        orientation: "landscape",
+        includeSignature: true,
         official: {
           name: "dr. Pejabat",
           position: "Direktur",
@@ -156,8 +159,57 @@ describe("GET /api/v1/employees/export-pdf", () => {
         verificationCode: "SIMDP-ABC123DEF456ABC123DEF456ABC123DE",
         officialName: "dr. Pejabat",
         officialPosition: "Direktur",
+        paperSize: "A4",
+        orientation: "landscape",
+        includeSignature: true,
       },
     });
+  });
+
+  it("correctly parses custom paperSize and orientation options, falling back to defaults for invalid values", async () => {
+    const request = new Request(
+      "http://localhost/api/v1/employees/export-pdf?paperSize=f4&orientation=portrait&officialName=dr.%20Pejabat&officialPosition=Direktur&officialRank=Pembina&officialNip=12345",
+    );
+
+    const response = await GET(request);
+    expect(response.status).toBe(200);
+    expect(mocks.renderEmployeeDirectoryPdfHtml).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        paperSize: "F4",
+        orientation: "portrait",
+      }),
+    );
+
+    // Fallback on invalid paper size or orientation
+    const invalidRequest = new Request(
+      "http://localhost/api/v1/employees/export-pdf?paperSize=INVALID&orientation=INVALID&officialName=dr.%20Pejabat&officialPosition=Direktur&officialRank=Pembina&officialNip=12345",
+    );
+
+    const invalidResponse = await GET(invalidRequest);
+    expect(invalidResponse.status).toBe(200);
+    expect(mocks.renderEmployeeDirectoryPdfHtml).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        paperSize: "A4",
+        orientation: "landscape",
+      }),
+    );
+  });
+
+  it("bypasses rate limit, verification creation, and audit logging for preview requests", async () => {
+    const request = new Request(
+      "http://localhost/api/v1/employees/export-pdf?preview=1&officialName=dr.%20Pejabat&officialPosition=Direktur&officialRank=Pembina&officialNip=12345",
+    );
+
+    const response = await GET(request);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Disposition")).toContain("inline");
+
+    expect(mocks.enforceApiRateLimit).not.toHaveBeenCalled();
+    expect(mocks.issueEmployeeDirectoryVerification).not.toHaveBeenCalled();
+    expect(mocks.attachDocumentVerificationFileHash).not.toHaveBeenCalled();
+    expect(mocks.logActivity).not.toHaveBeenCalled();
   });
 
   it("rejects admin requests without official data before creating a verification", async () => {

@@ -110,6 +110,7 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Ikhtisar"
         title="Ringkasan Sistem"
         description="Pantau status kepatuhan dokumen, statistik verifikasi, dan arsip pegawai RSUD Bahteramas."
       />

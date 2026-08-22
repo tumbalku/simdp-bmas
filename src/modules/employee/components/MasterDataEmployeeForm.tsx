@@ -176,7 +176,7 @@ export function MasterDataEmployeeForm({
     <form onSubmit={handleSubmit}>
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Master Data"
+          eyebrow="Kepegawaian"
           title={isEditMode ? "Edit Pegawai" : "Tambah Pegawai"}
           description={
             isEditMode ? (

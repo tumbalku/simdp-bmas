@@ -5,4 +5,5 @@ export * from "./constants";
 export * from "./schema";
 export * from "./target-rules";
 export * from "./document-completeness";
+export * from "./utils/expiry-status";
 export * from "./hooks/useDocumentTypeForm";

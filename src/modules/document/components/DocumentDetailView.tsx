@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, CheckCircle2, Clock3, FileText, Hash, User, XCircle } from "lucide-react";
+import { AlertTriangle, Calendar, CheckCircle2, Clock3, FileText, Hash, User, XCircle } from "lucide-react";
 
 import { InfoCard } from "@/components/cards/InfoCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
@@ -15,6 +15,7 @@ import {
 } from "@/modules/document/components/document-review";
 import { fetchDocumentPreviewUrl } from "@/modules/document/api";
 import { DownloadDocumentButton } from "@/modules/document/components/DownloadDocumentButton";
+import { getExpiryStatusInfo } from "../utils/expiry-status";
 
 type DocumentDetail = {
   id: string;
@@ -102,6 +103,25 @@ function getOwnerFields(document: DocumentDetail): ReviewInfoField[] {
 }
 
 function getDocumentFields(document: DocumentDetail): ReviewInfoField[] {
+  const expiry = getExpiryStatusInfo(document.expiryDate);
+  let expiryValue: React.ReactNode = formatDate(document.expiryDate);
+
+  if (expiry?.type === "EXPIRED") {
+    expiryValue = (
+      <span className="flex items-center gap-1 font-semibold text-rose-600 dark:text-rose-400">
+        <AlertTriangle className="size-3.5 shrink-0" />
+        {expiry.label}
+      </span>
+    );
+  } else if (expiry?.type === "EXPIRING_SOON") {
+    expiryValue = (
+      <span className="flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+        <Clock3 className="size-3.5 shrink-0" />
+        {expiry.label}
+      </span>
+    );
+  }
+
   return [
     { key: "documentTypeName", icon: FileText, label: "Jenis Dokumen", value: document.documentTypeName },
     { key: "archiveCategory", icon: Hash, label: "Kategori Arsip", value: document.archiveCategory },
@@ -115,7 +135,7 @@ function getDocumentFields(document: DocumentDetail): ReviewInfoField[] {
       key: "expiryDate",
       icon: Calendar,
       label: "Tanggal Kedaluwarsa",
-      value: formatDate(document.expiryDate),
+      value: expiryValue,
     },
   ];
 }
@@ -168,6 +188,7 @@ export function DocumentDetailView({
   return (
     <div className="space-y-4">
       <PageHeader
+        eyebrow="Dokumen"
         backHref={backHref}
         backLabel={backLabel}
         title={document.title || document.documentTypeName}

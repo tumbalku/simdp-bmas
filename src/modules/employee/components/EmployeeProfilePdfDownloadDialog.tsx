@@ -89,9 +89,17 @@ export function EmployeeProfilePdfDownloadDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger
+        render={
+          <Button
+            variant="outline"
+            aria-label={triggerLabel}
+            className="size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5"
+          />
+        }
+      >
         <Download className="size-3.5" />
-        {triggerLabel}
+        <span className="hidden sm:inline">{triggerLabel}</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>

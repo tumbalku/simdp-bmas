@@ -91,23 +91,49 @@ function parseOfficial(searchParams: URLSearchParams) {
   });
 }
 
+const paperSizeSchema = z.enum(["A4", "F4", "LEGAL", "LETTER", "A3"]);
+const orientationSchema = z.enum(["landscape", "portrait"]);
+
+function parsePdfOptions(searchParams: URLSearchParams) {
+  const paperSizeParsed = paperSizeSchema.safeParse(
+    (searchParams.get("paperSize") || "A4").toUpperCase(),
+  );
+  const paperSize = paperSizeParsed.success ? paperSizeParsed.data : "A4";
+
+  const orientationParsed = orientationSchema.safeParse(
+    (searchParams.get("orientation") || "landscape").toLowerCase(),
+  );
+  const orientation = orientationParsed.success ? orientationParsed.data : "landscape";
+
+  const rawSig = searchParams.get("includeSignature");
+  const includeSignature = rawSig === null || (rawSig !== "0" && rawSig !== "false");
+  const isPreview = searchParams.get("preview") === "1" || searchParams.get("preview") === "true";
+
+  return { paperSize, orientation, includeSignature, isPreview };
+}
+
 export async function GET(request: Request) {
   try {
     const session = await requireAuth("ADMIN");
-    const rateLimitResponse = await enforceApiRateLimit(
-      request,
-      API_RATE_LIMIT_CATEGORY.EXPORT,
-      {
-        actorId: session.userId,
-        actorRole: session.role,
-        scope: "employee-directory-pdf",
-      },
-    );
-    if (rateLimitResponse) return rateLimitResponse;
 
     const { searchParams } = new URL(request.url);
     const parsed = parseDirectoryFilter(searchParams);
     const parsedOfficial = parseOfficial(searchParams);
+    const pdfOptions = parsePdfOptions(searchParams);
+
+    // Rate-limit only actual file downloads, not live preview requests
+    if (!pdfOptions.isPreview) {
+      const rateLimitResponse = await enforceApiRateLimit(
+        request,
+        API_RATE_LIMIT_CATEGORY.EXPORT,
+        {
+          actorId: session.userId,
+          actorRole: session.role,
+          scope: "employee-directory-pdf",
+        },
+      );
+      if (rateLimitResponse) return rateLimitResponse;
+    }
 
     if (!parsed.success) {
       return errorResponse(
@@ -121,7 +147,7 @@ export async function GET(request: Request) {
       );
     }
 
-    if (!parsedOfficial.success) {
+    if (pdfOptions.includeSignature && !parsedOfficial.success) {
       return errorResponse(
         "VALIDATION_ERROR",
         "Data Pejabat untuk export PDF tidak valid.",
@@ -133,53 +159,72 @@ export async function GET(request: Request) {
       );
     }
 
+    const officialData = pdfOptions.includeSignature && parsedOfficial.success
+      ? parsedOfficial.data
+      : undefined;
+
     const data = await getEmployeeDirectoryPdfData(parsed.data);
-    const verification = await issueEmployeeDirectoryVerification({
-      issuedByUserId: session.userId,
-      metadata: {
-        archiveView: data.archiveView,
-        rowCount: data.rowCount,
-        filters: parsed.data,
-        official: {
-          name: parsedOfficial.data.name,
-          position: parsedOfficial.data.position,
-          nip: parsedOfficial.data.nip,
-        },
-      },
-    });
+    const verification = !pdfOptions.isPreview
+      ? await issueEmployeeDirectoryVerification({
+          issuedByUserId: session.userId,
+          metadata: {
+            archiveView: data.archiveView,
+            rowCount: data.rowCount,
+            filters: parsed.data,
+            official: officialData
+              ? {
+                  name: officialData.name,
+                  position: officialData.position,
+                  nip: officialData.nip,
+                }
+              : null,
+          },
+        })
+      : undefined;
 
     const html = renderEmployeeDirectoryPdfHtml(data, {
       verification,
-      official: parsedOfficial.data,
+      paperSize: pdfOptions.paperSize,
+      orientation: pdfOptions.orientation,
+      includeSignature: pdfOptions.includeSignature,
+      official: officialData,
     });
     const pdf = await renderHtmlToPdfBuffer(html);
-    const fileHash = crypto.createHash("sha256").update(pdf).digest("hex");
-    await attachDocumentVerificationFileHash(verification.id, fileHash);
 
-    const actorName = await getActorDisplayName(session.userId, "Admin");
-    await logActivity({
-      actorId: session.userId,
-      actorName,
-      actorRole: session.role,
-      eventType: SECURITY_EVENT_TYPE.EMPLOYEE_EXPORTED,
-      resource: "EmployeeDirectoryPdf",
-      status: SECURITY_LOG_STATUS.SUCCESS,
-      metadata: {
-        rowCount: data.rowCount,
-        archiveView: data.archiveView,
-        verificationCode: verification.code,
-        officialName: parsedOfficial.data.name,
-        officialPosition: parsedOfficial.data.position,
-      },
-    });
+    // Attach file hash and log security activity only on actual file download (not live preview)
+    if (!pdfOptions.isPreview && verification) {
+      const fileHash = crypto.createHash("sha256").update(pdf).digest("hex");
+      await attachDocumentVerificationFileHash(verification.id, fileHash);
+
+      const actorName = await getActorDisplayName(session.userId, "Admin");
+      await logActivity({
+        actorId: session.userId,
+        actorName,
+        actorRole: session.role,
+        eventType: SECURITY_EVENT_TYPE.EMPLOYEE_EXPORTED,
+        resource: "EmployeeDirectoryPdf",
+        status: SECURITY_LOG_STATUS.SUCCESS,
+        metadata: {
+          rowCount: data.rowCount,
+          archiveView: data.archiveView,
+          verificationCode: verification.code,
+          officialName: officialData?.name ?? null,
+          officialPosition: officialData?.position ?? null,
+          paperSize: pdfOptions.paperSize,
+          orientation: pdfOptions.orientation,
+          includeSignature: pdfOptions.includeSignature,
+        },
+      });
+    }
 
     const filename = `Laporan-Kepegawaian_${data.archiveView}_${getTimestamp()}.pdf`;
+    const dispositionType = pdfOptions.isPreview ? "inline" : "attachment";
 
     return new NextResponse(Buffer.from(pdf), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Length": String(pdf.byteLength),
-        "Content-Disposition": `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        "Content-Disposition": `${dispositionType}; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       },

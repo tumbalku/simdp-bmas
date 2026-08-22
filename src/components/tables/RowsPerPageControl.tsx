@@ -31,7 +31,7 @@ export function RowsPerPageControl({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground sm:justify-end",
+        "flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground sm:justify-end",
         variant === "card"
           ? "border border-muted-foreground/10 bg-card shadow-sm"
           : "border border-transparent bg-transparent shadow-none"

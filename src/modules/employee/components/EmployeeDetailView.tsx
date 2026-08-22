@@ -101,6 +101,7 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Kepegawaian"
         backHref="/master-data/employees"
         backLabel="Kembali ke data pegawai"
         title="Profil Pegawai"

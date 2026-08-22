@@ -1,7 +1,7 @@
 import * as fs from "fs";
 
 import chromium from "@sparticuz/chromium";
-import puppeteer, { type LaunchOptions } from "puppeteer-core";
+import puppeteer, { type LaunchOptions, type PaperFormat } from "puppeteer-core";
 
 export function isServerlessPdfRuntime(env: Record<string, string | undefined> = process.env) {
   if (env.NODE_ENV === "development") return false;
@@ -69,16 +69,26 @@ async function getBrowserLaunchOptions(): Promise<LaunchOptions> {
   };
 }
 
-export async function renderHtmlToPdfBuffer(html: string) {
+export type RenderPdfBufferOptions = {
+  format?: PaperFormat;
+  landscape?: boolean;
+  width?: string | number;
+  height?: string | number;
+};
+
+export async function renderHtmlToPdfBuffer(
+  html: string,
+  options?: RenderPdfBufferOptions,
+) {
   const browser = await puppeteer.launch(await getBrowserLaunchOptions());
 
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "load" });
     return await page.pdf({
-      format: "A4",
       printBackground: true,
       preferCSSPageSize: true,
+      ...options,
     });
   } finally {
     await browser.close();

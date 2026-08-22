@@ -162,11 +162,11 @@ export function EmployeeFilterCard({
                 value={filters.employeeRankId || "all"}
                 onValueChange={(val) => onFieldChange("employeeRankId", !val || val === "all" ? "" : val)}
               >
-                <SelectTrigger className="w-full" aria-label="Golongan">
-                  <SelectValue placeholder="Golongan" />
+                <SelectTrigger className="w-full" aria-label="Pangkat/Golongan">
+                  <SelectValue placeholder="Pangkat/Golongan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Golongan</SelectItem>
+                  <SelectItem value="all">Pangkat/Golongan</SelectItem>
                   {filterOptions.employeeRanks.map((opt) => (
                     <SelectItem key={opt.id} value={opt.id}>
                       {opt.name}

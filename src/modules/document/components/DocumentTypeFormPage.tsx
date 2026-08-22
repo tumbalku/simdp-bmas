@@ -284,6 +284,7 @@ export function DocumentTypeFormPage({
     <form onSubmit={handleSubmit}>
       <div className="space-y-6">
         <PageHeader
+          eyebrow="Konfigurasi"
           title={isEditMode ? "Edit Jenis Dokumen" : "Tambah Jenis Dokumen"}
           description={
             isEditMode
