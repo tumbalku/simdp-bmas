@@ -25,8 +25,8 @@ import { type PaginationMeta } from "@/types/pagination";
 import {
   DOCUMENT_STATUS_OPTIONS,
   DOCUMENT_STATUS_VARIANTS,
-  getExpiryStatusInfo,
 } from "@/modules/document";
+import { getExpiryStatusInfo } from "../utils/expiry-status";
 
 export type DocumentRecord = {
   id: string;

@@ -23,8 +23,8 @@ import {
 import {
   DOCUMENT_STATUS_OPTIONS,
   DOCUMENT_STATUS_VARIANTS,
-  getExpiryStatusInfo,
 } from "@/modules/document";
+import { getExpiryStatusInfo } from "../utils/expiry-status";
 import type {
   CriticalActionTarget,
   DocumentRecord,

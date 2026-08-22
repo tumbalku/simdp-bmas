@@ -15,7 +15,7 @@ import {
 } from "@/modules/document/components/document-review";
 import { fetchDocumentPreviewUrl } from "@/modules/document/api";
 import { DownloadDocumentButton } from "@/modules/document/components/DownloadDocumentButton";
-import { getExpiryStatusInfo } from "@/modules/document";
+import { getExpiryStatusInfo } from "../utils/expiry-status";
 
 type DocumentDetail = {
   id: string;

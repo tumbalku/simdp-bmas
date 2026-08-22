@@ -23,7 +23,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DATE_FORMATS, DATE_LOCALE, routeTo } from "@/constants";
 import { cn } from "@/utils";
 import { DocumentUploadForm } from "@/modules/document/components/DocumentUploadForm";
-import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS, getExpiryStatusInfo } from "@/modules/document";
+import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document";
+import { getExpiryStatusInfo } from "../utils/expiry-status";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 
 const statusConfig: Record<
