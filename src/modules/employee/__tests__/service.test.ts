@@ -392,9 +392,7 @@ describe("Employee Module Service", () => {
       expect(html).toContain("class=\"letterhead-logo\"");
       expect(html).toContain("data:image/png;base64,");
       expect(html).toContain("min-height: calc(210mm - 14mm)");
-      expect(html).toContain("margin-top: auto");
-      expect(html).toContain("padding-top: 20px");
-      expect(html).toContain("padding-bottom: 18px");
+      expect(html).toContain("margin-top: 14px");
       expect(html).toContain("Siti Aminah");
       expect(html).toContain("<span>Status/Jenis</span><span>Pegawai</span>");
       expect(html).toContain("<span>Jenis</span><span>Kelamin</span>");
@@ -413,9 +411,52 @@ describe("Employee Module Service", () => {
       expect(html).not.toContain("Kode: SIMDP-ABC123DEF456ABC123DEF456ABC123DE");
       expect(html).not.toContain("verification-code");
       expect(html).toContain("data:image/png;base64,qr");
-      expect(html).toContain(".verification-card {\n      display: grid;");
+      expect(html).toContain(".verification-card {");
       expect(html).not.toContain("background: #f0fdfa");
       expect(html).not.toContain("Data mengikuti query pencarian");
+    });
+
+    it("should render employee directory PDF HTML without verification QR when verification is undefined (preview mode)", () => {
+      const html = renderEmployeeDirectoryPdfHtml(
+        {
+          title: "Laporan Kepegawaian",
+          archiveView: "active",
+          generatedAt: "2026-07-29T00:00:00.000Z",
+          rowCount: 1,
+          rows: [
+            {
+              no: 1,
+              name: "Siti Aminah",
+              employeeId: "19850101",
+              nik: "7471010101010001",
+              rank: "III/a",
+              position: "Perawat",
+              workplace: "UGD",
+              birthPlace: "Kendari",
+              birthDate: "1985-01-01",
+              lastEducation: "S1",
+              employeeGroup: "ASN",
+              employmentStatus: "PNS",
+              tmt: "2020-01-01",
+              gender: "Wanita",
+            },
+          ],
+        },
+        {
+          verification: undefined,
+          official: {
+            name: "dr. Pejabat Baru",
+            position: "Direktur",
+            rank: "Pembina Utama Muda, Gol.IV/c",
+            nip: "197001012000121001",
+          },
+        },
+      );
+
+      expect(html).toContain("RUMAH SAKIT UMUM DAERAH BAHTERAMAS");
+      expect(html).toContain("Laporan Kepegawaian");
+      expect(html).not.toContain("Verifikasi Laporan");
+      expect(html).toContain("dr. Pejabat Baru");
     });
 
     it("should render employee document report PDF HTML with letterhead, employee detail, and document table", () => {

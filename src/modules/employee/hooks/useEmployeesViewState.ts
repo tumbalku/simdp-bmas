@@ -216,6 +216,19 @@ export function useEmployeesViewState({
     router.push(buildPageUrl(PAGINATION.defaultPage, resetFilters, defaultLimit));
   };
 
+  const buildExportPdfPageUrl = () => {
+    const params = new URLSearchParams();
+    if (isArchiveView) params.set("archiveView", "archived");
+
+    FILTER_KEYS.forEach((key) => {
+      const value = filters[key].trim();
+      if (value) params.set(key, value);
+    });
+
+    const query = params.toString();
+    return `/master-data/employees/export${query ? `?${query}` : ""}`;
+  };
+
   return {
     selectedEmployeeIds,
     setSelectedEmployeeIds,
@@ -227,6 +240,7 @@ export function useEmployeesViewState({
     buildArchiveViewUrl,
     buildExportUrl,
     buildExportPdfUrl,
+    buildExportPdfPageUrl,
     handleSortChange,
     handleValueChange,
     handleFilter,

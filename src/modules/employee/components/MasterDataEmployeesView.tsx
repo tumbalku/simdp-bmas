@@ -78,6 +78,7 @@ export function MasterDataEmployeesView({
     buildArchiveViewUrl,
     buildExportUrl,
     buildExportPdfUrl,
+    buildExportPdfPageUrl,
     handleSortChange,
     handleValueChange,
     handleFilter,
@@ -425,6 +426,7 @@ export function MasterDataEmployeesView({
       isArchiveView={isArchiveView}
       isBulkPending={isBulkPending}
       exportUrl={buildExportUrl()}
+      exportPdfUrl={buildExportPdfPageUrl()}
       onOpenBulkDelete={() => openBulkDialog("bulk-delete")}
       onOpenBulkRestore={() => openBulkDialog("bulk-restore")}
       onOpenBulkArchive={() => openBulkDialog("bulk-archive")}

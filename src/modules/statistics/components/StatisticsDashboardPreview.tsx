@@ -159,7 +159,7 @@ export function StatisticsDashboardPreview() {
         </p>
       </div>
 
-      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4 md:grid-cols-3`}>
+      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4 sm:grid-cols-3`}>
         {metricCards.map((metric) => (
           <ResponsiveMetricCard
             key={metric.label}

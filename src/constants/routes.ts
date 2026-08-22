@@ -17,6 +17,7 @@ export const ROUTES = {
   masterDataDocumentTypeAdd: "/master-data/documents/types/add",
   masterDataEmployees: "/master-data/employees",
   masterDataEmployeeAdd: "/master-data/employees/add",
+  masterDataEmployeeExport: "/master-data/employees/export",
   masterDataCategories: "/master-data/categories",
 } as const;
 
@@ -26,6 +27,8 @@ export const routeTo = {
   masterDataDocumentTypeEdit: (id: string) => `${ROUTES.masterDataDocumentTypes}/${id}/edit`,
   masterDataEmployeeDetail: (id: string) => `${ROUTES.masterDataEmployees}/${id}`,
   masterDataEmployeeEdit: (id: string) => `${ROUTES.masterDataEmployees}/${id}/edit`,
+  masterDataEmployeeExport: (queryString?: string) =>
+    `${ROUTES.masterDataEmployeeExport}${queryString ? `?${queryString}` : ""}`,
   documentsUpload: () => `${ROUTES.documents}?upload=true`,
   loginResetSuccess: () => `${ROUTES.login}?reset=success`,
 } as const;

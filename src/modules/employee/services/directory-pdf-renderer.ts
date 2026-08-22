@@ -5,9 +5,15 @@ import type { IssuedDocumentVerification } from "@/modules/document-verification
 
 import type { EmployeeDirectoryPdfData, EmployeeDirectoryPdfRow } from "./directory-pdf";
 
+export type PdfPaperSize = "A4" | "F4" | "LEGAL" | "LETTER" | "A3";
+export type PdfOrientation = "landscape" | "portrait";
+
 type RenderEmployeeDirectoryPdfHtmlOptions = {
-  verification: IssuedDocumentVerification;
-  official: {
+  verification?: IssuedDocumentVerification | null;
+  paperSize?: PdfPaperSize;
+  orientation?: PdfOrientation;
+  includeSignature?: boolean;
+  official?: {
     name: string;
     position: string;
     rank: string;
@@ -64,6 +70,17 @@ function formatPrintedAt(value: string) {
   return `Dicetak: ${day} ${monthYear} pukul ${time}`;
 }
 
+function formatPeriodDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  const day = new Intl.DateTimeFormat("id-ID", { day: "numeric" }).format(date);
+  const monthYear = new Intl.DateTimeFormat("id-ID", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+  return `${day} ${monthYear}`;
+}
+
 function getLetterheadLogoDataUrl() {
   const logoPath = path.join(process.cwd(), "public", "images", "logo-anoa-sultra.png");
   const buffer = fs.readFileSync(logoPath);
@@ -110,16 +127,53 @@ function renderRows(rows: EmployeeDirectoryPdfRow[]) {
     .join("");
 }
 
+function getPageCssSize(paperSize: PdfPaperSize = "A4", orientation: PdfOrientation = "landscape") {
+  const isLandscape = orientation === "landscape";
+  switch (paperSize) {
+    case "F4":
+      return isLandscape ? "330mm 215mm" : "215mm 330mm";
+    case "LEGAL":
+      return isLandscape ? "355.6mm 215.9mm" : "215.9mm 355.6mm";
+    case "LETTER":
+      return isLandscape ? "279.4mm 215.9mm" : "215.9mm 279.4mm";
+    case "A3":
+      return `A3 ${orientation}`;
+    case "A4":
+    default:
+      return `A4 ${orientation}`;
+  }
+}
+
 export function renderEmployeeDirectoryPdfHtml(
   data: EmployeeDirectoryPdfData,
   options: RenderEmployeeDirectoryPdfHtmlOptions,
 ) {
   const printedAt = formatPrintedAt(data.generatedAt);
+  const periodDate = formatPeriodDate(data.generatedAt);
   const currentMonth = new Intl.DateTimeFormat("id-ID", {
     month: "long",
     year: "numeric",
   }).format(new Date(data.generatedAt));
   const letterheadLogo = getLetterheadLogoDataUrl();
+
+  const paperSize = options.paperSize ?? "A4";
+  const orientation = options.orientation ?? "landscape";
+  const includeSignature = options.includeSignature ?? true;
+  const pageCss = getPageCssSize(paperSize, orientation);
+
+  const signatureHtml =
+    includeSignature && options.official
+      ? `
+      <div class="signature">
+        <div>Mengetahui,</div>
+        <div>Kendari&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${escapeHtml(currentMonth)}</div>
+        <div>${escapeHtml(options.official.position)},</div>
+        <div class="name">${escapeHtml(options.official.name)}</div>
+        <div>${escapeHtml(options.official.rank)}</div>
+        <div>NIP. ${escapeHtml(options.official.nip)}</div>
+      </div>
+    `
+      : "";
 
   return `<!doctype html>
 <html lang="id">
@@ -138,6 +192,7 @@ export function renderEmployeeDirectoryPdfHtml(
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
+      padding: 0;
       color: var(--ink);
       background: #ffffff;
       font-family: Arial, Helvetica, sans-serif;
@@ -197,13 +252,24 @@ export function renderEmployeeDirectoryPdfHtml(
       border-top: 2px solid var(--line);
       border-bottom: 1px solid var(--line);
     }
+    .title-block {
+      margin: 0 0 10px;
+      text-align: center;
+    }
     .title {
-      margin: 0 0 8px;
+      margin: 0;
       text-align: center;
       font-size: 16px;
       font-weight: 900;
       letter-spacing: .01em;
       text-transform: uppercase;
+    }
+    .subtitle {
+      margin-top: 3px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .01em;
     }
     table {
       width: 99.8%;
@@ -218,7 +284,8 @@ export function renderEmployeeDirectoryPdfHtml(
       border: 1px solid var(--soft-line);
       padding: 5px 4px;
       vertical-align: middle;
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     th {
       height: auto;
@@ -240,10 +307,14 @@ export function renderEmployeeDirectoryPdfHtml(
     .col-no { 
       width: 25px; 
       text-align: center;
+      white-space: nowrap;
     }
     .col-name { 
       font-weight: 700;
       text-align: left;
+      white-space: normal;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     .col-nip {
       font-size: 8.5px;
@@ -259,122 +330,111 @@ export function renderEmployeeDirectoryPdfHtml(
     }
     .col-rank {
       font-size: 8.5px;
-      text-align: center;
+      text-align: left;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-position {
       font-size: 8.5px;
-      text-align: center;
+      text-align: left;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-workplace {
       font-size: 8.5px;
-      text-align: center;
+      text-align: left;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-birth {
-      font-size: 8.5px;
+      font-size: 8px;
       line-height: 1.15;
-      text-align: center;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-education {
       font-size: 8.5px;
-      text-align: center;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-status {
-      font-size: 8.5px;
-      text-align: center;
+      font-size: 8px;
+      line-height: 1.15;
       white-space: normal;
       overflow-wrap: break-word;
       word-break: break-word;
     }
     .col-tmt {
-      font-size: 8.5px;
-      line-height: 1.1;
-      text-align: center;
+      font-size: 8px;
+      line-height: 1.12;
       white-space: nowrap;
+      text-align: center;
     }
     .col-gender {
       font-size: 8.5px;
-      line-height: 1.08;
-      text-align: center;
       white-space: nowrap;
+      text-align: center;
     }
     .compact-header {
-      line-height: 1.08;
+      padding: 3px 2px;
+      font-size: 8.5px;
+      line-height: 1.05;
     }
     .compact-header span {
       display: block;
     }
-    .empty-cell {
-      height: 54px;
-      text-align: center;
-      color: #64748b;
-      font-style: italic;
-    }
+
     .signature-row {
-      display: grid;
-      grid-template-columns: 1fr 320px;
-      gap: 24px;
-      margin-top: auto;
-      padding-top: 20px;
-      padding-bottom: 18px;
+      margin-top: 14px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
       break-inside: avoid;
       page-break-inside: avoid;
     }
     .verification-card {
-      display: grid;
-      grid-template-columns: 66px 1fr;
-      gap: 9px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      padding: 0;
+      text-align: center;
+      gap: 6px;
     }
     .verification-card img {
-      width: 66px;
-      height: 66px;
-      display: block;
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
     }
     .verification-label {
-      color: var(--teal);
-      font-size: 7px;
-      font-weight: 900;
+      font-size: 8.5px;
+      font-weight: 800;
+      color: #111111;
       text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-    .verification-title {
-      margin-top: 3px;
-      color: #0f172a;
-      font-size: 8px;
-      font-weight: 900;
-    }
-    .verification-url {
-      margin-top: 5px;
-      color: #475569;
-      font-size: 6.2px;
-      overflow-wrap: anywhere;
+      letter-spacing: .02em;
+      text-align: center;
     }
     .signature {
-      font-size: 9px;
-      line-height: 1.28;
+      width: 260px;
+      font-size: 9.5px;
+      line-height: 1.3;
     }
     .signature .name {
-      margin-top: 42px;
-      font-weight: 900;
+      margin-top: 46px;
+      font-weight: 800;
       text-decoration: underline;
     }
+    .empty-cell {
+      padding: 16px;
+      font-style: italic;
+      color: #64748b;
+    }
     .footer {
+      margin-top: 10px;
       display: flex;
       justify-content: space-between;
       margin-top: 0;
@@ -386,7 +446,7 @@ export function renderEmployeeDirectoryPdfHtml(
       page-break-inside: avoid;
     }
 
-    @page { size: A4 landscape; margin: 7mm 8mm; }
+    @page { size: ${pageCss}; margin: 7mm 8mm; }
   </style>
 </head>
 <body>
@@ -403,7 +463,10 @@ export function renderEmployeeDirectoryPdfHtml(
     </header>
     <div class="head-rule"></div>
 
-    <h1 class="title">Laporan Kepegawaian</h1>
+    <div class="title-block">
+      <h1 class="title">Laporan Kepegawaian</h1>
+      <div class="subtitle">Periode ${escapeHtml(periodDate)}</div>
+    </div>
 
     <table>
       <colgroup>
@@ -440,22 +503,17 @@ export function renderEmployeeDirectoryPdfHtml(
     </table>
 
     <section class="signature-row">
+      ${
+        options.verification
+          ? `
       <div class="verification-card">
+        <div class="verification-label">Verifikasi Laporan</div>
         <img src="${escapeHtml(options.verification.qrCodeDataUrl)}" alt="QR Code verifikasi laporan" />
-        <div>
-          <div class="verification-label">Verifikasi Laporan</div>
-          <div class="verification-title">Scan QR untuk mengecek keaslian PDF laporan ini.</div>
-          <div class="verification-url">${escapeHtml(options.verification.verifyUrl)}</div>
-        </div>
       </div>
-      <div class="signature">
-        <div>Mengetahui,</div>
-        <div>Kendari&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ${escapeHtml(currentMonth)}</div>
-        <div>${escapeHtml(options.official.position)},</div>
-        <div class="name">${escapeHtml(options.official.name)}</div>
-        <div>${escapeHtml(options.official.rank)}</div>
-        <div>NIP. ${escapeHtml(options.official.nip)}</div>
-      </div>
+      `
+          : `<div></div>`
+      }
+      ${signatureHtml}
     </section>
 
     <footer class="footer">

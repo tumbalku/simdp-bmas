@@ -16,10 +16,11 @@ export type EmployeeBulkActionsBarProps = {
   isArchiveView: boolean;
   isBulkPending: boolean;
   exportUrl: string;
+  exportPdfUrl?: string;
   onOpenBulkDelete: () => void;
   onOpenBulkRestore: () => void;
   onOpenBulkArchive: () => void;
-  onOpenExportPdfDialog: () => void;
+  onOpenExportPdfDialog?: () => void;
 };
 
 export function EmployeeBulkActionsBar({
@@ -27,6 +28,7 @@ export function EmployeeBulkActionsBar({
   isArchiveView,
   isBulkPending,
   exportUrl,
+  exportPdfUrl,
   onOpenBulkDelete,
   onOpenBulkRestore,
   onOpenBulkArchive,
@@ -34,6 +36,15 @@ export function EmployeeBulkActionsBar({
 }: EmployeeBulkActionsBarProps) {
   const router = useRouter();
   const hasSelection = selectedCount > 0;
+  const canExportPdf = Boolean(exportPdfUrl || onOpenExportPdfDialog);
+
+  const handleExportPdfClick = () => {
+    if (exportPdfUrl) {
+      router.push(exportPdfUrl);
+    } else if (onOpenExportPdfDialog) {
+      onOpenExportPdfDialog();
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -94,7 +105,11 @@ export function EmployeeBulkActionsBar({
           <FileDown className="size-4 mr-2" />
           Export CSV
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={onOpenExportPdfDialog} className="cursor-pointer">
+        <DropdownMenuItem
+          disabled={!canExportPdf}
+          onClick={handleExportPdfClick}
+          className={canExportPdf ? "cursor-pointer" : "cursor-not-allowed opacity-50"}
+        >
           <FileText className="size-4 mr-2" />
           Export PDF
         </DropdownMenuItem>
