@@ -10,10 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  getResponsiveMetricGridClass,
-  ResponsiveMetricCard,
-} from "@/components/cards/ResponsiveMetricCard";
+import { MetricCard } from "@/components/cards/MetricCard";
 
 import { DonutChart } from "@/components/charts/DonutChart";
 import { SimpleBarChart } from "./StatisticsCharts";
@@ -159,9 +156,9 @@ export function StatisticsDashboardPreview() {
         </p>
       </div>
 
-      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4 sm:grid-cols-3`}>
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-4 sm:grid-cols-3">
         {metricCards.map((metric) => (
-          <ResponsiveMetricCard
+          <MetricCard
             key={metric.label}
             title={metric.label}
             compactTitle={metric.compactTitle}

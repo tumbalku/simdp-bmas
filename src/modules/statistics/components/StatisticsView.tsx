@@ -6,8 +6,8 @@ import { AlertTriangle, Clock, FileText, ShieldCheck, TrendingUp, Users } from "
 import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import {
-  ResponsiveMetricCard,
-} from "@/components/cards/ResponsiveMetricCard";
+  MetricCard,
+} from "@/components/cards/MetricCard";
 import { EmptyState } from "./StatisticsCharts";
 import { StatisticsSkeleton } from "./StatisticsSkeleton";
 import { StatisticsTabs } from "./StatisticsTabs";
@@ -75,7 +75,7 @@ export default function StatisticsView() {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-3 gap-1.5 sm:gap-4 lg:grid-cols-3 justify-center">
-        <ResponsiveMetricCard
+        <MetricCard
           title="Total Pegawai"
           compactTitle="Pegawai"
           value={totalEmployees}
@@ -83,7 +83,7 @@ export default function StatisticsView() {
           icon={Users}
           iconClassName="bg-teal-500/10 text-teal-600 dark:text-teal-400"
         />
-        <ResponsiveMetricCard
+        <MetricCard
           title="Total Dokumen"
           compactTitle="Dokumen"
           value={totalDocuments}
@@ -91,7 +91,7 @@ export default function StatisticsView() {
           icon={FileText}
           iconClassName="bg-sky-500/10 text-sky-600 dark:text-sky-400"
         />
-        <ResponsiveMetricCard
+        <MetricCard
           title="Upload (6 Bln)"
           compactTitle="Upload"
           value={totalUploadsLastSixMonths}
@@ -99,7 +99,7 @@ export default function StatisticsView() {
           icon={TrendingUp}
           iconClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
         />
-        <ResponsiveMetricCard
+        <MetricCard
           title="Riwayat Verifikasi"
           compactTitle="Verifikasi"
           value={totalVerifications}
@@ -107,7 +107,7 @@ export default function StatisticsView() {
           icon={ShieldCheck}
           iconClassName="bg-purple-500/10 text-purple-600 dark:text-purple-400"
         />
-        <ResponsiveMetricCard
+        <MetricCard
           title="Kekurangan Dokumen"
           compactTitle="Kurang"
           value={totalMissingMandatory}
@@ -116,7 +116,7 @@ export default function StatisticsView() {
           iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
           valueClassName={totalMissingMandatory > 0 ? "text-amber-600 dark:text-amber-400" : ""}
         />
-        <ResponsiveMetricCard
+        <MetricCard
           title="Hampir Kedaluwarsa"
           compactTitle="Expired"
           value={expiringWithin30Days}

@@ -1,9 +1,6 @@
 import { Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
 
-import {
-  getResponsiveMetricGridClass,
-  ResponsiveMetricCard,
-} from "@/components/cards/ResponsiveMetricCard";
+import { MetricCard } from "@/components/cards/MetricCard";
 
 type SecurityLogMetricsProps = {
   totalItems: number;
@@ -13,8 +10,8 @@ type SecurityLogMetricsProps = {
 
 export function SecurityLogMetrics({ totalItems, success, failed }: SecurityLogMetricsProps) {
   return (
-      <div className={`grid ${getResponsiveMetricGridClass(["Total log", "Berhasil", "Gagal"])} gap-1.5 sm:gap-4 sm:grid-cols-3`}>
-        <ResponsiveMetricCard
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-4 sm:grid-cols-3">
+        <MetricCard
           title="Total log"
           compactTitle="Total"
           value={totalItems.toString()}
@@ -22,7 +19,7 @@ export function SecurityLogMetrics({ totalItems, success, failed }: SecurityLogM
           icon={Activity}
           iconClassName="bg-primary/10 text-primary"
         />
-        <ResponsiveMetricCard
+        <MetricCard
           title="Berhasil"
           compactTitle="Berhasil"
           value={success.toString()}
@@ -30,7 +27,7 @@ export function SecurityLogMetrics({ totalItems, success, failed }: SecurityLogM
           icon={CheckCircle2}
           iconClassName="bg-success/10 text-success"
         />
-        <ResponsiveMetricCard
+        <MetricCard
           title="Gagal"
           compactTitle="Gagal"
           value={failed.toString()}

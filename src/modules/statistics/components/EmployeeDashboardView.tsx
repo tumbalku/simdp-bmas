@@ -11,10 +11,7 @@ import {
 } from "lucide-react";
 import { DocumentCompletenessProgress } from "@/components/cards/DocumentCompletenessProgress";
 
-import {
-  getResponsiveMetricGridClass,
-  ResponsiveMetricCard,
-} from "@/components/cards/ResponsiveMetricCard";
+import { MetricCard } from "@/components/cards/MetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -207,9 +204,9 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
         description="Ringkasan pribadi kondisi dokumen kepegawaian Anda."
       />
 
-      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
+      <div className="grid gap-1.5 sm:gap-4 grid-cols-4">
         {metricCards.map((metric) => (
-          <ResponsiveMetricCard key={metric.title} {...metric} />
+          <MetricCard key={metric.title} {...metric} />
         ))}
       </div>
 
