@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { InfoCard } from "@/components/cards/InfoCard";
+import { CardContainer } from "@/components/cards/CardContainer";
+import { InfoField } from "@/components/cards/InfoField";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import {
   DocumentPreviewPanel,
@@ -323,19 +324,38 @@ export function VerificationDetailView({ document }: VerificationDetailViewProps
               status={status}
               actions={statusActions}
             />
-            <InfoCard
+            <CardContainer
               title="Pemilik Dokumen"
               description="Informasi pegawai pengirim berkas."
               icon={User}
-              fields={getOwnerFields(document)}
-            />
-            <InfoCard
+            >
+              <div className="space-y-2">
+                {getOwnerFields(document).map((field) => (
+                  <InfoField
+                    key={field.key}
+                    icon={field.icon}
+                    label={field.label}
+                    value={field.value}
+                  />
+                ))}
+              </div>
+            </CardContainer>
+            <CardContainer
               title="Informasi Dokumen"
               description="Detail metadata dan informasi file dokumen."
               icon={FileText}
-              fields={getDocumentFields(document)}
-              columns={2}
-            />
+            >
+              <div className="grid gap-2 md:grid-cols-2">
+                {getDocumentFields(document).map((field) => (
+                  <InfoField
+                    key={field.key}
+                    icon={field.icon}
+                    label={field.label}
+                    value={field.value}
+                  />
+                ))}
+              </div>
+            </CardContainer>
           </>
         }
         history={

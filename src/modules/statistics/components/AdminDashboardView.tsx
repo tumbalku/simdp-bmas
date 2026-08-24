@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardContainer } from "@/components/cards/CardContainer";
 import { MetricCard } from "@/components/cards/MetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Users, FileText, ShieldCheck, FileClock } from "lucide-react";
@@ -122,56 +116,51 @@ export function AdminDashboardView({ stats }: AdminDashboardViewProps) {
       {/* Main Charts & Breakdown Section */}
       <div className="grid items-stretch gap-4 lg:grid-cols-3">
         {/* Verification Trend Chart */}
-        <Card size="sm" className="h-full border-muted-foreground/10 bg-card shadow-sm lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Tren Upload & Verifikasi</CardTitle>
-            <CardDescription className="text-xs">Statistik perbandingan ritme upload berkas terhadap hasil verifikasi.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-1">
-            <UploadTrendChart data={uploadTrendData} />
-          </CardContent>
-        </Card>
+        <CardContainer
+          size="sm"
+          className="h-full lg:col-span-2"
+          title="Tren Upload & Verifikasi"
+          description="Statistik perbandingan ritme upload berkas terhadap hasil verifikasi."
+          contentClassName="flex flex-1"
+        >
+          <UploadTrendChart data={uploadTrendData} />
+        </CardContainer>
 
         {/* Document Status Pie Chart */}
-        <Card size="sm" className="h-full">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Status dokumen</CardTitle>
-            <CardDescription className="text-xs">
-              Distribusi status dokumen pegawai.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-1">
-            <DocumentStatusChart data={documentStatusData} />
-          </CardContent>
-        </Card>
+        <CardContainer
+          size="sm"
+          className="h-full"
+          title="Status dokumen"
+          description="Distribusi status dokumen pegawai."
+          contentClassName="flex flex-1"
+        >
+          <DocumentStatusChart data={documentStatusData} />
+        </CardContainer>
       </div>
 
       {/* Category List Progression Section */}
-      <Card className="shadow-sm border-muted-foreground/10 bg-card">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold">Sebaran Kategori Dokumen</CardTitle>
-          <CardDescription className="text-xs">Jumlah berkas kepegawaian digital berdasarkan kategori arsip.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-            {archiveCategories.map((cat) => {
-              const percentage = totalDocuments > 0 ? (cat.value / totalDocuments) * 100 : 0;
-              return (
-                <div key={cat.label} className="space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-medium text-muted-foreground truncate max-w-[150px]">{cat.label}</span>
-                    <span className="font-bold tabular-nums text-foreground">{cat.value}</span>
-                  </div>
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div className={`h-full ${cat.color} rounded-full`} style={{ width: `${percentage}%` }} />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground text-right">{percentage.toFixed(0)}% dari total berkas</p>
+      <CardContainer
+        title="Sebaran Kategori Dokumen"
+        description="Jumlah berkas kepegawaian digital berdasarkan kategori arsip."
+      >
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          {archiveCategories.map((cat) => {
+            const percentage = totalDocuments > 0 ? (cat.value / totalDocuments) * 100 : 0;
+            return (
+              <div key={cat.label} className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-medium text-muted-foreground truncate max-w-[150px]">{cat.label}</span>
+                  <span className="font-bold tabular-nums text-foreground">{cat.value}</span>
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div className={`h-full ${cat.color} rounded-full`} style={{ width: `${percentage}%` }} />
+                </div>
+                <p className="text-[10px] text-muted-foreground text-right">{percentage.toFixed(0)}% dari total berkas</p>
+              </div>
+            );
+          })}
+        </div>
+      </CardContainer>
     </div>
   );
 }

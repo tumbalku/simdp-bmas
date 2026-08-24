@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { Briefcase, Mail, MapPin, Phone, User, Calendar, GraduationCap, Heart, Award, Pencil } from "lucide-react";
-import { InfoCard } from "@/components/cards/InfoCard";
+import { CardContainer } from "@/components/cards/CardContainer";
+import { InfoField } from "@/components/cards/InfoField";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage, AvatarBadge } from "@/components/ui/avatar";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ROLE_LABELS, getRoleBadgeStyle, routeTo, type UserRole } from "@/constants";
 import { CareerHistoryDialog } from "./CareerHistoryDialog";
 import { EmployeeProfilePdfDownloadDialog } from "./EmployeeProfilePdfDownloadDialog";
 import { DownloadDocumentsPdfButton } from "./DownloadDocumentsPdfButton";
+import { ROLE_LABELS, getRoleBadgeStyle, routeTo, type UserRole } from "@/constants";
+import { Card, CardContent } from "@/components/ui/card";
 
 type MasterDataOption = {
   id: string;
@@ -149,122 +150,104 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <InfoCard
+        <CardContainer
           className="border-muted-foreground/10 shadow-sm"
-          columns={2}
           description="Identitas dasar, tingkat pendidikan, NIP, NIK, dan kontak pegawai."
-          fieldVariant="inline"
-          fields={[
-            { key: "employeeId", icon: User, label: "NIP / NIPTT", value: employee.employeeId || "-" },
-            { key: "nik", icon: User, label: "NIK", value: employee.nik || "-" },
-            { key: "email", icon: Mail, label: "Email", value: employee.email || "-" },
-            { key: "phone", icon: Phone, label: "Telepon", value: employee.phone || "-" },
-            { key: "address", icon: MapPin, label: "Alamat Tinggal", value: employee.address || "-" },
-            { key: "gender", icon: User, label: "Jenis Kelamin", value: employee.gender || "-" },
-            {
-              key: "birth",
-              icon: Calendar,
-              label: "Tempat & Tanggal Lahir",
-              value: `${employee.birthPlace || "-"}, ${formatDate(employee.birthDate)}`,
-            },
-            {
-              key: "education",
-              icon: GraduationCap,
-              label: "Pendidikan Terakhir",
-              value: employee.lastEducation
-                ? `${employee.lastEducation} ${employee.academicDegree ? `(${employee.academicDegree})` : ""}`
-                : "-",
-            },
-            { key: "religion", icon: Heart, label: "Agama", value: employee.religion || "-" },
-            {
-              key: "maritalStatus",
-              icon: Award,
-              label: "Status Pernikahan",
-              value: employee.maritalStatus || "-",
-            },
-            {
-              key: "joinDate",
-              icon: Briefcase,
-              label: "Mulai Bekerja (Join Date)",
-              value: formatDate(employee.joinDate),
-            },
-            {
-              key: "groupRank",
-              icon: Briefcase,
-              label: "Kelompok / Golongan",
-              value: `${employee.employeeGroup || "-"} ${employee.employeeRank ? `(${employee.employeeRank})` : ""}`,
-            },
-            {
-              key: "tmt",
-              icon: Calendar,
-              label: employee.tmtEndDate ? "Masa Kontrak" : "TMT Awal CPNS",
-              value: employee.tmtEndDate
-                ? `${formatDate(employee.tmtStartDate)} s.d. ${formatDate(employee.tmtEndDate)}`
-                : formatDate(employee.tmtStartDate),
-              hidden: !employee.hasTmt || !employee.tmtStartDate,
-            },
-          ]}
           icon={User}
           title="Informasi Pribadi & Kontak"
-          truncate
-        />
+        >
+          <div className="grid gap-2 md:grid-cols-2">
+            <InfoField icon={User} label="NIP / NIPTT" value={employee.employeeId || "-"} variant="inline" />
+            <InfoField icon={User} label="NIK" value={employee.nik || "-"} variant="inline" />
+            <InfoField icon={Mail} label="Email" value={employee.email || "-"} variant="inline" />
+            <InfoField icon={Phone} label="Telepon" value={employee.phone || "-"} variant="inline" />
+            <InfoField icon={MapPin} label="Alamat Tinggal" value={employee.address || "-"} variant="inline" />
+            <InfoField icon={User} label="Jenis Kelamin" value={employee.gender || "-"} variant="inline" />
+            <InfoField
+              icon={Calendar}
+              label="Tempat & Tanggal Lahir"
+              value={`${employee.birthPlace || "-"}, ${formatDate(employee.birthDate)}`}
+              variant="inline"
+            />
+            <InfoField
+              icon={GraduationCap}
+              label="Pendidikan Terakhir"
+              value={employee.lastEducation
+                ? `${employee.lastEducation} ${employee.academicDegree ? `(${employee.academicDegree})` : ""}`
+                : "-"}
+              variant="inline"
+            />
+            <InfoField icon={Heart} label="Agama" value={employee.religion || "-"} variant="inline" />
+            <InfoField icon={Award} label="Status Pernikahan" value={employee.maritalStatus || "-"} variant="inline" />
+            <InfoField icon={Briefcase} label="Mulai Bekerja (Join Date)" value={formatDate(employee.joinDate)} variant="inline" />
+            <InfoField
+              icon={Briefcase}
+              label="Kelompok / Golongan"
+              value={`${employee.employeeGroup || "-"} ${employee.employeeRank ? `(${employee.employeeRank})` : ""}`}
+              variant="inline"
+            />
+            {employee.hasTmt && employee.tmtStartDate ? (
+              <InfoField
+                icon={Calendar}
+                label={employee.tmtEndDate ? "Masa Kontrak" : "TMT Awal CPNS"}
+                value={employee.tmtEndDate
+                  ? `${formatDate(employee.tmtStartDate)} s.d. ${formatDate(employee.tmtEndDate)}`
+                  : formatDate(employee.tmtStartDate)}
+                variant="inline"
+              />
+            ) : null}
+          </div>
+        </CardContainer>
 
         <div className="space-y-6">
-          <Card className="border-muted-foreground/10 shadow-sm">
-            <CardHeader>
-              <div>
-                <CardTitle className="text-base font-semibold">Dokumen Pegawai</CardTitle>
-                <CardDescription>Dokumen milik pegawai ini yang tersimpan di sistem ({employee.documentCount} berkas).</CardDescription>
-              </div>
-              <CardAction>
-                <DownloadDocumentsPdfButton
-                  employeeId={employee.id}
-                  employeeName={employee.name}
-                />
-              </CardAction>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {employee.documents.map((document) => (
-                <div key={document.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-xs">
-                  <div>
-                    <div className="font-semibold text-foreground">{document.title}</div>
-                    <div className="text-[10px] text-muted-foreground">
-                      {document.documentTypeName} • Diunggah {formatDate(document.uploadedAt)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">{document.status}</Badge>
-                    <Link className={buttonVariants({ variant: "outline", size: "xs" })} href={buildDocumentHref(document.id)}>Buka</Link>
+          <CardContainer
+            title="Dokumen Pegawai"
+            description={`Dokumen milik pegawai ini yang tersimpan di sistem (${employee.documentCount} berkas).`}
+            action={
+              <DownloadDocumentsPdfButton
+                employeeId={employee.id}
+                employeeName={employee.name}
+              />
+            }
+            contentClassName="space-y-3"
+          >
+            {employee.documents.map((document) => (
+              <div key={document.id} className="flex items-center justify-between gap-3 rounded-lg border p-3 text-xs">
+                <div>
+                  <div className="font-semibold text-foreground">{document.title}</div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {document.documentTypeName} • Diunggah {formatDate(document.uploadedAt)}
                   </div>
                 </div>
-              ))}
-              {employee.documents.length === 0 ? <p className="text-xs text-muted-foreground">Belum ada dokumen.</p> : null}
-            </CardContent>
-          </Card>
-
-          <Card className="border-muted-foreground/10 shadow-sm">
-            <CardHeader>
-              <div>
-                <CardTitle className="text-base font-semibold">Riwayat Karier</CardTitle>
-                <CardDescription>Catatan perubahan status, jabatan, rumpun profesi, dan unit kerja.</CardDescription>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">{document.status}</Badge>
+                  <Link className={buttonVariants({ variant: "outline", size: "xs" })} href={buildDocumentHref(document.id)}>Buka</Link>
+                </div>
               </div>
-              <CardAction>
-                <CareerHistoryDialog
-                  employeeId={employee.id}
-                  currentValues={{
-                    employmentStatusId: employee.employmentStatusId,
-                    employeeGroupId: employee.employeeGroupId,
-                    professionGroupId: employee.professionGroupId,
-                    employeePositionId: employee.employeePositionId,
-                    employeeRankId: employee.employeeRankId,
-                    workplaceId: employee.workplaceId,
-                  }}
-                  options={masterData}
-                />
-              </CardAction>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {employee.careerHistories.map((history) => (
+            ))}
+            {employee.documents.length === 0 ? <p className="text-xs text-muted-foreground">Belum ada dokumen.</p> : null}
+          </CardContainer>
+
+          <CardContainer
+            title="Riwayat Karier"
+            description="Catatan perubahan status, jabatan, rumpun profesi, dan unit kerja."
+            action={
+              <CareerHistoryDialog
+                employeeId={employee.id}
+                currentValues={{
+                  employmentStatusId: employee.employmentStatusId,
+                  employeeGroupId: employee.employeeGroupId,
+                  professionGroupId: employee.professionGroupId,
+                  employeePositionId: employee.employeePositionId,
+                  employeeRankId: employee.employeeRankId,
+                  workplaceId: employee.workplaceId,
+                }}
+                options={masterData}
+              />
+            }
+            contentClassName="space-y-3"
+          >
+            {employee.careerHistories.map((history) => (
                 <div key={history.id} className="rounded-lg border p-3 text-xs">
                   <div className="font-semibold text-foreground">
                     {history.employeePosition || history.employmentStatus || "Riwayat Karier"}
@@ -273,11 +256,10 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
                     {history.workplace || "-"} • Berlaku TMT {formatDate(history.effectiveDate)}
                   </div>
                   {history.note ? <p className="mt-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">{history.note}</p> : null}
-                </div>
-              ))}
-              {employee.careerHistories.length === 0 ? <p className="text-xs text-muted-foreground">Belum ada riwayat karier.</p> : null}
-            </CardContent>
-          </Card>
+              </div>
+            ))}
+            {employee.careerHistories.length === 0 ? <p className="text-xs text-muted-foreground">Belum ada riwayat.</p> : null}
+          </CardContainer>
         </div>
       </div>
     </div>
