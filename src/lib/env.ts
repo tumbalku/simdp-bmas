@@ -280,7 +280,7 @@ if (!parsedEnv.success) {
     .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
     .join("\n");
 
-  throw new Error(`Environment variable SIMDP tidak valid:\n${formattedErrors}`);
+  throw new Error(`Environment variable SiCantIK tidak valid:\n${formattedErrors}`);
 }
 
 export const env = parsedEnv.data;

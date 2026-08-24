@@ -80,7 +80,7 @@ export function SessionManagementPanel({ sessions }: SessionManagementPanelProps
         <ShieldAlert className="size-4 text-primary" />
         <AlertTitle>Sesi aktif akun</AlertTitle>
         <AlertDescription>
-          SIMDP menerapkan satu sesi aktif per akun. Jika melihat perangkat atau lokasi yang tidak dikenal, cabut sesi
+          SiCantIK menerapkan satu sesi aktif per akun. Jika melihat perangkat atau lokasi yang tidak dikenal, cabut sesi
           lalu ganti password.
         </AlertDescription>
       </Alert>
