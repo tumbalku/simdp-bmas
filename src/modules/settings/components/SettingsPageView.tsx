@@ -4,9 +4,9 @@ import { useMemo, useState, useTransition } from "react";
 import { BellRing, Loader2, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
+import { CardContainer } from "@/components/cards/CardContainer";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -234,13 +234,19 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
         title="Pengaturan Sistem"
         description="Atur parameter operasional SiCantIK seperti jadwal reminder, batas upload, dan masa retensi data."
         trailing={
-          <PageHeaderButton
-            label="Simpan"
+          <Button
             type="submit"
             disabled={isPending}
-            icon={isPending ? Loader2 : Save}
-            iconClassName={isPending ? "animate-spin" : undefined}
-          />
+            className="size-10 p-0 sm:size-auto sm:h-8 sm:px-2.5"
+            aria-label="Simpan"
+          >
+            {isPending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Save className="size-3.5" />
+            )}
+            <span className="hidden sm:inline">Simpan</span>
+          </Button>
         }
       />
 
@@ -264,6 +270,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
           <SettingsCard
             title="Reminder Dokumen"
             description="Konfigurasi waktu pengingat dokumen yang akan kedaluwarsa."
+            icon={<BellRing className="size-4 shrink-0 text-primary" />}
             fields={REMINDER_FIELDS}
             values={values}
             settingsByKey={settingsByKey}
@@ -275,6 +282,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
           <SettingsCard
             title="Upload & Retensi"
             description="Konfigurasi batas file dan pemulihan data soft delete."
+            icon={<UploadCloud className="size-4 shrink-0 text-primary" />}
             fields={STORAGE_FIELDS}
             values={values}
             settingsByKey={settingsByKey}
@@ -283,59 +291,46 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
         </TabsContent>
 
         <TabsContent value="security" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ShieldCheck className="size-4 text-primary" />
-                Retensi Log Keamanan
-              </CardTitle>
-              <CardDescription>
-                Konfigurasi durasi penyimpanan log aktivitas keamanan sebelum dibersihkan otomatis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 rounded-xl border bg-muted/20 p-4">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <Label htmlFor="security_log_retention_days">
-                      {settingsByKey.get("security_log_retention_days")?.label ?? "Masa Retensi Log Keamanan (Hari)"}
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      {settingsByKey.get("security_log_retention_days")?.description ??
-                        "Jumlah hari penyimpanan log aktivitas keamanan sebelum dibersihkan otomatis."}
-                    </p>
-                  </div>
-                  <span className="text-xs font-medium text-muted-foreground">hari</span>
+          <CardContainer
+            title="Retensi Log Keamanan"
+            description="Konfigurasi durasi penyimpanan log aktivitas keamanan sebelum dibersihkan otomatis."
+            icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
+            contentClassName="space-y-4"
+          >
+            <div className="space-y-2 rounded-xl border bg-muted/20 p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <Label htmlFor="security_log_retention_days">
+                    {settingsByKey.get("security_log_retention_days")?.label ?? "Masa Retensi Log Keamanan (Hari)"}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {settingsByKey.get("security_log_retention_days")?.description ??
+                      "Jumlah hari penyimpanan log aktivitas keamanan sebelum dibersihkan otomatis."}
+                  </p>
                 </div>
-                <Input
-                  id="security_log_retention_days"
-                  type="number"
-                  min={1}
-                  value={values.security_log_retention_days ?? "30"}
-                  onChange={(event) =>
-                    setValues((current) => ({
-                      ...current,
-                      security_log_retention_days: event.target.value,
-                    }))
-                  }
-                  required
-                />
+                <span className="text-xs font-medium text-muted-foreground">hari</span>
               </div>
-            </CardContent>
-          </Card>
+              <Input
+                id="security_log_retention_days"
+                type="number"
+                min={1}
+                value={values.security_log_retention_days ?? "30"}
+                onChange={(event) =>
+                  setValues((current) => ({
+                    ...current,
+                    security_log_retention_days: event.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+          </CardContainer>
 
-          <Card>
-            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <ShieldCheck className="size-4 text-primary" />
-                  Event Log Keamanan Aktif
-                </CardTitle>
-                <CardDescription>
-                  Pilih jenis event yang akan dicatat oleh sistem audit log ({selectedEventsSet.size} dari{" "}
-                  {ALL_SECURITY_EVENTS.length} event dipilih).
-                </CardDescription>
-              </div>
+          <CardContainer
+            title="Event Log Keamanan Aktif"
+            description={`Pilih jenis event yang akan dicatat oleh sistem audit log (${selectedEventsSet.size} dari ${ALL_SECURITY_EVENTS.length} event dipilih).`}
+            icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
+            action={
               <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:items-center">
                 <Button type="button" variant="outline" size="sm" onClick={handleSelectAllEvents} className="w-full sm:w-auto justify-start sm:justify-center">
                   <SquareCheck className="size-3.5" />
@@ -350,56 +345,50 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
                   Reset Default
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {SECURITY_EVENT_GROUPS.map((group) => (
-                <div key={group.title} className="space-y-3">
-                  <h4 className="text-sm font-semibold text-foreground">{group.title}</h4>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {group.events.map((event) => {
-                      const isChecked = selectedEventsSet.has(event);
-                      const id = `event-${event}`;
-                      return (
-                        <div
-                          key={event}
-                          className="flex items-start space-x-3 rounded-lg border p-3 bg-muted/10 transition-colors hover:bg-muted/30"
-                        >
-                          <Checkbox
-                            id={id}
-                            checked={isChecked}
-                            onCheckedChange={(checked) => toggleEvent(event, Boolean(checked))}
-                          />
-                          <div className="grid gap-0.5 leading-none">
-                            <Label htmlFor={id} className="cursor-pointer text-sm font-medium">
-                              {SECURITY_EVENT_TYPE_LABELS[event] || event}
-                            </Label>
-                            <p className="text-xs text-muted-foreground font-mono">{event}</p>
-                          </div>
+            }
+            contentClassName="space-y-6"
+          >
+            {SECURITY_EVENT_GROUPS.map((group) => (
+              <div key={group.title} className="space-y-3">
+                <h4 className="text-sm font-semibold text-foreground">{group.title}</h4>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.events.map((event) => {
+                    const isChecked = selectedEventsSet.has(event);
+                    const id = `event-${event}`;
+                    return (
+                      <div
+                        key={event}
+                        className="flex items-start space-x-3 rounded-lg border p-3 bg-muted/10 transition-colors hover:bg-muted/30"
+                      >
+                        <Checkbox
+                          id={id}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => toggleEvent(event, Boolean(checked))}
+                        />
+                        <div className="grid gap-0.5 leading-none">
+                          <Label htmlFor={id} className="cursor-pointer text-sm font-medium">
+                            {SECURITY_EVENT_TYPE_LABELS[event] || event}
+                          </Label>
+                          <p className="text-xs text-muted-foreground font-mono">{event}</p>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+              </div>
+            ))}
+          </CardContainer>
         </TabsContent>
       </Tabs>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldCheck className="size-4 text-primary" />
-            Catatan keamanan
-          </CardTitle>
-          <CardDescription>
-            Perubahan pengaturan sistem termasuk aksi sensitif dan akan tercatat di audit log.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Terakhir diperbarui: {latestUpdate ? formatDateTime(latestUpdate) : "Belum ada data pembaruan."}
-        </CardContent>
-      </Card>
+      <CardContainer
+        title="Catatan keamanan"
+        description="Perubahan pengaturan sistem termasuk aksi sensitif dan akan tercatat di audit log."
+        icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
+        contentClassName="text-sm text-muted-foreground"
+      >
+        Terakhir diperbarui: {latestUpdate ? formatDateTime(latestUpdate) : "Belum ada data pembaruan."}
+      </CardContainer>
     </form>
   );
 }
@@ -411,6 +400,7 @@ function createInitialValues(settings: SystemSetting[]) {
 function SettingsCard({
   title,
   description,
+  icon,
   fields,
   values,
   settingsByKey,
@@ -418,50 +408,50 @@ function SettingsCard({
 }: {
   title: string;
   description: string;
+  icon?: React.ReactNode;
   fields: readonly SettingField[];
   values: Record<string, string>;
   settingsByKey: Map<string, SystemSetting>;
   onChange: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {fields.map((field) => {
-          const setting = settingsByKey.get(field.key);
-          const label = setting?.label ?? field.fallbackLabel;
-          const descriptionText = setting?.description ?? field.fallbackDescription;
+    <CardContainer
+      title={title}
+      description={description}
+      icon={icon}
+      contentClassName="space-y-4"
+    >
+      {fields.map((field) => {
+        const setting = settingsByKey.get(field.key);
+        const label = setting?.label ?? field.fallbackLabel;
+        const descriptionText = setting?.description ?? field.fallbackDescription;
 
-          return (
-            <div key={field.key} className="space-y-2 rounded-xl border bg-muted/20 p-4">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <Label htmlFor={field.key}>{label}</Label>
-                  <p className="text-sm text-muted-foreground">{descriptionText}</p>
-                </div>
-                <span className="text-xs font-medium text-muted-foreground">{field.unit}</span>
+        return (
+          <div key={field.key} className="space-y-2 rounded-xl border bg-muted/20 p-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <Label htmlFor={field.key}>{label}</Label>
+                <p className="text-sm text-muted-foreground">{descriptionText}</p>
               </div>
-              <Input
-                id={field.key}
-                type="number"
-                min={field.min}
-                value={values[field.key] ?? ""}
-                onChange={(event) =>
-                  onChange((current) => ({
-                    ...current,
-                    [field.key]: event.target.value,
-                  }))
-                }
-                required
-              />
+              <span className="text-xs font-medium text-muted-foreground">{field.unit}</span>
             </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+            <Input
+              id={field.key}
+              type="number"
+              min={field.min}
+              value={values[field.key] ?? ""}
+              onChange={(event) =>
+                onChange((current) => ({
+                  ...current,
+                  [field.key]: event.target.value,
+                }))
+              }
+              required
+            />
+          </div>
+        );
+      })}
+    </CardContainer>
   );
 }
 

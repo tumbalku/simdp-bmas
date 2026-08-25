@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Calendar, CheckCircle2, Clock3, FileText, Hash, User, XCircle } from "lucide-react";
 
-import { InfoCard } from "@/components/cards/InfoCard";
+import { CardContainer } from "@/components/cards/CardContainer";
+import { InfoField } from "@/components/cards/InfoField";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import {
   DocumentPreviewPanel,
@@ -210,19 +211,38 @@ export function DocumentDetailView({
         sidebar={
           <>
             <DocumentStatusCard label="Status Dokumen" status={status} />
-            <InfoCard
+            <CardContainer
               title="Pemilik Dokumen"
               description="Informasi pegawai pemilik berkas."
-              icon={User}
-              fields={getOwnerFields(document)}
-            />
-            <InfoCard
+              icon={<User className="size-4 shrink-0 text-primary" />}
+            >
+              <div className="space-y-2">
+                {getOwnerFields(document).map((field) => (
+                  <InfoField
+                    key={field.key}
+                    icon={field.icon}
+                    label={field.label}
+                    value={field.value}
+                  />
+                ))}
+              </div>
+            </CardContainer>
+            <CardContainer
               title="Informasi Dokumen"
               description="Detail metadata dan informasi file dokumen."
-              icon={FileText}
-              fields={getDocumentFields(document)}
-              columns={2}
-            />
+              icon={<FileText className="size-4 shrink-0 text-primary" />}
+            >
+              <div className="grid gap-2 md:grid-cols-2">
+                {getDocumentFields(document).map((field) => (
+                  <InfoField
+                    key={field.key}
+                    icon={field.icon}
+                    label={field.label}
+                    value={field.value}
+                  />
+                ))}
+              </div>
+            </CardContainer>
           </>
         }
         history={

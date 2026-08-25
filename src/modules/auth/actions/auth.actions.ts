@@ -199,18 +199,18 @@ export async function verifyTwoFactorLoginAction(data: unknown) {
   try {
     const userId = await getTwoFactorChallengeUserId();
     if (!userId) {
-      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
+      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Sesi verifikasi 2FA sudah kedaluwarsa. Silakan masukkan username & password kembali." } };
     }
     if (await isTwoFactorRateLimited(userId)) return { ok: false as const, error: { code: "RATE_LIMITED", message: "Terlalu banyak percobaan 2FA. Coba lagi 10 menit kemudian." } };
     if (!(await verifyTwoFactorToken(userId, parsed.data.token))) {
       const count = await recordTwoFactorFailure(userId);
       await logActivity({ actorId: userId, actorName: "User", actorRole: SECURITY_ACTOR_ROLE.PUBLIC, eventType: SECURITY_EVENT_TYPE.AUTH_2FA_CHALLENGE_FAILED, resource: `User:${userId}`, status: SECURITY_LOG_STATUS.FAILED, metadata: { attempt: count } });
-      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah atau sudah kedaluwarsa." } };
+      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode authenticator atau recovery code salah." } };
     }
 
     const user = await findUserWithEmployeeById(userId);
     if (!user || !user.isActive || user.deletedAt) {
-      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Akun tidak tersedia." } };
+      return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Akun tidak tersedia atau dinonaktifkan." } };
     }
 
     const session = await createSessionForAuthenticatedUser(
@@ -224,7 +224,8 @@ export async function verifyTwoFactorLoginAction(data: unknown) {
     return { ok: true as const, data: { user: session.user } };
   } catch (error: unknown) {
     console.error("verifyTwoFactorLoginAction error:", error);
-    return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "Terjadi kesalahan. Coba lagi." } };
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan saat memproses verifikasi 2FA.";
+    return { ok: false as const, error: { code: "INTERNAL_ERROR", message } };
   }
 }
 
@@ -285,11 +286,13 @@ export async function disableTwoFactorAction(data: unknown) {
   if (!parsed.success) return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Kode 2FA tidak valid." } };
   try {
     const session = await requireAuth();
-    if (!(await verifyTwoFactorToken(session.userId, parsed.data.token))) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah." } };
+    const isValid = await verifyTwoFactorToken(session.userId, parsed.data.token);
+    if (!isValid) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode authenticator atau recovery code salah." } };
     const account = await getCurrentUserAccount(session.userId);
     await disableTwoFactor(session.userId, account?.employeeName || account?.email || "User", session.role);
     return { ok: true as const, data: { disabled: true } };
-  } catch {
+  } catch (error) {
+    console.error("disableTwoFactorAction error:", error);
     return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "2FA gagal dinonaktifkan." } };
   }
 }

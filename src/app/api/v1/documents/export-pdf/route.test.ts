@@ -57,7 +57,7 @@ describe("GET /api/v1/documents/export-pdf", () => {
     vi.clearAllMocks();
     mocks.requireAuth.mockResolvedValue({ userId: "admin-1", role: "ADMIN", employeeId: "admin-emp" });
     mocks.enforceApiRateLimit.mockResolvedValue(null);
-    mocks.getActorDisplayName.mockResolvedValue("Admin SIMDP");
+    mocks.getActorDisplayName.mockResolvedValue("Admin SiCantIK");
     mocks.getMasterDataDocumentsPdfData.mockResolvedValue({
       title: "Laporan Dokumen KTP (Personal) Pegawai",
       archiveView: "active",
@@ -136,7 +136,7 @@ describe("GET /api/v1/documents/export-pdf", () => {
     expect(mocks.attachDocumentVerificationFileHash).toHaveBeenCalledWith("verification-1", expect.any(String));
     expect(mocks.logActivity).toHaveBeenCalledWith({
       actorId: "admin-1",
-      actorName: "Admin SIMDP",
+      actorName: "Admin SiCantIK",
       actorRole: "ADMIN",
       eventType: "DOCUMENT_EXPORTED",
       resource: "MasterDataDocumentsPdf",

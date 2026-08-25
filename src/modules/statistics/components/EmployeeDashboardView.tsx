@@ -9,21 +9,12 @@ import {
   FileWarning,
   ShieldCheck,
 } from "lucide-react";
+import { CardContainer } from "@/components/cards/CardContainer";
 import { DocumentCompletenessProgress } from "@/components/cards/DocumentCompletenessProgress";
 
-import {
-  getResponsiveMetricGridClass,
-  ResponsiveMetricCard,
-} from "@/components/cards/ResponsiveMetricCard";
+import { MetricCard } from "@/components/cards/MetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -103,60 +94,55 @@ function EmptyRecentDocuments() {
 
 function ExpiryWarningCard({ documents }: { documents: ExpiringDocument[] }) {
   return (
-    <Card className="border-muted-foreground/10 bg-card shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-sm font-semibold">Peringatan kedaluwarsa</CardTitle>
-        <CardDescription className="text-xs">
-          Dokumen aktif yang akan habis masa berlaku dalam 30 hari.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {documents.length === 0 ? (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
-              <div>
-                <p className="font-semibold">
-                  Tidak ada dokumen yang akan kedaluwarsa dalam 30 hari.
-                </p>
-                <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
-                  Semua dokumen bermasa berlaku masih aman saat ini.
-                </p>
-              </div>
+    <CardContainer
+      title="Peringatan kedaluwarsa"
+      description="Dokumen aktif yang akan habis masa berlaku dalam 30 hari."
+    >
+      {documents.length === 0 ? (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0" />
+            <div>
+              <p className="font-semibold">
+                Tidak ada dokumen yang akan kedaluwarsa dalam 30 hari.
+              </p>
+              <p className="mt-1 text-xs text-emerald-700/80 dark:text-emerald-300/80">
+                Semua dokumen bermasa berlaku masih aman saat ini.
+              </p>
             </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {documents.map((document) => {
-              const urgent = document.daysRemaining < 14;
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {documents.map((document) => {
+            const urgent = document.daysRemaining < 14;
 
-              return (
-                <Link
-                  key={document.id}
-                  href={routeTo.documentDetail(document.id)}
-                  className={cn(
-                    "block rounded-xl border p-3 transition-colors hover:bg-muted/50",
-                    urgent
-                      ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
-                      : "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="mt-0.5 size-4 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{document.documentName}</p>
-                      <p className="mt-1 text-xs opacity-85">
-                        Kedaluwarsa {formatDate(document.expiryDate)} · sisa {document.daysRemaining} hari
-                      </p>
-                    </div>
+            return (
+              <Link
+                key={document.id}
+                href={routeTo.documentDetail(document.id)}
+                className={cn(
+                  "block rounded-xl border p-3 transition-colors hover:bg-muted/50",
+                  urgent
+                    ? "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                    : "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{document.documentName}</p>
+                    <p className="mt-1 text-xs opacity-85">
+                      Kedaluwarsa {formatDate(document.expiryDate)} · sisa {document.daysRemaining} hari
+                    </p>
                   </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </CardContainer>
   );
 }
 
@@ -207,9 +193,9 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
         description="Ringkasan pribadi kondisi dokumen kepegawaian Anda."
       />
 
-      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4`}>
+      <div className="grid gap-1.5 sm:gap-4 grid-cols-4">
         {metricCards.map((metric) => (
-          <ResponsiveMetricCard key={metric.title} {...metric} />
+          <MetricCard key={metric.title} {...metric} />
         ))}
       </div>
 
@@ -219,53 +205,49 @@ export function EmployeeDashboardView({ stats }: EmployeeDashboardViewProps) {
       />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="border-muted-foreground/10 bg-card shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold">Dokumen terbaru</CardTitle>
-            <CardDescription className="text-xs">
-              5 berkas terakhir yang Anda kirim beserta status verifikasinya.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            {stats.recentUploads.length === 0 ? (
-              <EmptyRecentDocuments />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="pl-4">Nama dokumen</TableHead>
-                    <TableHead>Tanggal pengiriman</TableHead>
-                    <TableHead>Status</TableHead>
+        <CardContainer
+          title="Dokumen terbaru"
+          description="5 berkas terakhir yang Anda kirim beserta status verifikasinya."
+          contentClassName="p-0"
+        >
+          {stats.recentUploads.length === 0 ? (
+            <EmptyRecentDocuments />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-4">Nama dokumen</TableHead>
+                  <TableHead>Tanggal pengiriman</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {stats.recentUploads.map((document) => (
+                  <TableRow key={document.id} className="cursor-pointer">
+                    <TableCell className="pl-4">
+                      <Link
+                        href={routeTo.documentDetail(document.id)}
+                        className="block font-medium text-foreground hover:text-primary"
+                      >
+                        {document.documentName}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      <Link href={routeTo.documentDetail(document.id)} className="block">
+                        {formatDate(document.uploadedAt)}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={routeTo.documentDetail(document.id)} className="block">
+                        <DocumentStatusBadge status={document.status} />
+                      </Link>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stats.recentUploads.map((document) => (
-                    <TableRow key={document.id} className="cursor-pointer">
-                      <TableCell className="pl-4">
-                        <Link
-                          href={routeTo.documentDetail(document.id)}
-                          className="block font-medium text-foreground hover:text-primary"
-                        >
-                          {document.documentName}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <Link href={routeTo.documentDetail(document.id)} className="block">
-                          {formatDate(document.uploadedAt)}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={routeTo.documentDetail(document.id)} className="block">
-                          <DocumentStatusBadge status={document.status} />
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContainer>
 
         <ExpiryWarningCard documents={stats.expiringDocuments} />
       </div>

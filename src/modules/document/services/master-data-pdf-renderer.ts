@@ -146,19 +146,19 @@ export function renderMasterDataDocumentsPdfHtml(
       letter-spacing: .01em;
     }
     .head-copy .hospital {
-      margin-top: 4px;
+      margin-top: 0;
       font-size: 17px;
       font-weight: 900;
       letter-spacing: .01em;
     }
     .head-copy .address {
-      margin-top: 4px;
+      margin-top: 0;
       color: #1f2937;
       font-size: 9.5px;
       font-weight: 500;
     }
     .head-copy .contact {
-      margin-top: 4px;
+      margin-top: 0;
       font-size: 9.5px;
       font-weight: 700;
       text-decoration: underline;

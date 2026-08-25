@@ -5,10 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Clock3, Download, FileText, FileWarning, ShieldCheck, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentCompletenessProgress } from "@/components/cards/DocumentCompletenessProgress";
-import {
-  getResponsiveMetricGridClass,
-  ResponsiveMetricCard,
-} from "@/components/cards/ResponsiveMetricCard";
+import { MetricCard } from "@/components/cards/MetricCard";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { DocumentFilterCard } from "@/components/tables/DocumentFilterCard";
@@ -265,7 +262,7 @@ export function DocumentsPageView({
                       successMessage: "Berkas PDF berhasil diunduh.",
                       defaultFilename: "dokumen-pegawai.pdf",
                     }),
-                  icon: Download,
+                  icon: <Download className="size-3.5" />,
                   variant: "default",
                   hideLabelOnMobile: true,
                 },
@@ -289,9 +286,9 @@ export function DocumentsPageView({
         </Card>
       ) : null}
 
-      <div className={`grid ${getResponsiveMetricGridClass(documentMetricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4`}>
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-4">
         {documentMetricCards.map((metric) => (
-          <ResponsiveMetricCard key={metric.title} {...metric} />
+          <MetricCard key={metric.title} {...metric} />
         ))}
       </div>
 

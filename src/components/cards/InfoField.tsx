@@ -18,7 +18,7 @@ export function InfoField({
   label,
   value,
   variant = "stacked",
-  truncate = false,
+  truncate = true,
   className,
 }: InfoFieldProps) {
   const displayValue = value || "-";

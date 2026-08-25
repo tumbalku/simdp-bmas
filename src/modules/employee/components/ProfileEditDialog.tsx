@@ -90,7 +90,7 @@ export function ProfileEditDialog({ initialData }: ProfileEditDialogProps) {
           <Button
             variant="default"
             aria-label="Edit Profil"
-            className="size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5"
+            className="size-10 p-0 sm:size-auto sm:h-8 sm:px-2.5"
           />
         }
       >

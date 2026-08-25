@@ -42,6 +42,10 @@ function decryptSecret(value: string) {
   ]).toString("utf8");
 }
 
+function normalizeCode(code: string) {
+  return code.replace(/[\s-]/g, "").toUpperCase();
+}
+
 function hashRecoveryCode(code: string) {
   return crypto.createHash("sha256").update(code).digest("hex");
 }
@@ -58,8 +62,7 @@ function maskEmail(email: string) {
 
 function generateRecoveryCodes() {
   return Array.from({ length: RECOVERY_CODE_COUNT }, () => {
-    const raw = crypto.randomBytes(5).toString("hex").toUpperCase();
-    return `${raw.slice(0, 5)}-${raw.slice(5)}`;
+    return crypto.randomBytes(3).toString("hex").toUpperCase();
   });
 }
 
@@ -114,16 +117,33 @@ export async function verifyTwoFactorToken(userId: string, token: string) {
   const record = await repo.findUserTwoFactor(userId);
   if (!record?.enabled) return false;
 
-  const normalizedToken = token.replace(/\s/g, "").toUpperCase();
+  const rawCleanToken = token.trim();
+  const normalizedToken = normalizeCode(token);
   const secret = decryptSecret(record.secretEncrypted);
-  if ((await verify({ secret, token: normalizedToken })).valid) return true;
 
-  const recoveryCodeHash = hashRecoveryCode(normalizedToken);
-  if (Array.isArray(record.recoveryCodeHashes) && record.recoveryCodeHashes.includes(recoveryCodeHash)) {
-    await repo.updateUserTwoFactor(userId, {
-      recoveryCodeHashes: record.recoveryCodeHashes.filter((value): value is string => value !== recoveryCodeHash),
-    });
-    return true;
+  if (/^\d{6}$/.test(rawCleanToken)) {
+    try {
+      const totpResult = await verify({ secret, token: rawCleanToken });
+      if (totpResult.valid) return true;
+    } catch {
+      // Ignore otplib validation errors and continue fallback checks
+    }
+  }
+
+  if (Array.isArray(record.recoveryCodeHashes)) {
+    const hashClean = hashRecoveryCode(normalizedToken);
+    const hashRaw = hashRecoveryCode(rawCleanToken.toUpperCase());
+
+    const matchedHash = record.recoveryCodeHashes.find(
+      (h) => typeof h === "string" && (h === hashClean || h === hashRaw)
+    );
+
+    if (matchedHash) {
+      await repo.updateUserTwoFactor(userId, {
+        recoveryCodeHashes: record.recoveryCodeHashes.filter((value): value is string => value !== matchedHash),
+      });
+      return true;
+    }
   }
 
   const now = new Date();

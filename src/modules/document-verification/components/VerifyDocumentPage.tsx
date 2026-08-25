@@ -82,7 +82,7 @@ export function VerifyDocumentPage({ result, error }: VerifyDocumentPageProps) {
         <div className="text-center">
           <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Verifikasi Dokumen</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Halaman untuk memeriksa dokumen diterbitkan oleh SIMDP RSUD Bahteramas.
+            Halaman untuk memeriksa dokumen diterbitkan oleh SiCantIK RSUD Bahteramas.
           </p>
         </div>
 

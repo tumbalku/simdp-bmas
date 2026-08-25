@@ -43,19 +43,19 @@ function buildResetPasswordEmail(input: {
   const text = [
     `Halo ${input.displayName},`,
     "",
-    "Kami menerima permintaan reset password untuk akun SIMDP Anda.",
+    "Kami menerima permintaan reset password untuk akun SiCantIK Anda.",
     `Klik link berikut untuk membuat password baru: ${input.resetUrl}`,
     "",
     `Link ini berlaku ${input.expiresIn}. Jika Anda tidak meminta reset password, abaikan email ini.`,
     "",
     "Salam,",
-    "SIMDP RSUD Bahteramas",
+    "SiCantIK RSUD Bahteramas",
   ].join("\n");
 
   const html = `
     <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6;">
       <p>Halo ${safeDisplayName},</p>
-      <p>Kami menerima permintaan reset password untuk akun SIMDP Anda.</p>
+      <p>Kami menerima permintaan reset password untuk akun SiCantIK Anda.</p>
       <p>
         <a href="${safeResetUrl}" style="display:inline-block;background:#0f766e;color:#ffffff;padding:10px 16px;border-radius:8px;text-decoration:none;">
           Reset password
@@ -64,7 +64,7 @@ function buildResetPasswordEmail(input: {
       <p>Atau salin link berikut ke browser Anda:</p>
       <p><a href="${safeResetUrl}">${safeResetUrl}</a></p>
       <p>Link ini berlaku ${input.expiresIn}. Jika Anda tidak meminta reset password, abaikan email ini.</p>
-      <p>Salam,<br />SIMDP RSUD Bahteramas</p>
+      <p>Salam,<br />SiCantIK RSUD Bahteramas</p>
     </div>
   `;
 
@@ -109,7 +109,7 @@ export async function requestPasswordReset(email: string): Promise<boolean> {
   try {
     await emailProvider.sendEmail({
       to: user.email,
-      subject: "Reset password akun SIMDP",
+      subject: "Reset password akun SiCantIK",
       html: resetEmail.html,
       text: resetEmail.text,
     });

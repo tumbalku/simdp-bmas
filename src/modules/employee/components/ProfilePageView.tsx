@@ -1,6 +1,7 @@
 import { Briefcase, Calendar, GraduationCap, Heart, Mail, MapPin, Phone, ShieldCheck, User } from "lucide-react";
 
-import { InfoCard } from "@/components/cards/InfoCard";
+import { CardContainer } from "@/components/cards/CardContainer";
+import { InfoField } from "@/components/cards/InfoField";
 import { PageHeader } from "@/components/navigation/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,53 +156,52 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
         </CardContent>
       </Card>
 
-      <InfoCard
+      <CardContainer
         className="border-muted-foreground/10 shadow-sm"
-        columns={4}
         description="Identitas dasar, tingkat pendidikan, NIP, NIK, dan kontak pegawai."
-        fieldVariant="inline"
-        fields={[
-          { key: "employeeId", icon: User, label: "NIP / NIPTT", value: display(profile.employeeId) },
-          { key: "nik", icon: User, label: "NIK", value: display(profile.nik) },
-          { key: "email", icon: Mail, label: "Email Akun", value: account.email },
-          { key: "phone", icon: Phone, label: "Telepon", value: display(profile.phone) },
-          { key: "address", icon: MapPin, label: "Alamat Tinggal", value: display(profile.address) },
-          { key: "gender", icon: User, label: "Jenis Kelamin", value: display(getGenderLabel(profile.gender)) },
-          {
-            key: "birth",
-            icon: Calendar,
-            label: "Tempat & Tanggal Lahir",
-            value: `${display(profile.birthPlace)}, ${formatDate(profile.birthDate)}`,
-          },
-          {
-            key: "education",
-            icon: GraduationCap,
-            label: "Pendidikan Terakhir",
-            value: profile.lastEducation
-              ? `${profile.lastEducation} ${profile.academicDegree ? `(${profile.academicDegree})` : ""}`
-              : "-",
-          },
-          { key: "religion", icon: Heart, label: "Agama", value: display(getReligionLabel(profile.religion)) },
-          { key: "maritalStatus", icon: ShieldCheck, label: "Status Pernikahan", value: display(getMaritalStatusLabel(profile.maritalStatus)) },
-          { key: "joinDate", icon: Briefcase, label: "Tanggal Mulai Bekerja", value: formatDate(profile.joinDate) },
-          {
-            key: "groupRank",
-            icon: Briefcase,
-            label: "Kelompok / Golongan",
-            value: `${display(profile.employeeGroup?.name)} ${profile.employeeRank?.name ? `(${profile.employeeRank.name})` : ""}`,
-          },
-          {
-            key: "tmt",
-            icon: Calendar,
-            label: tmt?.label ?? "TMT Awal CPNS",
-            value: tmt?.value ?? "-",
-            hidden: !tmt,
-          },
-        ]}
-        icon={User}
+        icon={<User className="size-4 shrink-0 text-primary" />}
         title="Informasi Pribadi & Kontak"
-        truncate
-      />
+      >
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <InfoField icon={User} label="NIP / NIPTT" value={display(profile.employeeId)} variant="inline" />
+          <InfoField icon={User} label="NIK" value={display(profile.nik)} variant="inline" />
+          <InfoField icon={Mail} label="Email Akun" value={account.email} variant="inline" />
+          <InfoField icon={Phone} label="Telepon" value={display(profile.phone)} variant="inline" />
+          <InfoField icon={MapPin} label="Alamat Tinggal" value={display(profile.address)} variant="inline" />
+          <InfoField icon={User} label="Jenis Kelamin" value={display(getGenderLabel(profile.gender))} variant="inline" />
+          <InfoField
+            icon={Calendar}
+            label="Tempat & Tanggal Lahir"
+            value={`${display(profile.birthPlace)}, ${formatDate(profile.birthDate)}`}
+            variant="inline"
+          />
+          <InfoField
+            icon={GraduationCap}
+            label="Pendidikan Terakhir"
+            value={profile.lastEducation
+              ? `${profile.lastEducation} ${profile.academicDegree ? `(${profile.academicDegree})` : ""}`
+              : "-"}
+            variant="inline"
+          />
+          <InfoField icon={Heart} label="Agama" value={display(getReligionLabel(profile.religion))} variant="inline" />
+          <InfoField icon={ShieldCheck} label="Status Pernikahan" value={display(getMaritalStatusLabel(profile.maritalStatus))} variant="inline" />
+          <InfoField icon={Briefcase} label="Tanggal Mulai Bekerja" value={formatDate(profile.joinDate)} variant="inline" />
+          <InfoField
+            icon={Briefcase}
+            label="Kelompok / Golongan"
+            value={`${display(profile.employeeGroup?.name)} ${profile.employeeRank?.name ? `(${profile.employeeRank.name})` : ""}`}
+            variant="inline"
+          />
+          {tmt ? (
+            <InfoField
+              icon={Calendar}
+              label={tmt.label}
+              value={tmt.value}
+              variant="inline"
+            />
+          ) : null}
+        </div>
+      </CardContainer>
     </div>
   );
 }

@@ -344,7 +344,7 @@ describe("Auth Module Service", () => {
       expect(notificationMocks.sendEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "test@example.com",
-          subject: "Reset password akun SIMDP",
+          subject: "Reset password akun SiCantIK",
           html: expect.stringContaining(`/reset-password?token=${token}`),
           text: expect.stringContaining(`/reset-password?token=${token}`),
         })

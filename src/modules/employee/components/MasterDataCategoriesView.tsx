@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import { generateAlphanumericKey } from "@/utils/crypto";
 import { toast } from "sonner";
 
-import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import {
   CriticalActionVerificationDialog,
   type CriticalActionVerificationResult,
@@ -130,7 +130,7 @@ function CategoryCardHeader({
             <Icon className={cn("size-4", iconClassName)} />
           </div>
           <div className="min-w-0">
-            <CardTitle className="truncate text-sm font-semibold">
+            <CardTitle className="truncate text-sm font-semibold text-primary">
               {title}
             </CardTitle>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -498,14 +498,13 @@ export function MasterDataCategoriesView({
         eyebrow="Kategori"
         title={COPY.pageTitle}
         description={COPY.pageDescription}
-        trailing={
-          <PageHeaderButton
-            label={COPY.addMaster}
-            icon={Plus}
-            size="lg"
-            onClick={() => openCreate("STATUS")}
-          />
-        }
+        actions={[
+          {
+            label: COPY.addMaster,
+            icon: <Plus className="size-3.5" />,
+            onClick: () => openCreate("STATUS"),
+          },
+        ]}
       />
 
       <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-4">

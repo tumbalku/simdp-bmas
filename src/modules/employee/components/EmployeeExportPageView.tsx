@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { DocumentReviewLayout } from "@/modules/document/components/document-review";
 import { Button } from "@/components/ui/button";
 import {
@@ -194,13 +194,13 @@ export function EmployeeExportPageView({
         description="Konfigurasi format cetak dan pratinjau dokumen PDF."
         backHref="/master-data/employees"
         backLabel="Kembali ke Data Pegawai"
-        trailing={
-          <PageHeaderButton
-            label="Download PDF"
-            icon={Download}
-            onClick={handleDownload}
-          />
-        }
+        actions={[
+          {
+            label: "Download PDF",
+            icon: <Download className="size-3.5" />,
+            onClick: handleDownload,
+          },
+        ]}
       />
 
       <DocumentReviewLayout

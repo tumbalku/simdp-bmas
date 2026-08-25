@@ -201,7 +201,7 @@ export function EmployeeTableView({
     <DataTableCard
       title="Daftar Pegawai"
       description={`Total ${pagination.totalItems} pegawai ${isArchiveView ? "arsip" : "aktif"} - Halaman ${pagination.page} dari ${pagination.totalPages || 1}`}
-      icon={<Users className="size-4 text-muted-foreground" />}
+      icon={<Users className="size-4 shrink-0 text-primary" />}
       rowsPerPageControl={{
         value: rowsPerPage,
         onValueChange: onRowsPerPageChange,

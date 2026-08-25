@@ -3,17 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { FileCheck2, HeartPulse, ShieldCheck } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  getResponsiveMetricGridClass,
-  ResponsiveMetricCard,
-} from "@/components/cards/ResponsiveMetricCard";
+import { CardContainer } from "@/components/cards/CardContainer";
+import { MetricCard } from "@/components/cards/MetricCard";
 
 import { DonutChart } from "@/components/charts/DonutChart";
 import { SimpleBarChart } from "./StatisticsCharts";
@@ -159,9 +150,9 @@ export function StatisticsDashboardPreview() {
         </p>
       </div>
 
-      <div className={`grid ${getResponsiveMetricGridClass(metricCards.map((metric) => metric.compactTitle))} gap-1.5 sm:gap-4 sm:grid-cols-3`}>
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-4 sm:grid-cols-3">
         {metricCards.map((metric) => (
-          <ResponsiveMetricCard
+          <MetricCard
             key={metric.label}
             title={metric.label}
             compactTitle={metric.compactTitle}
@@ -180,42 +171,36 @@ export function StatisticsDashboardPreview() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribusi jenis kelamin</CardTitle>
-            <CardDescription>Distribusi pegawai berdasarkan status ASN dan NON_ASN.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DonutChart
-              className="h-56"
-              data={genderByEmploymentStatus}
-              index="status"
-              category="total"
-              label="pegawai"
-            />
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground">
-              {genderByEmploymentStatus.map((item, index) => (
-                <div key={item.status} className="flex items-center justify-between gap-2">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: `var(--chart-${(index % 5) + 1})` }} aria-hidden="true" />
-                    <span className="truncate">{item.status}</span>
-                  </span>
-                  <span className="font-medium tabular-nums text-foreground">{item.total}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <CardContainer
+          title="Distribusi jenis kelamin"
+          description="Distribusi pegawai berdasarkan status ASN dan NON_ASN."
+        >
+          <DonutChart
+            className="h-56"
+            data={genderByEmploymentStatus}
+            index="status"
+            category="total"
+            label="pegawai"
+          />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-muted-foreground">
+            {genderByEmploymentStatus.map((item, index) => (
+              <div key={item.status} className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: `var(--chart-${(index % 5) + 1})` }} aria-hidden="true" />
+                  <span className="truncate">{item.status}</span>
+                </span>
+                <span className="font-medium tabular-nums text-foreground">{item.total}</span>
+              </div>
+            ))}
+          </div>
+        </CardContainer>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Rentang usia pegawai</CardTitle>
-            <CardDescription>Jumlah pegawai di setiap kelompok usia.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SimpleBarChart data={ageRangeData} height={270} barColor="var(--chart-2)" />
-          </CardContent>
-        </Card>
+        <CardContainer
+          title="Rentang usia pegawai"
+          description="Jumlah pegawai di setiap kelompok usia."
+        >
+          <SimpleBarChart data={ageRangeData} height={270} barColor="var(--chart-2)" />
+        </CardContainer>
       </div>
     </section>
   );

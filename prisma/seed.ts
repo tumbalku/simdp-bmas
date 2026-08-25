@@ -52,7 +52,7 @@ function pdfBuffer(title: string) {
   // Minimal valid-ish PDF for local preview smoke testing.
   const safeTitle = title.replace(/[()\\]/g, " ");
   return Buffer.from(
-    `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length 82 >>\nstream\nBT /F1 18 Tf 72 720 Td (${safeTitle}) Tj 0 -32 Td (SIMDP RSUD Bahteramas demo seed) Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n`,
+    `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length 82 >>\nstream\nBT /F1 18 Tf 72 720 Td (${safeTitle}) Tj 0 -32 Td (SiCantIK RSUD Bahteramas demo seed) Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n`,
     "utf8",
   );
 }
@@ -99,7 +99,7 @@ async function resetDemoData() {
 }
 
 async function main() {
-  console.log("Memulai seeding data demo SIMDP...");
+  console.log("Memulai seeding data demo SiCantIK...");
   await resetDemoData();
 
   const passwordHash = await argon2.hash(DEMO_PASSWORD);
@@ -249,7 +249,7 @@ async function main() {
         religion: i % 3 === 0 ? EmployeeReligion.ISLAM : i % 3 === 1 ? EmployeeReligion.PROTESTANT : EmployeeReligion.HINDU,
         maritalStatus: i % 2 === 0 ? EmployeeMaritalStatus.MARRIED : EmployeeMaritalStatus.SINGLE,
         phone: `08${String(1210000000 + i * 73129)}`,
-        address: `Jl. Demo SIMDP No. ${10 + i}, Kendari`,
+        address: `Jl. Demo SiCantIK No. ${10 + i}, Kendari`,
         joinDate: dateOnly(2015 + (i % 8), (i % 12) + 1, 10),
         hasTmt: item.role !== Role.ADMIN,
         tmtStartDate: dateOnly(2020 + (i % 4), (i % 12) + 1, 1),
@@ -369,7 +369,7 @@ async function main() {
       { id: "seed_notif_007", userId: employees[9].user.id, type: NotificationType.DOCUMENT_VERIFICATION, title: "Surat sehat sedang ditinjau", message: "Berkas Anda masih menunggu pemeriksaan staf.", isRead: false, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_009", createdAt: daysAgo(3) },
       { id: "seed_notif_008", userId: employees[4].user.id, type: NotificationType.EXPIRY_REMINDER, title: "STR akan kedaluwarsa", message: "STR Ners Dewi akan kedaluwarsa dalam periode pemantauan.", isRead: true, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_004", createdAt: daysAgo(5) },
       { id: "seed_notif_009", userId: employees[9].user.id, type: NotificationType.DOCUMENT_STATUS, title: "SK Magang disetujui", message: "SK Magang Andri Saputra telah diverifikasi.", isRead: true, relatedEntityType: NotificationRelatedEntityType.DOCUMENT_RECORD, relatedEntityId: "seed_doc_008", createdAt: daysAgo(16) },
-      { id: "seed_notif_010", userId: employees[1].user.id, type: NotificationType.INFO, title: "Data demo siap diuji", message: "Seed demo SIMDP telah menyiapkan data untuk uji CRUD dan verifikasi.", isRead: false, relatedEntityType: null, relatedEntityId: null, createdAt: new Date() },
+      { id: "seed_notif_010", userId: employees[1].user.id, type: NotificationType.INFO, title: "Data demo siap diuji", message: "Seed demo SiCantIK telah menyiapkan data untuk uji CRUD dan verifikasi.", isRead: false, relatedEntityType: null, relatedEntityId: null, createdAt: new Date() },
     ],
   });
 

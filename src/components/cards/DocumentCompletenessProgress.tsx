@@ -15,7 +15,7 @@ export function DocumentCompletenessProgress({ completed, total }: DocumentCompl
     <Card className="border-muted-foreground/10 bg-card shadow-sm">
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div className="min-w-0">
-          <CardTitle className="text-sm font-semibold">Kelengkapan dokumen wajib</CardTitle>
+          <CardTitle className="text-sm font-semibold text-primary">Kelengkapan dokumen wajib</CardTitle>
           <CardDescription className="text-xs">
             {total > 0
               ? `${percentage}% dokumen wajib sudah diunggah.`

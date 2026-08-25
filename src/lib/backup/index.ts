@@ -168,7 +168,7 @@ export function parseBackupConfig(rawEnv: Record<string, unknown>): BackupConfig
       .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
       .join("\n");
 
-    throw new Error(`Konfigurasi backup SIMDP tidak valid:\n${formattedErrors}`);
+    throw new Error(`Konfigurasi backup SiCantIK tidak valid:\n${formattedErrors}`);
   }
 
   return parsed.data;

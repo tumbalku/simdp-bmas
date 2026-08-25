@@ -120,21 +120,30 @@ export function LoginPage() {
               Masukkan kode 6 digit dari aplikasi authenticator. Recovery code juga dapat digunakan jika perangkat tidak tersedia.
             </div>
             <div className="space-y-2">
-              <Label htmlFor="token">{useRecoveryCode ? "Recovery code" : "Kode verifikasi 6 digit"}</Label>
+              <Label htmlFor="token">{useRecoveryCode ? "Recovery code (6 karakter)" : "Kode verifikasi 6 digit"}</Label>
               {useRecoveryCode ? (
-                <Input
+                <InputOTP
                   id="token"
                   name="token"
+                  maxLength={6}
                   value={twoFactorToken}
-                  onChange={(event) => setTwoFactorToken(event.target.value.toUpperCase())}
-                  placeholder="9ACB5-BDB58"
+                  onChange={(val) => setTwoFactorToken(val.toUpperCase())}
                   autoComplete="one-time-code"
-                  maxLength={11}
-                  className="h-10 font-mono tracking-[0.18em]"
                   disabled={isPending}
                   required
                   autoFocus
-                />
+                  aria-label="Recovery code 6 karakter"
+                >
+                  <InputOTPGroup className="w-full justify-between gap-2">
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <InputOTPSlot
+                        key={index}
+                        index={index}
+                        className="size-11 flex-1 rounded-lg border font-mono uppercase text-sm font-semibold first:border last:border"
+                      />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
               ) : (
                 <InputOTP
                   id="token"

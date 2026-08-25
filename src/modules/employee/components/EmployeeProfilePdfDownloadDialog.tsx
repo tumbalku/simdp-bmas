@@ -94,7 +94,7 @@ export function EmployeeProfilePdfDownloadDialog({
           <Button
             variant="outline"
             aria-label={triggerLabel}
-            className="size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5"
+            className="size-10 p-0 sm:size-auto sm:h-8 sm:px-2.5"
           />
         }
       >

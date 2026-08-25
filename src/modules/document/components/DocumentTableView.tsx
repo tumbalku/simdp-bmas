@@ -245,7 +245,7 @@ export function DocumentTableView({
     },
     {
       key: "expiryDate",
-      header: "Kedaluwarsa",
+      header: "Masa Aktif",
       sortable: true,
       sortKey: "expiryDate",
       cell: (doc) => {
