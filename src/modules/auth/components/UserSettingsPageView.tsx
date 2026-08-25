@@ -39,7 +39,7 @@ export function UserSettingsPageView({ account, sessions }: UserSettingsPageView
         <CardContainer
           title="Aktivitas Akun"
           description="Status akses dan aktivitas login terakhir akun SiCantIK."
-          icon={ShieldCheck}
+          icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
           contentClassName="space-y-4 text-sm"
         >
           <div className="grid gap-3 sm:grid-cols-2">
@@ -74,7 +74,7 @@ export function UserSettingsPageView({ account, sessions }: UserSettingsPageView
         <CardContainer
           title="Keamanan Akun"
           description="Password dapat diganti mandiri. Email login dan role tetap dikelola admin."
-          icon={ShieldCheck}
+          icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
           contentClassName="space-y-4"
         >
           <div className="grid gap-3 md:grid-cols-2">
@@ -113,7 +113,7 @@ export function UserSettingsPageView({ account, sessions }: UserSettingsPageView
       <CardContainer
         title="Manajemen Sesi"
         description="Lihat dan cabut sesi login aktif pada akun ini."
-        icon={ShieldCheck}
+        icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
       >
         <SessionManagementPanel sessions={sessions} />
       </CardContainer>

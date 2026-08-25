@@ -50,7 +50,7 @@ export function SecurityLogFilterCard({
 }: SecurityLogFilterCardProps) {
   return (
     <CardContainer
-      icon={Filter}
+      icon={<Filter className="size-4 shrink-0 text-primary" />}
       title="Filter & Pencarian"
       description="Saring log berdasarkan aktor, event, status, serta rentang tanggal."
       descriptionClassName="hidden sm:block"

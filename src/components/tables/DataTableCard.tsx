@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { CardContainer } from "@/components/cards/CardContainer";
 import { cn } from "@/utils";
@@ -10,7 +10,7 @@ import {
 type DataTableCardProps = {
   title: ReactNode;
   description?: ReactNode;
-  icon?: ComponentType<{ className?: string }> | ReactNode;
+  icon?: ReactNode;
   rowsPerPageControl?: RowsPerPageControlProps;
   extraActions?: ReactNode;
   table: ReactNode;

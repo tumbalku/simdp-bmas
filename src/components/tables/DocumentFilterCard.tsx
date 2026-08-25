@@ -48,7 +48,7 @@ export function DocumentFilterCard({
 
   return (
     <CardContainer
-      icon={Filter}
+      icon={<Filter className="size-4 shrink-0 text-primary" />}
       title={title}
       description={description}
       descriptionClassName="hidden sm:block"

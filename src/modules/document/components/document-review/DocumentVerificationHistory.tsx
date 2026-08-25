@@ -21,7 +21,7 @@ export function DocumentVerificationHistory({
     <CardContainer
       title="Riwayat Verifikasi"
       description="Semua aktivitas verifikasi yang pernah dilakukan pada dokumen ini."
-      icon={ShieldCheck}
+      icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
     >
       {histories.length === 0 ? (
         <div className="flex min-h-[120px] items-center justify-center text-center">

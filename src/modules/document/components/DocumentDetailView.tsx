@@ -214,7 +214,7 @@ export function DocumentDetailView({
             <CardContainer
               title="Pemilik Dokumen"
               description="Informasi pegawai pemilik berkas."
-              icon={User}
+              icon={<User className="size-4 shrink-0 text-primary" />}
             >
               <div className="space-y-2">
                 {getOwnerFields(document).map((field) => (
@@ -230,7 +230,7 @@ export function DocumentDetailView({
             <CardContainer
               title="Informasi Dokumen"
               description="Detail metadata dan informasi file dokumen."
-              icon={FileText}
+              icon={<FileText className="size-4 shrink-0 text-primary" />}
             >
               <div className="grid gap-2 md:grid-cols-2">
                 {getDocumentFields(document).map((field) => (

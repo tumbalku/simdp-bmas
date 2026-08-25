@@ -153,7 +153,7 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
         <CardContainer
           className="border-muted-foreground/10 shadow-sm"
           description="Identitas dasar, tingkat pendidikan, NIP, NIK, dan kontak pegawai."
-          icon={User}
+          icon={<User className="size-4 shrink-0 text-primary" />}
           title="Informasi Pribadi & Kontak"
         >
           <div className="grid gap-2 md:grid-cols-2">

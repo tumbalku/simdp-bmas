@@ -190,7 +190,7 @@ export function MasterDataEmployeeForm({
         <CardContainer
           title="Data Akun"
           description="Informasi akun login pegawai."
-          icon={KeyRound}
+          icon={<KeyRound className="size-4 shrink-0 text-primary" />}
           contentClassName="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           <div className="space-y-2 sm:col-span-2 lg:col-span-3">
@@ -286,7 +286,7 @@ export function MasterDataEmployeeForm({
         <CardContainer
           title="Data Pribadi"
           description="Informasi identitas pegawai."
-          icon={User}
+          icon={<User className="size-4 shrink-0 text-primary" />}
           contentClassName="grid gap-4 sm:grid-cols-2"
         >
           <div className="space-y-2 sm:col-span-2">
@@ -423,7 +423,7 @@ export function MasterDataEmployeeForm({
         <CardContainer
           title="Data Kepegawaian"
           description="Informasi status, jabatan, dan unit kerja pegawai."
-          icon={Briefcase}
+          icon={<Briefcase className="size-4 shrink-0 text-primary" />}
           contentClassName="grid gap-4 sm:grid-cols-2"
         >
           <div className="space-y-2">
@@ -551,7 +551,7 @@ export function MasterDataEmployeeForm({
         <CardContainer
           title="TMT"
           description="Tanggal Mulai Tugas (TMT) — jika ada."
-          icon={Calendar}
+          icon={<Calendar className="size-4 shrink-0 text-primary" />}
           contentClassName="space-y-4"
         >
           <div className="flex items-center gap-2" suppressHydrationWarning>

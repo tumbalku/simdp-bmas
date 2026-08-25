@@ -298,7 +298,7 @@ export function DocumentTypeFormPage({
         <CardContainer
           title="Informasi Dasar Dokumen"
           description="Kode, kategori, nama, dan keterangan jenis dokumen."
-          icon={FileText}
+          icon={<FileText className="size-4 shrink-0 text-primary" />}
           contentClassName="grid gap-4 sm:grid-cols-2"
         >
           <div className="space-y-2">
@@ -329,7 +329,7 @@ export function DocumentTypeFormPage({
         <CardContainer
           title="Pengaturan Format dan Ukuran File"
           description="Atur ekstensi yang diizinkan dan batas ukuran upload."
-          icon={SlidersHorizontal}
+          icon={<SlidersHorizontal className="size-4 shrink-0 text-primary" />}
           contentClassName="space-y-5"
         >
           <div className="space-y-3">
@@ -362,7 +362,7 @@ export function DocumentTypeFormPage({
         <CardContainer
           title="Target Sasaran Pegawai"
           description="Pilih sasaran khusus. Jika kosong, jenis dokumen berlaku untuk semua pegawai."
-          icon={Users}
+          icon={<Users className="size-4 shrink-0 text-primary" />}
           contentClassName="space-y-4"
         >
           {selectedTargetCount === 0 ? (
@@ -430,7 +430,7 @@ export function DocumentTypeFormPage({
         <CardContainer
           title="Opsi Validasi Tambahan"
           description="Atur field tambahan yang wajib dipenuhi saat pegawai mengunggah dokumen."
-          icon={CheckSquare}
+          icon={<CheckSquare className="size-4 shrink-0 text-primary" />}
           contentClassName="grid gap-3 sm:grid-cols-2"
         >
           {VALIDATION_OPTIONS.map((option) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ComponentType } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { BellRing, Loader2, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
@@ -264,7 +264,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
           <SettingsCard
             title="Reminder Dokumen"
             description="Konfigurasi waktu pengingat dokumen yang akan kedaluwarsa."
-            icon={BellRing}
+            icon={<BellRing className="size-4 shrink-0 text-primary" />}
             fields={REMINDER_FIELDS}
             values={values}
             settingsByKey={settingsByKey}
@@ -276,7 +276,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
           <SettingsCard
             title="Upload & Retensi"
             description="Konfigurasi batas file dan pemulihan data soft delete."
-            icon={UploadCloud}
+            icon={<UploadCloud className="size-4 shrink-0 text-primary" />}
             fields={STORAGE_FIELDS}
             values={values}
             settingsByKey={settingsByKey}
@@ -288,7 +288,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
           <CardContainer
             title="Retensi Log Keamanan"
             description="Konfigurasi durasi penyimpanan log aktivitas keamanan sebelum dibersihkan otomatis."
-            icon={ShieldCheck}
+            icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
             contentClassName="space-y-4"
           >
             <div className="space-y-2 rounded-xl border bg-muted/20 p-4">
@@ -323,7 +323,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
           <CardContainer
             title="Event Log Keamanan Aktif"
             description={`Pilih jenis event yang akan dicatat oleh sistem audit log (${selectedEventsSet.size} dari ${ALL_SECURITY_EVENTS.length} event dipilih).`}
-            icon={ShieldCheck}
+            icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
             action={
               <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row sm:items-center">
                 <Button type="button" variant="outline" size="sm" onClick={handleSelectAllEvents} className="w-full sm:w-auto justify-start sm:justify-center">
@@ -378,7 +378,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
       <CardContainer
         title="Catatan keamanan"
         description="Perubahan pengaturan sistem termasuk aksi sensitif dan akan tercatat di audit log."
-        icon={ShieldCheck}
+        icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
         contentClassName="text-sm text-muted-foreground"
       >
         Terakhir diperbarui: {latestUpdate ? formatDateTime(latestUpdate) : "Belum ada data pembaruan."}
@@ -402,7 +402,7 @@ function SettingsCard({
 }: {
   title: string;
   description: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: React.ReactNode;
   fields: readonly SettingField[];
   values: Record<string, string>;
   settingsByKey: Map<string, SystemSetting>;

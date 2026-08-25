@@ -46,7 +46,7 @@ export function EmployeeFilterCard({
 }: EmployeeFilterCardProps) {
   return (
     <CardContainer
-      icon={Filter}
+      icon={<Filter className="size-4 shrink-0 text-primary" />}
       title="Filter & Pencarian"
       description="Cari dan saring pegawai berdasarkan data kepegawaian, pendidikan, TMT, usia, dan status."
       descriptionClassName="hidden sm:block"

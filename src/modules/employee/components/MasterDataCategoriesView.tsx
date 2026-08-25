@@ -130,7 +130,7 @@ function CategoryCardHeader({
             <Icon className={cn("size-4", iconClassName)} />
           </div>
           <div className="min-w-0">
-            <CardTitle className="truncate text-sm font-semibold">
+            <CardTitle className="truncate text-sm font-semibold text-primary">
               {title}
             </CardTitle>
             <p className="mt-0.5 text-[11px] text-muted-foreground">

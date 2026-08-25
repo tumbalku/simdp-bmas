@@ -48,7 +48,7 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
     <CardContainer
       title="Verifikasi dua langkah"
       description="Gunakan aplikasi authenticator tanpa SMS atau layanan pihak ketiga."
-      icon={ShieldCheck}
+      icon={<ShieldCheck className="size-4 shrink-0 text-primary" />}
       contentClassName="space-y-4"
     >
       {isEnabled ? (
