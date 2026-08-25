@@ -261,35 +261,38 @@ export function StatisticsTabs({ data, totalEmployees }: StatisticsTabsProps) {
             </CardContainer>
 
             <CardContainer
-              title="Dokumen Hampir Kedaluwarsa"
-              description="Jumlah berkas dengan masa aktif yang mendekati batas waktu."
+              title="Masa Berlaku Dokumen"
+              description="Ringkasan dokumen yang mendekati batas waktu dan yang telah kedaluwarsa."
               contentClassName="pb-4 space-y-4"
             >
-              {data.expiringDocumentsSummary.length === 0 ? (
-                <EmptyState message="Tidak ada dokumen aktif yang akan kedaluwarsa." />
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {data.expiringDocumentsSummary.map((item) => {
-                    // pick color based on urgency
-                    let colorClass = "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-                    if (item.days <= 7) {
-                      colorClass = "text-destructive dark:text-red-400 bg-destructive/10 border-destructive/20";
-                    } else if (item.days <= 30) {
-                      colorClass = "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20";
-                    }
-
-                    return (
-                      <div key={item.label} className={`flex flex-col items-center justify-center p-4 rounded-xl border ${colorClass} text-center`}>
-                        <span className="text-2xl font-bold tabular-nums">{item.value}</span>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider mt-1 text-muted-foreground">{item.label}</span>
-                        <span className="text-[9px] text-muted-foreground mt-0.5">({item.days} hari)</span>
-                      </div>
-                    );
-                  })}
+              <div className="grid gap-3 sm:grid-cols-4">
+                {/* Expired Summary Box */}
+                <div className="flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border text-destructive dark:text-red-400 bg-destructive/10 border-destructive/20 text-center">
+                  <span className="text-2xl font-bold tabular-nums">{data.expiredDocumentsCount ?? 0}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider mt-1 text-destructive dark:text-red-400">Kedaluwarsa</span>
+                  <span className="text-[9px] text-muted-foreground mt-0.5">(Telah Lewat)</span>
                 </div>
-              )}
+
+                {data.expiringDocumentsSummary.map((item) => {
+                  // pick color based on urgency
+                  let colorClass = "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+                  if (item.days <= 7) {
+                    colorClass = "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20";
+                  } else if (item.days <= 30) {
+                    colorClass = "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20";
+                  }
+
+                  return (
+                    <div key={item.label} className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border ${colorClass} text-center`}>
+                      <span className="text-2xl font-bold tabular-nums">{item.value}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-wider mt-1 text-muted-foreground">{item.label}</span>
+                      <span className="text-[9px] text-muted-foreground mt-0.5">({item.days} hari)</span>
+                    </div>
+                  );
+                })}
+              </div>
               <div className="p-3 bg-muted/40 rounded-lg border border-border text-[11px] text-muted-foreground leading-normal">
-                <strong>Catatan:</strong> Dokumen yang kedaluwarsa memerlukan unggah ulang versi terbaru oleh pegawai bersangkutan untuk menjaga validitas data kepegawaian rumah sakit.
+                <strong>Catatan:</strong> Dokumen yang telah kedaluwarsa memerlukan unggah ulang versi terbaru oleh pegawai bersangkutan untuk menjaga validitas data kepegawaian rumah sakit.
               </div>
             </CardContainer>
           </div>

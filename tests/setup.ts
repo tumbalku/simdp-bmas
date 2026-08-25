@@ -183,6 +183,7 @@ export const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
     delete: vi.fn(),
+    groupBy: vi.fn(),
   },
   documentVerification: {
     findUnique: vi.fn(),

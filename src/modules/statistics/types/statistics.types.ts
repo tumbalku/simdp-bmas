@@ -45,6 +45,7 @@ export interface StatisticsChartsDto {
   verificationStatusSummary: StatisticsChartItem[];
   missingMandatoryDocumentsTop: StatisticsChartItem[];
   expiringDocumentsSummary: StatisticsExpiringSummaryItem[];
+  expiredDocumentsCount: number;
   generatedAt: string;
 }
 

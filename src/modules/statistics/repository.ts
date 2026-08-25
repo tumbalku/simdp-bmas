@@ -442,12 +442,16 @@ export async function getStatisticsChartsData(): Promise<StatisticsChartsDto> {
     .slice(0, 8);
 
   const today = new Date();
+  let expiredDocumentsCount = 0;
   const expiringDocumentsSummary: StatisticsExpiringSummaryItem[] = [
     { label: "≤ 7 hari", days: 7, value: 0 },
     { label: "≤ 30 hari", days: 30, value: 0 },
     { label: "≤ 90 hari", days: 90, value: 0 },
   ];
   for (const record of documentRecords) {
+    if (record.status === "EXPIRED" || (record.expiryDate && record.expiryDate < today && record.status !== "REPLACED")) {
+      expiredDocumentsCount += 1;
+    }
     if (!record.expiryDate || record.expiryDate < today || record.status !== "APPROVED") continue;
     const diffDays = Math.ceil((record.expiryDate.getTime() - today.getTime()) / 86_400_000);
     for (const bucket of expiringDocumentsSummary) {
@@ -476,6 +480,7 @@ export async function getStatisticsChartsData(): Promise<StatisticsChartsDto> {
     verificationStatusSummary,
     missingMandatoryDocumentsTop,
     expiringDocumentsSummary,
+    expiredDocumentsCount,
     generatedAt: new Date().toISOString(),
   };
 }
