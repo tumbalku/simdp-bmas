@@ -7,7 +7,7 @@ import { Archive, RotateCcw, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { CriticalActionVerificationDialog } from "@/components/verification/CriticalActionVerificationDialog";
 import { PaginationItems } from "@/components/tables/PaginationItems";
-import { PageHeader, PageHeaderLink } from "@/components/navigation/PageHeader";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { RowsPerPageControl } from "@/components/tables/RowsPerPageControl";
 import { ViewModeToggle } from "@/components/tables/ViewModeToggle";
 import type { PaginationMeta } from "@/types/pagination";
@@ -470,13 +470,13 @@ export function MasterDataEmployeesView({
         eyebrow="Kepegawaian"
         title="Data Pegawai"
         description="Kelola direktori pegawai, akun, unit kerja, dan ringkasan dokumen."
-        trailing={
-          <PageHeaderLink
-            href={`${ROUTES.masterDataEmployees}/add`}
-            icon={UserPlus}
-            label="Tambah Pegawai"
-          />
-        }
+        actions={[
+          {
+            href: `${ROUTES.masterDataEmployees}/add`,
+            icon: <UserPlus className="size-3.5" />,
+            label: "Tambah Pegawai",
+          },
+        ]}
       />
 
       <EmployeeFilterCard

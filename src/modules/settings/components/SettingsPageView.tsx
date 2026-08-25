@@ -5,7 +5,7 @@ import { BellRing, Loader2, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, 
 import { toast } from "sonner";
 
 import { CardContainer } from "@/components/cards/CardContainer";
-import { PageHeader, PageHeaderButton } from "@/components/navigation/PageHeader";
+import { PageHeader } from "@/components/navigation/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -234,13 +234,19 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
         title="Pengaturan Sistem"
         description="Atur parameter operasional SiCantIK seperti jadwal reminder, batas upload, dan masa retensi data."
         trailing={
-          <PageHeaderButton
-            label="Simpan"
+          <Button
             type="submit"
             disabled={isPending}
-            icon={isPending ? Loader2 : Save}
-            iconClassName={isPending ? "animate-spin" : undefined}
-          />
+            className="size-10 p-0 sm:size-auto sm:h-8 sm:px-2.5"
+            aria-label="Simpan"
+          >
+            {isPending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Save className="size-3.5" />
+            )}
+            <span className="hidden sm:inline">Simpan</span>
+          </Button>
         }
       />
 

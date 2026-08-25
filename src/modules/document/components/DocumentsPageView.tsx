@@ -262,7 +262,7 @@ export function DocumentsPageView({
                       successMessage: "Berkas PDF berhasil diunduh.",
                       defaultFilename: "dokumen-pegawai.pdf",
                     }),
-                  icon: Download,
+                  icon: <Download className="size-3.5" />,
                   variant: "default",
                   hideLabelOnMobile: true,
                 },

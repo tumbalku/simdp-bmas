@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeaderButton } from "@/components/navigation/PageHeader";
+import { Button } from "@/components/ui/button";
 import { fetchDocumentPreviewUrl } from "@/modules/document/api";
 
 type DownloadDocumentButtonProps = {
@@ -28,11 +28,20 @@ export function DownloadDocumentButton({ documentId }: DownloadDocumentButtonPro
   }
 
   return (
-    <PageHeaderButton
-      label={isPending ? "Membuka..." : "Unduh"}
-      icon={isPending ? Loader2 : Download}
+    <Button
       onClick={handleDownload}
       disabled={isPending}
-    />
+      aria-label={isPending ? "Membuka..." : "Unduh"}
+      className="size-10 p-0 sm:size-auto sm:h-8 sm:px-2.5"
+    >
+      {isPending ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : (
+        <Download className="size-3.5" />
+      )}
+      <span className="hidden sm:inline">
+        {isPending ? "Membuka..." : "Unduh"}
+      </span>
+    </Button>
   );
 }

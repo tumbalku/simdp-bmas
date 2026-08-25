@@ -342,7 +342,7 @@ export function DocumentTypesPageView({ documentTypes, pagination }: DocumentTyp
           {
             label: "Tambah Jenis",
             href: ROUTES.masterDataDocumentTypeAdd,
-            icon: Plus,
+            icon: <Plus className="size-3.5" />,
           },
         ]}
       />

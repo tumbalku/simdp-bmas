@@ -410,7 +410,7 @@ export function MasterDataDocumentsView({
           {
             label: "Jenis Dokumen",
             href: ROUTES.masterDataDocumentTypes,
-            icon: Settings2,
+            icon: <Settings2 className="size-3.5" />,
           },
         ]}
       />

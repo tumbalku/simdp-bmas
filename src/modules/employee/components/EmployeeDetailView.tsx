@@ -111,7 +111,7 @@ export function EmployeeDetailView({ employee, masterData }: EmployeeDetailViewP
           {
             label: "Edit Pegawai",
             href: routeTo.masterDataEmployeeEdit(employee.id),
-            icon: Pencil,
+            icon: <Pencil className="size-3.5" />,
           },
         ]}
         trailing={<EmployeeProfilePdfDownloadDialog employeeId={employee.id} employeeName={employee.name} />}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ComponentType, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -13,111 +13,29 @@ export type PageHeaderButtonVariant =
   | "destructive"
   | "link";
 
-export type PageHeaderLinkProps = {
-  href: string;
+export type PageHeaderActionBase = {
   label: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: ReactNode;
   iconPosition?: "start" | "end";
   variant?: PageHeaderButtonVariant;
   hideLabelOnMobile?: boolean;
-  prefetch?: boolean;
   className?: string;
 };
 
-export function PageHeaderLink({
-  href,
-  label,
-  icon: Icon,
-  iconPosition = "start",
-  variant = "default",
-  hideLabelOnMobile = true,
-  prefetch,
-  className,
-}: PageHeaderLinkProps) {
-  return (
-    <Link
-      href={href}
-      prefetch={prefetch}
-      aria-label={hideLabelOnMobile ? label : undefined}
-      className={cn(
-        buttonVariants({ variant, size: "default" }),
-        hideLabelOnMobile && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
-        className
-      )}
-    >
-      {Icon && iconPosition === "start" ? <Icon className="size-3.5" /> : null}
-      {hideLabelOnMobile ? (
-        <span className="hidden sm:inline">{label}</span>
-      ) : (
-        label
-      )}
-      {Icon && iconPosition === "end" ? <Icon className="size-3.5" /> : null}
-    </Link>
-  );
-}
+export type PageHeaderLinkAction = PageHeaderActionBase & {
+  href: string;
+  onClick?: never;
+  prefetch?: boolean;
+};
 
-export type PageHeaderButtonProps = {
-  label: string;
+export type PageHeaderButtonAction = PageHeaderActionBase & {
+  href?: never;
   onClick?: () => void;
-  icon?: ComponentType<{ className?: string }>;
-  iconPosition?: "start" | "end";
-  variant?: PageHeaderButtonVariant;
-  size?: "default" | "sm" | "lg" | "icon";
-  hideLabelOnMobile?: boolean;
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
-  className?: string;
-  iconClassName?: string;
 };
 
-export function PageHeaderButton({
-  label,
-  onClick,
-  icon: Icon,
-  iconPosition = "start",
-  variant = "default",
-  size,
-  hideLabelOnMobile = true,
-  disabled = false,
-  type = "button",
-  className,
-  iconClassName,
-}: PageHeaderButtonProps) {
-  return (
-    <Button
-      type={type}
-      variant={variant}
-      size={size}
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={hideLabelOnMobile ? label : undefined}
-      className={cn(
-        hideLabelOnMobile && !size && "size-8 p-0 sm:size-auto sm:h-8 sm:px-2.5",
-        className
-      )}
-    >
-      {Icon && iconPosition === "start" ? <Icon className={cn("size-3.5", iconClassName)} /> : null}
-      {hideLabelOnMobile ? (
-        <span className="hidden sm:inline">{label}</span>
-      ) : (
-        label
-      )}
-      {Icon && iconPosition === "end" ? <Icon className={cn("size-3.5", iconClassName)} /> : null}
-    </Button>
-  );
-}
-
-export type PageHeaderAction = {
-  label: string;
-  href?: string;
-  onClick?: () => void;
-  icon?: ComponentType<{ className?: string }>;
-  iconPosition?: "start" | "end";
-  prefetch?: boolean;
-  variant?: PageHeaderButtonVariant;
-  hideLabelOnMobile?: boolean;
-  className?: string;
-};
+export type PageHeaderAction = PageHeaderLinkAction | PageHeaderButtonAction;
 
 export type PageHeaderProps = {
   eyebrow?: string;
@@ -130,13 +48,67 @@ export type PageHeaderProps = {
   className?: string;
 };
 
+function PageHeaderActionButton(action: PageHeaderAction) {
+  const {
+    label,
+    icon,
+    iconPosition = "start",
+    variant = "default",
+    hideLabelOnMobile = true,
+    className,
+  } = action;
+
+  const commonClasses = cn(
+    hideLabelOnMobile && "size-10 p-0 sm:size-auto sm:h-8 sm:px-2.5",
+    className
+  );
+
+  const content = (
+    <>
+      {iconPosition === "start" && icon}
+      {hideLabelOnMobile ? (
+        <span className="hidden sm:inline">{label}</span>
+      ) : (
+        label
+      )}
+      {iconPosition === "end" && icon}
+    </>
+  );
+
+  if ("href" in action && typeof action.href === "string") {
+    return (
+      <Link
+        href={action.href}
+        prefetch={action.prefetch}
+        aria-label={hideLabelOnMobile ? label : undefined}
+        className={cn(buttonVariants({ variant, size: "default" }), commonClasses)}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <Button
+      type={action.type ?? "button"}
+      variant={variant}
+      onClick={action.onClick}
+      disabled={action.disabled}
+      aria-label={hideLabelOnMobile ? label : undefined}
+      className={commonClasses}
+    >
+      {content}
+    </Button>
+  );
+}
+
 export function PageHeader({
   eyebrow,
   title,
   description,
   actions,
   backHref,
-  backLabel,
+  backLabel = "Kembali",
   trailing,
   className,
 }: PageHeaderProps) {
@@ -148,7 +120,7 @@ export function PageHeader({
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" />
-          {backLabel ?? "Kembali"}
+          {backLabel}
         </Link>
       ) : null}
 
@@ -167,40 +139,12 @@ export function PageHeader({
 
         {actions?.length || trailing ? (
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-            {actions?.map((action, index) => {
-              if (action.onClick) {
-                return (
-                  <PageHeaderButton
-                    key={action.href ? `${action.href}-${action.label}` : `action-${index}-${action.label}`}
-                    label={action.label}
-                    onClick={action.onClick}
-                    icon={action.icon}
-                    iconPosition={action.iconPosition}
-                    variant={action.variant}
-                    hideLabelOnMobile={action.hideLabelOnMobile}
-                    className={action.className}
-                  />
-                );
-              }
-
-              if (!action.href) {
-                return null;
-              }
-
-              return (
-                <PageHeaderLink
-                  key={`${action.href}-${action.label}`}
-                  href={action.href}
-                  label={action.label}
-                  icon={action.icon}
-                  iconPosition={action.iconPosition}
-                  variant={action.variant}
-                  hideLabelOnMobile={action.hideLabelOnMobile}
-                  prefetch={action.prefetch}
-                  className={action.className}
-                />
-              );
-            })}
+            {actions?.map((action, index) => (
+              <PageHeaderActionButton
+                key={action.href ?? `${action.label}-${index}`}
+                {...action}
+              />
+            ))}
             {trailing}
           </div>
         ) : null}
