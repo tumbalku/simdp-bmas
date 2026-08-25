@@ -285,11 +285,13 @@ export async function disableTwoFactorAction(data: unknown) {
   if (!parsed.success) return { ok: false as const, error: { code: "VALIDATION_ERROR", message: "Kode 2FA tidak valid." } };
   try {
     const session = await requireAuth();
-    if (!(await verifyTwoFactorToken(session.userId, parsed.data.token))) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode 2FA salah." } };
+    const isValid = await verifyTwoFactorToken(session.userId, parsed.data.token);
+    if (!isValid) return { ok: false as const, error: { code: "UNAUTHENTICATED", message: "Kode authenticator atau recovery code salah." } };
     const account = await getCurrentUserAccount(session.userId);
     await disableTwoFactor(session.userId, account?.employeeName || account?.email || "User", session.role);
     return { ok: true as const, data: { disabled: true } };
-  } catch {
+  } catch (error) {
+    console.error("disableTwoFactorAction error:", error);
     return { ok: false as const, error: { code: "INTERNAL_ERROR", message: "2FA gagal dinonaktifkan." } };
   }
 }

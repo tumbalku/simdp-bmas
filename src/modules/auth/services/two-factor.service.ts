@@ -42,8 +42,12 @@ function decryptSecret(value: string) {
   ]).toString("utf8");
 }
 
+function normalizeCode(code: string) {
+  return code.replace(/[\s-]/g, "").toUpperCase();
+}
+
 function hashRecoveryCode(code: string) {
-  return crypto.createHash("sha256").update(code).digest("hex");
+  return crypto.createHash("sha256").update(normalizeCode(code)).digest("hex");
 }
 
 function hashEmailCode(userId: string, code: string) {
@@ -114,9 +118,11 @@ export async function verifyTwoFactorToken(userId: string, token: string) {
   const record = await repo.findUserTwoFactor(userId);
   if (!record?.enabled) return false;
 
-  const normalizedToken = token.replace(/\s/g, "").toUpperCase();
+  const rawCleanToken = token.trim();
+  const normalizedToken = normalizeCode(token);
   const secret = decryptSecret(record.secretEncrypted);
-  if ((await verify({ secret, token: normalizedToken })).valid) return true;
+
+  if ((await verify({ secret, token: rawCleanToken.replace(/\s/g, "") })).valid) return true;
 
   const recoveryCodeHash = hashRecoveryCode(normalizedToken);
   if (Array.isArray(record.recoveryCodeHashes) && record.recoveryCodeHashes.includes(recoveryCodeHash)) {

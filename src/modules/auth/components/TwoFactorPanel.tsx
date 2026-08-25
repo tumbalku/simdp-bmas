@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import { Copy, Download, KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { CardContainer } from "@/components/cards/CardContainer";
@@ -44,6 +44,26 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
     });
   }
 
+  function copyAllCodes() {
+    if (recoveryCodes.length === 0) return;
+    const text = recoveryCodes.join("\n");
+    void navigator.clipboard.writeText(text);
+    toast.success("Semua recovery code berhasil disalin ke clipboard.");
+  }
+
+  function downloadCodes() {
+    if (recoveryCodes.length === 0) return;
+    const text = `KODE PEMULIHAN 2FA - SiCantIK\nTanggal: ${new Date().toLocaleDateString()}\n\nSimpan kode ini di tempat aman. Masing-masing kode hanya dapat digunakan 1 kali.\n\n${recoveryCodes.join("\n")}\n`;
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "sicantik-recovery-codes.txt";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success("Berkas recovery codes berhasil diunduh.");
+  }
+
   return (
     <CardContainer
       title="Verifikasi dua langkah"
@@ -61,7 +81,28 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
       ) : (
         <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold">2FA belum aktif</div><p className="text-xs text-muted-foreground">Tambahkan keamanan dengan Google Authenticator, Microsoft Authenticator, atau Aegis.</p></div><Button type="button" onClick={startSetup} disabled={isPending}>{isPending ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}Aktifkan 2FA</Button></div>
       )}
-      {recoveryCodes.length > 0 ? <Alert className="border-amber-500/30 bg-amber-500/5"><KeyRound className="size-4 text-amber-600" /><AlertTitle>Simpan recovery codes sekarang</AlertTitle><AlertDescription>Kode ini hanya ditampilkan sekali. Simpan di tempat aman.<div className="mt-3 grid grid-cols-2 gap-2 rounded-md border bg-background p-3 font-mono text-xs">{recoveryCodes.map((code) => <span key={code}>{code}</span>)}</div></AlertDescription></Alert> : null}
+      {recoveryCodes.length > 0 ? (
+        <Alert className="border-amber-500/30 bg-amber-500/5">
+          <KeyRound className="size-4 text-amber-600" />
+          <AlertTitle>Simpan recovery codes sekarang</AlertTitle>
+          <AlertDescription>
+            Kode ini hanya ditampilkan sekali. Simpan di tempat aman.
+            <div className="mt-3 grid grid-cols-2 gap-2 rounded-md border bg-background p-3 font-mono text-xs">
+              {recoveryCodes.map((code) => (
+                <span key={code} className="select-all font-semibold tracking-wider">{code}</span>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={copyAllCodes}>
+                <Copy className="size-3.5" /> Salin Semua
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={downloadCodes}>
+                <Download className="size-3.5" /> Unduh .TXT
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      ) : null}
     </CardContainer>
   );
 }
