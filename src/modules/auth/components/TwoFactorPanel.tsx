@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { CardContainer } from "@/components/cards/CardContainer";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Label } from "@/components/ui/label";
 import { beginTwoFactorSetupAction, confirmTwoFactorSetupAction, disableTwoFactorAction } from "@/modules/auth";
 
@@ -17,6 +17,7 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
   const [setup, setSetup] = useState<{ qrCodeDataUrl: string; secret: string } | null>(null);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [token, setToken] = useState("");
+  const [useRecoveryForDisable, setUseRecoveryForDisable] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function startSetup() {
@@ -72,12 +73,123 @@ export function TwoFactorPanel({ enabled }: { enabled: boolean }) {
       contentClassName="space-y-4"
     >
       {isEnabled ? (
-        <div className="space-y-3">
-          <Alert className="border-emerald-500/20 bg-emerald-500/5"><ShieldCheck className="size-4 text-emerald-600" /><AlertTitle>2FA aktif</AlertTitle><AlertDescription>Akun akan meminta kode authenticator setiap kali login.</AlertDescription></Alert>
-          <div className="max-w-sm space-y-2"><Label htmlFor="disable-2fa-token">Kode authenticator atau recovery code untuk menonaktifkan</Label><div className="flex gap-2"><Input id="disable-2fa-token" value={token} onChange={(event) => setToken(event.target.value)} autoComplete="one-time-code" disabled={isPending} /><Button type="button" variant="outline" onClick={disable} disabled={isPending || !token}>{isPending ? <Loader2 className="size-4 animate-spin" /> : "Nonaktifkan"}</Button></div></div>
+        <div className="space-y-4">
+          <Alert className="border-emerald-500/20 bg-emerald-500/5">
+            <ShieldCheck className="size-4 text-emerald-600" />
+            <AlertTitle>2FA aktif</AlertTitle>
+            <AlertDescription>Akun akan meminta kode authenticator setiap kali login.</AlertDescription>
+          </Alert>
+
+          <div className="max-w-md space-y-3 rounded-lg border bg-muted/10 p-3.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="disable-2fa-token" className="text-xs font-semibold text-foreground">
+                {useRecoveryForDisable ? "Recovery code (6 karakter)" : "Kode authenticator 6 digit"}
+              </Label>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={() => {
+                  setUseRecoveryForDisable((prev) => !prev);
+                  setToken("");
+                }}
+              >
+                {useRecoveryForDisable ? "Gunakan authenticator" : "Gunakan recovery code"}
+              </Button>
+            </div>
+
+            {useRecoveryForDisable ? (
+              <InputOTP
+                id="disable-2fa-token"
+                maxLength={6}
+                value={token}
+                onChange={(val) => setToken(val.toUpperCase())}
+                autoComplete="one-time-code"
+                disabled={isPending}
+                aria-label="Recovery code 6 karakter"
+              >
+                <InputOTPGroup className="w-full justify-between gap-1.5">
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <InputOTPSlot key={i} index={i} className="size-9 flex-1 rounded-md border font-mono uppercase text-sm font-semibold" />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+            ) : (
+              <InputOTP
+                id="disable-2fa-token"
+                maxLength={6}
+                value={token}
+                onChange={setToken}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="one-time-code"
+                disabled={isPending}
+                aria-label="Kode authenticator 6 digit"
+              >
+                <InputOTPGroup className="w-full justify-between gap-1.5">
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <InputOTPSlot key={i} index={i} className="size-9 flex-1 rounded-md border text-sm font-semibold" />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+            )}
+
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={disable}
+              disabled={isPending || token.length < 6}
+              className="w-full"
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin" /> : "Nonaktifkan 2FA"}
+            </Button>
+          </div>
         </div>
       ) : setup ? (
-        <div className="grid gap-5 md:grid-cols-[auto_1fr] md:items-center"><img src={setup.qrCodeDataUrl} alt="QR code untuk setup authenticator" className="size-48 rounded-md border bg-white p-2" /><div className="space-y-3 text-sm"><p>Scan QR code dengan aplikasi authenticator, lalu masukkan kode yang muncul untuk mengonfirmasi.</p><div className="break-all rounded-md border bg-muted/20 p-3 font-mono text-xs">{setup.secret}</div><div className="space-y-2"><Label htmlFor="confirm-2fa-token">Kode konfirmasi</Label><div className="flex gap-2"><Input id="confirm-2fa-token" value={token} onChange={(event) => setToken(event.target.value)} inputMode="numeric" autoComplete="one-time-code" disabled={isPending} /><Button type="button" onClick={confirmSetup} disabled={isPending || !token}>{isPending ? <Loader2 className="size-4 animate-spin" /> : "Aktifkan"}</Button></div></div></div></div>
+        <div className="grid gap-5 md:grid-cols-[auto_1fr] md:items-center">
+          <img src={setup.qrCodeDataUrl} alt="QR code untuk setup authenticator" className="size-48 rounded-md border bg-white p-2" />
+          <div className="space-y-3 text-sm">
+            <p>Scan QR code dengan aplikasi authenticator, lalu masukkan kode yang muncul untuk mengonfirmasi.</p>
+            <div className="break-all rounded-md border bg-muted/20 p-3 font-mono text-xs">{setup.secret}</div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-2fa-token" className="text-xs font-semibold">Kode konfirmasi 6 digit</Label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <InputOTP
+                  id="confirm-2fa-token"
+                  maxLength={6}
+                  value={token}
+                  onChange={setToken}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  disabled={isPending}
+                  containerClassName="w-full sm:w-auto"
+                  aria-label="Kode konfirmasi 6 digit"
+                >
+                  <InputOTPGroup className="w-full justify-between gap-1.5 sm:gap-2">
+                    {Array.from({ length: 6 }, (_, i) => (
+                      <InputOTPSlot
+                        key={i}
+                        index={i}
+                        className="size-10 sm:size-9 flex-1 sm:flex-initial rounded-md border text-sm font-semibold"
+                      />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+                <Button
+                  type="button"
+                  onClick={confirmSetup}
+                  disabled={isPending || token.length < 6}
+                  className="w-full sm:w-auto"
+                >
+                  {isPending ? <Loader2 className="size-4 animate-spin" /> : "Aktifkan"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold">2FA belum aktif</div><p className="text-xs text-muted-foreground">Tambahkan keamanan dengan Google Authenticator, Microsoft Authenticator, atau Aegis.</p></div><Button type="button" onClick={startSetup} disabled={isPending}>{isPending ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}Aktifkan 2FA</Button></div>
       )}
