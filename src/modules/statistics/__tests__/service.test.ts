@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getDashboardStats, getEmployeeStats } from "../service";
+import { getDashboardStats, getEmployeeStats, getStatisticsChartsData } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
 describe("Statistics Module Service", () => {
@@ -113,6 +113,43 @@ describe("Statistics Module Service", () => {
 
       expect(stats.mandatoryDocumentCompleted).toBe(0);
       expect(stats.mandatoryDocumentTotal).toBe(1);
+    });
+  });
+
+  describe("getStatisticsChartsData", () => {
+    it("should calculate expired documents count accurately", async () => {
+      mockPrisma.employee.findMany.mockResolvedValue([]);
+      const today = new Date();
+      const pastDate = new Date(today.getTime() - 86400000 * 5);
+      const futureDate = new Date(today.getTime() + 86400000 * 5);
+
+      mockPrisma.documentRecord.findMany.mockResolvedValue([
+        {
+          status: "EXPIRED",
+          uploadedAt: pastDate,
+          expiryDate: pastDate,
+          documentType: { id: "type-1", name: "STR", archiveCategory: "CERTIFICATION" },
+        },
+        {
+          status: "APPROVED",
+          uploadedAt: pastDate,
+          expiryDate: pastDate,
+          documentType: { id: "type-2", name: "SIP", archiveCategory: "CERTIFICATION" },
+        },
+        {
+          status: "APPROVED",
+          uploadedAt: today,
+          expiryDate: futureDate,
+          documentType: { id: "type-3", name: "Sertifikat", archiveCategory: "CERTIFICATION" },
+        },
+      ]);
+      mockPrisma.verificationHistory.groupBy.mockResolvedValue([]);
+      mockPrisma.documentType.findMany.mockResolvedValue([]);
+
+      const data = await getStatisticsChartsData();
+
+      expect(data.expiredDocumentsCount).toBe(2);
+      expect(data.expiringDocumentsSummary.find((item) => item.days === 7)?.value).toBe(1);
     });
   });
 });

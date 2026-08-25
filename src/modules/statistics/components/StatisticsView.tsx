@@ -1,7 +1,7 @@
 "use client";
 
 import { useStatisticsCharts } from "../hooks";
-import { AlertTriangle, Clock, FileText, ShieldCheck, TrendingUp, Users } from "lucide-react";
+import { AlertOctagon, Clock, FileText, ShieldCheck, TrendingUp, Users } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/navigation/PageHeader";
@@ -58,11 +58,9 @@ export default function StatisticsView() {
   // Total verifications from summary
   const totalVerifications = data.verificationStatusSummary.reduce((sum, item) => sum + item.value, 0);
   
-  // Total missing mandatory documents from top missing DTO
-  const totalMissingMandatory = data.missingMandatoryDocumentsTop.reduce((sum, item) => sum + item.value, 0);
-  
   // Total expiring in next 30 days
   const expiringWithin30Days = data.expiringDocumentsSummary.find(item => item.days === 30)?.value ?? 0;
+  const expiredDocumentsCount = data.expiredDocumentsCount ?? 0;
 
   return (
     <div className="space-y-4">
@@ -108,22 +106,22 @@ export default function StatisticsView() {
           iconClassName="bg-purple-500/10 text-purple-600 dark:text-purple-400"
         />
         <MetricCard
-          title="Kekurangan Dokumen"
-          compactTitle="Kurang"
-          value={totalMissingMandatory}
-          description="Kekurangan berkas wajib"
-          icon={AlertTriangle}
-          iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
-          valueClassName={totalMissingMandatory > 0 ? "text-amber-600 dark:text-amber-400" : ""}
-        />
-        <MetricCard
           title="Hampir Kedaluwarsa"
-          compactTitle="Expired"
+          compactTitle="Mendekati"
           value={expiringWithin30Days}
           description="Masa berlaku ≤ 30 hari"
           icon={Clock}
+          iconClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+          valueClassName={expiringWithin30Days > 0 ? "text-amber-600 dark:text-amber-400" : ""}
+        />
+        <MetricCard
+          title="Sudah Kedaluwarsa"
+          compactTitle="Expired"
+          value={expiredDocumentsCount}
+          description="Masa berlaku telah lewat"
+          icon={AlertOctagon}
           iconClassName="bg-rose-500/10 text-rose-600 dark:text-rose-400"
-          valueClassName={expiringWithin30Days > 0 ? "text-rose-600 dark:text-rose-400" : ""}
+          valueClassName={expiredDocumentsCount > 0 ? "text-rose-600 dark:text-rose-400" : ""}
         />
       </div>
 
