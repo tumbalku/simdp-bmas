@@ -255,7 +255,7 @@ export function DocumentGridView({
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">
-                            Kedaluwarsa
+                            Masa Aktif
                           </p>
                           <p className={expiry?.textClass}>
                             {expiry?.type === "EXPIRED" ? (
