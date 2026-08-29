@@ -66,6 +66,9 @@ type EditingItem = {
   name: string;
   type: CategoryType;
   parentId?: string | null;
+  rankName?: string | null;
+  rank?: string | null;
+  grade?: string | null;
 };
 
 type DeleteTarget = {
@@ -320,7 +323,7 @@ function FlatCategoryCard({
                     variant="ghost"
                     size="icon-xs"
                     onClick={() =>
-                      onEdit({ id: item.id, name: item.name, type })
+                      onEdit({ id: item.id, name: item.name, type, rankName: item.rankName ?? item.rank, rank: item.rankName ?? item.rank, grade: item.grade })
                     }
                     title="Edit"
                   >
@@ -357,6 +360,8 @@ export function MasterDataCategoriesView({
   const [selectedType, setSelectedType] = useState<CategoryType>("STATUS");
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState("");
+  const [rank, setRank] = useState("");
+  const [grade, setGrade] = useState("");
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleteSecretKey, setDeleteSecretKey] = useState("");
@@ -386,6 +391,8 @@ export function MasterDataCategoriesView({
     setSelectedType(type);
     setName("");
     setParentId(initialParentId);
+    setRank("");
+    setGrade("");
     setDialogOpen(true);
   };
 
@@ -395,13 +402,24 @@ export function MasterDataCategoriesView({
     setSelectedType(item.type);
     setName(item.name);
     setParentId(item.parentId ?? "");
+    setRank(item.rankName ?? item.rank ?? "");
+    setGrade(item.grade ?? "");
     setDialogOpen(true);
   };
 
   const handleSave = () => {
-    if (!name.trim()) {
-      toast.error(`${selectedConfig.fieldLabel} wajib diisi.`);
-      return;
+    const isRank = selectedType === "RANK";
+
+    if (isRank) {
+      if (!grade.trim()) {
+        toast.error("Golongan wajib diisi.");
+        return;
+      }
+    } else {
+      if (!name.trim()) {
+        toast.error(`${selectedConfig.fieldLabel} wajib diisi.`);
+        return;
+      }
     }
 
     if (requiresParent && !parentId) {
@@ -409,7 +427,15 @@ export function MasterDataCategoriesView({
       return;
     }
 
-    const payload: Record<string, string> = { name: name.trim() };
+    const payload: Record<string, string> = {};
+    if (isRank) {
+      payload.grade = grade.trim();
+      if (rank.trim()) {
+        payload.rankName = rank.trim();
+      }
+    } else {
+      payload.name = name.trim();
+    }
     if (selectedConfig.parentField) {
       payload[selectedConfig.parentField] = parentId;
     }
@@ -431,6 +457,9 @@ export function MasterDataCategoriesView({
         id: result.data.id,
         name: result.data.name,
         parentId: requiresParent ? parentId : null,
+        rankName: result.data.rankName ?? result.data.rank ?? null,
+        rank: result.data.rankName ?? result.data.rank ?? null,
+        grade: result.data.grade ?? null,
       };
 
       setData((current) =>
@@ -587,6 +616,8 @@ export function MasterDataCategoriesView({
                 onValueChange={(value) => {
                   setSelectedType(value as CategoryType);
                   setParentId("");
+                  setRank("");
+                  setGrade("");
                 }}
               >
                 <SelectTrigger id="category-type" className="h-9 w-full">
@@ -625,16 +656,53 @@ export function MasterDataCategoriesView({
               </div>
             ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor="category-name">{selectedConfig.fieldLabel}</Label>
-              <Input
-                id="category-name"
-                className="h-9"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={`Masukkan ${selectedConfig.fieldLabel.toLowerCase()}`}
-              />
-            </div>
+            {selectedType === "RANK" ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="category-golongan">
+                    Golongan <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="category-golongan"
+                    className="h-9"
+                    value={grade}
+                    onChange={(event) => setGrade(event.target.value)}
+                    placeholder="Contoh: III-a"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category-pangkat">Pangkat (opsional)</Label>
+                  <Input
+                    id="category-pangkat"
+                    className="h-9"
+                    value={rank}
+                    onChange={(event) => setRank(event.target.value)}
+                    placeholder="Contoh: Penata Muda"
+                  />
+                </div>
+                {(grade.trim() || rank.trim()) && (
+                  <p className="text-[12px] text-muted-foreground">
+                    Label:{" "}
+                    <span className="font-medium text-foreground">
+                      {rank.trim() && grade.trim()
+                        ? `${rank.trim()} / ${grade.trim()}`
+                        : grade.trim() || rank.trim()}
+                    </span>
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="category-name">{selectedConfig.fieldLabel}</Label>
+                <Input
+                  id="category-name"
+                  className="h-9"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder={`Masukkan ${selectedConfig.fieldLabel.toLowerCase()}`}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter>

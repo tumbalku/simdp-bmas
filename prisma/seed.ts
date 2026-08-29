@@ -136,12 +136,12 @@ async function main() {
   ]);
 
   const ranks = await Promise.all([
-    prisma.employeeRank.create({ data: { id: "seed_rank_ii_a", name: "Pengatur Muda / II-a" } }),
-    prisma.employeeRank.create({ data: { id: "seed_rank_ii_c", name: "Pengatur / II-c" } }),
-    prisma.employeeRank.create({ data: { id: "seed_rank_iii_a", name: "Penata Muda / III-a" } }),
-    prisma.employeeRank.create({ data: { id: "seed_rank_iii_b", name: "Penata Muda Tk. I / III-b" } }),
-    prisma.employeeRank.create({ data: { id: "seed_rank_iii_d", name: "Penata Tk. I / III-d" } }),
-    prisma.employeeRank.create({ data: { id: "seed_rank_iv_a", name: "Pembina / IV-a" } }),
+    prisma.employeeRank.create({ data: { id: "seed_rank_ii_a", name: "Pengatur Muda / II-a", rankName: "Pengatur Muda", grade: "II-a" } }),
+    prisma.employeeRank.create({ data: { id: "seed_rank_ii_c", name: "Pengatur / II-c", rankName: "Pengatur", grade: "II-c" } }),
+    prisma.employeeRank.create({ data: { id: "seed_rank_iii_a", name: "Penata Muda / III-a", rankName: "Penata Muda", grade: "III-a" } }),
+    prisma.employeeRank.create({ data: { id: "seed_rank_iii_b", name: "Penata Muda Tk. I / III-b", rankName: "Penata Muda Tk. I", grade: "III-b" } }),
+    prisma.employeeRank.create({ data: { id: "seed_rank_iii_d", name: "Penata Tk. I / III-d", rankName: "Penata Tk. I", grade: "III-d" } }),
+    prisma.employeeRank.create({ data: { id: "seed_rank_iv_a", name: "Pembina / IV-a", rankName: "Pembina", grade: "IV-a" } }),
   ]);
 
   const workplaces = await Promise.all([

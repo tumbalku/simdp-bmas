@@ -4,6 +4,28 @@ import { logActivity } from "@/modules/security/server";
 import { SECURITY_ACTOR_ROLE, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security/server";
 import * as repository from "../repository";
 
+function buildEmployeeRankName(data: any): string {
+  const rank = (data.rankName || data.rank || "").trim();
+  const grade = (data.grade || "").trim();
+  if (rank && grade) return `${rank} / ${grade}`;
+  if (grade) return grade;
+  return rank;
+}
+
+function resolveEmployeeRankData(entityType: string, data: any): any {
+  if (entityType !== "EmployeeRank") return data;
+  const resolved = { ...data };
+  const rankName = (resolved.rankName || resolved.rank || "").trim();
+  if (rankName) {
+    resolved.rankName = rankName;
+  }
+  delete resolved.rank;
+  if (!resolved.name || !resolved.name.trim()) {
+    resolved.name = buildEmployeeRankName(resolved);
+  }
+  return resolved;
+}
+
 export async function getMasterDataList(
   entityType:
     | "EmploymentStatus"
@@ -83,9 +105,10 @@ export async function handleMasterDataCrud(
 
   if (operation === "CREATE") {
     const newId = crypto.randomUUID();
+    const resolvedData = resolveEmployeeRankData(entityType, data);
     const createData = {
       id: newId,
-      ...data,
+      ...resolvedData,
       createdBy: systemActor.actorId,
     };
 
@@ -105,8 +128,9 @@ export async function handleMasterDataCrud(
   if (operation === "UPDATE") {
     if (!id) throw new Error("ID master data wajib diisi");
 
+    const resolvedData = resolveEmployeeRankData(entityType, data);
     const updateData = {
-      ...data,
+      ...resolvedData,
       updatedBy: systemActor.actorId,
       updatedAt: new Date(),
     };

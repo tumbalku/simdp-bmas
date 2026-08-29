@@ -94,6 +94,8 @@ CREATE TABLE "EmployeePosition" (
 CREATE TABLE "EmployeeRank" (
   id text PRIMARY KEY,
   name text NOT NULL UNIQUE,
+  rank_name text,
+  grade text,
   "createdBy" text REFERENCES "User"(id),
   "updatedBy" text REFERENCES "User"(id),
   "createdAt" timestamp NOT NULL DEFAULT now(),

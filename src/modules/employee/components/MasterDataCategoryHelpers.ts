@@ -1,6 +1,6 @@
 import { EMPLOYEE_CATEGORY_TYPE_CONFIG, type EmployeeCategoryType } from "@/modules/employee";
 
-export type CategoryMasterData = { id: string; name: string; parentId?: string | null; };
+export type CategoryMasterData = { id: string; name: string; parentId?: string | null; rankName?: string | null; rank?: string | null; grade?: string | null; };
 export type CategoryType = EmployeeCategoryType;
 export type CategoriesData = {
   employmentStatuses: CategoryMasterData[];

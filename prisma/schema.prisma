@@ -256,6 +256,8 @@ model EmployeePosition {
 model EmployeeRank {
   id        String   @id
   name      String   @unique
+  rankName  String?  @map("rank_name")
+  grade     String?
   createdBy String?
   updatedBy String?
   createdAt DateTime @default(now())
