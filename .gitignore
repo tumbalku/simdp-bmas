@@ -68,9 +68,9 @@ tmp/
 temp/
 *.tsbuildinfo
 
-# Agent local artifacts & skills
-.agents/skills/*
-!.agents/skills/design-taste-frontend/
+# Agent & tool local artifacts
+.agents/
+.github/
 .hermes/
 
 # Test / coverage
