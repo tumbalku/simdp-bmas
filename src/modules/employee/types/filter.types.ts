@@ -5,6 +5,8 @@ export type EmployeeDirectoryFilterValues = {
   professionGroupId: string;
   employeePositionId: string;
   employeeRankId: string;
+  rankName: string;
+  grade: string;
   workplaceId: string;
   maritalStatus: string;
   lastEducation: string;
@@ -28,11 +30,18 @@ export type EmployeePositionOption = EmployeeFilterOption & {
   professionGroupId: string;
 };
 
+export type EmployeeRankOption = EmployeeFilterOption & {
+  rankName?: string | null;
+  grade?: string | null;
+};
+
 export type EmployeeDirectoryFilterOptions = {
   employmentStatuses: EmployeeFilterOption[];
   employeeGroups: EmployeeGroupOption[];
   professionGroups: EmployeeFilterOption[];
   employeePositions: EmployeePositionOption[];
-  employeeRanks: EmployeeFilterOption[];
+  employeeRanks: EmployeeRankOption[];
   workplaces: EmployeeFilterOption[];
+  rankNames: string[];
+  grades: string[];
 };

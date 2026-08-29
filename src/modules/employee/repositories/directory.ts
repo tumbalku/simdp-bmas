@@ -55,6 +55,7 @@ export async function findEmployeesWithPagination(
     include: {
       user: { select: { email: true, role: true, isActive: true } },
       employmentStatus: { select: { name: true } },
+      employeeRank: { select: { name: true, rankName: true, grade: true } },
       workplace: { select: { name: true } },
       _count: { select: { documentRecords: true } },
     },

@@ -59,6 +59,8 @@ function parseDirectoryFilter(searchParams: URLSearchParams) {
     professionGroupId: searchParams.get("professionGroupId") || undefined,
     employeePositionId: searchParams.get("employeePositionId") || undefined,
     employeeRankId: searchParams.get("employeeRankId") || undefined,
+    rankName: searchParams.get("rankName") || undefined,
+    grade: searchParams.get("grade") || undefined,
     workplaceId: searchParams.get("workplaceId") || undefined,
     maritalStatus: searchParams.get("maritalStatus") || undefined,
     lastEducation: searchParams.get("lastEducation") || undefined,

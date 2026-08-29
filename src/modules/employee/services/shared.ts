@@ -20,6 +20,8 @@ export type EmployeeDirectoryFilter = {
   professionGroupId?: string;
   employeePositionId?: string;
   employeeRankId?: string;
+  rankName?: string;
+  grade?: string;
   workplaceId?: string;
   maritalStatus?: string;
   lastEducation?: string;
@@ -73,6 +75,9 @@ export function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
       { employeeId: { contains: filter.search, mode: "insensitive" } },
       { nik: { contains: filter.search, mode: "insensitive" } },
       { user: { email: { contains: filter.search, mode: "insensitive" } } },
+      { employeeRank: { name: { contains: filter.search, mode: "insensitive" } } },
+      { employeeRank: { rankName: { contains: filter.search, mode: "insensitive" } } },
+      { employeeRank: { grade: { contains: filter.search, mode: "insensitive" } } },
     ];
   }
 
@@ -83,6 +88,12 @@ export function buildEmployeeDirectoryWhere(filter: EmployeeDirectoryFilter) {
   }
   if (filter.employeePositionId) where.employeePositionId = filter.employeePositionId;
   if (filter.employeeRankId) where.employeeRankId = filter.employeeRankId;
+  if (filter.rankName) {
+    where.employeeRank = { ...(where.employeeRank || {}), rankName: filter.rankName };
+  }
+  if (filter.grade) {
+    where.employeeRank = { ...(where.employeeRank || {}), grade: filter.grade };
+  }
   if (filter.workplaceId) where.workplaceId = filter.workplaceId;
   if (filter.maritalStatus) where.maritalStatus = canonicalMaritalStatus(filter.maritalStatus);
   if (filter.status) where.status = canonicalEmployeeStatus(filter.status);
