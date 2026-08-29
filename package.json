@@ -14,8 +14,8 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "ops": "npm --prefix tools/ops-hub run dev --",
-    "ops:gui": "npm --prefix tools/ops-hub run gui"
+    "ops": "node tools/ops-hub/dist/cli/index.js",
+    "ops:gui": "node tools/ops-hub/dist/server/index.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

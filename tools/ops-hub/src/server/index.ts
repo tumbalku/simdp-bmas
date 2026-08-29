@@ -208,3 +208,8 @@ export async function startServer(port = 4000) {
     process.exit(1);
   }
 }
+
+if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}` || process.argv[1]?.endsWith('server\\index.js') || process.argv[1]?.endsWith('server/index.js') || process.argv[1]?.endsWith('server\\index.ts') || process.argv[1]?.endsWith('server/index.ts')) {
+  startServer(4000);
+}
+
