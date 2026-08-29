@@ -15,6 +15,8 @@ type PageProps = {
     professionGroupId?: string;
     employeePositionId?: string;
     employeeRankId?: string;
+    rankName?: string;
+    grade?: string;
     workplaceId?: string;
     maritalStatus?: string;
     lastEducation?: string;
@@ -68,6 +70,8 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
         professionGroupId: params.professionGroupId,
         employeePositionId: params.employeePositionId,
         employeeRankId: params.employeeRankId,
+        rankName: params.rankName,
+        grade: params.grade,
         workplaceId: params.workplaceId,
         maritalStatus: params.maritalStatus,
         lastEducation: params.lastEducation,
@@ -100,6 +104,20 @@ export default async function MasterDataEmployeesPage({ searchParams }: PageProp
         employeePositions: employeePositions.data,
         employeeRanks: employeeRanks.data,
         workplaces: workplaces.data,
+        rankNames: [
+          ...new Set(
+            (employeeRanks.data as { rankName?: string | null }[])
+              .map((r) => r.rankName)
+              .filter((v): v is string => typeof v === "string" && v.trim() !== "")
+          ),
+        ].sort(),
+        grades: [
+          ...new Set(
+            (employeeRanks.data as { grade?: string | null }[])
+              .map((r) => r.grade)
+              .filter((v): v is string => typeof v === "string" && v.trim() !== "")
+          ),
+        ].sort(),
       }}
       directorOptions={directorOptions}
       sortBy={params.sortBy}

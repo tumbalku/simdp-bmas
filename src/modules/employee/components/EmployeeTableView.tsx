@@ -23,6 +23,8 @@ export type EmployeeSummary = {
   isActive: boolean;
   employmentStatus: string | null;
   workplace: string | null;
+  rankName: string | null;
+  grade: string | null;
   documentCount: number;
 };
 
@@ -178,6 +180,18 @@ export function EmployeeTableView({
       sortable: true,
       sortKey: "workplace",
       cell: (emp) => emp.workplace || "-",
+    },
+    {
+      key: "rank",
+      header: "Pangkat / Golongan",
+      cell: (emp) => (
+        <div className="space-y-0.5">
+          <div className="text-sm text-foreground">{emp.rankName || "-"}</div>
+          {emp.grade ? (
+            <div className="text-xs text-muted-foreground">Gol. {emp.grade}</div>
+          ) : null}
+        </div>
+      ),
     },
     {
       key: "documents",

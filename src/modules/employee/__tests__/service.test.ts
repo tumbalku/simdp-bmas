@@ -15,6 +15,7 @@ import {
   renderEmployeeDocumentsPdfHtml,
   importFromCsv,
   addCareerHistory,
+  handleMasterDataCrud,
 } from "../service";
 import { mockPrisma } from "../../../../tests/setup";
 
@@ -161,6 +162,8 @@ describe("Employee Module Service", () => {
         professionGroupId: "profession-1",
         employeePositionId: "position-1",
         employeeRankId: "rank-1",
+        rankName: "Penata Muda",
+        grade: "III-a",
         workplaceId: "workplace-1",
         maritalStatus: "MARRIED",
         lastEducation: "S1",
@@ -180,6 +183,10 @@ describe("Employee Module Service", () => {
             employeePosition: { professionGroupId: "profession-1" },
             employeePositionId: "position-1",
             employeeRankId: "rank-1",
+            employeeRank: expect.objectContaining({
+              rankName: "Penata Muda",
+              grade: "III-a",
+            }),
             workplaceId: "workplace-1",
             maritalStatus: "MARRIED",
             lastEducation: "S1",
@@ -898,6 +905,53 @@ describe("Employee Module Service", () => {
         })
       );
       expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handleMasterDataCrud", () => {
+    it("should resolve rankName and grade properly when creating EmployeeRank", async () => {
+      mockPrisma.employeeRank.create.mockResolvedValue({
+        id: "rank-new",
+        name: "Penata Muda / III-a",
+        rankName: "Penata Muda",
+        grade: "III-a",
+      });
+
+      const result = await handleMasterDataCrud(
+        "EmployeeRank",
+        "CREATE",
+        undefined,
+        {
+          rankName: "Penata Muda",
+          grade: "III-a",
+        },
+        "admin-1",
+        "Admin",
+        "ADMIN"
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: "rank-new",
+          name: "Penata Muda / III-a",
+        })
+      );
+      expect(mockPrisma.employeeRank.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rankName: "Penata Muda",
+            grade: "III-a",
+            name: "Penata Muda / III-a",
+          }),
+        })
+      );
+      expect(mockPrisma.employeeRank.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rank: expect.anything(),
+          }),
+        })
+      );
     });
   });
 });

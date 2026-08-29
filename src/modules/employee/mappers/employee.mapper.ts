@@ -27,6 +27,8 @@ export function mapEmployeeSummary(employee: any) {
     isActive: employee.user?.isActive ?? true,
     employmentStatus: employee.employmentStatus?.name || null,
     workplace: employee.workplace?.name || null,
+    rankName: employee.employeeRank?.rankName || null,
+    grade: employee.employeeRank?.grade || null,
     documentCount: employee._count?.documentRecords ?? employee.documentRecords?.length ?? 0,
   };
 }

@@ -155,6 +155,8 @@ export function MasterDataEmployeesView({
         isActive: true,
         employmentStatus: null,
         workplace: null,
+        rankName: null,
+        grade: null,
         documentCount: 0,
       },
     });

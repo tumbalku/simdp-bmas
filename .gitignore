@@ -6,7 +6,6 @@ node_modules/
 
 # Next.js
 .next/
-documentation/.docusaurus/
 out/
 build/
 dist/
@@ -69,9 +68,10 @@ tmp/
 temp/
 *.tsbuildinfo
 
-# Graphify local knowledge graph artifacts
-graphify-out/
-.hermes/skills/graphify/
+# Agent & tool local artifacts
+.agents/
+.github/
+.hermes/
 
 # Test / coverage
 coverage/

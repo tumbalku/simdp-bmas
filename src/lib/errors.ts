@@ -82,6 +82,33 @@ export function handleActionError(
     };
   }
 
+  if (message.includes("Unique constraint failed") || code === "P2002") {
+    return {
+      ok: false as const,
+      error: {
+        code: "CONFLICT",
+        message: "Data dengan nama atau nilai tersebut sudah ada di sistem.",
+      },
+    };
+  }
+
+  if (
+    message.includes("PrismaClient") ||
+    message.includes("Invocation") ||
+    message.includes("DriverAdapterError") ||
+    message.includes("Unknown argument") ||
+    message.includes("syntax error") ||
+    message.includes("column")
+  ) {
+    return {
+      ok: false as const,
+      error: {
+        code: "INTERNAL_ERROR",
+        message: options?.defaultMessage ?? "Terjadi kesalahan saat memproses data pada sistem.",
+      },
+    };
+  }
+
   if (message.includes("APPROVED")) {
     return {
       ok: false as const,

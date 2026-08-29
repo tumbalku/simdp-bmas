@@ -21,6 +21,8 @@ type EmployeeFilterOptions = {
   employeePositions: { id: string; name: string; professionGroupId: string }[];
   employeeRanks: { id: string; name: string; code?: string }[];
   workplaces: { id: string; name: string }[];
+  rankNames: string[];
+  grades: string[];
 };
 
 type EmployeeFilterCardProps = {
@@ -65,7 +67,7 @@ export function EmployeeFilterCard({
             }}
           />
         </div>
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-5">
           <Select
             value={filters.employmentStatusId || "all"}
             onValueChange={(val) => {
@@ -149,17 +151,34 @@ export function EmployeeFilterCard({
           </Select>
 
           <Select
-            value={filters.employeeRankId || "all"}
-            onValueChange={(val) => onFieldChange("employeeRankId", !val || val === "all" ? "" : val)}
+            value={filters.rankName || "all"}
+            onValueChange={(val) => onFieldChange("rankName", !val || val === "all" ? "" : val)}
           >
-            <SelectTrigger className="w-full" aria-label="Pangkat/Golongan">
-              <SelectValue placeholder="Pangkat/Golongan" />
+            <SelectTrigger className="w-full" aria-label="Pangkat">
+              <SelectValue placeholder="Pangkat" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Pangkat/Golongan</SelectItem>
-              {filterOptions.employeeRanks.map((opt) => (
-                <SelectItem key={opt.id} value={opt.id}>
-                  {opt.name}
+              <SelectItem value="all">Pangkat</SelectItem>
+              {filterOptions.rankNames.map((rn) => (
+                <SelectItem key={rn} value={rn}>
+                  {rn}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.grade || "all"}
+            onValueChange={(val) => onFieldChange("grade", !val || val === "all" ? "" : val)}
+          >
+            <SelectTrigger className="w-full" aria-label="Golongan">
+              <SelectValue placeholder="Golongan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Golongan</SelectItem>
+              {filterOptions.grades.map((g) => (
+                <SelectItem key={g} value={g}>
+                  {g}
                 </SelectItem>
               ))}
             </SelectContent>
