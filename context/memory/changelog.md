@@ -5,6 +5,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Memisahkan backup/restore operasional dari repo SIMDP ke project `SIMDP Backup Ops Hub`, serta menghapus Ops Hub lama, helper backup script, env backup/restore, kode `src/lib/backup`, dan runbook backup lama dari aplikasi utama.
 - Issue #196/#222: Memisahkan bucket rate limit API berdasarkan `scope` aksi opsional, sehingga endpoint yang berbagi kategori seperti `EXPORT` tetap dibatasi per aksi tanpa saling menghabiskan kuota global user/IP.
 - Issue #237: Menetapkan prioritas target backup production: Google Drive sebagai target offsite utama, VPS/local sebagai jalur kedua untuk server sendiri, dan S3/S3-compatible sebagai opsi terakhir/future sampai adapter/job resmi dipilih.
 - Issue #222/#223: Menetapkan `RateLimitBucket` PostgreSQL sebagai shared rate-limit store awal untuk multi-instance production, serta mengurangi write amplification audit login gagal dengan hanya mencatat `SecurityLog` pada hit pertama bucket window.

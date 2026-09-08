@@ -2,6 +2,12 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-09-08] REVISED Backup Operasional Dipisah dari Repo SIMDP
+- Konteks: project backup/restore yang ramah operator sudah dipisahkan ke project terpisah `SIMDP Backup Ops Hub`, sehingga repo SIMDP tidak perlu lagi membawa Ops Hub lama, helper shell backup lokal/VPS, adapter `IBackupTarget`, env `BACKUP_*`, atau runbook backup operasional.
+- Keputusan: SIMDP kembali fokus sebagai aplikasi web utama. Backup/restore operasional dikelola di project `SIMDP Backup Ops Hub`. Repo SIMDP hanya mempertahankan proteksi `.gitignore` untuk folder/artefak backup lokal agar data backup tidak ikut ter-commit.
+- Dampak: keputusan backup provider-agnostic Issue #237 dan helper backup lokal/VPS sebelumnya dinyatakan superseded untuk repo SIMDP. Jika dokumentasi backup masih diperlukan, tulis dan jalankan dari project backup terpisah.
+- Referensi: cleanup pemisahan Ops Hub 2026-09-08.
+
 ## [2026-08-01] REVISED Scoped API Rate Limit Buckets
 - Konteks: kategori rate limit seperti `EXPORT` dipakai oleh beberapa endpoint berbeda. Bucket yang hanya berbasis kategori + user/IP membuat download PDF profil, PDF dokumen, CSV pegawai, dan export lain saling menghabiskan kuota walaupun aksi yang dilakukan berbeda.
 - Keputusan: `enforceApiRateLimit()` mendukung `scope` aksi opsional. Key bucket dibentuk dari kategori + scope + user/IP, dengan default `scope:global` untuk endpoint yang belum membutuhkan pemisahan aksi.
