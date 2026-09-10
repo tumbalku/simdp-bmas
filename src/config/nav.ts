@@ -9,6 +9,7 @@ import {
   Database,
   FolderOpen,
   UserCog,
+  UserPlus,
   Layers,
   type LucideIcon,
 } from "lucide-react";
@@ -85,6 +86,12 @@ export const navItems = [
         label: navCopy.masterDataEmployees,
         href: ROUTES.masterDataEmployees,
         icon: UserCog,
+        roles: ROLE_GROUPS.adminOnly,
+      },
+      {
+        label: "Registrasi User",
+        href: ROUTES.registrationRequests,
+        icon: UserPlus,
         roles: ROLE_GROUPS.adminOnly,
       },
       {

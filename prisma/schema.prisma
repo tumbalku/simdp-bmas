@@ -594,3 +594,33 @@ model RateLimitBucket {
   @@index([category, resetAt], map: "idx_ratelimitbucket_category_reset")
   @@index([resetAt], map: "idx_ratelimitbucket_reset")
 }
+
+
+model UserRegistrationRequest {
+  id                 String    @id
+  email              String
+  name               String
+  nik                String?
+  employeeId         String?
+  passwordHash       String?
+  phone              String?
+  workplaceName      String?
+  note               String?
+  status             String    @default("EMAIL_PENDING")
+  emailOtpHash       String?
+  emailOtpExpiresAt  DateTime?
+  emailOtpAttempts   Int       @default(0)
+  emailOtpSentAt     DateTime?
+  emailVerifiedAt    DateTime?
+  reviewedAt         DateTime?
+  reviewedByAdminId  String?
+  reviewNote         String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([status, createdAt], map: "idx_userregistration_status_created")
+  @@index([emailVerifiedAt], map: "idx_userregistration_email_verified")
+  @@index([email], map: "idx_userregistration_email")
+  @@index([nik], map: "idx_userregistration_nik")
+  @@index([employeeId], map: "idx_userregistration_employee_id")
+}

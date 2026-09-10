@@ -5,6 +5,14 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Menambahkan migrasi kompatibilitas registrasi agar database yang sudah pernah menerapkan draft awal ikut menjadikan `UserRegistrationRequest.passwordHash` nullable dan mengganti unique index identitas menjadi partial unique untuk request aktif.
+- Menindaklanjuti review registrasi: request yang sudah menunggu admin tidak bisa di-reset oleh submit ulang, request OTP kedaluwarsa tidak mengunci NIK/NIP, transisi verifikasi/approval/reject memakai conditional update, partial unique index staging hanya berlaku untuk request aktif, dan password/OTP staging dibersihkan saat request selesai.
+- Memperbaiki registrasi ulang agar identitas dari permohonan lama berstatus selesai tidak lagi memblokir pendaftaran baru, menampilkan antrian admin hanya untuk registrasi yang menunggu verifikasi, serta mengembalikan lebar login/register ke layout autentikasi sempit.
+- Memecah UI registrasi publik menjadi komponen form, OTP, dan status sukses; menghapus field catatan admin dari registrasi serta dialog tinjauan; dan mengganti tombol submit registrasi menjadi "Daftar".
+- Menambahkan card ringan khusus registrasi untuk langkah OTP dan status sukses agar tampilannya kembali rapi dan seragam tanpa memakai `AuthCardShell`.
+- Memperbaiki registrasi: menghapus input unit kerja bebas (ditetapkan admin melalui profil pegawai), memvalidasi form sebelum meminta OTP, menyimpan permohonan sebelum mengirim OTP, dan mengirim email persetujuan setelah akun berhasil dibuat. Kegagalan email persetujuan ditampilkan kepada admin tanpa membatalkan akun.
+- Membatasi submit/verifikasi OTP registrasi per IP dan email melalui shared rate limiter; menangani respons error Resend agar penolakan provider tidak dilaporkan sebagai pengiriman berhasil.
+- Menambahkan fitur registrasi user sementara: pendaftaran publik dengan OTP email, antrian approval admin, notifikasi admin, dan pembuatan akun `User + Employee` hanya saat approve.
 - Memisahkan backup/restore operasional dari repo SIMDP ke project `SIMDP Backup Ops Hub`, serta menghapus Ops Hub lama, helper backup script, env backup/restore, kode `src/lib/backup`, dan runbook backup lama dari aplikasi utama.
 - Issue #196/#222: Memisahkan bucket rate limit API berdasarkan `scope` aksi opsional, sehingga endpoint yang berbagi kategori seperti `EXPORT` tetap dibatasi per aksi tanpa saling menghabiskan kuota global user/IP.
 - Issue #237: Menetapkan prioritas target backup production: Google Drive sebagai target offsite utama, VPS/local sebagai jalur kedua untuk server sendiri, dan S3/S3-compatible sebagai opsi terakhir/future sampai adapter/job resmi dipilih.

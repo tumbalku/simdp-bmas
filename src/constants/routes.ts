@@ -1,6 +1,7 @@
 export const ROUTES = {
   home: "/",
   login: "/login",
+  register: "/register",
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   dashboard: "/dashboard",
@@ -18,6 +19,7 @@ export const ROUTES = {
   masterDataEmployees: "/master-data/employees",
   masterDataEmployeeAdd: "/master-data/employees/add",
   masterDataEmployeeExport: "/master-data/employees/export",
+  registrationRequests: "/master-data/registration-requests",
   masterDataCategories: "/master-data/categories",
 } as const;
 

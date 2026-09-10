@@ -11,6 +11,23 @@ export class AppError extends Error {
   }
 }
 
+function getErrorCode(error: unknown) {
+  return error && typeof error === "object" && "code" in error
+    ? String((error as Record<string, unknown>).code)
+    : undefined;
+}
+
+export function isRegistrationSchemaMissingError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const code = getErrorCode(error);
+
+  return code === "P2021" && message.includes("UserRegistrationRequest");
+}
+
+export function getRegistrationSchemaMissingMessage() {
+  return "Database registrasi belum siap. Jalankan migration Prisma untuk membuat tabel UserRegistrationRequest, lalu restart aplikasi.";
+}
+
 export function handleActionError(
   error: unknown,
   options?: {
@@ -38,9 +55,7 @@ export function handleActionError(
   }
 
   const message = error instanceof Error ? error.message : String(error);
-  const code = error && typeof error === "object" && "code" in error
-    ? String((error as Record<string, unknown>).code)
-    : undefined;
+  const code = getErrorCode(error);
 
   if (message === "UNAUTHENTICATED") {
     return {
@@ -88,6 +103,16 @@ export function handleActionError(
       error: {
         code: "CONFLICT",
         message: "Data dengan nama atau nilai tersebut sudah ada di sistem.",
+      },
+    };
+  }
+
+  if (isRegistrationSchemaMissingError(error)) {
+    return {
+      ok: false as const,
+      error: {
+        code: "REGISTRATION_SCHEMA_NOT_READY",
+        message: getRegistrationSchemaMissingMessage(),
       },
     };
   }

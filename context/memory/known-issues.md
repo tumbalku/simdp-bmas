@@ -9,6 +9,8 @@ File ini mencatat technical debt, known bug, dan hal yang sengaja belum dikerjak
 
 ## Active
 
+- [DEBT] Email persetujuan registrasi belum memiliki antrean retry persisten. Jika pengiriman gagal, admin mendapat peringatan dan perlu menghubungi pendaftar; akun yang disetujui tetap aktif.
+
 - [DEBT] Rate limiting API v1 kini memakai tabel `RateLimitBucket` agar counter global antar instance. Jika traffic naik signifikan, evaluasi Redis/Upstash atau edge/provider limiter untuk mengurangi write load PostgreSQL.
 - [DEBT] Rate limiting API v1 pada #196 bergantung pada header IP dari trusted proxy (`x-forwarded-for`/`x-real-ip`). Deployment harus memastikan header tersebut tidak bisa dipalsukan langsung oleh client.
 - [DEBT] Rate limiting login gagal memakai `RateLimitBucket` sebagai store terpusat dan SecurityLog hanya dicatat pada awal window/rate-limited claim. Jika volume login tinggi, evaluasi Redis/Upstash agar PostgreSQL tidak menjadi hot path limiter.
@@ -18,6 +20,7 @@ File ini mencatat technical debt, known bug, dan hal yang sengaja belum dikerjak
 
 ## Resolved
 
+- [2026-09-10] Registrasi publik tidak lagi memakai upsert global yang bisa me-reset request `PENDING_ADMIN_REVIEW`; identitas request selesai tetap menjadi histori tanpa memblokir pendaftaran baru; OTP expired tidak lagi mengunci NIK/NIP; transisi verifikasi/approval/reject memakai conditional update; dan material password/OTP staging dibersihkan saat terminal.
 - [2026-07-08] Tremor Charts sudah dipasang dan preview dashboard statistik sudah tersedia melalui wrapper modul `statistics`.
 - [2026-07-08] Project Next.js sudah discaffold; `npm run lint`, `npm run typecheck`, dan `npm run build` tersedia sebagai quality gate awal.
 - [2026-07-08] Folder context tahap awal `ui`, `memory`, dan `progress` sudah dibuat.

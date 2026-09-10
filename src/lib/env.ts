@@ -91,6 +91,7 @@ const envSchema = z
     INNGEST_EVENT_KEY: optionalString,
     INNGEST_SIGNING_KEY: optionalString,
     NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+    PUBLIC_REGISTRATION_ENABLED: optionalBoolean.default(false),
   })
   .superRefine((env, context) => {
     if (env.STORAGE_PROVIDER === "supabase") {
