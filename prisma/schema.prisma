@@ -320,6 +320,7 @@ model Employee {
   updatedBy          String?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @default(now())
+  profileSelfUpdatedAt DateTime?
   deletedAt          DateTime?
 
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)

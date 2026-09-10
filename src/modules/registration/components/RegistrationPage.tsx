@@ -38,6 +38,7 @@ export function RegistrationPage({ enabled }: RegistrationPageProps) {
       nik: String(formData.get("nik") || ""),
       employeeId: String(formData.get("employeeId") || ""),
       password: String(formData.get("password") || ""),
+      confirmPassword: String(formData.get("confirmPassword") || ""),
       phone: String(formData.get("phone") || ""),
     };
 
@@ -108,6 +109,7 @@ export function RegistrationPage({ enabled }: RegistrationPageProps) {
       title="Daftar akses pegawai"
       description="Isi data inti, verifikasi email, lalu tunggu persetujuan admin."
       icon={<UserPlus className="size-5" aria-hidden="true" />}
+      width="register"
       footer={
         <>
           <span>Sudah punya akun?</span>

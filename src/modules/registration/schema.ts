@@ -21,9 +21,14 @@ export const submitRegistrationSchema = z
     email: z.string().trim().toLowerCase().email("Format email tidak valid"),
     name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120, "Nama terlalu panjang"),
     password: z.string().min(8, "Password minimal 8 karakter").max(128, "Password terlalu panjang"),
+    confirmPassword: z.string().min(8, "Konfirmasi password minimal 8 karakter").max(128, "Konfirmasi password terlalu panjang"),
     phone: optionalTrimmedString.pipe(z.string().regex(/^[0-9+\-\s]{6,32}$/, "Format nomor HP tidak valid").optional()),
   })
-  .and(identitySchema);
+  .and(identitySchema)
+  .refine((value) => value.password === value.confirmPassword, {
+    message: "Konfirmasi password tidak sesuai.",
+    path: ["confirmPassword"],
+  });
 
 export const verifyRegistrationOtpSchema = z.object({
   email: z.string().trim().toLowerCase().email("Format email tidak valid"),

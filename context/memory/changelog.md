@@ -5,6 +5,9 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Memperbesar kartu login/register secara terkontrol dan menambahkan panduan error realtime pada form registrasi publik tanpa perubahan database.
+- Issue #308: Memperluas edit profil mandiri pegawai dengan data pribadi dan data kerja yang sebelumnya hanya diisi admin, serta menambahkan cooldown 90 hari khusus self-service setelah profil berhasil disimpan.
+- Issue #307: Menambahkan konfirmasi password pada registrasi publik di client dan server tanpa menyimpan field konfirmasi ke database.
 - Menambahkan migrasi kompatibilitas registrasi agar database yang sudah pernah menerapkan draft awal ikut menjadikan `UserRegistrationRequest.passwordHash` nullable dan mengganti unique index identitas menjadi partial unique untuk request aktif.
 - Menindaklanjuti review registrasi: request yang sudah menunggu admin tidak bisa di-reset oleh submit ulang, request OTP kedaluwarsa tidak mengunci NIK/NIP, transisi verifikasi/approval/reject memakai conditional update, partial unique index staging hanya berlaku untuk request aktif, dan password/OTP staging dibersihkan saat request selesai.
 - Memperbaiki registrasi ulang agar identitas dari permohonan lama berstatus selesai tidak lagi memblokir pendaftaran baru, menampilkan antrian admin hanya untuk registrasi yang menunggu verifikasi, serta mengembalikan lebar login/register ke layout autentikasi sempit.
@@ -84,6 +87,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Issue #306: Menyembunyikan hamburger menu mobile pada navbar landing page saat user belum login, sehingga panel menu role-based hanya tersedia setelah ada profile sesi.
 - Memperbaiki guard role halaman dashboard agar user login dengan role kurang diarahkan ke dashboard, bukan berakhir pada error page dari `requireAuth()`.
 - Issue #253/#254: Menambahkan guard arsitektur untuk read-only Server Action misuse, memindahkan read preview dokumen client ke GET API wrapper, membersihkan state sync during render di `/documents`, memusatkan query user+employee server-only, dan menghapus statistics read action generic yang tidak dipakai.
 - Issue #251/#252: Mengganti initial dashboard reads dari Server Action ke server service dan memindahkan read verification queue/preview ke URL serta GET route agar browser tidak mengirim POST read-only berulang.

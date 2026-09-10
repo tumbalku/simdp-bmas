@@ -102,7 +102,7 @@ describe("registration service", () => {
       name: "Pegawai Test",
       email: "pegawai@example.com",
       nik: "7401010101010001",
-      password: "password123",
+      password: "password123", confirmPassword: "password123",
       phone: "08123456789",
     });
 
@@ -111,6 +111,21 @@ describe("registration service", () => {
     expect(mockPrisma.userRegistrationRequest.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: REGISTRATION_STATUS.EMAIL_PENDING, nik: "7401010101010001" }),
     }));
+    const createArg = mockPrisma.userRegistrationRequest.create.mock.calls[0][0];
+    expect(createArg.data).not.toHaveProperty("confirmPassword");
+  });
+
+  it("rejects mismatched password confirmation before persisting or sending OTP", async () => {
+    await expect(submitRegistration({
+      name: "Pegawai Test",
+      email: "pegawai@example.com",
+      nik: "7401010101010001",
+      password: "password123",
+      confirmPassword: "password456",
+    })).rejects.toThrow("Konfirmasi password tidak sesuai");
+
+    expect(emailMocks.sendEmail).not.toHaveBeenCalled();
+    expect(mockPrisma.userRegistrationRequest.create).not.toHaveBeenCalled();
   });
 
   it("rejects registration when email already belongs to an active user", async () => {
@@ -120,7 +135,7 @@ describe("registration service", () => {
       name: "Pegawai Test",
       email: "pegawai@example.com",
       nik: "7401010101010001",
-      password: "password123",
+      password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("Email sudah terdaftar");
 
     expect(mockPrisma.userRegistrationRequest.create).not.toHaveBeenCalled();
@@ -134,7 +149,7 @@ describe("registration service", () => {
 
       await expect(submitRegistration({
         name: "Pegawai Test", email: "pegawai@example.com",
-        nik: "7401010101010001", password: "password123",
+        nik: "7401010101010001", password: "password123", confirmPassword: "password123",
       })).resolves.toMatchObject({ maskedEmail: "pe***@example.com" });
       expect(emailMocks.sendEmail).toHaveBeenCalledOnce();
       expect(historical.nik).toBe("7401010101010001");
@@ -162,7 +177,7 @@ describe("registration service", () => {
     mockPrisma.userRegistrationRequest.create.mockResolvedValueOnce(registration({ ...oldRequest, id: "reg-2", status: REGISTRATION_STATUS.EMAIL_PENDING }));
     await expect(submitRegistration({
       name: "Pegawai Test", email: oldRequest.email,
-      nik: "7401010101010001", password: "password123",
+      nik: "7401010101010001", password: "password123", confirmPassword: "password123",
     })).resolves.toMatchObject({ id: "reg-2" });
     expect(mockPrisma.userRegistrationRequest.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ email: oldRequest.email, status: REGISTRATION_STATUS.EMAIL_PENDING }),
@@ -178,7 +193,7 @@ describe("registration service", () => {
 
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      nik: "7401010101010001", password: "password123",
+      nik: "7401010101010001", password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("Registrasi email ini sudah menunggu persetujuan admin");
     expect(mockPrisma.userRegistrationRequest.create).not.toHaveBeenCalled();
     expect(mockPrisma.userRegistrationRequest.update).not.toHaveBeenCalled();
@@ -189,7 +204,7 @@ describe("registration service", () => {
     mockPrisma.user.findFirst.mockResolvedValue({ id: "archived-user", deletedAt: new Date() });
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      nik: "7401010101010001", password: "password123",
+      nik: "7401010101010001", password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("Email masih terhubung dengan akun yang diarsipkan");
     expect(mockPrisma.user.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { email: "pegawai@example.com" },
@@ -204,7 +219,7 @@ describe("registration service", () => {
     mockPrisma.employee.findFirst.mockResolvedValue({ id: "archived-employee", ...identity, deletedAt: new Date() });
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      nik: identity.nik ?? undefined, employeeId: identity.employeeId ?? undefined, password: "password123",
+      nik: identity.nik ?? undefined, employeeId: identity.employeeId ?? undefined, password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("Identitas masih terhubung dengan pegawai yang diarsipkan");
     expect(mockPrisma.employee.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { OR: [identity.nik ? { nik: identity.nik } : { employeeId: identity.employeeId }] },
@@ -225,7 +240,7 @@ describe("registration service", () => {
       email: "pegawai@example.com",
       nik: "7401010101010001",
       employeeId: "198001012010011001",
-      password: "password123",
+      password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("NIP sudah terdaftar");
   });
 
@@ -242,7 +257,7 @@ describe("registration service", () => {
       email: "pegawai@example.com",
       nik: "7401010101010001",
       employeeId: "198001012010011001",
-      password: "password123",
+      password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("NIP sedang dipakai pada registrasi lain yang belum selesai");
   });
 
@@ -251,7 +266,7 @@ describe("registration service", () => {
     mockPrisma.userRegistrationRequest.create.mockResolvedValueOnce(registration({ employeeId: historical.employeeId }));
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      employeeId: "198001012010011001", password: "password123",
+      employeeId: "198001012010011001", password: "password123", confirmPassword: "password123",
     })).resolves.toMatchObject({ maskedEmail: "pe***@example.com" });
     expect(historical.employeeId).toBe("198001012010011001");
     expect(mockPrisma.userRegistrationRequest.update).not.toHaveBeenCalledWith(expect.objectContaining({
@@ -265,7 +280,7 @@ describe("registration service", () => {
       mockPrisma.userRegistrationRequest.findFirst.mockResolvedValue(registration({ status, email: "other@example.com" }));
       await expect(submitRegistration({
         name: "Pegawai Test", email: "pegawai@example.com",
-        nik: "7401010101010001", password: "password123",
+        nik: "7401010101010001", password: "password123", confirmPassword: "password123",
       })).rejects.toThrow("NIK sedang dipakai pada registrasi lain yang belum selesai");
       expect(mockPrisma.userRegistrationRequest.create).not.toHaveBeenCalled();
       expect(emailMocks.sendEmail).not.toHaveBeenCalled();
@@ -278,7 +293,7 @@ describe("registration service", () => {
 
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      nik: "7401010101010001", password: "password123",
+      nik: "7401010101010001", password: "password123", confirmPassword: "password123",
     })).resolves.toMatchObject({ maskedEmail: "pe***@example.com" });
     expect(mockPrisma.userRegistrationRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
@@ -317,7 +332,7 @@ describe("registration service", () => {
   ])("does not send email or persist invalid registration %j", async (invalid) => {
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      nik: "7401010101010001", password: "password123", ...invalid,
+      nik: "7401010101010001", password: "password123", confirmPassword: "password123", ...invalid,
     })).rejects.toThrow();
     expect(emailMocks.sendEmail).not.toHaveBeenCalled();
     expect(mockPrisma.userRegistrationRequest.create).not.toHaveBeenCalled();
@@ -327,7 +342,7 @@ describe("registration service", () => {
     mockPrisma.userRegistrationRequest.create.mockRejectedValueOnce(new Error("storage failed"));
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      nik: "7401010101010001", password: "password123",
+      nik: "7401010101010001", password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("storage failed");
     expect(emailMocks.sendEmail).not.toHaveBeenCalled();
   });
@@ -338,7 +353,7 @@ describe("registration service", () => {
       name: "Pegawai Test",
       email: "pegawai@example.com",
       nik: "7401010101010001",
-      password: "password123",
+      password: "password123", confirmPassword: "password123",
     });
 
     const createArg = mockPrisma.userRegistrationRequest.create.mock.calls[0][0];

@@ -72,7 +72,7 @@ export function RegistrationOtpForm({
           disabled={isPending || otp.length !== 6}
         >
           {isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-          Verifikasi dan kirim ke admin
+          Verifikasi
         </Button>
         <Button
           type="button"

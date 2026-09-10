@@ -20,6 +20,12 @@ File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan 
 - OTP registrasi memakai HMAC berbasis secret aplikasi dan dibandingkan dengan timing-safe equality untuk mengurangi risiko brute force jika tabel staging bocor.
 - Transisi `EMAIL_PENDING -> PENDING_ADMIN_REVIEW`, `PENDING_ADMIN_REVIEW -> APPROVED`, dan reject admin memakai conditional update dengan status lama sebagai guard agar dua aksi paralel tidak saling menimpa hasil review.
 
+## [2026-09-10] Profil Mandiri Pegawai dengan Cooldown 90 Hari
+- Konteks: setelah registrasi disetujui, pegawai hanya membawa data inti sehingga admin tetap harus melengkapi banyak field saat jumlah pendaftar besar.
+- Keputusan: role `EMPLOYEE` boleh melengkapi data pribadi dan data kerja dari halaman `/profile`, tetapi setiap simpan self-service mengisi `Employee.profileSelfUpdatedAt` dan mengunci edit mandiri berikutnya selama 90 hari.
+- Batasan: email, role, status akun, NIP, dan NIK tetap dikelola admin. Cooldown tidak berlaku untuk panel admin/staff yang memperbarui data melalui flow master data.
+- Referensi: #308.
+
 ## [2026-09-08] REVISED Backup Operasional Dipisah dari Repo SIMDP
 - Konteks: project backup/restore yang ramah operator sudah dipisahkan ke project terpisah `SIMDP Backup Ops Hub`, sehingga repo SIMDP tidak perlu lagi membawa Ops Hub lama, helper shell backup lokal/VPS, adapter `IBackupTarget`, env `BACKUP_*`, atau runbook backup operasional.
 - Keputusan: SIMDP kembali fokus sebagai aplikasi web utama. Backup/restore operasional dikelola di project `SIMDP Backup Ops Hub`. Repo SIMDP hanya mempertahankan proteksi `.gitignore` untuk folder/artefak backup lokal agar data backup tidak ikut ter-commit.

@@ -131,6 +131,28 @@ describe("Employee Module Actions", () => {
     expect(result).toEqual({ ok: true, data: { success: true } });
   });
 
+  it("should strip account and locked identity fields from self-service profile updates", async () => {
+    mocks.requireAuth.mockResolvedValue({ userId: "user-1", role: "EMPLOYEE" });
+    mocks.updateProfile.mockResolvedValue(true);
+
+    const result = await updateProfileAction({
+      phone: "081234567890",
+      email: "changed@example.com",
+      role: "ADMIN",
+      isActive: false,
+      employeeId: "199001012020011001",
+      nik: "7401010101010001",
+    });
+
+    expect(mocks.updateProfile).toHaveBeenCalledWith(
+      "user-1",
+      { phone: "081234567890" },
+      "Admin User",
+      "EMPLOYEE"
+    );
+    expect(result).toEqual({ ok: true, data: { success: true } });
+  });
+
   it("should upload a profile avatar file for the current user", async () => {
     mocks.requireAuth.mockResolvedValue({ userId: "user-1", role: "EMPLOYEE" });
     mocks.uploadProfileAvatar.mockResolvedValue({ avatarUrl: "uploads/profile/avatar.png" });

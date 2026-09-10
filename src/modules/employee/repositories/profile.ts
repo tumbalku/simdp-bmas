@@ -64,3 +64,39 @@ export async function findEmployeeByEmployeeId(employeeId: string, tx?: PrismaCl
 export async function findEmployeeByNik(nik: string, tx?: PrismaClientOrTx) {
   return getClient(tx).employee.findFirst({ where: { nik } });
 }
+
+export async function findEmploymentStatusById(id: string, tx?: PrismaClientOrTx) {
+  return getClient(tx).employmentStatus.findFirst({ where: { id } });
+}
+
+export async function findEmployeeGroupByIdAndEmploymentStatus(
+  id: string,
+  employmentStatusId: string,
+  tx?: PrismaClientOrTx,
+) {
+  return getClient(tx).employeeGroup.findFirst({ where: { id, employmentStatusId } });
+}
+
+export async function findEmployeeGroupById(id: string, tx?: PrismaClientOrTx) {
+  return getClient(tx).employeeGroup.findFirst({ where: { id } });
+}
+
+export async function findEmployeePositionByIdAndProfessionGroup(
+  id: string,
+  professionGroupId: string,
+  tx?: PrismaClientOrTx,
+) {
+  return getClient(tx).employeePosition.findFirst({ where: { id, professionGroupId } });
+}
+
+export async function findEmployeePositionById(id: string, tx?: PrismaClientOrTx) {
+  return getClient(tx).employeePosition.findFirst({ where: { id } });
+}
+
+export async function findEmployeeRankById(id: string, tx?: PrismaClientOrTx) {
+  return getClient(tx).employeeRank.findFirst({ where: { id } });
+}
+
+export async function findWorkplaceById(id: string, tx?: PrismaClientOrTx) {
+  return getClient(tx).workplace.findFirst({ where: { id } });
+}

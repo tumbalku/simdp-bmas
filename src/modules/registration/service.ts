@@ -166,48 +166,50 @@ async function notifyAdminsForRegistration(request: UserRegistrationRequest) {
 export async function submitRegistration(rawInput: SubmitRegistrationInput) {
   assertRegistrationEnabled();
   const parsed = submitRegistrationSchema.parse(rawInput);
+  const { confirmPassword, ...registrationData } = parsed;
+  void confirmPassword;
   const now = new Date();
-  await repo.expireStaleEmailPendingRegistrations({ ...parsed, now });
-  await assertNoExistingAccount({ ...parsed, now });
+  await repo.expireStaleEmailPendingRegistrations({ ...registrationData, now });
+  await assertNoExistingAccount({ ...registrationData, now });
 
-  const activeRegistration = await repo.findActiveRegistrationByEmail(parsed.email, now);
+  const activeRegistration = await repo.findActiveRegistrationByEmail(registrationData.email, now);
   if (activeRegistration?.status === REGISTRATION_STATUS.PENDING_ADMIN_REVIEW) {
     throw new AppError("CONFLICT", "Registrasi email ini sudah menunggu persetujuan admin.", 409);
   }
 
   const otp = generateOtp();
   const otpExpiresAt = new Date(now.getTime() + REGISTRATION_OTP_TTL_MINUTES * 60 * 1000);
-  const passwordHash = await argon2.hash(parsed.password);
+  const passwordHash = await argon2.hash(registrationData.password);
 
   const registrationInput = {
     id: crypto.randomUUID(),
-    email: parsed.email,
-    name: parsed.name,
-    nik: parsed.nik || null,
-    employeeId: parsed.employeeId || null,
+    email: registrationData.email,
+    name: registrationData.name,
+    nik: registrationData.nik || null,
+    employeeId: registrationData.employeeId || null,
     passwordHash,
-    phone: parsed.phone || null,
-    otpHash: hashOtp(parsed.email, otp),
+    phone: registrationData.phone || null,
+    otpHash: hashOtp(registrationData.email, otp),
     otpExpiresAt,
     now,
   };
-  const latestRegistration = activeRegistration ?? await repo.findLatestRegistrationByEmail(parsed.email);
+  const latestRegistration = activeRegistration ?? await repo.findLatestRegistrationByEmail(registrationData.email);
   const request = latestRegistration?.status === REGISTRATION_STATUS.EMAIL_PENDING
     ? await repo.restartEmailPendingRegistration(latestRegistration.id, registrationInput)
     : await repo.createRegistration(registrationInput);
 
-  await sendRegistrationOtpEmail({ email: parsed.email, otp });
+  await sendRegistrationOtpEmail({ email: registrationData.email, otp });
 
   await logActivity({
-    actorName: parsed.name,
+    actorName: registrationData.name,
     actorRole: SECURITY_ACTOR_ROLE.PUBLIC,
     eventType: SECURITY_EVENT_TYPE.USER_REGISTRATION_SUBMITTED,
     resource: `UserRegistrationRequest:${request.id}`,
     status: SECURITY_LOG_STATUS.SUCCESS,
-    metadata: { email: parsed.email, hasNik: Boolean(parsed.nik), hasEmployeeId: Boolean(parsed.employeeId) },
+    metadata: { email: registrationData.email, hasNik: Boolean(registrationData.nik), hasEmployeeId: Boolean(registrationData.employeeId) },
   });
 
-  return { id: request.id, maskedEmail: maskEmail(parsed.email), expiresInSeconds: REGISTRATION_OTP_TTL_MINUTES * 60 };
+  return { id: request.id, maskedEmail: maskEmail(registrationData.email), expiresInSeconds: REGISTRATION_OTP_TTL_MINUTES * 60 };
 }
 
 export async function verifyRegistrationOtp(rawInput: VerifyRegistrationOtpInput) {

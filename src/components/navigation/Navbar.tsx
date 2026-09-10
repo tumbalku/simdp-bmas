@@ -233,10 +233,11 @@ type NavbarProps = {
 export default function Navbar({ profile = null }: NavbarProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const hasProfile = Boolean(profile)
 
   useEffect(() => {
     setMobileMenuOpen(false)
-  }, [pathname])
+  }, [hasProfile, pathname])
 
   return (
     <header className="sticky top-0 z-40 w-full shrink-0 border-b border-border bg-card/95 backdrop-blur-md">
@@ -247,11 +248,13 @@ export default function Navbar({ profile = null }: NavbarProps) {
           <ThemeToggle />
           <NotificationPanel enabled={Boolean(profile)} userId={profile?.userId} />
           <UserProfileMenu profile={profile} loading={false} />
-          <MobileMenuToggle open={mobileMenuOpen} onToggle={() => setMobileMenuOpen((v) => !v)} />
+          {hasProfile ? (
+            <MobileMenuToggle open={mobileMenuOpen} onToggle={() => setMobileMenuOpen((v) => !v)} />
+          ) : null}
         </div>
       </div>
 
-      {mobileMenuOpen && (
+      {hasProfile && mobileMenuOpen && (
         <MobileMenuPanel
           pathname={pathname}
           role={(profile?.role as UserRole) ?? null}

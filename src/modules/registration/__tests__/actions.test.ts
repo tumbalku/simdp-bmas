@@ -24,6 +24,7 @@ const registration = {
   name: "Pegawai Test",
   nik: "7401010101010001",
   password: "password123",
+  confirmPassword: "password123",
 };
 
 describe("public registration action protection", () => {
@@ -36,6 +37,14 @@ describe("public registration action protection", () => {
 
   it("rejects invalid form fields before rate limiting or email service", async () => {
     const result = await submitRegistrationAction({ ...registration, nik: "123" });
+    expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_ERROR" } });
+    expect(mocks.increment).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
+  it("rejects mismatched password confirmation before rate limiting or email service", async () => {
+    const result = await submitRegistrationAction({ ...registration, confirmPassword: "password456" });
+
     expect(result).toMatchObject({ ok: false, error: { code: "VALIDATION_ERROR" } });
     expect(mocks.increment).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();

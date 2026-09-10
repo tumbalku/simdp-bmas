@@ -93,6 +93,7 @@ export function LoginPage() {
       title={loginCopy.title}
       description={loginCopy.description}
       icon={<LockKeyhole className="size-5" aria-hidden="true" />}
+      width="login"
       footer={
         <>
           <span>{loginCopy.helpText}</span>
