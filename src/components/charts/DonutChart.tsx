@@ -4,6 +4,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import {
   chartTooltipStyle,
+  chartTooltipWrapperStyle,
   defaultValueFormatter,
   getChartColor,
   toNumber,
@@ -81,6 +82,7 @@ export function DonutChart({
           <Tooltip
             formatter={(value) => valueFormatter(toNumber(value as ChartValue))}
             contentStyle={chartTooltipStyle}
+            wrapperStyle={chartTooltipWrapperStyle}
           />
         </PieChart>
       </ResponsiveContainer>

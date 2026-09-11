@@ -8,11 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DATE_FORMATS, DATE_LOCALE, ROLE_LABELS } from "@/constants";
 import { EmployeeProfilePdfDownloadDialog } from "@/modules/employee/components/EmployeeProfilePdfDownloadDialog";
 import { ProfileAvatarUpload } from "@/modules/employee/components/ProfileAvatarUpload";
-import { ProfileEditDialog } from "@/modules/employee/components/ProfileEditDialog";
+import { ProfileEditDialog, type ProfileMasterDataOption } from "@/modules/employee/components/ProfileEditDialog";
 import { getEmployeeStatusLabel, getGenderLabel, getMaritalStatusLabel, getReligionLabel } from "../constants";
 
 type NamedRecord = {
+  id?: string;
   name: string;
+  employmentStatusId?: string | null;
+  professionGroupId?: string | null;
 } | null;
 
 type ProfileData = {
@@ -22,6 +25,10 @@ type ProfileData = {
   name: string;
   status: string | null;
   gender: string | null;
+  canonicalStatus?: string | null;
+  canonicalGender?: string | null;
+  canonicalReligion?: string | null;
+  canonicalMaritalStatus?: string | null;
   birthDate: Date | string | null;
   birthPlace: string | null;
   academicDegree: string | null;
@@ -34,6 +41,12 @@ type ProfileData = {
   hasTmt: boolean;
   tmtStartDate: Date | string | null;
   tmtEndDate: Date | string | null;
+  employmentStatusId: string | null;
+  employeeGroupId: string | null;
+  employeePositionId: string | null;
+  employeeRankId: string | null;
+  workplaceId: string | null;
+  profileSelfUpdatedAt: Date | string | null;
   employmentStatus: NamedRecord;
   employeeGroup: NamedRecord;
   employeePosition: NamedRecord;
@@ -51,6 +64,12 @@ type AccountData = {
 type ProfilePageViewProps = {
   profile: ProfileData;
   account: AccountData;
+  employmentStatuses: ProfileMasterDataOption[];
+  employeeGroups: ProfileMasterDataOption[];
+  professionGroups: ProfileMasterDataOption[];
+  employeePositions: ProfileMasterDataOption[];
+  employeeRanks: ProfileMasterDataOption[];
+  workplaces: ProfileMasterDataOption[];
 };
 
 function formatDate(value: Date | string | null) {
@@ -99,11 +118,33 @@ function formatTmt(profile: ProfileData) {
   };
 }
 
-export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
+function getProfileCooldownUntil(value: Date | string | null, role: string) {
+  if (role !== "EMPLOYEE" || !value) return null;
+
+  const lastUpdatedAt = new Date(value);
+  if (Number.isNaN(lastUpdatedAt.getTime())) return null;
+
+  const nextAllowedAt = new Date(lastUpdatedAt.getTime() + 90 * 24 * 60 * 60 * 1000);
+  if (nextAllowedAt <= new Date()) return null;
+
+  return new Intl.DateTimeFormat(DATE_LOCALE, DATE_FORMATS.date).format(nextAllowedAt);
+}
+
+export function ProfilePageView({
+  profile,
+  account,
+  employmentStatuses,
+  employeeGroups,
+  professionGroups,
+  employeePositions,
+  employeeRanks,
+  workplaces,
+}: ProfilePageViewProps) {
   const tmt = formatTmt(profile);
   const roleLabel = getRoleLabel(account.role);
   const initials = getInitials(profile.name);
   const statusLabel = getEmployeeStatusLabel(profile.status) || "Aktif";
+  const cooldownUntil = getProfileCooldownUntil(profile.profileSelfUpdatedAt, account.role);
 
   return (
     <div className="space-y-6">
@@ -115,13 +156,35 @@ export function ProfilePageView({ profile, account }: ProfilePageViewProps) {
           <>
             <ProfileEditDialog
               initialData={{
-                phone: profile.phone || "",
-                address: profile.address || "",
+                name: profile.name || "",
+                gender: profile.canonicalGender || profile.gender || "",
                 birthPlace: profile.birthPlace || "",
                 birthDate: formatDateInput(profile.birthDate),
-                religion: profile.religion || "",
-                maritalStatus: profile.maritalStatus || "",
+                academicDegree: profile.academicDegree || "",
+                lastEducation: profile.lastEducation || "",
+                religion: profile.canonicalReligion || profile.religion || "",
+                maritalStatus: profile.canonicalMaritalStatus || profile.maritalStatus || "",
+                status: profile.canonicalStatus || profile.status || "ACTIVE",
+                phone: profile.phone || "",
+                address: profile.address || "",
+                joinDate: formatDateInput(profile.joinDate),
+                hasTmt: Boolean(profile.hasTmt),
+                tmtStartDate: formatDateInput(profile.tmtStartDate),
+                tmtEndDate: formatDateInput(profile.tmtEndDate),
+                employmentStatusId: profile.employmentStatusId || "",
+                employeeGroupId: profile.employeeGroupId || "",
+                professionGroupId: profile.employeePosition?.professionGroupId || "",
+                employeePositionId: profile.employeePositionId || "",
+                employeeRankId: profile.employeeRankId || "",
+                workplaceId: profile.workplaceId || "",
               }}
+              cooldownUntil={cooldownUntil}
+              employmentStatuses={employmentStatuses}
+              employeeGroups={employeeGroups}
+              professionGroups={professionGroups}
+              employeePositions={employeePositions}
+              employeeRanks={employeeRanks}
+              workplaces={workplaces}
             />
             <EmployeeProfilePdfDownloadDialog employeeId={profile.id} employeeName={profile.name} />
           </>

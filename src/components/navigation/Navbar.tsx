@@ -6,15 +6,29 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import {
-  Sun,
-  Moon,
+  Check,
   Menu,
+  Palette,
   X,
   ChevronDown,
 } from "lucide-react"
 
 import { cn } from "@/utils"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  APP_THEME_OPTIONS,
+  DEFAULT_APP_THEME,
+  getAppThemeOption,
+} from "@/components/providers/theme-options"
 import type { UserRole } from "@/constants/roles"
 import { getNavItemsByRole, type NavItem } from "@/config/nav"
 import { APP, ROUTES } from "@/constants"
@@ -49,29 +63,66 @@ function Logo() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Theme toggle                                                                */
+/*  Theme selector                                                              */
 /* -------------------------------------------------------------------------- */
 
-function ThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme()
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => setMounted(true), [])
 
+  const currentThemeId = mounted ? theme : DEFAULT_APP_THEME
+  const activeTheme = getAppThemeOption(currentThemeId) ?? getAppThemeOption(DEFAULT_APP_THEME)
+
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-      className="size-9 rounded-lg hover:bg-accent"
-      aria-label="Toggle Theme"
-    >
-      {mounted && resolvedTheme === "dark" ? (
-        <Sun className="size-4 text-amber-500 transition-all" />
-      ) : (
-        <Moon className="size-4 text-slate-700 dark:text-slate-300 transition-all" />
-      )}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9 rounded-lg hover:bg-accent"
+            aria-label={`Pilih tema${activeTheme ? `: ${activeTheme.label}` : ""}`}
+            suppressHydrationWarning
+          >
+            <Palette className="size-4 text-foreground transition-all" />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Tema tampilan</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {APP_THEME_OPTIONS.map((option) => {
+            const isActive = option.id === currentThemeId
+
+            return (
+              <DropdownMenuItem
+                key={option.id}
+                onClick={() => setTheme(option.id)}
+                className="min-h-11 cursor-pointer gap-3 px-2 py-2"
+              >
+                <span className="flex -space-x-1" aria-hidden="true">
+                  {option.previewColors.map((color) => (
+                    <span
+                      key={`${option.id}-${color}`}
+                      className="size-4 rounded-full border border-background ring-1 ring-border"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{option.label}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{option.description}</span>
+                </span>
+                {isActive ? <Check className="size-4 text-primary" aria-hidden="true" /> : null}
+              </DropdownMenuItem>
+            )
+          })}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -110,8 +161,9 @@ function MobileNavLink({
       <Link
         href={item.href}
         onClick={onNavigate}
+        data-active={isActive}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-primary",
+          "mobile-nav-link flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-primary",
           isActive ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground"
         )}
       >
@@ -126,8 +178,9 @@ function MobileNavLink({
       <button
         type="button"
         onClick={onToggle}
+        data-active={isActive || hasActiveChild}
         className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-primary",
+          "mobile-nav-link flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-primary",
           isActive || hasActiveChild ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground"
         )}
       >
@@ -137,7 +190,7 @@ function MobileNavLink({
       </button>
 
       {isOpen ? (
-        <div className="ml-5 border-l border-border pl-2">
+        <div className="mobile-nav-children ml-5 border-l border-border pl-2">
           {item.children?.map((child) => {
             const ChildIcon = child.icon
             const childActive =
@@ -150,8 +203,9 @@ function MobileNavLink({
                 key={child.href}
                 href={child.href}
                 onClick={onNavigate}
+                data-active={childActive}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-primary",
+                  "mobile-nav-link flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-primary",
                   childActive ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground"
                 )}
               >
@@ -191,8 +245,14 @@ function MobileMenuPanel({
   }
 
   return (
-    <div className="absolute top-14 left-0 w-full bg-card border-b border-border p-3 flex flex-col gap-1 md:hidden animate-in slide-in-from-top-5 duration-200 shadow-lg z-50">
-      <nav className="flex flex-col gap-1">
+    <div className="mobile-nav-panel absolute inset-x-3 top-full z-50 mt-2 flex max-h-[calc(100dvh-4.5rem)] flex-col gap-2 overflow-y-auto rounded-xl border border-border bg-card/95 p-2.5 shadow-xl backdrop-blur-md animate-in slide-in-from-top-4 duration-200 md:hidden">
+      <div className="relative flex items-center justify-between border-b border-border/70 px-1 pb-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Navigasi</span>
+        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+          {items.length} menu
+        </span>
+      </div>
+      <nav className="relative flex flex-col gap-1">
         {items.map((item) => (
           <MobileNavLink
             key={item.href}
@@ -233,25 +293,28 @@ type NavbarProps = {
 export default function Navbar({ profile = null }: NavbarProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const hasProfile = Boolean(profile)
 
   useEffect(() => {
     setMobileMenuOpen(false)
-  }, [pathname])
+  }, [hasProfile, pathname])
 
   return (
-    <header className="sticky top-0 z-40 w-full shrink-0 border-b border-border bg-card/95 backdrop-blur-md">
+    <header className="isolate sticky top-0 z-50 w-full shrink-0 border-b border-border bg-card/95 backdrop-blur-md">
       <div className="flex h-14 items-center justify-between px-4 md:px-6">
         <Logo />
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <ThemeSelector />
           <NotificationPanel enabled={Boolean(profile)} userId={profile?.userId} />
           <UserProfileMenu profile={profile} loading={false} />
-          <MobileMenuToggle open={mobileMenuOpen} onToggle={() => setMobileMenuOpen((v) => !v)} />
+          {hasProfile ? (
+            <MobileMenuToggle open={mobileMenuOpen} onToggle={() => setMobileMenuOpen((v) => !v)} />
+          ) : null}
         </div>
       </div>
 
-      {mobileMenuOpen && (
+      {hasProfile && mobileMenuOpen && (
         <MobileMenuPanel
           pathname={pathname}
           role={(profile?.role as UserRole) ?? null}

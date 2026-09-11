@@ -22,17 +22,17 @@ export default async function DashboardLayout({
   return (
     <AuthSessionRefresh>
       <SidebarProvider
-        className="fixed inset-0 h-dvh !min-h-0 overflow-hidden"
+        className="fixed inset-0 !min-h-0 overflow-hidden"
         style={{ "--sidebar-width": "13rem" } as React.CSSProperties}
       >
-        <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
+        <div className="theme-app-shell grid h-full min-h-0 w-full grid-rows-[3.5rem_minmax(0,1fr)] overflow-hidden bg-background">
           {/* Top Navbar */}
           <Navbar profile={profile} />
 
           {/* Sidebar + Main Content */}
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <SideBar role={role} />
-            <main className="scrollbar-soft min-w-0 flex-1 overflow-y-auto bg-muted/20 p-4 md:p-6">
+            <main className="theme-main-surface scrollbar-soft min-w-0 flex-1 overflow-y-auto bg-muted/20 p-4 md:p-6">
               {children}
             </main>
           </div>

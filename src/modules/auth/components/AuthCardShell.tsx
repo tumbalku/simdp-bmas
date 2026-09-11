@@ -6,6 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/utils";
+
+const authCardWidthClasses = {
+  default: "max-w-md",
+  login: "max-w-lg",
+  register: "max-w-2xl",
+};
 
 export function AuthCardShell({
   eyebrow,
@@ -14,6 +21,7 @@ export function AuthCardShell({
   icon,
   children,
   footer,
+  width = "default",
 }: {
   eyebrow: string;
   title: string;
@@ -21,9 +29,10 @@ export function AuthCardShell({
   icon: React.ReactNode;
   children: React.ReactNode;
   footer: React.ReactNode;
+  width?: keyof typeof authCardWidthClasses;
 }) {
   return (
-    <Card className="w-full rounded-2xl border-border/80 shadow-sm">
+    <Card className={cn("mx-auto w-full rounded-2xl border-border/80 shadow-sm", authCardWidthClasses[width])}>
       <CardHeader className="space-y-4 text-center">
         <div className="flex flex-col items-center justify-center gap-4">
           <div className="rounded-xl bg-accent p-3 text-accent-foreground">{icon}</div>

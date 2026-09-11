@@ -5,6 +5,26 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Menyamakan background Pastel Glass di landing page, halaman autentikasi publik, dan dashboard melalui shell theme bersama, menjaga gambar hero tetap terlihat, serta memoles dropdown hamburger mobile pada theme glass.
+- Memperbaiki dashboard shell agar navbar tidak hilang secara acak akibat kombinasi viewport height dan positioning, menambatkan dropdown hamburger pada layer header, serta membuat daftar opsi select tetap solid pada Pastel Glass.
+- Mengubah border Pastel Glass dari putih transparan menjadi warna primary agar batas card, panel, sidebar, dan select lebih terlihat.
+- Menaikkan layer tooltip chart, terutama donut chart, agar tooltip statistik tidak tertimpa permukaan chart lain.
+- Menambahkan tombol arrow untuk mencuitkan/melebarkan sidebar dashboard dengan transisi width yang halus dan mode ikon saat sidebar kecil.
+- Menampilkan submenu Master Data sebagai item langsung di sidebar dashboard dan menghilangkan parent menu Master Data dari sidebar.
+- Memperhalus animasi collapse sidebar serta membedakan label menu dokumen menjadi Dokumen Saya, Dokumen Pegawai, Registrasi Pegawai, dan Kategori Pegawai.
+- Issues #309-#312: Mengubah theme toggle menjadi multi-theme selector per browser di navbar, menambahkan theme Light, Spotify Dark, Dracula, dan Pastel Glass berbasis CSS variables, serta menambahkan regression test untuk daftar theme dan selector.
+- Memperbesar kartu login/register secara terkontrol dan menambahkan panduan error realtime pada form registrasi publik tanpa perubahan database.
+- Issue #308: Memperluas edit profil mandiri pegawai dengan data pribadi dan data kerja yang sebelumnya hanya diisi admin, serta menambahkan cooldown 90 hari khusus self-service setelah profil berhasil disimpan.
+- Issue #307: Menambahkan konfirmasi password pada registrasi publik di client dan server tanpa menyimpan field konfirmasi ke database.
+- Menambahkan migrasi kompatibilitas registrasi agar database yang sudah pernah menerapkan draft awal ikut menjadikan `UserRegistrationRequest.passwordHash` nullable dan mengganti unique index identitas menjadi partial unique untuk request aktif.
+- Menindaklanjuti review registrasi: request yang sudah menunggu admin tidak bisa di-reset oleh submit ulang, request OTP kedaluwarsa tidak mengunci NIK/NIP, transisi verifikasi/approval/reject memakai conditional update, partial unique index staging hanya berlaku untuk request aktif, dan password/OTP staging dibersihkan saat request selesai.
+- Memperbaiki registrasi ulang agar identitas dari permohonan lama berstatus selesai tidak lagi memblokir pendaftaran baru, menampilkan antrian admin hanya untuk registrasi yang menunggu verifikasi, serta mengembalikan lebar login/register ke layout autentikasi sempit.
+- Memecah UI registrasi publik menjadi komponen form, OTP, dan status sukses; menghapus field catatan admin dari registrasi serta dialog tinjauan; dan mengganti tombol submit registrasi menjadi "Daftar".
+- Menambahkan card ringan khusus registrasi untuk langkah OTP dan status sukses agar tampilannya kembali rapi dan seragam tanpa memakai `AuthCardShell`.
+- Memperbaiki registrasi: menghapus input unit kerja bebas (ditetapkan admin melalui profil pegawai), memvalidasi form sebelum meminta OTP, menyimpan permohonan sebelum mengirim OTP, dan mengirim email persetujuan setelah akun berhasil dibuat. Kegagalan email persetujuan ditampilkan kepada admin tanpa membatalkan akun.
+- Membatasi submit/verifikasi OTP registrasi per IP dan email melalui shared rate limiter; menangani respons error Resend agar penolakan provider tidak dilaporkan sebagai pengiriman berhasil.
+- Menambahkan fitur registrasi user sementara: pendaftaran publik dengan OTP email, antrian approval admin, notifikasi admin, dan pembuatan akun `User + Employee` hanya saat approve.
+- Memisahkan backup/restore operasional dari repo SIMDP ke project `SIMDP Backup Ops Hub`, serta menghapus Ops Hub lama, helper backup script, env backup/restore, kode `src/lib/backup`, dan runbook backup lama dari aplikasi utama.
 - Issue #196/#222: Memisahkan bucket rate limit API berdasarkan `scope` aksi opsional, sehingga endpoint yang berbagi kategori seperti `EXPORT` tetap dibatasi per aksi tanpa saling menghabiskan kuota global user/IP.
 - Issue #237: Menetapkan prioritas target backup production: Google Drive sebagai target offsite utama, VPS/local sebagai jalur kedua untuk server sendiri, dan S3/S3-compatible sebagai opsi terakhir/future sampai adapter/job resmi dipilih.
 - Issue #222/#223: Menetapkan `RateLimitBucket` PostgreSQL sebagai shared rate-limit store awal untuk multi-instance production, serta mengurangi write amplification audit login gagal dengan hanya mencatat `SecurityLog` pada hit pertama bucket window.
@@ -75,6 +95,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Issue #306: Menyembunyikan hamburger menu mobile pada navbar landing page saat user belum login, sehingga panel menu role-based hanya tersedia setelah ada profile sesi.
 - Memperbaiki guard role halaman dashboard agar user login dengan role kurang diarahkan ke dashboard, bukan berakhir pada error page dari `requireAuth()`.
 - Issue #253/#254: Menambahkan guard arsitektur untuk read-only Server Action misuse, memindahkan read preview dokumen client ke GET API wrapper, membersihkan state sync during render di `/documents`, memusatkan query user+employee server-only, dan menghapus statistics read action generic yang tidak dipakai.
 - Issue #251/#252: Mengganti initial dashboard reads dari Server Action ke server service dan memindahkan read verification queue/preview ke URL serta GET route agar browser tidak mengirim POST read-only berulang.

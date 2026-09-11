@@ -2,6 +2,36 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-09-08] Registrasi User Sementara Menggunakan Tabel Staging Terpisah
+- Konteks: pengisian data pegawai perlu dipercepat dengan registrasi mandiri, tetapi fitur ini kemungkinan dinonaktifkan setelah masa input awal selesai.
+- Keputusan: registrasi mandiri memakai tabel `UserRegistrationRequest` tanpa foreign key ke tabel utama. Row `User` dan `Employee` baru dibuat hanya ketika admin approve setelah email user diverifikasi OTP.
+- Alasan: fitur dapat dimatikan atau tabel staging dihapus tanpa mengganggu data utama, login tetap aman karena calon user belum punya akun aktif sebelum approval, dan admin tetap punya audit/notifikasi atas setiap pendaftar.
+- Dampak: data unit kerja/catatan bebas disimpan sebagai konteks review di staging; profil `Employee` hasil approval hanya memakai field inti yang memang tersedia di model utama.
+
+## [2026-09-08] REVISED Unit Kerja dan Pengiriman Email Registrasi
+- Merevisi keputusan staging di atas: registrasi publik tidak lagi meminta unit kerja bebas. Admin menetapkan relasi master unit kerja melalui data pegawai setelah approval. Teks unit kerja permohonan lama tetap tersimpan sebagai konteks review dan tidak otomatis menjadi relasi `Employee.workplaceId`.
+- Validasi seluruh form dilakukan di client dan server; OTP dikirim hanya setelah penyimpanan permohonan berhasil. Email persetujuan dikirim sesudah transaksi pembuatan akun berhasil, ke email yang sudah diverifikasi.
+- Jika provider menolak email persetujuan, akun tetap aktif dan admin mendapat peringatan. Status pengiriman berhasil berarti provider menerima permintaan, bukan jaminan email sudah masuk inbox.
+
+## [2026-09-10] REVISED Registrasi Aktif dan Material Kredensial Staging
+- Merevisi keputusan staging registrasi: unique constraint untuk email, NIK, dan NIP pada `UserRegistrationRequest` hanya berlaku pada request aktif (`EMAIL_PENDING` dan `PENDING_ADMIN_REVIEW`) melalui partial unique index SQL. Request selesai tetap menyimpan identitas sebagai histori review, tetapi tidak memblokir pendaftaran baru.
+- Request `PENDING_ADMIN_REVIEW` tidak boleh di-reset oleh submit ulang dari publik. Request `EMAIL_PENDING` yang OTP-nya sudah kedaluwarsa tidak lagi menjadi reservasi aktif identitas.
+- `passwordHash`, `emailOtpHash`, dan expiry OTP di tabel staging dibersihkan saat request menjadi `EXPIRED`, `REJECTED`, atau `APPROVED`; akun hasil approval menyimpan hash password di tabel `User`.
+- OTP registrasi memakai HMAC berbasis secret aplikasi dan dibandingkan dengan timing-safe equality untuk mengurangi risiko brute force jika tabel staging bocor.
+- Transisi `EMAIL_PENDING -> PENDING_ADMIN_REVIEW`, `PENDING_ADMIN_REVIEW -> APPROVED`, dan reject admin memakai conditional update dengan status lama sebagai guard agar dua aksi paralel tidak saling menimpa hasil review.
+
+## [2026-09-10] Profil Mandiri Pegawai dengan Cooldown 90 Hari
+- Konteks: setelah registrasi disetujui, pegawai hanya membawa data inti sehingga admin tetap harus melengkapi banyak field saat jumlah pendaftar besar.
+- Keputusan: role `EMPLOYEE` boleh melengkapi data pribadi dan data kerja dari halaman `/profile`, tetapi setiap simpan self-service mengisi `Employee.profileSelfUpdatedAt` dan mengunci edit mandiri berikutnya selama 90 hari.
+- Batasan: email, role, status akun, NIP, dan NIK tetap dikelola admin. Cooldown tidak berlaku untuk panel admin/staff yang memperbarui data melalui flow master data.
+- Referensi: #308.
+
+## [2026-09-08] REVISED Backup Operasional Dipisah dari Repo SIMDP
+- Konteks: project backup/restore yang ramah operator sudah dipisahkan ke project terpisah `SIMDP Backup Ops Hub`, sehingga repo SIMDP tidak perlu lagi membawa Ops Hub lama, helper shell backup lokal/VPS, adapter `IBackupTarget`, env `BACKUP_*`, atau runbook backup operasional.
+- Keputusan: SIMDP kembali fokus sebagai aplikasi web utama. Backup/restore operasional dikelola di project `SIMDP Backup Ops Hub`. Repo SIMDP hanya mempertahankan proteksi `.gitignore` untuk folder/artefak backup lokal agar data backup tidak ikut ter-commit.
+- Dampak: keputusan backup provider-agnostic Issue #237 dan helper backup lokal/VPS sebelumnya dinyatakan superseded untuk repo SIMDP. Jika dokumentasi backup masih diperlukan, tulis dan jalankan dari project backup terpisah.
+- Referensi: cleanup pemisahan Ops Hub 2026-09-08.
+
 ## [2026-08-01] REVISED Scoped API Rate Limit Buckets
 - Konteks: kategori rate limit seperti `EXPORT` dipakai oleh beberapa endpoint berbeda. Bucket yang hanya berbasis kategori + user/IP membuat download PDF profil, PDF dokumen, CSV pegawai, dan export lain saling menghabiskan kuota walaupun aksi yang dilakukan berbeda.
 - Keputusan: `enforceApiRateLimit()` mendukung `scope` aksi opsional. Key bucket dibentuk dari kategori + scope + user/IP, dengan default `scope:global` untuk endpoint yang belum membutuhkan pemisahan aksi.

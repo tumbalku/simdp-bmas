@@ -38,6 +38,10 @@ export function mapEmployeeDetail(employee: any) {
 
   return {
     ...mapEmployeeSummary(employee),
+    canonicalStatus: employee.status,
+    canonicalGender: employee.gender,
+    canonicalReligion: employee.religion,
+    canonicalMaritalStatus: employee.maritalStatus,
     avatarUrl: employee.avatarUrl || employee.googleAvatarUrl || null,
     birthDate: toIsoDate(employee.birthDate),
     birthPlace: employee.birthPlace,

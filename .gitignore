@@ -72,6 +72,9 @@ temp/
 .agents/
 .github/
 .hermes/
+backups/
+simdp-backup/
+.ops-hub/
 
 # Test / coverage
 coverage/

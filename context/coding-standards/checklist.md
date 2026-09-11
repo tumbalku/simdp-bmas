@@ -70,15 +70,7 @@ Gunakan checklist ini sebelum menganggap fitur selesai atau sebelum membuka PR.
 - [ ] Task terkait di `context/progress/task-board.md` diupdate.
 - [ ] Dokumen context terkait diupdate jika behaviour berubah.
 
-## H. Checklist Backup & Disaster Recovery
-
-- [ ] Untuk pekerjaan production readiness, cek `context/operations/backup-disaster-recovery.md`.
-- [ ] Backup database PostgreSQL otomatis sudah direncanakan atau aktif.
-- [ ] Backup document storage otomatis sudah direncanakan atau aktif.
-- [ ] Restore drill sudah dijadwalkan sebelum release/main production final.
-- [ ] Admin export/import tidak diposisikan sebagai satu-satunya backup disaster recovery.
-
-## I. Checklist PR
+## H. Checklist PR
 
 Sebelum PR:
 

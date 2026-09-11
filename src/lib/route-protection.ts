@@ -11,7 +11,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/verification",
 ] as const;
 
-export const AUTH_PAGE_PREFIXES = ["/login", "/forgot-password", "/reset-password"] as const;
+export const AUTH_PAGE_PREFIXES = ["/login", "/register", "/forgot-password", "/reset-password"] as const;
 
 export const PUBLIC_PAGE_PREFIXES = ["/", "/verify-document", ...AUTH_PAGE_PREFIXES] as const;
 

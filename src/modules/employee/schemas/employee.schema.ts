@@ -64,12 +64,27 @@ const religionSchema = z.preprocess(
 );
 
 export const updateProfileSchema = z.object({
-  phone: z.string().regex(/^[0-9+\-\s]*$/, "Format telepon tidak valid").optional().nullable(),
-  address: z.string().max(255, "Alamat terlalu panjang").optional().nullable(),
-  birthPlace: z.string().optional().nullable(),
+  name: z.string().trim().min(2, "Nama minimal 2 karakter").max(120, "Nama terlalu panjang").optional(),
+  status: employeeStatusSchema.optional(),
+  gender: genderSchema.optional().nullable(),
+  birthPlace: z.string().max(80, "Tempat lahir terlalu panjang").optional().nullable(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD").optional().nullable(),
+  academicDegree: z.string().max(80, "Gelar akademik terlalu panjang").optional().nullable(),
+  lastEducation: z.string().max(80, "Pendidikan terakhir terlalu panjang").optional().nullable(),
   religion: religionSchema.optional().nullable(),
   maritalStatus: maritalStatusSchema.optional().nullable(),
+  phone: z.string().regex(/^[0-9+\-\s]*$/, "Format telepon tidak valid").optional().nullable(),
+  address: z.string().max(255, "Alamat terlalu panjang").optional().nullable(),
+  joinDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD").optional().nullable(),
+  hasTmt: z.boolean().optional(),
+  tmtStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD").optional().nullable(),
+  tmtEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal YYYY-MM-DD").optional().nullable(),
+  employmentStatusId: z.string().optional().nullable(),
+  employeeGroupId: z.string().optional().nullable(),
+  professionGroupId: z.string().optional().nullable(),
+  employeePositionId: z.string().optional().nullable(),
+  employeeRankId: z.string().optional().nullable(),
+  workplaceId: z.string().optional().nullable(),
 });
 
 export const crudEmployeeSchema = z.object({

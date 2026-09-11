@@ -81,7 +81,7 @@ const faqItems = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen overflow-hidden bg-background text-foreground">
+    <div className="theme-app-shell min-h-screen overflow-hidden bg-background text-foreground">
       <Navbar />
 
       <main>
@@ -92,9 +92,9 @@ export default function Home() {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-center"
+            className="landing-hero-media object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/20 dark:from-slate-950 dark:via-slate-950/85 dark:to-slate-950/30" />
+          <div className="landing-hero-overlay absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/20 dark:from-slate-950 dark:via-slate-950/85 dark:to-slate-950/30" />
 
           <div className="relative mx-auto grid min-h-[calc(100dvh-3.5rem)] w-full max-w-7xl items-center gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(300px,0.65fr)] lg:px-8 lg:py-16">
             <div className="max-w-2xl">
@@ -245,9 +245,9 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-border bg-slate-950 text-slate-100">
+      <footer className="landing-footer border-t border-border bg-slate-950 text-slate-100">
         <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-8 rounded-xl border border-white/10 bg-gradient-to-br from-primary/35 via-slate-900 to-slate-950 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="landing-footer-panel grid gap-8 rounded-xl border border-white/10 bg-gradient-to-br from-primary/35 via-slate-900 to-slate-950 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold text-primary">Mulai dari data yang lebih tertata</p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">SiCantIK siap mendukung administrasi kepegawaian RSUD Bahteramas.</h2>
@@ -266,7 +266,7 @@ export default function Home() {
                   <Image src="/images/logo.png" alt="" width={32} height={32} className="size-8 object-contain" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold tracking-tight text-white">SiCantIK</p>
+                  <p className="landing-footer-brand text-sm font-bold tracking-tight text-white">SiCantIK</p>
                   <p className="text-xs text-slate-400">RSUD Bahteramas</p>
                 </div>
               </div>

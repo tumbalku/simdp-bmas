@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AuthCardShell } from "./AuthCardShell";
 import { loginAction, sendTwoFactorEmailCodeAction, verifyTwoFactorLoginAction } from "@/modules/auth";
+import { ROUTES } from "@/constants";
 import { id as defaultDictionary } from "@/i18n/dictionaries/id";
 
 const loginCopy = defaultDictionary.auth.login;
@@ -92,6 +93,7 @@ export function LoginPage() {
       title={loginCopy.title}
       description={loginCopy.description}
       icon={<LockKeyhole className="size-5" aria-hidden="true" />}
+      width="login"
       footer={
         <>
           <span>{loginCopy.helpText}</span>
@@ -219,7 +221,7 @@ export function LoginPage() {
         </Button>
       </form>
       {!requiresTwoFactor ? (
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
           <div className="relative mb-4">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">atau</span></div>
@@ -227,6 +229,12 @@ export function LoginPage() {
           <Button render={<a href="/api/v1/auth/google/start" />} nativeButton={false} variant="outline" className="h-10 w-full">
             Masuk dengan Google
           </Button>
+          <div className="text-center text-sm text-muted-foreground">
+            Belum punya akun?{" "}
+            <Link href={ROUTES.register} className="font-semibold text-primary hover:underline">
+              Daftar
+            </Link>
+          </div>
         </div>
       ) : null}
     </AuthCardShell>

@@ -24,6 +24,12 @@ export const chartTooltipStyle = {
   borderColor: "var(--border)",
   borderRadius: "var(--radius)",
   color: "var(--popover-foreground)",
+  zIndex: 80,
+} as const;
+
+export const chartTooltipWrapperStyle = {
+  zIndex: 80,
+  pointerEvents: "none",
 } as const;
 
 export function getChartColor(index: number): ChartColor {

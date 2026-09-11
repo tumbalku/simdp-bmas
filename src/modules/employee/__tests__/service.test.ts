@@ -57,7 +57,10 @@ describe("Employee Module Service", () => {
         employeeId: "1990",
         nik: "7471",
         name: "John Doe",
-        gender: "Laki-laki",
+        status: "RETIRED",
+        gender: "FEMALE",
+        religion: "ISLAM",
+        maritalStatus: "MARRIED",
         birthDate: new Date("1990-01-01T00:00:00.000Z"),
         joinDate: new Date("2020-01-01T00:00:00.000Z"),
         user: { email: "john@example.com", role: "EMPLOYEE", isActive: true },
@@ -88,6 +91,18 @@ describe("Employee Module Service", () => {
           employeePositionId: "position-1",
           employeeRankId: "rank-1",
           workplaceId: "workplace-1",
+          canonicalStatus: "RETIRED",
+          canonicalGender: "FEMALE",
+          canonicalReligion: "ISLAM",
+          canonicalMaritalStatus: "MARRIED",
+        })
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: "Pensiun",
+          gender: "Wanita",
+          religion: "Islam",
+          maritalStatus: "Kawin",
         })
       );
       expect(result?.documents[0]).toEqual(expect.objectContaining({ id: "doc-1", documentTypeName: "KTP" }));
@@ -576,7 +591,7 @@ describe("Employee Module Service", () => {
 
   describe("updateProfile", () => {
     it("should update phone and address successfully", async () => {
-      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1" });
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1", profileSelfUpdatedAt: null });
       mockPrisma.employee.update.mockResolvedValue({ id: "emp-1" });
 
       const success = await updateProfile(
@@ -590,8 +605,151 @@ describe("Employee Module Service", () => {
       expect(mockPrisma.employee.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "emp-1" },
-          data: expect.objectContaining({ phone: "0812345678", address: "Kendari" }),
+          data: expect.objectContaining({
+            phone: "0812345678",
+            address: "Kendari",
+            profileSelfUpdatedAt: expect.any(Date),
+          }),
         })
+      );
+    });
+
+    it("should let an employee update expanded self-service profile data for the first time", async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1", profileSelfUpdatedAt: null });
+      mockPrisma.employmentStatus.findFirst.mockResolvedValue({ id: "status-1" });
+      mockPrisma.employeeGroup.findFirst.mockResolvedValue({ id: "group-1", employmentStatusId: "status-1" });
+      mockPrisma.employeePosition.findFirst.mockResolvedValue({ id: "position-1", professionGroupId: "profession-1" });
+      mockPrisma.employeeRank.findFirst.mockResolvedValue({ id: "rank-1" });
+      mockPrisma.workplace.findFirst.mockResolvedValue({ id: "workplace-1" });
+      mockPrisma.employee.update.mockResolvedValue({ id: "emp-1" });
+
+      const success = await updateProfile(
+        "user-1",
+        {
+          name: "Siti Aminah",
+          status: "ACTIVE",
+          gender: "FEMALE",
+          birthPlace: "Kendari",
+          birthDate: "1990-01-01",
+          academicDegree: "S.Kep.",
+          lastEducation: "S1",
+          religion: "ISLAM",
+          maritalStatus: "MARRIED",
+          phone: "0812345678",
+          address: "Kendari",
+          joinDate: "2020-01-01",
+          hasTmt: true,
+          tmtStartDate: "2020-01-01",
+          tmtEndDate: null,
+          employmentStatusId: "status-1",
+          employeeGroupId: "group-1",
+          employeePositionId: "position-1",
+          employeeRankId: "rank-1",
+          workplaceId: "workplace-1",
+        },
+        "Siti Aminah",
+        "EMPLOYEE",
+      );
+
+      expect(success).toBe(true);
+      expect(mockPrisma.employee.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "emp-1" },
+          data: expect.objectContaining({
+            name: "Siti Aminah",
+            gender: "FEMALE",
+            birthDate: new Date("1990-01-01"),
+            joinDate: new Date("2020-01-01"),
+            hasTmt: true,
+            tmtStartDate: new Date("2020-01-01"),
+            tmtEndDate: null,
+            employmentStatusId: "status-1",
+            employeeGroupId: "group-1",
+            employeePositionId: "position-1",
+            employeeRankId: "rank-1",
+            workplaceId: "workplace-1",
+            profileSelfUpdatedAt: expect.any(Date),
+            updatedBy: "user-1",
+          }),
+        }),
+      );
+    });
+
+    it("should reject self-service employee group that does not belong to the selected employment status", async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1", profileSelfUpdatedAt: null });
+      mockPrisma.employeeGroup.findFirst.mockResolvedValue(null);
+
+      await expect(updateProfile(
+        "user-1",
+        {
+          employmentStatusId: "status-1",
+          employeeGroupId: "group-from-other-status",
+        },
+        "Siti Aminah",
+        "EMPLOYEE",
+      )).rejects.toThrow("Kelompok pegawai tidak sesuai dengan status kepegawaian yang dipilih.");
+
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it("should reject self-service employee position that does not belong to the selected profession group", async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue({ id: "emp-1", userId: "user-1", profileSelfUpdatedAt: null });
+      mockPrisma.employeePosition.findFirst.mockResolvedValue(null);
+
+      await expect(updateProfile(
+        "user-1",
+        {
+          employeePositionId: "position-from-other-profession",
+          professionGroupId: "profession-1",
+        },
+        "Siti Aminah",
+        "EMPLOYEE",
+      )).rejects.toThrow("Jabatan tidak sesuai dengan rumpun profesi yang dipilih.");
+
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it("should block employee self-service profile updates during the 90-day cooldown", async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+        profileSelfUpdatedAt: new Date(),
+      });
+
+      await expect(updateProfile(
+        "user-1",
+        { phone: "0812345678" },
+        "Siti Aminah",
+        "EMPLOYEE",
+      )).rejects.toMatchObject({ code: "PROFILE_UPDATE_COOLDOWN", status: 429 });
+
+      expect(mockPrisma.employee.update).not.toHaveBeenCalled();
+    });
+
+    it("should not apply employee self-service cooldown to admin updates", async () => {
+      mockPrisma.employee.findFirst.mockResolvedValue({
+        id: "emp-1",
+        userId: "user-1",
+        profileSelfUpdatedAt: new Date(),
+      });
+      mockPrisma.employee.update.mockResolvedValue({ id: "emp-1" });
+
+      const success = await updateProfile(
+        "user-1",
+        { phone: "0812345678" },
+        "Admin",
+        "ADMIN",
+      );
+
+      expect(success).toBe(true);
+      expect(mockPrisma.employee.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "emp-1" },
+          data: {
+            phone: "0812345678",
+            updatedBy: "user-1",
+          },
+        }),
       );
     });
   });
