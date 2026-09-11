@@ -53,7 +53,7 @@ export const navItems = [
     roles: ROLE_GROUPS.all,
   },
   {
-    label: navCopy.documents,
+    label: "Dokumen Saya",
     href: ROUTES.documents,
     icon: FileText,
     roles: ROLE_GROUPS.all,
@@ -77,25 +77,25 @@ export const navItems = [
     roles: ROLE_GROUPS.adminOnly,
     children: [
       {
-        label: navCopy.masterDataDocuments,
+        label: "Dokumen Pegawai",
         href: ROUTES.masterDataDocuments,
         icon: FolderOpen,
         roles: ROLE_GROUPS.adminOnly,
       },
       {
-        label: navCopy.masterDataEmployees,
+        label: "Data Pegawai",
         href: ROUTES.masterDataEmployees,
         icon: UserCog,
         roles: ROLE_GROUPS.adminOnly,
       },
       {
-        label: "Registrasi User",
+        label: "Registrasi Pegawai",
         href: ROUTES.registrationRequests,
         icon: UserPlus,
         roles: ROLE_GROUPS.adminOnly,
       },
       {
-        label: navCopy.masterDataCategories,
+        label: "Kategori Pegawai",
         href: ROUTES.masterDataCategories,
         icon: Layers,
         roles: ROLE_GROUPS.adminOnly,

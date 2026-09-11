@@ -23,12 +23,7 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${geist.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider>
           <QueryProvider>{children}</QueryProvider>
           <Toaster />
         </ThemeProvider>

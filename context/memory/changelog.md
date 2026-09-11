@@ -5,6 +5,14 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 ## [Unreleased]
 
 ### Changed
+- Menyamakan background Pastel Glass di landing page, halaman autentikasi publik, dan dashboard melalui shell theme bersama, menjaga gambar hero tetap terlihat, serta memoles dropdown hamburger mobile pada theme glass.
+- Memperbaiki dashboard shell agar navbar tidak hilang secara acak akibat kombinasi viewport height dan positioning, menambatkan dropdown hamburger pada layer header, serta membuat daftar opsi select tetap solid pada Pastel Glass.
+- Mengubah border Pastel Glass dari putih transparan menjadi warna primary agar batas card, panel, sidebar, dan select lebih terlihat.
+- Menaikkan layer tooltip chart, terutama donut chart, agar tooltip statistik tidak tertimpa permukaan chart lain.
+- Menambahkan tombol arrow untuk mencuitkan/melebarkan sidebar dashboard dengan transisi width yang halus dan mode ikon saat sidebar kecil.
+- Menampilkan submenu Master Data sebagai item langsung di sidebar dashboard dan menghilangkan parent menu Master Data dari sidebar.
+- Memperhalus animasi collapse sidebar serta membedakan label menu dokumen menjadi Dokumen Saya, Dokumen Pegawai, Registrasi Pegawai, dan Kategori Pegawai.
+- Issues #309-#312: Mengubah theme toggle menjadi multi-theme selector per browser di navbar, menambahkan theme Light, Spotify Dark, Dracula, dan Pastel Glass berbasis CSS variables, serta menambahkan regression test untuk daftar theme dan selector.
 - Memperbesar kartu login/register secara terkontrol dan menambahkan panduan error realtime pada form registrasi publik tanpa perubahan database.
 - Issue #308: Memperluas edit profil mandiri pegawai dengan data pribadi dan data kerja yang sebelumnya hanya diisi admin, serta menambahkan cooldown 90 hari khusus self-service setelah profil berhasil disimpan.
 - Issue #307: Menambahkan konfirmasi password pada registrasi publik di client dan server tanpa menyimpan field konfirmasi ke database.
