@@ -43,6 +43,7 @@
 
 ## Done
 
+- [x] [#314](https://github.com/tumbalku/simdp-bmas/issues/314) fix(upload): tampilkan error 4xx upload sebagai toast, bukan dashboard error boundary (selesai: 2026-09-13)
 - [x] [#284](https://github.com/tumbalku/simdp-bmas/issues/284) perf(security): prune high-frequency routine logs across service and UI (selesai: 2026-08-16)
 - [x] [#283](https://github.com/tumbalku/simdp-bmas/issues/283) fix(employee/settings): resolve CSV import label normalization, security log default seed, and reset pagination limit (selesai: 2026-08-16)
 - [x] [#282](https:...[truncated]

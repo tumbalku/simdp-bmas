@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { uploadProfileAvatarAction } from "@/modules/employee";
+import { uploadProfileAvatarFormData } from "@/modules/employee/api";
 
 const ACCEPTED_PROFILE_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+const ACCEPTED_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp"];
+const ACCEPTED_MIMES = ["image/png", "image/jpeg", "image/webp"];
 
 type ProfileAvatarUploadProps = {
   name: string;
@@ -26,20 +28,37 @@ export function ProfileAvatarUpload({ name, initials, avatarUrl, isActive }: Pro
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Client-side validation for UX
+    const fileName = file.name.toLowerCase();
+    const isValidExtension = ACCEPTED_EXTENSIONS.some((ext) => fileName.endsWith(ext));
+    const isValidMime = !file.type || ACCEPTED_MIMES.includes(file.type);
+
+    if (!isValidExtension || !isValidMime) {
+      toast.error("Foto profil harus berformat PNG, JPG, JPEG, atau WEBP.");
+      event.target.value = "";
+      return;
+    }
+
     const formData = new FormData();
     formData.set("file", file);
 
     startTransition(async () => {
-      const result = await uploadProfileAvatarAction(formData);
-      event.target.value = "";
+      try {
+        const result = await uploadProfileAvatarFormData(formData);
+        event.target.value = "";
 
-      if (result.ok) {
-        toast.success("Foto profil berhasil diperbarui.");
-        router.refresh();
-        return;
+        if (result.ok) {
+          toast.success("Foto profil berhasil diperbarui.");
+          router.refresh();
+          return;
+        }
+
+        toast.error(result.error.message);
+      } catch (error) {
+        console.error("Profile avatar upload error:", error);
+        event.target.value = "";
+        toast.error("Gagal mengunggah foto profil.");
       }
-
-      toast.error(result.error.message);
     });
   };
 

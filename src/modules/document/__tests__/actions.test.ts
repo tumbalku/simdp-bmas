@@ -171,6 +171,46 @@ describe("Document Module Actions", () => {
     expect(result).toEqual({ ok: true, data: { id: "type-1" } });
   });
 
+  it("should return error envelope when upload service rejects with unsupported media type", async () => {
+    const file = new File([new Uint8Array([1, 2, 3])], "test.exe", { type: "application/x-msdownload" });
+    const formData = new FormData();
+    formData.set("documentTypeId", "type-1");
+    formData.set("file", file);
+
+    const { AppError } = await import("@/lib/errors");
+    mocks.uploadDocumentRecord.mockRejectedValue(
+      new AppError("UNSUPPORTED_MEDIA_TYPE", "Format file tidak didukung.")
+    );
+
+    const result = await uploadDocumentAction(formData);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("UNSUPPORTED_MEDIA_TYPE");
+      expect(result.error.message).toBe("Format file tidak didukung.");
+    }
+  });
+
+  it("should return error envelope when upload service rejects with payload too large", async () => {
+    const file = new File([new Uint8Array(6 * 1024 * 1024)], "large.pdf", { type: "application/pdf" });
+    const formData = new FormData();
+    formData.set("documentTypeId", "type-1");
+    formData.set("file", file);
+
+    const { AppError } = await import("@/lib/errors");
+    mocks.uploadDocumentRecord.mockRejectedValue(
+      new AppError("PAYLOAD_TOO_LARGE", "Ukuran file terlalu besar.")
+    );
+
+    const result = await uploadDocumentAction(formData);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("PAYLOAD_TOO_LARGE");
+      expect(result.error.message).toBe("Ukuran file terlalu besar.");
+    }
+  });
+
   it("should wrap soft delete and restore services in action envelopes", async () => {
     mocks.softDeleteDocument.mockResolvedValue(true);
     mocks.restoreDocument.mockResolvedValue(true);

@@ -1,7 +1,9 @@
 "use client";
 
 import { DragEvent, useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { replaceDocumentFileAction, uploadDocumentAction } from "@/modules/document";
+import { submitDocumentUploadFormData } from "@/modules/document/api";
 import type { DocumentTypeOption } from "@/modules/document";
 
 type DocumentUploadInitialValues = {
@@ -49,6 +51,47 @@ function getAcceptedFormats(documentType?: DocumentTypeOption) {
     .join(",");
 }
 
+function validateSelectedFile(
+  file: File,
+  documentType?: DocumentTypeOption,
+): { ok: true } | { ok: false; message: string } {
+  if (!documentType) {
+    return { ok: false, message: "Pilih jenis dokumen terlebih dahulu." };
+  }
+
+  // Validate file extension
+  const allowedFormats = documentType.allowedFormats
+    .split(",")
+    .map((format) => format.trim().toLowerCase())
+    .filter(Boolean);
+
+  const fileName = file.name.toLowerCase();
+  const fileExtension = fileName.split(".").pop() || "";
+
+  const isAllowedFormat =
+    allowedFormats.includes(fileExtension) ||
+    (fileExtension === "jpg" && allowedFormats.includes("jpeg")) ||
+    (fileExtension === "jpeg" && allowedFormats.includes("jpg"));
+
+  if (!isAllowedFormat) {
+    return {
+      ok: false,
+      message: `Format file tidak sesuai. Hanya menerima: ${documentType.allowedFormats.toUpperCase()}`,
+    };
+  }
+
+  // Validate file size
+  const maxSizeBytes = documentType.maxSizeMb * 1024 * 1024;
+  if (file.size > maxSizeBytes) {
+    return {
+      ok: false,
+      message: `Ukuran file terlalu besar. Maksimal ${documentType.maxSizeMb}MB`,
+    };
+  }
+
+  return { ok: true };
+}
+
 export function DocumentUploadForm({
   documentTypes,
   initialDocumentTypeId = "",
@@ -59,6 +102,7 @@ export function DocumentUploadForm({
   compact = false,
   replaceDocumentId,
 }: DocumentUploadFormProps) {
+  const router = useRouter();
   const fileInputId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,7 +130,22 @@ export function DocumentUploadForm({
 
   function handleFileList(files: FileList | null) {
     const file = files?.[0];
-    setSelectedFileName(file?.name ?? null);
+    if (!file) {
+      setSelectedFileName(null);
+      return;
+    }
+
+    const validation = validateSelectedFile(file, selectedDocumentType);
+    if (!validation.ok) {
+      toast.error(validation.message);
+      setSelectedFileName(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setSelectedFileName(file.name);
   }
 
   function handleDrop(event: DragEvent<HTMLLabelElement>) {
@@ -95,6 +154,14 @@ export function DocumentUploadForm({
 
     const file = event.dataTransfer.files?.[0];
     if (!file || !fileInputRef.current) return;
+
+    const validation = validateSelectedFile(file, selectedDocumentType);
+    if (!validation.ok) {
+      toast.error(validation.message);
+      setSelectedFileName(null);
+      fileInputRef.current.value = "";
+      return;
+    }
 
     const transfer = new DataTransfer();
     transfer.items.add(file);
@@ -105,31 +172,42 @@ export function DocumentUploadForm({
   function handleSubmit(formData: FormData) {
     setMessage(null);
     startTransition(async () => {
-      if (replaceDocumentId) {
-        formData.set("documentId", replaceDocumentId);
-      }
+      try {
+        if (replaceDocumentId) {
+          formData.set("documentId", replaceDocumentId);
+        }
 
-      const result = replaceDocumentId
-        ? await replaceDocumentFileAction(formData)
-        : await uploadDocumentAction(formData);
-      if (!result.ok) {
-        setMessage(result.error.message);
-        return;
-      }
+        const result = await submitDocumentUploadFormData(formData);
 
-      formRef.current?.reset();
-      setSelectedFileName(null);
-      setTitle(initialValues?.title ?? "");
-      setDocumentNumber(initialValues?.documentNumber ?? "");
-      setIssueDate(formatDateInput(initialValues?.issueDate));
-      setExpiryDate(formatDateInput(initialValues?.expiryDate));
-      setDocumentTypeId(lockDocumentType ? initialDocumentTypeId : "");
-      setMessage(
-        replaceDocumentId
+        if (!result.ok) {
+          const errorMessage = result.error.message;
+          setMessage(errorMessage);
+          toast.error(errorMessage);
+          return;
+        }
+
+        formRef.current?.reset();
+        setSelectedFileName(null);
+        setTitle(initialValues?.title ?? "");
+        setDocumentNumber(initialValues?.documentNumber ?? "");
+        setIssueDate(formatDateInput(initialValues?.issueDate));
+        setExpiryDate(formatDateInput(initialValues?.expiryDate));
+        setDocumentTypeId(lockDocumentType ? initialDocumentTypeId : "");
+
+        const successMessage = replaceDocumentId
           ? "File dokumen berhasil diganti dan menunggu verifikasi ulang."
-          : "Dokumen berhasil diunggah dan menunggu verifikasi.",
-      );
-      onSuccess?.();
+          : "Dokumen berhasil diunggah dan menunggu verifikasi.";
+
+        setMessage(successMessage);
+        toast.success(successMessage);
+        router.refresh();
+        onSuccess?.();
+      } catch (error) {
+        console.error("Document upload form error:", error);
+        const errorMessage = replaceDocumentId ? "Gagal mengganti file dokumen." : "Gagal mengunggah dokumen.";
+        setMessage(errorMessage);
+        toast.error(errorMessage);
+      }
     });
   }
 

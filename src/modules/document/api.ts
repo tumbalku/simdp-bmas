@@ -13,6 +13,72 @@ type ErrorEnvelope = {
   };
 };
 
+type UploadDocumentPayload = {
+  ok: true;
+  data: {
+    id: string;
+    status: string;
+    fileName: string;
+    filePath: string;
+  };
+};
+
+export type DocumentUploadResult = UploadDocumentPayload | ErrorEnvelope;
+
+function getFallbackUploadErrorMessage(status: number) {
+  if (status === 413) return "Ukuran file melebihi batas yang diizinkan.";
+  if (status === 415) return "Format file tidak didukung.";
+  if (status === 422) return "Input dokumen tidak valid.";
+  if (status >= 500) return "Terjadi kesalahan internal saat upload dokumen.";
+  return `Upload dokumen gagal (${status}).`;
+}
+
+async function readJsonEnvelope(response: Response) {
+  const contentType = response.headers.get("content-type");
+  if (!contentType?.includes("application/json")) return null;
+
+  try {
+    return (await response.json()) as DocumentUploadResult;
+  } catch {
+    return null;
+  }
+}
+
+export async function submitDocumentUploadFormData(formData: FormData): Promise<DocumentUploadResult> {
+  const response = await fetch("/api/v1/documents/upload", {
+    method: "POST",
+    body: formData,
+    credentials: "same-origin",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  const payload = await readJsonEnvelope(response);
+
+  if (!response.ok) {
+    return payload?.ok === false
+      ? payload
+      : {
+          ok: false,
+          error: {
+            code: response.status === 413 ? "PAYLOAD_TOO_LARGE" : "UPLOAD_FAILED",
+            message: getFallbackUploadErrorMessage(response.status),
+          },
+        };
+  }
+
+  if (payload) return payload;
+
+  return {
+    ok: false,
+    error: {
+      code: "INVALID_RESPONSE",
+      message: "Response upload dokumen tidak valid.",
+    },
+  };
+}
+
 export async function fetchDocumentPreviewUrl(documentId: string) {
   const response = await fetch(`/api/v1/documents/download/${documentId}`, {
     method: "GET",

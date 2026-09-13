@@ -95,6 +95,7 @@ Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/) dan Con
 - SIMDP-UI-005 (#49): Implementasi Auth UI (form login/forgot/reset ter-wired ke API) dan refaktor dashboard shell agar menu sidebar serta navigasi mobile menyesuaikan role user (ADMIN, STAFF, EMPLOYEE) secara dinamis dari server session.
 
 ### Fixed
+- Issue #314: Mengalihkan submit upload dokumen dan foto profil dari Server Action file body ke API route/client wrapper agar error upload 4xx seperti 413/415 tetap tampil sebagai toast/form error dan tidak jatuh ke dashboard error boundary.
 - Issue #306: Menyembunyikan hamburger menu mobile pada navbar landing page saat user belum login, sehingga panel menu role-based hanya tersedia setelah ada profile sesi.
 - Memperbaiki guard role halaman dashboard agar user login dengan role kurang diarahkan ke dashboard, bukan berakhir pada error page dari `requireAuth()`.
 - Issue #253/#254: Menambahkan guard arsitektur untuk read-only Server Action misuse, memindahkan read preview dokumen client ke GET API wrapper, membersihkan state sync during render di `/documents`, memusatkan query user+employee server-only, dan menghapus statistics read action generic yang tidak dipakai.
