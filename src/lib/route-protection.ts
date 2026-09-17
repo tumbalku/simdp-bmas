@@ -2,7 +2,6 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/dashboard",
   "/documents",
   "/master-data",
-  "/notifications",
   "/profile",
   "/security-log",
   "/settings",

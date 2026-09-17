@@ -19,7 +19,6 @@ describe("middleware auth coverage", () => {
     "/settings",
     "/system-settings",
     "/verification/doc-1",
-    "/notifications",
     "/security-log",
     "/statistics",
   ])("redirects unauthenticated dashboard route %s to login with next target", async (path) => {

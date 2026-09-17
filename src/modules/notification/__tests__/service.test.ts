@@ -16,11 +16,27 @@ vi.mock("@/lib/events", () => ({
   publishEvent: vi.fn(),
 }));
 
+const notificationProviderMocks = vi.hoisted(() => ({
+  publishToUser: vi.fn(),
+  sendEmail: vi.fn(),
+}));
+
+vi.mock("@/lib/notifications", () => ({
+  realtimeProvider: {
+    publishToUser: notificationProviderMocks.publishToUser,
+  },
+  emailProvider: {
+    sendEmail: notificationProviderMocks.sendEmail,
+  },
+}));
+
 import { EVENT_NAMES, publishEvent } from "@/lib/events";
 
 describe("Notification Module Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    notificationProviderMocks.publishToUser.mockResolvedValue(undefined);
+    notificationProviderMocks.sendEmail.mockResolvedValue(undefined);
   });
 
   describe("getNotifications", () => {
@@ -173,13 +189,65 @@ describe("Notification Module Service", () => {
       };
 
       mockPrisma.notification.findUnique.mockResolvedValue(notif);
-      mockPrisma.user.findUnique.mockResolvedValue(user);
+      mockPrisma.user.findFirst.mockResolvedValue(user);
 
       await dispatchNotification({ notificationId: "n-1" });
 
       expect(mockPrisma.notification.findUnique).toHaveBeenCalledWith({
         where: { id: "n-1" },
       });
+      expect(notificationProviderMocks.publishToUser).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({
+          id: "n-1",
+          title: "Test Title",
+        })
+      );
+      expect(notificationProviderMocks.sendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "test@example.com",
+          subject: "Test Title",
+        })
+      );
+    });
+
+    it("should not fail in-app dispatch when email delivery fails", async () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const notif = {
+        id: "n-1",
+        userId: "user-1",
+        type: "DOCUMENT_STATUS",
+        title: "Dokumen Disetujui",
+        message: "Dokumen Anda telah disetujui.",
+        relatedEntityType: "DOCUMENT_RECORD",
+        relatedEntityId: "doc-1",
+        createdAt: new Date(),
+        isRead: false,
+      };
+
+      mockPrisma.notification.findUnique.mockResolvedValue(notif);
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: "user-1",
+        email: "test@example.com",
+        employee: { name: "John Doe" },
+      });
+      notificationProviderMocks.sendEmail.mockRejectedValueOnce(new Error("SMTP down"));
+
+      await expect(dispatchNotification({ notificationId: "n-1" })).resolves.toBeUndefined();
+
+      expect(notificationProviderMocks.publishToUser).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ id: "n-1" })
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "[Notification] Failed to send notification email",
+        expect.objectContaining({
+          notificationId: "n-1",
+          userId: "user-1",
+        })
+      );
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });

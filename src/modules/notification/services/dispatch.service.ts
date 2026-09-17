@@ -5,6 +5,10 @@ import {
 } from "../constants";
 import * as repo from "../repositories/common";
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
 export async function dispatchNotification(input: {
   notificationId: string;
   email?: string;
@@ -66,6 +70,12 @@ export async function dispatchNotification(input: {
       to: recipientEmail,
       subject: notification.title,
       html,
+    }).catch((error: unknown) => {
+      console.error("[Notification] Failed to send notification email", {
+        notificationId: notification.id,
+        userId: notification.userId,
+        errorMessage: getErrorMessage(error),
+      });
     });
   }
 }

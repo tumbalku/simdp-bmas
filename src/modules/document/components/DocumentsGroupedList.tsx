@@ -25,6 +25,7 @@ import { cn } from "@/utils";
 import { DocumentUploadForm } from "@/modules/document/components/DocumentUploadForm";
 import { DOCUMENT_STATUS_LABELS, DOCUMENT_STATUS_VARIANTS } from "@/modules/document";
 import { getExpiryStatusInfo } from "../utils/expiry-status";
+import { getDocumentTypeUploadActionState } from "../utils/upload-action-state";
 import type { DocumentRecordListItem, DocumentTypeOption } from "@/modules/document";
 
 const statusConfig: Record<
@@ -115,9 +116,7 @@ export function DocumentTypeUploadAction({
   documentTypes: DocumentTypeOption[];
 }) {
   const [open, setOpen] = useState(false);
-  if (!group.documentType) return null;
-
-  const isDisabled = !group.allowMultiple && group.documents.length > 0;
+  const { isDisabled } = getDocumentTypeUploadActionState(group);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

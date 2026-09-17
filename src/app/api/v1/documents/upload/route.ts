@@ -1,9 +1,18 @@
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
-import { uploadDocumentRecord } from "@/modules/document/server";
+import { replaceDocumentFile, uploadDocumentRecord } from "@/modules/document/server";
 import { AppError } from "@/lib/errors";
 import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
+
+function getHttpStatusFromError(error: unknown) {
+  if (!error || typeof error !== "object") return null;
+  const status = "status" in error ? Number((error as { status?: unknown }).status) : NaN;
+  const statusCode = "statusCode" in error ? Number((error as { statusCode?: unknown }).statusCode) : NaN;
+  if (Number.isInteger(status) && status >= 400) return status;
+  if (Number.isInteger(statusCode) && statusCode >= 400) return statusCode;
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +25,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const documentTypeId = formData.get("documentTypeId") as string;
+    const documentId = (formData.get("documentId") as string) || undefined;
     const file = formData.get("file") as File | null;
     const title = (formData.get("title") as string) || undefined;
     const documentNumber = (formData.get("documentNumber") as string) || undefined;
@@ -28,18 +38,31 @@ export async function POST(request: NextRequest) {
 
     const ipAddress = request.headers.get("x-forwarded-for") || null;
 
-    const result = await uploadDocumentRecord(
-      {
-        documentTypeId,
-        file,
-        title,
-        documentNumber,
-        issueDate,
-        expiryDate,
-      },
-      session,
-      ipAddress
-    );
+    const result = documentId
+      ? await replaceDocumentFile(
+          {
+            documentId,
+            file,
+            title,
+            documentNumber,
+            issueDate,
+            expiryDate,
+          },
+          session,
+          ipAddress
+        )
+      : await uploadDocumentRecord(
+          {
+            documentTypeId,
+            file,
+            title,
+            documentNumber,
+            issueDate,
+            expiryDate,
+          },
+          session,
+          ipAddress
+        );
 
     return successResponse(result);
   } catch (error: unknown) {
@@ -54,10 +77,14 @@ export async function POST(request: NextRequest) {
               ? "Input dokumen tidak valid."
               : error.code === "NOT_FOUND"
                 ? "Sumber data tidak ditemukan."
-                : error.code === "PAYLOAD_TOO_LARGE"
-                  ? "Ukuran file melebihi batas yang diizinkan."
-                  : "Terjadi kesalahan saat upload dokumen.";
+              : error.status >= 400 && error.status < 500
+                ? error.message
+                : "Terjadi kesalahan saat upload dokumen.";
       return errorResponse(error.code, message, error.details, error.status);
+    }
+    const httpStatus = getHttpStatusFromError(error);
+    if (httpStatus === 413) {
+      return errorResponse("PAYLOAD_TOO_LARGE", "Ukuran file melebihi batas yang diizinkan.", undefined, 413);
     }
     if (error instanceof Error) {
       if (error.message === "UNAUTHENTICATED") {

@@ -170,6 +170,44 @@ describe("Employee Module Actions", () => {
     expect(result).toEqual({ ok: true, data: { avatarUrl: "uploads/profile/avatar.png" } });
   });
 
+  it("should return error envelope when avatar upload service rejects with validation error", async () => {
+    mocks.requireAuth.mockResolvedValue({ userId: "user-1", role: "EMPLOYEE" });
+    const file = new File([new Uint8Array([0x00, 0x01])], "invalid.txt", { type: "text/plain" });
+    const formData = new FormData();
+    formData.set("file", file);
+
+    const { AppError } = await import("@/lib/errors");
+    mocks.uploadProfileAvatar.mockRejectedValue(
+      new AppError("VALIDATION_ERROR", "Format foto tidak valid.")
+    );
+
+    const result = await uploadProfileAvatarAction(formData);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("VALIDATION_ERROR");
+      expect(result.error.message).toBe("Format foto tidak valid.");
+    }
+  });
+
+  it("should return error envelope when avatar upload service rejects with generic error", async () => {
+    mocks.requireAuth.mockResolvedValue({ userId: "user-1", role: "EMPLOYEE" });
+    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "avatar.png", { type: "image/png" });
+    const formData = new FormData();
+    formData.set("file", file);
+
+    mocks.uploadProfileAvatar.mockRejectedValue(new Error("Storage provider unavailable"));
+
+    const result = await uploadProfileAvatarAction(formData);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      // handleActionError converts generic errors to standard internal error message
+      expect(result.error.code).toBe("INTERNAL_ERROR");
+      expect(result.error.message).toBe("Terjadi kesalahan internal");
+    }
+  });
+
   it("should return validation details for invalid employee CRUD payloads", async () => {
     const result = await crudEmployeeAction("CREATE", undefined, { email: "not-an-email" });
 
