@@ -1,3 +1,42 @@
+// ============================================================
+// SIMDP PRISMA SCHEMA v2.3
+// Based on database.sql v2.2 (hardened schema revision)
+// Date: 2026-09-20
+// v2.3 = v2.2 + restore DocumentVerification (public QR verification) yang
+//       tidak sengaja hilang dari v2.2; bagian lain identik dengan v2.2.
+// ============================================================
+//
+// IMPORTANT NOTES:
+// 1. Partial unique indexes (e.g., WHERE deletedAt IS NULL) are NOT
+//    represented in this schema. They exist in SQL and must be maintained
+//    via raw SQL migrations.
+// 2. Check constraints are NOT represented in Prisma. Keep them in SQL.
+// 3. Triggers and functions are NOT represented. All business logic
+//    enforced at DB level exists only in SQL.
+// 4. Some enums and fields from database.sql v2.2 that are new or updated:
+//    - DocumentUploader enum
+//    - DocumentType.uploaderRole, adminUploadAutoFinal, requiresPeriod
+//    - DocumentRecord.isFinal, replacesDocumentId, periodStartDate/EndDate
+//    - PostVisibilityType, PostStatus enums
+//    - Post table and visibility targeting tables
+//    - StoredFile table (separated from DocumentRecord)
+//    - RegistrationStatus enum
+//    - UserRegistrationRequest.claimedNip (renamed from employeeId)
+//    - DocumentVerification model + DocumentVerificationType enum (RESTORED
+//      di v2.3: fitur verifikasi publik /verify-document?code=... yang
+//      kelupaan dari database.sql v2.2)
+//
+// PRISMA LIMITATIONS:
+// - Prisma cannot represent:
+//   * Partial unique indexes with WHERE clauses
+//   * Complex CHECK constraints
+//   * Database triggers
+//   * Constraint triggers (DEFERRABLE)
+// - These must be managed via prisma migrate dev --create-only, then
+//   manually editing the migration SQL before applying.
+//
+// ============================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -5,6 +44,10 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ============================================================
+// ENUMS
+// ============================================================
 
 enum Role {
   ADMIN
@@ -21,11 +64,68 @@ enum DocumentStatus {
 }
 
 enum ArchiveCategory {
-  PERSONAL
-  EDUCATION
-  EMPLOYMENT
-  CERTIFICATION
-  LEGAL
+  PERSONAL // KTP, KK, Akta Lahir, Paspor
+  EDUCATION // Ijazah, Transkrip
+  EMPLOYMENT // SK Pengangkatan, SK Mutasi, Kontrak
+  CERTIFICATION // STR, SIP, SIK, Sertifikat Diklat
+  LEGAL // NPWP, BPJS, Surat Keterangan
+  PERIODIC // Cuti, Surat Tugas, Tugas Belajar
+}
+
+enum StorageProvider {
+  LOCAL    @map("local")
+  SUPABASE @map("supabase")
+  S3       @map("s3")
+}
+
+enum DocumentUploader {
+  EMPLOYEE // Only employee can upload
+  ADMIN // Only admin/staff can upload
+  BOTH // Both can upload
+}
+
+enum NotificationType {
+  DOCUMENT_STATUS
+  DOCUMENT_VERIFICATION
+  EXPIRY_REMINDER
+  VERIFICATION_REQUIRED
+  ANNOUNCEMENT
+  INFO
+}
+
+enum NotificationRelatedEntityType {
+  DOCUMENT_RECORD @map("DocumentRecord")
+}
+
+enum SecurityLogStatus {
+  SUCCESS
+  FAILED
+}
+
+enum SecurityActorRole {
+  ADMIN
+  STAFF
+  EMPLOYEE
+  PUBLIC
+  SYSTEM
+}
+
+enum DocumentVerificationType {
+  EMPLOYEE_PROFILE // PDF profil pegawai per individu
+  EMPLOYEE_DIRECTORY // PDF direktori pegawai (agregat, subject opsional)
+  EMPLOYEE_DOCUMENTS // PDF dokumen pegawai per individu
+  MASTER_DATA_DOCUMENTS // PDF master data dokumen (agregat, subject opsional)
+}
+
+enum PostVisibilityType {
+  PUBLIC // Visible to all users
+  TARGETED // Visible only to specified roles/workplaces/groups/users
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 enum EmployeeStatus {
@@ -55,43 +155,17 @@ enum EmployeeReligion {
   CONFUCIAN
 }
 
-enum StorageProvider {
-  LOCAL    @map("local")
-  SUPABASE @map("supabase")
-  S3       @map("s3")
+enum RegistrationStatus {
+  EMAIL_PENDING
+  EMAIL_VERIFIED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
 }
 
-enum NotificationType {
-  DOCUMENT_STATUS
-  DOCUMENT_VERIFICATION
-  EXPIRY_REMINDER
-  VERIFICATION_REQUIRED
-  INFO
-}
-
-enum NotificationRelatedEntityType {
-  DOCUMENT_RECORD @map("DocumentRecord")
-}
-
-enum SecurityLogStatus {
-  SUCCESS
-  FAILED
-}
-
-enum SecurityActorRole {
-  ADMIN
-  STAFF
-  EMPLOYEE
-  PUBLIC
-  SYSTEM
-}
-
-enum DocumentVerificationType {
-  EMPLOYEE_PROFILE
-  EMPLOYEE_DIRECTORY
-  EMPLOYEE_DOCUMENTS
-  MASTER_DATA_DOCUMENTS
-}
+// ============================================================
+// AUTH & USER MANAGEMENT
+// ============================================================
 
 model User {
   id           String    @id
@@ -104,12 +178,17 @@ model User {
   updatedAt    DateTime  @default(now())
   deletedAt    DateTime?
 
+  // Relations
   employee            Employee?
-  refreshTokens       RefreshToken[]
   twoFactor           UserTwoFactor?
+  refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   notifications       Notification[]
+  securityLogs        SecurityLog[]
+  uploadedFiles       StoredFile[]
+  postVisibilityUsers PostVisibilityUser[]
 
+  // Audit trail relations
   createdEmploymentStatuses    EmploymentStatus[]      @relation("EmploymentStatusCreatedBy")
   updatedEmploymentStatuses    EmploymentStatus[]      @relation("EmploymentStatusUpdatedBy")
   createdEmployeeGroups        EmployeeGroup[]         @relation("EmployeeGroupCreatedBy")
@@ -124,31 +203,34 @@ model User {
   updatedWorkplaces            Workplace[]             @relation("WorkplaceUpdatedBy")
   createdEmployees             Employee[]              @relation("EmployeeCreatedBy")
   updatedEmployees             Employee[]              @relation("EmployeeUpdatedBy")
-  createdCareerHistories       EmployeeCareerHistory[] @relation("EmployeeCareerHistoryCreatedBy")
+  createdCareerHistories       EmployeeCareerHistory[] @relation("CareerHistoryCreatedBy")
   createdDocumentTypes         DocumentType[]          @relation("DocumentTypeCreatedBy")
   updatedDocumentTypes         DocumentType[]          @relation("DocumentTypeUpdatedBy")
   createdDocumentRecords       DocumentRecord[]        @relation("DocumentRecordCreatedBy")
   updatedDocumentRecords       DocumentRecord[]        @relation("DocumentRecordUpdatedBy")
-  reviewedVerifications        VerificationHistory[]   @relation("VerificationReviewer")
+  reviewedVerifications        VerificationHistory[]
   issuedDocumentVerifications  DocumentVerification[]  @relation("DocumentVerificationIssuedBy")
   revokedDocumentVerifications DocumentVerification[]  @relation("DocumentVerificationRevokedBy")
-  securityLogs                 SecurityLog[]           @relation("SecurityLogActor")
-  updatedSystemSettings        SystemSetting[]         @relation("SystemSettingUpdatedBy")
+  authoredPosts                Post[]
+  updatedSystemSettings        SystemSetting[]
+
+  @@index([deletedAt], map: "idx_user_deleted")
+  @@index([email], map: "idx_user_email")
 }
 
 model UserTwoFactor {
-  id                   String   @id
-  userId               String   @unique
-  secretEncrypted      String
-  recoveryCodeHashes   Json
-  enabled              Boolean  @default(false)
-  emailOtpHash         String?
-  emailOtpExpiresAt    DateTime?
-  emailOtpSentAt       DateTime?
-  emailOtpAttempts     Int      @default(0)
-  emailOtpLockedUntil  DateTime?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @default(now())
+  id                  String    @id
+  userId              String    @unique
+  secretEncrypted     String
+  recoveryCodeHashes  Json
+  enabled             Boolean   @default(false)
+  emailOtpHash        String?
+  emailOtpExpiresAt   DateTime?
+  emailOtpSentAt      DateTime?
+  emailOtpAttempts    Int       @default(0)
+  emailOtpLockedUntil DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -166,6 +248,7 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "idx_refreshtoken_user")
+  @@index([expiresAt], map: "idx_refreshtoken_expires")
 }
 
 model PasswordResetToken {
@@ -179,7 +262,12 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId], map: "idx_passwordreset_user")
+  @@index([token], map: "idx_passwordreset_token")
 }
+
+// ============================================================
+// MASTER DATA KEPEGAWAIAN
+// ============================================================
 
 model EmploymentStatus {
   id        String   @id
@@ -189,9 +277,8 @@ model EmploymentStatus {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  createdByUser User? @relation("EmploymentStatusCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User? @relation("EmploymentStatusUpdatedBy", fields: [updatedBy], references: [id])
-
+  createdByUser                  User?                          @relation("EmploymentStatusCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser                  User?                          @relation("EmploymentStatusUpdatedBy", fields: [updatedBy], references: [id])
   employeeGroups                 EmployeeGroup[]
   employees                      Employee[]
   careerHistories                EmployeeCareerHistory[]
@@ -207,13 +294,13 @@ model EmployeeGroup {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @default(now())
 
-  employmentStatus EmploymentStatus @relation(fields: [employmentStatusId], references: [id])
-  createdByUser    User?            @relation("EmployeeGroupCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser    User?            @relation("EmployeeGroupUpdatedBy", fields: [updatedBy], references: [id])
-
-  employees                  Employee[]
-  careerHistories            EmployeeCareerHistory[]
-  documentTypeEmployeeGroups DocumentTypeEmployeeGroup[]
+  employmentStatus             EmploymentStatus              @relation(fields: [employmentStatusId], references: [id])
+  createdByUser                User?                         @relation("EmployeeGroupCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser                User?                         @relation("EmployeeGroupUpdatedBy", fields: [updatedBy], references: [id])
+  employees                    Employee[]
+  careerHistories              EmployeeCareerHistory[]
+  documentTypeEmployeeGroups   DocumentTypeEmployeeGroup[]
+  postVisibilityEmployeeGroups PostVisibilityEmployeeGroup[]
 
   @@unique([name, employmentStatusId])
 }
@@ -226,11 +313,10 @@ model ProfessionGroup {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  createdByUser User? @relation("ProfessionGroupCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User? @relation("ProfessionGroupUpdatedBy", fields: [updatedBy], references: [id])
-
-  employeePositions DocumentTypeProfessionGroup[]
-  positions         EmployeePosition[]
+  createdByUser                User?                         @relation("ProfessionGroupCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser                User?                         @relation("ProfessionGroupUpdatedBy", fields: [updatedBy], references: [id])
+  employeePositions            EmployeePosition[]
+  documentTypeProfessionGroups DocumentTypeProfessionGroup[]
 }
 
 model EmployeePosition {
@@ -242,10 +328,9 @@ model EmployeePosition {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @default(now())
 
-  professionGroup ProfessionGroup @relation(fields: [professionGroupId], references: [id])
-  createdByUser   User?           @relation("EmployeePositionCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser   User?           @relation("EmployeePositionUpdatedBy", fields: [updatedBy], references: [id])
-
+  professionGroup               ProfessionGroup                @relation(fields: [professionGroupId], references: [id])
+  createdByUser                 User?                          @relation("EmployeePositionCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser                 User?                          @relation("EmployeePositionUpdatedBy", fields: [updatedBy], references: [id])
   employees                     Employee[]
   careerHistories               EmployeeCareerHistory[]
   documentTypeEmployeePositions DocumentTypeEmployeePosition[]
@@ -256,16 +341,15 @@ model EmployeePosition {
 model EmployeeRank {
   id        String   @id
   name      String   @unique
-  rankName  String?  @map("rank_name")
+  rankName  String?
   grade     String?
   createdBy String?
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  createdByUser User? @relation("EmployeeRankCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User? @relation("EmployeeRankUpdatedBy", fields: [updatedBy], references: [id])
-
+  createdByUser             User?                      @relation("EmployeeRankCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser             User?                      @relation("EmployeeRankUpdatedBy", fields: [updatedBy], references: [id])
   employees                 Employee[]
   careerHistories           EmployeeCareerHistory[]
   documentTypeEmployeeRanks DocumentTypeEmployeeRank[]
@@ -279,51 +363,55 @@ model Workplace {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  createdByUser User? @relation("WorkplaceCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User? @relation("WorkplaceUpdatedBy", fields: [updatedBy], references: [id])
-
-  employees              Employee[]
-  careerHistories        EmployeeCareerHistory[]
-  documentTypeWorkplaces DocumentTypeWorkplace[]
+  createdByUser            User?                     @relation("WorkplaceCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser            User?                     @relation("WorkplaceUpdatedBy", fields: [updatedBy], references: [id])
+  employees                Employee[]
+  careerHistories          EmployeeCareerHistory[]
+  documentTypeWorkplaces   DocumentTypeWorkplace[]
+  postVisibilityWorkplaces PostVisibilityWorkplace[]
 }
 
-/// SQL has CHECK ("employeeId" IS NOT NULL OR nik IS NOT NULL).
-/// Prisma does not represent CHECK constraints; keep it in SQL migrations.
-model Employee {
-  id                 String                 @id
-  userId             String                 @unique
-  employeeId         String?                @unique
-  nik                String?                @unique
-  name               String
-  status             EmployeeStatus         @default(ACTIVE)
-  avatarUrl          String?
-  googleAvatarUrl    String?
-  gender             EmployeeGender?
-  birthDate          DateTime?              @db.Date
-  birthPlace         String?
-  academicDegree     String?
-  lastEducation      String?
-  religion           EmployeeReligion?
-  maritalStatus      EmployeeMaritalStatus?
-  phone              String?
-  address            String?
-  joinDate           DateTime?              @db.Date
-  hasTmt             Boolean                @default(false)
-  tmtStartDate       DateTime?              @db.Date
-  tmtEndDate         DateTime?              @db.Date
-  employmentStatusId String?
-  employeeGroupId    String?
-  employeePositionId String?
-  employeeRankId     String?
-  workplaceId        String?
-  createdBy          String?
-  updatedBy          String?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @default(now())
-  profileSelfUpdatedAt DateTime?
-  deletedAt          DateTime?
+// ============================================================
+// EMPLOYEE PROFILE & CAREER
+// ============================================================
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+/// SQL CHECK: employeeId IS NOT NULL OR nik IS NOT NULL
+/// SQL onDelete: RESTRICT (not CASCADE) - use soft delete instead
+model Employee {
+  id                   String                 @id
+  userId               String                 @unique
+  employeeId           String?                @unique
+  nik                  String?                @unique
+  name                 String
+  status               EmployeeStatus         @default(ACTIVE)
+  avatarUrl            String?
+  googleAvatarUrl      String?
+  gender               EmployeeGender?
+  birthDate            DateTime?              @db.Date
+  birthPlace           String?
+  academicDegree       String?
+  lastEducation        String?
+  religion             EmployeeReligion?
+  maritalStatus        EmployeeMaritalStatus?
+  phone                String?
+  address              String?
+  joinDate             DateTime?              @db.Date
+  hasTmt               Boolean                @default(false)
+  tmtStartDate         DateTime?              @db.Date
+  tmtEndDate           DateTime?              @db.Date
+  employmentStatusId   String?
+  employeeGroupId      String?
+  employeePositionId   String?
+  employeeRankId       String?
+  workplaceId          String?
+  createdBy            String?
+  updatedBy            String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @default(now())
+  profileSelfUpdatedAt DateTime?
+  deletedAt            DateTime?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Restrict)
   employmentStatus EmploymentStatus? @relation(fields: [employmentStatusId], references: [id])
   employeeGroup    EmployeeGroup?    @relation(fields: [employeeGroupId], references: [id])
   employeePosition EmployeePosition? @relation(fields: [employeePositionId], references: [id])
@@ -337,8 +425,12 @@ model Employee {
   documentVerifications DocumentVerification[]
 
   @@index([deletedAt], map: "idx_employee_deleted")
+  @@index([userId], map: "idx_employee_userid")
+  @@index([employeeId], map: "idx_employee_nip")
+  @@index([nik], map: "idx_employee_nik")
 }
 
+/// SQL CHECK: endDate IS NULL OR endDate >= effectiveDate
 model EmployeeCareerHistory {
   id                 String    @id
   employeeId         String
@@ -359,34 +451,69 @@ model EmployeeCareerHistory {
   employeePosition EmployeePosition? @relation(fields: [employeePositionId], references: [id])
   employeeRank     EmployeeRank?     @relation(fields: [employeeRankId], references: [id])
   workplace        Workplace?        @relation(fields: [workplaceId], references: [id])
-  createdByUser    User?             @relation("EmployeeCareerHistoryCreatedBy", fields: [createdBy], references: [id])
+  createdByUser    User?             @relation("CareerHistoryCreatedBy", fields: [createdBy], references: [id])
 
-  @@index([employeeId, effectiveDate], map: "idx_careerhistory_employee")
+  @@index([employeeId, effectiveDate(sort: Desc)], map: "idx_careerhistory_employee")
 }
 
+// ============================================================
+// FILE STORAGE ABSTRACTION
+// ============================================================
+
+/// SQL: Unique index on (storageProvider, filePath) WHERE deletedAt IS NULL
+/// Cannot be represented in Prisma - maintained via SQL migration
+model StoredFile {
+  id              String          @id
+  fileName        String
+  filePath        String
+  fileSize        BigInt
+  mimeType        String
+  fileHash        String
+  storageProvider StorageProvider
+  uploadedBy      String?
+  uploadedAt      DateTime        @default(now())
+  deletedAt       DateTime?
+
+  uploader        User?            @relation(fields: [uploadedBy], references: [id])
+  documentRecords DocumentRecord[]
+  postAttachments PostAttachment[]
+
+  @@index([fileHash], map: "idx_storedfile_hash")
+  @@index([deletedAt], map: "idx_storedfile_deleted")
+  @@index([uploadedBy], map: "idx_storedfile_uploaded")
+}
+
+// ============================================================
+// DOCUMENT TYPE & CONFIGURATION
+// ============================================================
+
+/// SQL CHECK constraints on allowedFormats and maxSizeMb
+/// Cannot be represented in Prisma - maintained via SQL migration
 model DocumentType {
-  id                     String          @id
-  code                   String          @unique
+  id                     String           @id
+  code                   String           @unique
   name                   String
   description            String?
   archiveCategory        ArchiveCategory
-  isMandatory            Boolean         @default(false)
-  allowMultiple          Boolean         @default(false)
-  requiresExpiryDate     Boolean         @default(false)
-  requiresIssueDate      Boolean         @default(false)
-  requiresDocumentNumber Boolean         @default(false)
+  isMandatory            Boolean          @default(false)
+  allowMultiple          Boolean          @default(false)
+  requiresExpiryDate     Boolean          @default(false)
+  requiresIssueDate      Boolean          @default(false)
+  requiresDocumentNumber Boolean          @default(false)
+  requiresPeriod         Boolean          @default(false)
+  uploaderRole           DocumentUploader @default(BOTH)
+  adminUploadAutoFinal   Boolean          @default(false)
   allowedFormats         String
   maxSizeMb              Float
   icon                   String?
   createdBy              String?
   updatedBy              String?
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @default(now())
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @default(now())
   deletedAt              DateTime?
 
-  createdByUser User? @relation("DocumentTypeCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User? @relation("DocumentTypeUpdatedBy", fields: [updatedBy], references: [id])
-
+  createdByUser      User?                          @relation("DocumentTypeCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser      User?                          @relation("DocumentTypeUpdatedBy", fields: [updatedBy], references: [id])
   professionGroups   DocumentTypeProfessionGroup[]
   employmentStatuses DocumentTypeEmploymentStatus[]
   employeeGroups     DocumentTypeEmployeeGroup[]
@@ -394,7 +521,14 @@ model DocumentType {
   employeeRanks      DocumentTypeEmployeeRank[]
   workplaces         DocumentTypeWorkplace[]
   documentRecords    DocumentRecord[]
+
+  @@index([archiveCategory], map: "idx_documenttype_category")
+  @@index([deletedAt], map: "idx_documenttype_deleted")
 }
+
+// ============================================================
+// DOCUMENT TYPE TARGETING
+// ============================================================
 
 model DocumentTypeProfessionGroup {
   id                String @id
@@ -462,46 +596,64 @@ model DocumentTypeWorkplace {
   @@unique([documentTypeId, workplaceId])
 }
 
-/// SQL has a partial unique index uniq_current_document_per_type.
-/// Prisma does not represent partial indexes or CHECK constraints; keep them in SQL migrations.
+// ============================================================
+// DOCUMENT RECORDS (Employee Documents)
+// ============================================================
+
+/// SQL: Partial unique index uniq_current_document_per_type
+/// SQL: Multiple CHECK constraints for dates and self-reference
+/// SQL: createdBy NOT NULL (enforced by trigger logic)
+/// SQL: isFinal and replacesDocumentId managed by triggers
+/// SQL onDelete: RESTRICT (not CASCADE)
 model DocumentRecord {
-  id                    String          @id
+  id                    String         @id
   ownerId               String
   documentTypeId        String
+  storedFileId          String
+  replacesDocumentId    String?
   title                 String?
-  status                DocumentStatus  @default(PENDING)
-  isCurrent             Boolean         @default(true)
-  allowMultipleSnapshot Boolean         @default(false)
-  fileName              String
-  filePath              String
-  fileSize              BigInt?
-  mimeType              String?
-  fileHash              String?
-  storageProvider       StorageProvider @default(LOCAL)
   documentNumber        String?
-  issueDate             DateTime?       @db.Date
-  expiryDate            DateTime?       @db.Date
+  issueDate             DateTime?      @db.Date
+  expiryDate            DateTime?      @db.Date
+  periodStartDate       DateTime?      @db.Date
+  periodEndDate         DateTime?      @db.Date
+  status                DocumentStatus @default(PENDING)
+  isCurrent             Boolean        @default(true)
+  isFinal               Boolean        @default(false)
+  allowMultipleSnapshot Boolean        @default(false)
   reminderH30SentAt     DateTime?
   reminderH7SentAt      DateTime?
   reminderH1SentAt      DateTime?
-  createdBy             String?
+  createdBy             String
   updatedBy             String?
-  uploadedAt            DateTime        @default(now())
-  updatedAt             DateTime        @default(now())
+  uploadedAt            DateTime       @default(now())
+  updatedAt             DateTime       @default(now())
   deletedAt             DateTime?
 
-  owner         Employee     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  documentType  DocumentType @relation(fields: [documentTypeId], references: [id])
-  createdByUser User?        @relation("DocumentRecordCreatedBy", fields: [createdBy], references: [id])
-  updatedByUser User?        @relation("DocumentRecordUpdatedBy", fields: [updatedBy], references: [id])
-
+  owner                 Employee              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  documentType          DocumentType          @relation(fields: [documentTypeId], references: [id])
+  storedFile            StoredFile            @relation(fields: [storedFileId], references: [id])
+  replacesDocument      DocumentRecord?       @relation("DocumentReplacement", fields: [replacesDocumentId], references: [id])
+  replacedByDocuments   DocumentRecord[]      @relation("DocumentReplacement")
+  createdByUser         User                  @relation("DocumentRecordCreatedBy", fields: [createdBy], references: [id])
+  updatedByUser         User?                 @relation("DocumentRecordUpdatedBy", fields: [updatedBy], references: [id])
   verificationHistories VerificationHistory[]
 
   @@index([ownerId, documentTypeId], map: "idx_documentrecord_owner_type")
+  @@index([documentTypeId], map: "idx_documentrecord_type")
   @@index([expiryDate], map: "idx_documentrecord_expiry")
-  @@index([fileHash], map: "idx_documentrecord_hash")
+  @@index([status], map: "idx_documentrecord_status")
+  @@index([storedFileId], map: "idx_documentrecord_file")
+  @@index([replacesDocumentId], map: "idx_documentrecord_replaces")
+  @@index([deletedAt], map: "idx_documentrecord_deleted")
 }
 
+// ============================================================
+// VERIFICATION HISTORY (append-only via trigger)
+// ============================================================
+
+/// SQL: Append-only (UPDATE/DELETE blocked by trigger)
+/// SQL onDelete: RESTRICT (not CASCADE)
 model VerificationHistory {
   id               String         @id
   documentRecordId String
@@ -510,12 +662,21 @@ model VerificationHistory {
   reviewNote       String?
   reviewedAt       DateTime       @default(now())
 
-  documentRecord DocumentRecord @relation(fields: [documentRecordId], references: [id], onDelete: Cascade)
-  reviewedBy     User?          @relation("VerificationReviewer", fields: [reviewedById], references: [id])
+  documentRecord DocumentRecord @relation(fields: [documentRecordId], references: [id], onDelete: Restrict)
+  reviewedBy     User?          @relation(fields: [reviewedById], references: [id])
 
-  @@index([documentRecordId], map: "idx_verificationhistory_document")
+  @@index([documentRecordId, reviewedAt(sort: Desc)], map: "idx_verificationhistory_document")
+  @@index([reviewedById], map: "idx_verificationhistory_reviewer")
 }
 
+// ============================================================
+// DOCUMENT VERIFICATION (Public QR Verification)
+// ============================================================
+
+/// Kode verifikasi publik untuk dokumen yang diterbitkan/diexport sistem.
+/// QR Code hanya berisi URL publik /verify-document?code=...; detail
+/// verifikasi disimpan di tabel ini. Subject pegawai opsional untuk
+/// dokumen agregat (direktori/master data documents).
 model DocumentVerification {
   id                String                   @id
   code              String                   @unique
@@ -531,12 +692,112 @@ model DocumentVerification {
   revokeReason      String?
 
   subjectEmployee Employee? @relation(fields: [subjectEmployeeId], references: [id], onDelete: Cascade)
-  issuedByUser    User?    @relation("DocumentVerificationIssuedBy", fields: [issuedByUserId], references: [id])
-  revokedByUser   User?    @relation("DocumentVerificationRevokedBy", fields: [revokedByUserId], references: [id])
+  issuedByUser    User?     @relation("DocumentVerificationIssuedBy", fields: [issuedByUserId], references: [id])
+  revokedByUser   User?     @relation("DocumentVerificationRevokedBy", fields: [revokedByUserId], references: [id])
 
   @@index([subjectEmployeeId], map: "idx_documentverification_subject")
   @@index([issuedAt], map: "idx_documentverification_issued_at")
 }
+
+// ============================================================
+// ANNOUNCEMENT / POST SYSTEM
+// ============================================================
+
+/// SQL: Constraint trigger ensures TARGETED posts have at least one visibility target
+model Post {
+  id             String             @id
+  title          String
+  content        String
+  visibilityType PostVisibilityType @default(PUBLIC)
+  status         PostStatus         @default(DRAFT)
+  isPinned       Boolean            @default(false)
+  publishedAt    DateTime?
+  authorId       String
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @default(now())
+  deletedAt      DateTime?
+
+  author                   User                          @relation(fields: [authorId], references: [id])
+  attachments              PostAttachment[]
+  visibilityRoles          PostVisibilityRole[]
+  visibilityWorkplaces     PostVisibilityWorkplace[]
+  visibilityEmployeeGroups PostVisibilityEmployeeGroup[]
+  visibilityUsers          PostVisibilityUser[]
+
+  @@index([status, publishedAt(sort: Desc)], map: "idx_post_status")
+  @@index([authorId], map: "idx_post_author")
+  @@index([isPinned, publishedAt(sort: Desc)], map: "idx_post_pinned")
+  @@index([deletedAt], map: "idx_post_deleted")
+}
+
+model PostAttachment {
+  id           String   @id
+  postId       String
+  storedFileId String
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  post       Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  storedFile StoredFile @relation(fields: [storedFileId], references: [id])
+
+  @@index([postId, displayOrder], map: "idx_postattachment_post")
+  @@index([storedFileId], map: "idx_postattachment_file")
+}
+
+// ============================================================
+// POST VISIBILITY TARGETING
+// ============================================================
+
+model PostVisibilityRole {
+  id     String @id
+  postId String
+  role   Role
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, role])
+  @@index([postId], map: "idx_postvisibilityrole_post")
+}
+
+model PostVisibilityWorkplace {
+  id          String @id
+  postId      String
+  workplaceId String
+
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  workplace Workplace @relation(fields: [workplaceId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, workplaceId])
+  @@index([postId], map: "idx_postvisibilityworkplace_post")
+}
+
+model PostVisibilityEmployeeGroup {
+  id              String @id
+  postId          String
+  employeeGroupId String
+
+  post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  employeeGroup EmployeeGroup @relation(fields: [employeeGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, employeeGroupId])
+  @@index([postId], map: "idx_postvisibilitygroup_post")
+}
+
+model PostVisibilityUser {
+  id     String @id
+  postId String
+  userId String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId], map: "idx_postvisibilityuser_post")
+}
+
+// ============================================================
+// NOTIFICATION
+// ============================================================
 
 model Notification {
   id                String                         @id
@@ -551,9 +812,15 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, isRead], map: "idx_notification_user_unread")
+  @@index([userId, isRead, createdAt(sort: Desc)], map: "idx_notification_user_unread")
+  @@index([createdAt(sort: Desc)], map: "idx_notification_created")
 }
 
+// ============================================================
+// SECURITY LOG (Audit Trail — append-only via trigger)
+// ============================================================
+
+/// SQL: Append-only (UPDATE/DELETE blocked by trigger)
 model SecurityLog {
   id        String            @id
   timestamp DateTime          @default(now())
@@ -566,11 +833,16 @@ model SecurityLog {
   status    SecurityLogStatus
   metadata  Json?
 
-  actor User? @relation("SecurityLogActor", fields: [actorId], references: [id])
+  actor User? @relation(fields: [actorId], references: [id])
 
-  @@index([actorId], map: "idx_securitylog_actor")
-  @@index([timestamp], map: "idx_securitylog_timestamp")
+  @@index([actorId, timestamp(sort: Desc)], map: "idx_securitylog_actor")
+  @@index([timestamp(sort: Desc)], map: "idx_securitylog_timestamp")
+  @@index([eventType, timestamp(sort: Desc)], map: "idx_securitylog_event")
 }
+
+// ============================================================
+// SYSTEM SETTINGS
+// ============================================================
 
 model SystemSetting {
   key         String   @id
@@ -580,48 +852,55 @@ model SystemSetting {
   updatedBy   String?
   updatedAt   DateTime @default(now())
 
-  updatedByUser User? @relation("SystemSettingUpdatedBy", fields: [updatedBy], references: [id])
+  updatedByUser User? @relation(fields: [updatedBy], references: [id])
 }
 
+// ============================================================
+// RATE LIMITING
+// ============================================================
+
 model RateLimitBucket {
-  key             String   @id
+  key             String    @id
   category        String
-  count           Int      @default(0)
+  count           Int       @default(0)
   resetAt         DateTime
   limitedLoggedAt DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now())
 
   @@index([category, resetAt], map: "idx_ratelimitbucket_category_reset")
   @@index([resetAt], map: "idx_ratelimitbucket_reset")
 }
 
+// ============================================================
+// USER REGISTRATION REQUESTS
+// ============================================================
 
 model UserRegistrationRequest {
-  id                 String    @id
-  email              String
-  name               String
-  nik                String?
-  employeeId         String?
-  passwordHash       String?
-  phone              String?
-  workplaceName      String?
-  note               String?
-  status             String    @default("EMAIL_PENDING")
-  emailOtpHash       String?
-  emailOtpExpiresAt  DateTime?
-  emailOtpAttempts   Int       @default(0)
-  emailOtpSentAt     DateTime?
-  emailVerifiedAt    DateTime?
-  reviewedAt         DateTime?
-  reviewedByAdminId  String?
-  reviewNote         String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                String             @id
+  email             String
+  name              String
+  nik               String?
+  claimedNip        String?
+  passwordHash      String?
+  phone             String?
+  workplaceName     String?
+  note              String?
+  status            RegistrationStatus @default(EMAIL_PENDING)
+  emailOtpHash      String?
+  emailOtpExpiresAt DateTime?
+  emailOtpAttempts  Int                @default(0)
+  emailOtpSentAt    DateTime?
+  emailVerifiedAt   DateTime?
+  reviewedAt        DateTime?
+  reviewedByAdminId String?
+  reviewNote        String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @default(now())
 
-  @@index([status, createdAt], map: "idx_userregistration_status_created")
+  @@index([status, createdAt(sort: Desc)], map: "idx_userregistration_status_created")
   @@index([emailVerifiedAt], map: "idx_userregistration_email_verified")
   @@index([email], map: "idx_userregistration_email")
   @@index([nik], map: "idx_userregistration_nik")
-  @@index([employeeId], map: "idx_userregistration_employee_id")
+  @@index([claimedNip], map: "idx_userregistration_claimed_nip")
 }
