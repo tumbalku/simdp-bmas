@@ -168,17 +168,32 @@ describe("Documents Stream Integration API", () => {
       });
       mockPrisma.documentRecord.count.mockResolvedValue(0);
       mockPrisma.documentRecord.findMany.mockResolvedValue([]);
+      mockPrisma.storedFile.create.mockResolvedValue({
+        id: "file-rec-1",
+        fileName: "PDF-1-empId-1.pdf",
+        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+        fileSize: BigInt(9),
+        mimeType: "application/pdf",
+        fileHash: "seeded-hash",
+        storageProvider: "LOCAL",
+      });
+      mockPrisma.storedFile.update.mockResolvedValue({
+        id: "file-rec-1",
+        fileName: "PDF-1-empId-1.pdf",
+        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+        fileSize: BigInt(9),
+        mimeType: "application/pdf",
+        fileHash: "seeded-hash",
+        storageProvider: "LOCAL",
+      });
       mockPrisma.documentRecord.create.mockResolvedValue({
         id: "doc-rec-1",
+        ownerId: "emp-1",
+        documentTypeId: "doc-type-1",
+        storedFileId: "file-rec-1",
         status: "PENDING",
-        fileName: "PDF-1-empId-1.pdf",
-        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
-      });
-      mockPrisma.documentRecord.update.mockResolvedValue({
-        id: "doc-rec-1",
-        status: "PENDING",
-        fileName: "PDF-1-empId-1.pdf",
-        filePath: "uploads/PDF/PDF-1-empId-1.pdf",
+        isCurrent: true,
+        title: "My Doc",
       });
       mockPrisma.verificationHistory.create.mockResolvedValue({});
       mockPrisma.user.findMany.mockResolvedValue([{ id: "user-admin" }]);
@@ -195,6 +210,11 @@ describe("Documents Stream Integration API", () => {
       const body = await res.json();
       expect(body.ok).toBe(true);
       expect(body.data.id).toBe("doc-rec-1");
+      expect(mockPrisma.storedFile.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ fileHash: expect.any(String) }),
+        }),
+      );
     });
   });
 
