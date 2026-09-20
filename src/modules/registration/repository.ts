@@ -7,10 +7,10 @@ export function findExistingUserByEmail(email: string) {
   return prisma.user.findFirst({ where: { email }, select: { id: true, deletedAt: true } });
 }
 
-export function findExistingEmployeeIdentity(input: { nik?: string | null; employeeId?: string | null }) {
+export function findExistingEmployeeIdentity(input: { nik?: string | null; claimedNip?: string | null }) {
   const identityConditions = [
     ...(input.nik ? [{ nik: input.nik }] : []),
-    ...(input.employeeId ? [{ employeeId: input.employeeId }] : []),
+    ...(input.claimedNip ? [{ employeeId: input.claimedNip }] : []),
   ];
 
   if (identityConditions.length === 0) {
@@ -25,9 +25,13 @@ export function findExistingEmployeeIdentity(input: { nik?: string | null; emplo
   });
 }
 
-export function findRegistrationByEmail(email: string) {
+export function findRegistrationByEmail(email: string, now: Date) {
   return prisma.userRegistrationRequest.findFirst({
-    where: { email, status: REGISTRATION_STATUS.EMAIL_PENDING },
+    where: {
+      email,
+      status: REGISTRATION_STATUS.EMAIL_PENDING,
+      emailOtpExpiresAt: { gt: now },
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -46,12 +50,12 @@ export function findRegistrationById(id: string) {
 export function findRegistrationByIdentity(input: {
   email: string;
   nik?: string | null;
-  employeeId?: string | null;
+  claimedNip?: string | null;
   now: Date;
 }) {
   const identityConditions = [
     ...(input.nik ? [{ nik: input.nik }] : []),
-    ...(input.employeeId ? [{ employeeId: input.employeeId }] : []),
+    ...(input.claimedNip ? [{ claimedNip: input.claimedNip }] : []),
   ];
 
   if (identityConditions.length === 0) {
@@ -66,11 +70,11 @@ export function findRegistrationByIdentity(input: {
           status: REGISTRATION_STATUS.EMAIL_PENDING,
           emailOtpExpiresAt: { gt: input.now },
         },
-        { status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW },
+        { status: REGISTRATION_STATUS.UNDER_REVIEW },
       ],
       AND: [{ OR: identityConditions }],
     },
-    select: { id: true, email: true, nik: true, employeeId: true },
+    select: { id: true, email: true, nik: true, claimedNip: true },
   });
 }
 
@@ -83,7 +87,7 @@ export function findActiveRegistrationByEmail(email: string, now: Date) {
           status: REGISTRATION_STATUS.EMAIL_PENDING,
           emailOtpExpiresAt: { gt: now },
         },
-        { status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW },
+        { status: REGISTRATION_STATUS.UNDER_REVIEW },
       ],
     },
     orderBy: { createdAt: "desc" },
@@ -93,13 +97,13 @@ export function findActiveRegistrationByEmail(email: string, now: Date) {
 export function expireStaleEmailPendingRegistrations(input: {
   email: string;
   nik?: string | null;
-  employeeId?: string | null;
+  claimedNip?: string | null;
   now: Date;
 }) {
   const matchingIdentity = [
     { email: input.email },
     ...(input.nik ? [{ nik: input.nik }] : []),
-    ...(input.employeeId ? [{ employeeId: input.employeeId }] : []),
+    ...(input.claimedNip ? [{ claimedNip: input.claimedNip }] : []),
   ];
 
   return prisma.userRegistrationRequest.updateMany({
@@ -109,10 +113,8 @@ export function expireStaleEmailPendingRegistrations(input: {
       OR: matchingIdentity,
     },
     data: {
-      status: REGISTRATION_STATUS.EXPIRED,
       passwordHash: null,
       emailOtpHash: null,
-      emailOtpExpiresAt: null,
     },
   });
 }
@@ -122,7 +124,7 @@ export function createRegistration(input: {
   email: string;
   name: string;
   nik?: string | null;
-  employeeId?: string | null;
+  claimedNip?: string | null;
   passwordHash: string;
   phone?: string | null;
   workplaceName?: string | null;
@@ -136,7 +138,7 @@ export function createRegistration(input: {
       email: input.email,
       name: input.name,
       nik: input.nik || null,
-      employeeId: input.employeeId || null,
+      claimedNip: input.claimedNip || null,
       passwordHash: input.passwordHash,
       phone: input.phone || null,
       workplaceName: input.workplaceName || null,
@@ -160,7 +162,7 @@ export function restartEmailPendingRegistration(id: string, input: Omit<Paramete
     data: {
       name: input.name,
       nik: input.nik || null,
-      employeeId: input.employeeId || null,
+      claimedNip: input.claimedNip || null,
       passwordHash: input.passwordHash,
       phone: input.phone || null,
       workplaceName: input.workplaceName || null,
@@ -189,7 +191,7 @@ export async function markRegistrationEmailVerified(input: { id: string; now: Da
       status: REGISTRATION_STATUS.EMAIL_PENDING,
     },
     data: {
-      status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW,
+      status: REGISTRATION_STATUS.UNDER_REVIEW,
       emailOtpHash: null,
       emailOtpExpiresAt: null,
       emailOtpAttempts: 0,
@@ -217,7 +219,7 @@ export async function rejectRegistrationIfReviewable(input: {
     where: {
       id: input.id,
       status: {
-        in: [REGISTRATION_STATUS.EMAIL_PENDING, REGISTRATION_STATUS.PENDING_ADMIN_REVIEW],
+        in: [REGISTRATION_STATUS.EMAIL_PENDING, REGISTRATION_STATUS.UNDER_REVIEW],
       },
     },
     data: {
@@ -255,7 +257,7 @@ export function listRegistrationRequests(input: {
       orderBy: { createdAt: "desc" },
     }),
     prisma.userRegistrationRequest.count({ where: input.where }),
-    prisma.userRegistrationRequest.count({ where: { status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW } }),
+    prisma.userRegistrationRequest.count({ where: { status: REGISTRATION_STATUS.UNDER_REVIEW } }),
   ]);
 }
 
@@ -271,12 +273,12 @@ export async function approveRegistrationTransaction(input: {
   reviewedByAdminId: string;
   reviewNote?: string | null;
   userId: string;
-  employeeId: string;
+  employeeRecordId: string;
   now: Date;
 }) {
   return prisma.$transaction(async (tx) => {
     const current = await tx.userRegistrationRequest.findUnique({ where: { id: input.request.id } });
-    if (!current || current.status !== REGISTRATION_STATUS.PENDING_ADMIN_REVIEW) {
+    if (!current || current.status !== REGISTRATION_STATUS.UNDER_REVIEW) {
       throw new Error("REGISTRATION_NOT_REVIEWABLE");
     }
     if (!current.passwordHash) {
@@ -286,7 +288,7 @@ export async function approveRegistrationTransaction(input: {
     const claimed = await tx.userRegistrationRequest.updateMany({
       where: {
         id: current.id,
-        status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW,
+        status: REGISTRATION_STATUS.UNDER_REVIEW,
       },
       data: {
         status: REGISTRATION_STATUS.APPROVED,
@@ -315,9 +317,9 @@ export async function approveRegistrationTransaction(input: {
 
     const employee = await tx.employee.create({
       data: {
-        id: input.employeeId,
+        id: input.employeeRecordId,
         userId: user.id,
-        employeeId: current.employeeId,
+        employeeId: current.claimedNip,
         nik: current.nik,
         name: current.name,
         phone: current.phone,

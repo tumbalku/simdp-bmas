@@ -187,6 +187,15 @@ export const mockPrisma = {
     count: vi.fn(),
     groupBy: vi.fn(),
   },
+  storedFile: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    updateMany: vi.fn(),
+  },
   verificationHistory: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
@@ -195,6 +204,7 @@ export const mockPrisma = {
     update: vi.fn(),
     updateMany: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     groupBy: vi.fn(),
   },
   documentVerification: {

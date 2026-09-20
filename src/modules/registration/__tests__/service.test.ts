@@ -57,7 +57,7 @@ function registration(overrides: Record<string, unknown> = {}) {
     email: "pegawai@example.com",
     name: "Pegawai Test",
     nik: "7401010101010001",
-    employeeId: null,
+    claimedNip: null,
     passwordHash: "hashed-password",
     phone: "08123456789",
     workplaceName: "IGD",
@@ -141,7 +141,7 @@ describe("registration service", () => {
     expect(mockPrisma.userRegistrationRequest.create).not.toHaveBeenCalled();
   });
 
-  it.each([REGISTRATION_STATUS.APPROVED, REGISTRATION_STATUS.REJECTED, REGISTRATION_STATUS.EXPIRED])(
+  it.each([REGISTRATION_STATUS.APPROVED, REGISTRATION_STATUS.REJECTED])(
     "allows a fresh registration without erasing a %s request's NIK",
     async (status) => {
       const historical = registration({ email: "old-address@example.com", status });
@@ -164,7 +164,7 @@ describe("registration service", () => {
     mockPrisma.userRegistrationRequest.count.mockResolvedValue(0);
     await listRegistrationRequests({ status: "ALL" });
     expect(mockPrisma.userRegistrationRequest.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW },
+      where: { status: REGISTRATION_STATUS.UNDER_REVIEW },
     }));
   });
 
@@ -187,7 +187,7 @@ describe("registration service", () => {
 
   it("does not reset a registration that already awaits admin approval", async () => {
     mockPrisma.userRegistrationRequest.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(registration({
-      status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW,
+      status: REGISTRATION_STATUS.UNDER_REVIEW,
       emailVerifiedAt: new Date(),
     }));
 
@@ -213,13 +213,13 @@ describe("registration service", () => {
   });
 
   it.each([
-    { nik: "7401010101010001", employeeId: null },
-    { nik: null, employeeId: "198001012010011001" },
+    { nik: "7401010101010001", claimedNip: null, employeeId: null },
+    { nik: null, claimedNip: "198001012010011001", employeeId: "198001012010011001" },
   ])("explains when an identifier is still reserved by an archived employee %j", async (identity) => {
     mockPrisma.employee.findFirst.mockResolvedValue({ id: "archived-employee", ...identity, deletedAt: new Date() });
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      nik: identity.nik ?? undefined, employeeId: identity.employeeId ?? undefined, password: "password123", confirmPassword: "password123",
+      nik: identity.nik ?? undefined, claimedNip: identity.claimedNip ?? undefined, password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("Identitas masih terhubung dengan pegawai yang diarsipkan");
     expect(mockPrisma.employee.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: { OR: [identity.nik ? { nik: identity.nik } : { employeeId: identity.employeeId }] },
@@ -239,7 +239,7 @@ describe("registration service", () => {
       name: "Pegawai Test",
       email: "pegawai@example.com",
       nik: "7401010101010001",
-      employeeId: "198001012010011001",
+      claimedNip: "198001012010011001",
       password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("NIP sudah terdaftar");
   });
@@ -248,33 +248,33 @@ describe("registration service", () => {
     mockPrisma.userRegistrationRequest.findFirst.mockResolvedValue(registration({
       email: "other@example.com",
       nik: "7401010101010002",
-      employeeId: "198001012010011001",
-      status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW,
+      claimedNip: "198001012010011001",
+      status: REGISTRATION_STATUS.UNDER_REVIEW,
     }));
 
     await expect(submitRegistration({
       name: "Pegawai Test",
       email: "pegawai@example.com",
       nik: "7401010101010001",
-      employeeId: "198001012010011001",
+      claimedNip: "198001012010011001",
       password: "password123", confirmPassword: "password123",
     })).rejects.toThrow("NIP sedang dipakai pada registrasi lain yang belum selesai");
   });
 
-  it.each([REGISTRATION_STATUS.APPROVED, REGISTRATION_STATUS.REJECTED, REGISTRATION_STATUS.EXPIRED])("allows a fresh registration without erasing a %s request's NIP", async (status) => {
-    const historical = registration({ email: "old@example.com", nik: "7401010101010002", employeeId: "198001012010011001", status });
-    mockPrisma.userRegistrationRequest.create.mockResolvedValueOnce(registration({ employeeId: historical.employeeId }));
+  it.each([REGISTRATION_STATUS.APPROVED, REGISTRATION_STATUS.REJECTED])("allows a fresh registration without erasing a %s request's claimed NIP", async (status) => {
+    const historical = registration({ email: "old@example.com", nik: "7401010101010002", claimedNip: "198001012010011001", status });
+    mockPrisma.userRegistrationRequest.create.mockResolvedValueOnce(registration({ claimedNip: historical.claimedNip }));
     await expect(submitRegistration({
       name: "Pegawai Test", email: "pegawai@example.com",
-      employeeId: "198001012010011001", password: "password123", confirmPassword: "password123",
+      claimedNip: "198001012010011001", password: "password123", confirmPassword: "password123",
     })).resolves.toMatchObject({ maskedEmail: "pe***@example.com" });
-    expect(historical.employeeId).toBe("198001012010011001");
+    expect(historical.claimedNip).toBe("198001012010011001");
     expect(mockPrisma.userRegistrationRequest.update).not.toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ employeeId: null }),
+      data: expect.objectContaining({ claimedNip: null }),
     }));
   });
 
-  it.each([REGISTRATION_STATUS.EMAIL_PENDING, REGISTRATION_STATUS.PENDING_ADMIN_REVIEW])(
+  it.each([REGISTRATION_STATUS.EMAIL_PENDING, REGISTRATION_STATUS.UNDER_REVIEW])(
     "keeps identity reserved by a %s request",
     async (status) => {
       mockPrisma.userRegistrationRequest.findFirst.mockResolvedValue(registration({ status, email: "other@example.com" }));
@@ -302,11 +302,12 @@ describe("registration service", () => {
         OR: expect.arrayContaining([{ email: "pegawai@example.com" }, { nik: "7401010101010001" }]),
       }),
       data: expect.objectContaining({
-        status: REGISTRATION_STATUS.EXPIRED,
         passwordHash: null,
         emailOtpHash: null,
       }),
     }));
+    expect(mockPrisma.userRegistrationRequest.updateMany.mock.calls[0][0].data).not.toHaveProperty("status");
+    expect(mockPrisma.userRegistrationRequest.updateMany.mock.calls[0][0].data).not.toHaveProperty("emailOtpExpiresAt");
     expect(mockPrisma.userRegistrationRequest.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         email: { not: "pegawai@example.com" },
@@ -325,8 +326,8 @@ describe("registration service", () => {
     { email: "invalid-email" },
     { name: " " },
     { nik: "123" },
-    { nik: "", employeeId: "" },
-    { employeeId: "abc" },
+    { nik: "", claimedNip: "" },
+    { claimedNip: "abc" },
     { password: "short" },
     { phone: "invalid-phone" },
   ])("does not send email or persist invalid registration %j", async (invalid) => {
@@ -362,7 +363,7 @@ describe("registration service", () => {
       emailOtpHash: createArg.data.emailOtpHash,
       emailOtpExpiresAt: new Date(Date.now() + 600_000),
     });
-    const verified = registration({ status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW, emailVerifiedAt: new Date() });
+    const verified = registration({ status: REGISTRATION_STATUS.UNDER_REVIEW, emailVerifiedAt: new Date() });
     mockPrisma.userRegistrationRequest.findFirst.mockResolvedValue(pending);
     mockPrisma.userRegistrationRequest.updateMany.mockResolvedValueOnce({ count: 1 });
     mockPrisma.userRegistrationRequest.findUnique.mockResolvedValue(verified);
@@ -370,26 +371,37 @@ describe("registration service", () => {
 
     const result = await verifyRegistrationOtp({ email: "pegawai@example.com", otp });
 
-    expect(result.status).toBe(REGISTRATION_STATUS.PENDING_ADMIN_REVIEW);
+    expect(result.status).toBe(REGISTRATION_STATUS.UNDER_REVIEW);
+    expect(mockPrisma.userRegistrationRequest.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        email: "pegawai@example.com",
+        status: REGISTRATION_STATUS.EMAIL_PENDING,
+        emailOtpExpiresAt: expect.objectContaining({ gt: expect.any(Date) }),
+      }),
+    }));
     expect(mockPrisma.userRegistrationRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ id: pending.id, status: REGISTRATION_STATUS.EMAIL_PENDING }),
-      data: expect.objectContaining({ status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW, emailOtpHash: null }),
+      data: expect.objectContaining({ status: REGISTRATION_STATUS.UNDER_REVIEW, emailOtpHash: null }),
     }));
     expect(mockPrisma.notification.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ userId: "admin-1" }) }));
   });
 
   it("expires an overdue OTP and purges staged credentials", async () => {
-    mockPrisma.userRegistrationRequest.findFirst.mockResolvedValue(registration({
+    const expired = registration({
       emailOtpHash: "otp-hash",
       emailOtpExpiresAt: new Date("2026-01-01T00:00:00Z"),
-    }));
+    });
+    mockPrisma.userRegistrationRequest.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(expired);
 
     await expect(verifyRegistrationOtp({ email: "pegawai@example.com", otp: "123456" })).rejects.toThrow("Kode OTP sudah kedaluwarsa");
     expect(mockPrisma.userRegistrationRequest.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
-        status: REGISTRATION_STATUS.EXPIRED,
+        status: REGISTRATION_STATUS.EMAIL_PENDING,
         passwordHash: null,
         emailOtpHash: null,
+        emailOtpExpiresAt: expired.emailOtpExpiresAt,
       }),
     }));
   });
@@ -407,7 +419,7 @@ describe("registration service", () => {
   });
 
   it("approves a pending request and creates User plus Employee", async () => {
-    const pending = registration({ status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW, emailVerifiedAt: new Date() });
+    const pending = registration({ claimedNip: "198001012010011001", status: REGISTRATION_STATUS.UNDER_REVIEW, emailVerifiedAt: new Date() });
     mockPrisma.userRegistrationRequest.findUnique
       .mockResolvedValueOnce(pending)
       .mockResolvedValueOnce(pending)
@@ -423,15 +435,15 @@ describe("registration service", () => {
 
     expect(result.userId).toBeTruthy();
     expect(mockPrisma.user.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ email: pending.email, role: "EMPLOYEE", isActive: true }) }));
-    expect(mockPrisma.employee.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ nik: pending.nik, name: pending.name }) }));
+    expect(mockPrisma.employee.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ employeeId: pending.claimedNip, nik: pending.nik, name: pending.name }) }));
     expect(mockPrisma.userRegistrationRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({ id: pending.id, status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW }),
+      where: expect.objectContaining({ id: pending.id, status: REGISTRATION_STATUS.UNDER_REVIEW }),
       data: expect.objectContaining({ status: REGISTRATION_STATUS.APPROVED, passwordHash: null }),
     }));
   });
 
   it("does not approve a request already claimed by another admin", async () => {
-    const pending = registration({ status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW, emailVerifiedAt: new Date() });
+    const pending = registration({ status: REGISTRATION_STATUS.UNDER_REVIEW, emailVerifiedAt: new Date() });
     mockPrisma.userRegistrationRequest.findUnique.mockResolvedValue(pending);
     mockPrisma.userRegistrationRequest.updateMany.mockResolvedValueOnce({ count: 0 });
 
@@ -447,10 +459,10 @@ describe("registration service", () => {
   });
 
   it("rejects a request without creating User or Employee", async () => {
-    mockPrisma.userRegistrationRequest.findUnique.mockResolvedValue(registration({ status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW }));
+    mockPrisma.userRegistrationRequest.findUnique.mockResolvedValue(registration({ status: REGISTRATION_STATUS.UNDER_REVIEW }));
     mockPrisma.userRegistrationRequest.updateMany.mockResolvedValueOnce({ count: 1 });
     mockPrisma.userRegistrationRequest.findUnique
-      .mockResolvedValueOnce(registration({ status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW }))
+      .mockResolvedValueOnce(registration({ status: REGISTRATION_STATUS.UNDER_REVIEW }))
       .mockResolvedValueOnce(registration({ status: REGISTRATION_STATUS.REJECTED }));
 
     const result = await rejectRegistrationRequest({
@@ -464,14 +476,14 @@ describe("registration service", () => {
     expect(mockPrisma.userRegistrationRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         id: "reg-1",
-        status: { in: [REGISTRATION_STATUS.EMAIL_PENDING, REGISTRATION_STATUS.PENDING_ADMIN_REVIEW] },
+        status: { in: [REGISTRATION_STATUS.EMAIL_PENDING, REGISTRATION_STATUS.UNDER_REVIEW] },
       }),
       data: expect.objectContaining({ status: REGISTRATION_STATUS.REJECTED, passwordHash: null }),
     }));
   });
 
   it("does not reject a request already claimed by another admin", async () => {
-    mockPrisma.userRegistrationRequest.findUnique.mockResolvedValue(registration({ status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW }));
+    mockPrisma.userRegistrationRequest.findUnique.mockResolvedValue(registration({ status: REGISTRATION_STATUS.UNDER_REVIEW }));
     mockPrisma.userRegistrationRequest.updateMany.mockResolvedValueOnce({ count: 0 });
 
     await expect(rejectRegistrationRequest({

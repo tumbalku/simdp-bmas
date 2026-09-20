@@ -71,6 +71,17 @@ describe("public registration action protection", () => {
     expect(mocks.submit).toHaveBeenCalledWith(expect.objectContaining({ email: registration.email }));
   });
 
+  it("accepts claimedNip as the registration NIP contract", async () => {
+    const { nik: _nik, ...withoutNik } = registration;
+    void _nik;
+
+    await submitRegistrationAction({ ...withoutNik, claimedNip: "198001012010011001" });
+
+    expect(mocks.submit).toHaveBeenCalledWith(expect.objectContaining({
+      claimedNip: "198001012010011001",
+    }));
+  });
+
   it("blocks OTP verification before calling the service when limited", async () => {
     mocks.increment.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 6 });
     expect(await verifyRegistrationOtpAction({ email: registration.email, otp: "123456" }))

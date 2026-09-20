@@ -958,8 +958,7 @@ describe("Document Module Service", () => {
           mimeType: "application/pdf",
         }),
       );
-      expect(mockPrisma.documentRecord.create).toHaveBeenCalled();
-      expect(mockPrisma.documentRecord.create).toHaveBeenCalledWith(
+      expect(mockPrisma.storedFile.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             fileName: "198501012010011001_PERSONAL_PDF_20260115_1.pdf",
@@ -1230,7 +1229,7 @@ describe("Document Module Service", () => {
   });
 
   describe("replaceDocumentFile", () => {
-    it("should replace file metadata on the same document id and add verification history", async () => {
+    it("should create a replacement document and add verification history", async () => {
       const doc = {
         id: "doc-1",
         ownerId: "emp-1",
@@ -1284,12 +1283,14 @@ describe("Document Module Service", () => {
       });
       mockPrisma.documentRecord.count.mockResolvedValue(1);
       mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }]);
-      mockPrisma.documentRecord.update.mockResolvedValue({
-        id: "doc-1",
-        status: "PENDING",
+      mockPrisma.storedFile.update.mockResolvedValue({
         fileName: "198501012010011001_PERSONAL_KTP_20260115_2.pdf",
         filePath: "uploads/KTP/198501012010011001_PERSONAL_KTP_20260115_2.pdf",
       });
+      mockPrisma.documentRecord.create.mockImplementation(async (args) => ({
+        ...args.data,
+        status: "PENDING",
+      }));
       mockPrisma.securityLog.create.mockResolvedValue({});
 
       const mockFile = new File(
@@ -1305,26 +1306,25 @@ describe("Document Module Service", () => {
         { userId: "user-1", role: "EMPLOYEE", employeeId: "emp-1" },
       );
 
-      expect(result.id).toBe("doc-1");
+      const replacementDocumentId = mockPrisma.documentRecord.create.mock.calls[0][0].data.id;
+      expect(result.id).toBe(replacementDocumentId);
       expect(storage.upload).toHaveBeenCalledWith(
         "KTP/198501012010011001_PERSONAL_KTP_20260115_2.pdf",
         expect.any(Buffer),
         "application/pdf",
       );
-      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith(
+      expect(mockPrisma.documentRecord.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: "doc-1" },
           data: expect.objectContaining({
             status: "PENDING",
-            fileName: "198501012010011001_PERSONAL_KTP_20260115_2.pdf",
-            storageProvider: "LOCAL",
+            replacesDocumentId: "doc-1",
           }),
         }),
       );
       expect(mockPrisma.verificationHistory.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            documentRecordId: "doc-1",
+            documentRecordId: replacementDocumentId,
             status: "PENDING",
             reviewNote: expect.stringContaining("diganti"),
           }),
@@ -1334,7 +1334,7 @@ describe("Document Module Service", () => {
         EVENT_NAMES.DOCUMENT_VERIFICATION_REQUESTED,
         {
           recipientUserIds: ["admin-1"],
-          documentRecordId: "doc-1",
+          documentRecordId: replacementDocumentId,
           documentTypeName: "KTP",
           ownerName: "John Doe",
           action: "REPLACED",
@@ -1594,6 +1594,7 @@ describe("Document Module Service", () => {
             deletedAt: null,
             isCurrent: true,
             allowMultipleSnapshot: false,
+            updatedBy: "admin-1",
           },
         }),
       );
@@ -1655,6 +1656,7 @@ describe("Document Module Service", () => {
             deletedAt: null,
             isCurrent: true,
             allowMultipleSnapshot: true,
+            updatedBy: "admin-1",
           },
         }),
       );

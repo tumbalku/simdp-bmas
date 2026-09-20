@@ -9,9 +9,9 @@ const optionalTrimmedString = z.preprocess(
 const identitySchema = z
   .object({
     nik: optionalTrimmedString.pipe(z.string().regex(/^\d{16}$/, "NIK harus 16 digit").optional()),
-    employeeId: optionalTrimmedString.pipe(z.string().regex(/^\d{10,32}$/, "NIP minimal 10 digit").optional()),
+    claimedNip: optionalTrimmedString.pipe(z.string().regex(/^\d{10,32}$/, "NIP minimal 10 digit").optional()),
   })
-  .refine((value) => Boolean(value.nik || value.employeeId), {
+  .refine((value) => Boolean(value.nik || value.claimedNip), {
     message: "Isi minimal salah satu: NIK atau NIP.",
     path: ["nik"],
   });
@@ -38,12 +38,12 @@ export const verifyRegistrationOtpSchema = z.object({
 export const listRegistrationRequestsSchema = z.object({
   status: z.enum([
     REGISTRATION_STATUS.EMAIL_PENDING,
-    REGISTRATION_STATUS.PENDING_ADMIN_REVIEW,
+    REGISTRATION_STATUS.EMAIL_VERIFIED,
+    REGISTRATION_STATUS.UNDER_REVIEW,
     REGISTRATION_STATUS.APPROVED,
     REGISTRATION_STATUS.REJECTED,
-    REGISTRATION_STATUS.EXPIRED,
     "ALL",
-  ]).optional().default(REGISTRATION_STATUS.PENDING_ADMIN_REVIEW),
+  ]).optional().default(REGISTRATION_STATUS.UNDER_REVIEW),
   search: z.string().trim().optional(),
   page: z.number().int().positive().optional().default(1),
   limit: z.number().int().positive().max(100).optional().default(20),

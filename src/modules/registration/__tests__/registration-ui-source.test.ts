@@ -25,5 +25,7 @@ describe("registration and auth UI source", () => {
     expect(registrationForm).toContain("Isi minimal salah satu: NIK atau NIP.");
     expect(registrationForm).toContain("Konfirmasi password tidak sesuai.");
     expect(registrationForm).toContain("disabled={isPending || !isValid}");
+    expect(registrationForm).toContain('name="claimedNip"');
+    expect(registrationForm).not.toContain('name="employeeId"');
   });
 });

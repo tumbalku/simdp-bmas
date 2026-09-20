@@ -10,6 +10,7 @@ export function findPendingDocumentsWithCount(input: {
     prisma.documentRecord.findMany({
       where: input.where,
       include: {
+        storedFile: true,
         owner: {
           include: { workplace: true },
         },
@@ -27,6 +28,7 @@ export function findDocumentForVerification(id: string) {
   return prisma.documentRecord.findFirst({
     where: { id, deletedAt: null },
     include: {
+      storedFile: true,
       owner: true,
       documentType: true,
     },
@@ -64,7 +66,7 @@ export function updateDocumentVerificationStatus(input: {
 export function findDocumentWithOwner(documentId: string) {
   return prisma.documentRecord.findUnique({
     where: { id: documentId, deletedAt: null },
-    include: { owner: true },
+    include: { owner: true, storedFile: true },
   });
 }
 
@@ -84,6 +86,7 @@ export function findVerificationDocumentDetail(documentId: string) {
   return prisma.documentRecord.findUnique({
     where: { id: documentId, deletedAt: null },
     include: {
+      storedFile: true,
       documentType: {
         select: { id: true, name: true, archiveCategory: true, code: true, description: true },
       },

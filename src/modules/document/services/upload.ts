@@ -240,7 +240,7 @@ export async function uploadDocumentRecord(
   await enforceMalwareScan({
     buffer,
     originalFileName: data.file.name,
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     session,
     actorName: employee.name,
     resource: `DocumentUpload:${docType.id}`,
@@ -253,16 +253,16 @@ export async function uploadDocumentRecord(
 
   // 5. Write record to DB and reserve filename sequence under a per-owner/type lock.
   const docId = crypto.randomUUID();
+  const storedFileId = crypto.randomUUID();
 
   const storageProvider = getActiveStorageProviderValue();
   const documentDate = data.issueDate ? new Date(data.issueDate) : new Date();
   const identifier = employee.nik || employee.employeeId || session.userId;
 
-  const reservedUpload = await repo.reserveUploadedDocumentTransaction({
-    docId,
+  const reservedUpload = await repo.reserveDocumentFileTransaction({
+    storedFileId,
     ownerId: employee.id,
     documentTypeId: docType.id,
-    title: data.title || docType.name,
     buildFile: (sequence) => {
       const fileName = buildDocumentFileName({
         identifier,
@@ -277,32 +277,41 @@ export async function uploadDocumentRecord(
       return { fileName, uploadPath };
     },
     fileSize: BigInt(buffer.length),
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     fileHash,
     storageProvider,
-    documentNumber: data.documentNumber || null,
-    issueDate: data.issueDate ? new Date(data.issueDate) : null,
-    expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-    createdBy: session.userId,
-    allowMultiple: docType.allowMultiple,
-    documentTypeName: docType.name,
-    ownerName: employee.name,
+    uploadedBy: session.userId,
   });
-  let record = reservedUpload.record;
+  let savedPath: string | null = null;
+  let finalizedUpload: Awaited<ReturnType<typeof repo.finalizeDocumentUploadTransaction>>;
 
   try {
-    const savedPath = await storage.upload(reservedUpload.uploadPath, buffer, data.file.type);
-    record = await repo.finalizeDocumentFilePath(record.id, savedPath);
-  } catch (error) {
-    await repo.abortUploadedDocumentReservation({
+    const uploadedPath = await storage.upload(reservedUpload.uploadPath, buffer, data.file.type);
+    savedPath = uploadedPath;
+    finalizedUpload = await repo.finalizeDocumentUploadTransaction({
       docId,
-      replacedDocuments: reservedUpload.replacedDocuments,
+      storedFileId,
+      savedPath: uploadedPath,
+      ownerId: employee.id,
+      documentTypeId: docType.id,
+      title: data.title || docType.name,
+      documentNumber: data.documentNumber || null,
+      issueDate: data.issueDate ? new Date(data.issueDate) : null,
+      expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+      createdBy: session.userId,
+      replacesDocumentId: null,
+      allowMultiple: docType.allowMultiple,
     });
+  } catch (error) {
+    if (savedPath) await storage.delete(savedPath).catch(() => undefined);
+    await repo.abortDocumentFileReservation(storedFileId).catch(() => undefined);
     throw error;
   }
 
-  const replacedDocumentIds = reservedUpload.replacedDocuments.map((doc) => doc.id);
-  const verificationRecipientUserIds = reservedUpload.verificationRecipientUserIds;
+  const record = finalizedUpload.record;
+
+  const replacedDocumentIds = finalizedUpload.replacedDocuments.map((doc) => doc.id);
+  const verificationRecipientUserIds = finalizedUpload.verificationRecipientUserIds;
 
   for (const replacedDocumentId of replacedDocumentIds) {
     await logActivity({
@@ -399,7 +408,7 @@ export async function replaceDocumentFile(
   await enforceMalwareScan({
     buffer,
     originalFileName: data.file.name,
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     session,
     actorName: doc.owner.name,
     resource: `DocumentRecord:${doc.id}`,
@@ -413,8 +422,10 @@ export async function replaceDocumentFile(
   const documentDate = data.issueDate ? new Date(data.issueDate) : doc.issueDate ?? new Date();
   const identifier = doc.owner.nik || doc.owner.employeeId || session.userId;
 
-  const reservedReplace = await repo.reserveReplaceDocumentFileTransaction({
-    documentId: doc.id,
+  const replacementDocumentId = crypto.randomUUID();
+  const storedFileId = crypto.randomUUID();
+  const reservedReplace = await repo.reserveDocumentFileTransaction({
+    storedFileId,
     ownerId: doc.ownerId,
     documentTypeId: doc.documentTypeId,
     buildFile: (sequence) => {
@@ -431,32 +442,40 @@ export async function replaceDocumentFile(
       return { fileName, uploadPath };
     },
     fileSize: BigInt(buffer.length),
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     fileHash,
     storageProvider,
-    updatedBy: session.userId,
-    documentTypeName: doc.documentType.name,
-    ownerName: doc.owner.name,
-    title: data.title || doc.title || doc.documentType.name,
-    documentNumber: doc.documentType.requiresDocumentNumber ? data.documentNumber || null : doc.documentNumber,
-    issueDate: doc.documentType.requiresIssueDate && data.issueDate ? new Date(data.issueDate) : doc.issueDate,
-    expiryDate: doc.documentType.requiresExpiryDate && data.expiryDate ? new Date(data.expiryDate) : doc.expiryDate,
+    uploadedBy: session.userId,
   });
-  let record = reservedReplace.record;
+  let savedPath: string | null = null;
+  let finalizedReplace: Awaited<ReturnType<typeof repo.finalizeDocumentUploadTransaction>>;
 
   try {
-    const savedPath = await storage.upload(reservedReplace.uploadPath, buffer, data.file.type);
-    record = await repo.finalizeDocumentFilePath(record.id, savedPath);
-  } catch (error) {
-    await repo.abortReplaceDocumentReservation({
-      documentId: doc.id,
-      previousRecord: reservedReplace.previousRecord,
-      verificationHistoryId: reservedReplace.verificationHistoryId,
+    const uploadedPath = await storage.upload(reservedReplace.uploadPath, buffer, data.file.type);
+    savedPath = uploadedPath;
+    finalizedReplace = await repo.finalizeDocumentUploadTransaction({
+      docId: replacementDocumentId,
+      storedFileId,
+      savedPath: uploadedPath,
+      ownerId: doc.ownerId,
+      documentTypeId: doc.documentTypeId,
+      title: data.title || doc.title || doc.documentType.name,
+      documentNumber: doc.documentType.requiresDocumentNumber ? data.documentNumber || null : doc.documentNumber,
+      issueDate: doc.documentType.requiresIssueDate && data.issueDate ? new Date(data.issueDate) : doc.issueDate,
+      expiryDate: doc.documentType.requiresExpiryDate && data.expiryDate ? new Date(data.expiryDate) : doc.expiryDate,
+      createdBy: session.userId,
+      replacesDocumentId: doc.id,
+      allowMultiple: doc.documentType.allowMultiple,
     });
+  } catch (error) {
+    if (savedPath) await storage.delete(savedPath).catch(() => undefined);
+    await repo.abortDocumentFileReservation(storedFileId).catch(() => undefined);
     throw error;
   }
 
-  const verificationRecipientUserIds = reservedReplace.verificationRecipientUserIds;
+  const record = finalizedReplace.record;
+
+  const verificationRecipientUserIds = finalizedReplace.verificationRecipientUserIds;
 
   const notificationPublish = await publishDocumentVerificationRequested({
     recipientUserIds: verificationRecipientUserIds,
@@ -471,7 +490,7 @@ export async function replaceDocumentFile(
     actorName: doc.owner.name,
     actorRole: session.role,
     eventType: SECURITY_EVENT_TYPE.DOCUMENT_UPLOADED,
-    resource: `DocumentRecord:${doc.id}`,
+    resource: `DocumentRecord:${record.id}`,
     ipAddress,
     status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: {

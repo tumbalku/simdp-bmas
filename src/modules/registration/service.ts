@@ -17,7 +17,7 @@ export type RegistrationRequestListItem = {
   email: string;
   name: string;
   nik: string | null;
-  employeeId: string | null;
+  claimedNip: string | null;
   phone: string | null;
   workplaceName: string | null;
   status: RegistrationStatus;
@@ -85,7 +85,7 @@ function toListItem(item: UserRegistrationRequest): RegistrationRequestListItem 
     email: item.email,
     name: item.name,
     nik: item.nik,
-    employeeId: item.employeeId,
+    claimedNip: item.claimedNip,
     phone: item.phone,
     workplaceName: item.workplaceName,
     status,
@@ -98,7 +98,7 @@ function toListItem(item: UserRegistrationRequest): RegistrationRequestListItem 
   };
 }
 
-async function assertNoExistingAccount(input: { email: string; nik?: string | null; employeeId?: string | null; now: Date }) {
+async function assertNoExistingAccount(input: { email: string; nik?: string | null; claimedNip?: string | null; now: Date }) {
   const existingUser = await repo.findExistingUserByEmail(input.email);
   if (existingUser?.deletedAt) {
     throw new AppError("CONFLICT", "Email masih terhubung dengan akun yang diarsipkan. Hubungi admin untuk memulihkan atau menghapus permanen akun lama.", 409);
@@ -111,14 +111,14 @@ async function assertNoExistingAccount(input: { email: string; nik?: string | nu
   if (
     existingEmployee?.deletedAt &&
     ((input.nik && existingEmployee.nik === input.nik) ||
-      (input.employeeId && existingEmployee.employeeId === input.employeeId))
+      (input.claimedNip && existingEmployee.employeeId === input.claimedNip))
   ) {
     throw new AppError("CONFLICT", "Identitas masih terhubung dengan pegawai yang diarsipkan. Hubungi admin untuk memulihkan atau menghapus permanen data lama.", 409);
   }
   if (input.nik && existingEmployee?.nik === input.nik) {
     throw new AppError("CONFLICT", "NIK sudah terdaftar. Silakan hubungi admin.", 409);
   }
-  if (input.employeeId && existingEmployee?.employeeId === input.employeeId) {
+  if (input.claimedNip && existingEmployee?.employeeId === input.claimedNip) {
     throw new AppError("CONFLICT", "NIP sudah terdaftar. Silakan hubungi admin.", 409);
   }
 
@@ -126,7 +126,7 @@ async function assertNoExistingAccount(input: { email: string; nik?: string | nu
   if (input.nik && existingRegistration?.nik === input.nik) {
     throw new AppError("CONFLICT", "NIK sedang dipakai pada registrasi lain yang belum selesai.", 409);
   }
-  if (input.employeeId && existingRegistration?.employeeId === input.employeeId) {
+  if (input.claimedNip && existingRegistration?.claimedNip === input.claimedNip) {
     throw new AppError("CONFLICT", "NIP sedang dipakai pada registrasi lain yang belum selesai.", 409);
   }
 }
@@ -163,6 +163,15 @@ async function notifyAdminsForRegistration(request: UserRegistrationRequest) {
   }
 }
 
+async function deactivateExpiredRegistration(request: UserRegistrationRequest) {
+  await repo.updateRegistration(request.id, {
+    status: REGISTRATION_STATUS.EMAIL_PENDING,
+    passwordHash: null,
+    emailOtpHash: null,
+    emailOtpExpiresAt: request.emailOtpExpiresAt,
+  });
+}
+
 export async function submitRegistration(rawInput: SubmitRegistrationInput) {
   assertRegistrationEnabled();
   const parsed = submitRegistrationSchema.parse(rawInput);
@@ -173,7 +182,7 @@ export async function submitRegistration(rawInput: SubmitRegistrationInput) {
   await assertNoExistingAccount({ ...registrationData, now });
 
   const activeRegistration = await repo.findActiveRegistrationByEmail(registrationData.email, now);
-  if (activeRegistration?.status === REGISTRATION_STATUS.PENDING_ADMIN_REVIEW) {
+  if (activeRegistration?.status === REGISTRATION_STATUS.UNDER_REVIEW) {
     throw new AppError("CONFLICT", "Registrasi email ini sudah menunggu persetujuan admin.", 409);
   }
 
@@ -186,7 +195,7 @@ export async function submitRegistration(rawInput: SubmitRegistrationInput) {
     email: registrationData.email,
     name: registrationData.name,
     nik: registrationData.nik || null,
-    employeeId: registrationData.employeeId || null,
+    claimedNip: registrationData.claimedNip || null,
     passwordHash,
     phone: registrationData.phone || null,
     otpHash: hashOtp(registrationData.email, otp),
@@ -206,7 +215,7 @@ export async function submitRegistration(rawInput: SubmitRegistrationInput) {
     eventType: SECURITY_EVENT_TYPE.USER_REGISTRATION_SUBMITTED,
     resource: `UserRegistrationRequest:${request.id}`,
     status: SECURITY_LOG_STATUS.SUCCESS,
-    metadata: { email: registrationData.email, hasNik: Boolean(registrationData.nik), hasEmployeeId: Boolean(registrationData.employeeId) },
+    metadata: { email: registrationData.email, hasNik: Boolean(registrationData.nik), hasClaimedNip: Boolean(registrationData.claimedNip) },
   });
 
   return { id: request.id, maskedEmail: maskEmail(registrationData.email), expiresInSeconds: REGISTRATION_OTP_TTL_MINUTES * 60 };
@@ -215,20 +224,28 @@ export async function submitRegistration(rawInput: SubmitRegistrationInput) {
 export async function verifyRegistrationOtp(rawInput: VerifyRegistrationOtpInput) {
   assertRegistrationEnabled();
   const parsed = verifyRegistrationOtpSchema.parse(rawInput);
-  const request = await repo.findRegistrationByEmail(parsed.email);
   const now = new Date();
+  const request = await repo.findRegistrationByEmail(parsed.email, now);
 
-  if (!request || request.status !== REGISTRATION_STATUS.EMAIL_PENDING) {
+  if (!request) {
+    const latestRequest = await repo.findLatestRegistrationByEmail(parsed.email);
+    if (
+      latestRequest?.status === REGISTRATION_STATUS.EMAIL_PENDING &&
+      latestRequest.emailOtpExpiresAt &&
+      latestRequest.emailOtpExpiresAt <= now
+    ) {
+      await deactivateExpiredRegistration(latestRequest);
+      throw new AppError("OTP_EXPIRED", "Kode OTP sudah kedaluwarsa. Silakan daftar ulang.", 400);
+    }
+    throw new AppError("NOT_FOUND", "Registrasi tidak ditemukan atau sudah diproses.", 404);
+  }
+
+  if (request.status !== REGISTRATION_STATUS.EMAIL_PENDING) {
     throw new AppError("NOT_FOUND", "Registrasi tidak ditemukan atau sudah diproses.", 404);
   }
 
   if (!request.emailOtpHash || !request.emailOtpExpiresAt || request.emailOtpExpiresAt <= now) {
-    await repo.updateRegistration(request.id, {
-      status: REGISTRATION_STATUS.EXPIRED,
-      passwordHash: null,
-      emailOtpHash: null,
-      emailOtpExpiresAt: null,
-    });
+    await deactivateExpiredRegistration(request);
     throw new AppError("OTP_EXPIRED", "Kode OTP sudah kedaluwarsa. Silakan daftar ulang.", 400);
   }
 
@@ -260,13 +277,13 @@ export async function verifyRegistrationOtp(rawInput: VerifyRegistrationOtpInput
 
   await notifyAdminsForRegistration(verified);
 
-  return { id: verified.id, status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW };
+  return { id: verified.id, status: REGISTRATION_STATUS.UNDER_REVIEW };
 }
 
 export async function listRegistrationRequests(rawInput?: Partial<ListRegistrationRequestsInput>): Promise<RegistrationRequestListResult> {
   const parsed = listRegistrationRequestsSchema.parse(rawInput ?? {});
   const where: Prisma.UserRegistrationRequestWhereInput = {
-    status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW,
+    status: REGISTRATION_STATUS.UNDER_REVIEW,
   };
 
   if (parsed.search) {
@@ -274,7 +291,7 @@ export async function listRegistrationRequests(rawInput?: Partial<ListRegistrati
       { email: { contains: parsed.search, mode: "insensitive" } },
       { name: { contains: parsed.search, mode: "insensitive" } },
       { nik: { contains: parsed.search, mode: "insensitive" } },
-      { employeeId: { contains: parsed.search, mode: "insensitive" } },
+      { claimedNip: { contains: parsed.search, mode: "insensitive" } },
     ];
   }
 
@@ -299,14 +316,14 @@ export async function listRegistrationRequests(rawInput?: Partial<ListRegistrati
 export async function approveRegistrationRequest(input: { id: string; actor: { userId: string; name: string; role: string } }) {
   const request = await repo.findRegistrationById(input.id);
   if (!request) throw new AppError("NOT_FOUND", "Registrasi tidak ditemukan.", 404);
-  if (request.status !== REGISTRATION_STATUS.PENDING_ADMIN_REVIEW) {
+  if (request.status !== REGISTRATION_STATUS.UNDER_REVIEW) {
     throw new AppError("BUSINESS_RULE_VIOLATION", "Registrasi ini tidak bisa disetujui karena statusnya sudah berubah.", 400);
   }
   if (!request.emailVerifiedAt) {
     throw new AppError("BUSINESS_RULE_VIOLATION", "Email registrasi belum diverifikasi.", 400);
   }
 
-  await assertNoExistingAccount({ email: request.email, nik: request.nik, employeeId: request.employeeId, now: new Date() });
+  await assertNoExistingAccount({ email: request.email, nik: request.nik, claimedNip: request.claimedNip, now: new Date() });
 
   let result: Awaited<ReturnType<typeof repo.approveRegistrationTransaction>>;
   try {
@@ -315,7 +332,7 @@ export async function approveRegistrationRequest(input: { id: string; actor: { u
       reviewedByAdminId: input.actor.userId,
       reviewNote: null,
       userId: crypto.randomUUID(),
-      employeeId: crypto.randomUUID(),
+      employeeRecordId: crypto.randomUUID(),
       now: new Date(),
     });
   } catch (error) {
@@ -341,7 +358,7 @@ export async function approveRegistrationRequest(input: { id: string; actor: { u
 export async function rejectRegistrationRequest(input: { id: string; actor: { userId: string; name: string; role: string } }) {
   const request = await repo.findRegistrationById(input.id);
   if (!request) throw new AppError("NOT_FOUND", "Registrasi tidak ditemukan.", 404);
-  if (request.status !== REGISTRATION_STATUS.PENDING_ADMIN_REVIEW && request.status !== REGISTRATION_STATUS.EMAIL_PENDING) {
+  if (request.status !== REGISTRATION_STATUS.UNDER_REVIEW && request.status !== REGISTRATION_STATUS.EMAIL_PENDING) {
     throw new AppError("BUSINESS_RULE_VIOLATION", "Registrasi ini tidak bisa ditolak karena statusnya sudah berubah.", 400);
   }
 

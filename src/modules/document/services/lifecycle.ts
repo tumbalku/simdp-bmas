@@ -44,7 +44,7 @@ export async function softDeleteDocument(
     }
   }
 
-  await repo.softDeleteDocumentRecord(documentId);
+  await repo.softDeleteDocumentRecord(documentId, session.userId);
 
   await logActivity({
     actorId: session.userId,
@@ -80,13 +80,13 @@ export async function restoreDocument(documentId: string, session: TokenPayload)
     if (activeDocument) {
       throw new AppError(
         "CONFLICT",
-        `Dokumen tidak bisa dipulihkan karena pegawai ini sudah memiliki dokumen aktif untuk jenis yang sama: "${activeDocument.fileName}". Arsipkan atau hapus permanen dokumen aktif tersebut terlebih dahulu.`,
+        `Dokumen tidak bisa dipulihkan karena pegawai ini sudah memiliki dokumen aktif untuk jenis yang sama: "${activeDocument.storedFile?.fileName ?? "Dokumen aktif"}". Arsipkan atau hapus permanen dokumen aktif tersebut terlebih dahulu.`,
         409
       );
     }
   }
 
-  await repo.restoreDocumentRecord(documentId, doc.documentType.allowMultiple);
+  await repo.restoreDocumentRecord(documentId, doc.documentType.allowMultiple, session.userId);
 
   await logActivity({
     actorId: session.userId,

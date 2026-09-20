@@ -26,7 +26,7 @@ export async function getDocumentRecordsForSession(session: TokenPayload, filter
   if (filter.search) {
     where.OR = [
       { title: { contains: filter.search, mode: "insensitive" } },
-      { fileName: { contains: filter.search, mode: "insensitive" } },
+      { storedFile: { fileName: { contains: filter.search, mode: "insensitive" } } },
       { documentType: { name: { contains: filter.search, mode: "insensitive" } } },
       { owner: { name: { contains: filter.search, mode: "insensitive" } } },
     ];
@@ -66,7 +66,7 @@ export async function getDocumentRecordsWithPagination(
   if (filter.search) {
     where.OR = [
       { title: { contains: filter.search, mode: "insensitive" } },
-      { fileName: { contains: filter.search, mode: "insensitive" } },
+      { storedFile: { fileName: { contains: filter.search, mode: "insensitive" } } },
       { documentType: { name: { contains: filter.search, mode: "insensitive" } } },
       { owner: { name: { contains: filter.search, mode: "insensitive" } } },
     ];
