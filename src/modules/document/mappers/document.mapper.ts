@@ -34,6 +34,9 @@ export function mapDocumentType(type: any) {
     requiresExpiryDate: type.requiresExpiryDate,
     requiresIssueDate: type.requiresIssueDate,
     requiresDocumentNumber: type.requiresDocumentNumber,
+    requiresPeriod: type.requiresPeriod,
+    uploaderRole: type.uploaderRole,
+    adminUploadAutoFinal: type.adminUploadAutoFinal,
     allowedFormats: type.allowedFormats,
     maxSizeMb: Number(type.maxSizeMb ?? 0),
   };

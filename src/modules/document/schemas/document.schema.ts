@@ -32,6 +32,8 @@ export const uploadDocumentSchema = z.object({
   documentNumber: z.string().optional(),
   issueDate: z.string().optional(),
   expiryDate: z.string().optional(),
+  periodStartDate: z.string().optional(),
+  periodEndDate: z.string().optional(),
 });
 
 export const documentRecordsQuerySchema = z.object({

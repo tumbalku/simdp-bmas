@@ -27,9 +27,12 @@ export type DocumentTypeOption = {
   archiveCategory: ArchiveCategoryValue | string;
   isMandatory: boolean;
   allowMultiple: boolean;
-  allowedFormats: string;
-  maxSizeMb: number;
   requiresDocumentNumber: boolean;
   requiresIssueDate: boolean;
   requiresExpiryDate: boolean;
+  requiresPeriod: boolean;
+  uploaderRole: string;
+  adminUploadAutoFinal: boolean;
+  allowedFormats: string;
+  maxSizeMb: number;
 };
