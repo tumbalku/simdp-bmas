@@ -81,9 +81,13 @@ export async function finalizeDocumentUploadTransaction(data: {
   documentNumber: string | null;
   issueDate: Date | null;
   expiryDate: Date | null;
+  periodStartDate?: Date | null;
+  periodEndDate?: Date | null;
   createdBy: string;
   replacesDocumentId: string | null;
   allowMultiple?: boolean;
+  initialStatus?: "PENDING" | "APPROVED";
+  isFinal?: boolean;
 }) {
   return prisma.$transaction(async (tx) => {
     const storedFile = await tx.storedFile.update({
@@ -108,6 +112,7 @@ export async function finalizeDocumentUploadTransaction(data: {
             select: { id: true, status: true },
           });
 
+    const initialStatus = data.initialStatus ?? "PENDING";
     const documentRecord = await tx.documentRecord.create({
       data: {
         id: data.docId,
@@ -116,16 +121,23 @@ export async function finalizeDocumentUploadTransaction(data: {
         storedFileId: data.storedFileId,
         replacesDocumentId: data.replacesDocumentId,
         title: data.title,
-        status: "PENDING",
+        status: initialStatus,
         isCurrent: true,
+        isFinal: data.isFinal ?? false,
         documentNumber: data.documentNumber,
         issueDate: data.issueDate,
         expiryDate: data.expiryDate,
+        periodStartDate: data.periodStartDate ?? null,
+        periodEndDate: data.periodEndDate ?? null,
         createdBy: data.createdBy,
       },
     });
 
-    if (documentRecord.status === "PENDING") {
+    // Pada upload admin auto-final, trigger `trg_04_auto_verification_history`
+    // yang membuat VerificationHistory APPROVED. History PENDING hanya boleh
+    // dibuat di sisi aplikasi untuk dokumen yang memang masih menunggu
+    // verifikasi agar tidak terjadi duplikat (REVIEW.md H-2).
+    if (initialStatus === "PENDING" && documentRecord.status === "PENDING") {
       await tx.verificationHistory.create({
         data: {
           id: crypto.randomUUID(),
@@ -171,9 +183,13 @@ export async function createDocumentUploadTransaction(data: {
   documentNumber: string | null;
   issueDate: Date | null;
   expiryDate: Date | null;
+  periodStartDate?: Date | null;
+  periodEndDate?: Date | null;
   createdBy: string;
   replacesDocumentId: string | null;
   allowMultiple?: boolean;
+  initialStatus?: "PENDING" | "APPROVED";
+  isFinal?: boolean;
 }) {
   return prisma.$transaction(async (tx) => {
     await lockDocumentSequence(tx, data.ownerId, data.documentTypeId);
@@ -221,6 +237,7 @@ export async function createDocumentUploadTransaction(data: {
             select: { id: true, status: true },
           });
 
+    const initialStatus = data.initialStatus ?? "PENDING";
     const documentRecord = await tx.documentRecord.create({
       data: {
         id: data.docId,
@@ -229,16 +246,19 @@ export async function createDocumentUploadTransaction(data: {
         storedFileId: data.storedFileId,
         replacesDocumentId: data.replacesDocumentId,
         title: data.title,
-        status: "PENDING",
+        status: initialStatus,
         isCurrent: true,
+        isFinal: data.isFinal ?? false,
         documentNumber: data.documentNumber,
         issueDate: data.issueDate,
         expiryDate: data.expiryDate,
+        periodStartDate: data.periodStartDate ?? null,
+        periodEndDate: data.periodEndDate ?? null,
         createdBy: data.createdBy,
       },
     });
 
-    if (documentRecord.status === "PENDING") {
+    if (initialStatus === "PENDING" && documentRecord.status === "PENDING") {
       await tx.verificationHistory.create({
         data: {
           id: crypto.randomUUID(),

@@ -126,6 +126,8 @@ export async function uploadDocumentAction(formData: FormData) {
       documentNumber: formData.get("documentNumber") || undefined,
       issueDate: formData.get("issueDate") || undefined,
       expiryDate: formData.get("expiryDate") || undefined,
+      periodStartDate: formData.get("periodStartDate") || undefined,
+      periodEndDate: formData.get("periodEndDate") || undefined,
     });
 
     if (!parsed.success) {
@@ -160,6 +162,8 @@ export async function replaceDocumentFileAction(formData: FormData) {
       documentNumber: formData.get("documentNumber") || undefined,
       issueDate: formData.get("issueDate") || undefined,
       expiryDate: formData.get("expiryDate") || undefined,
+      periodStartDate: formData.get("periodStartDate") || undefined,
+      periodEndDate: formData.get("periodEndDate") || undefined,
     });
 
     if (!parsed.success) {
