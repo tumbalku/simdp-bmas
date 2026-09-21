@@ -6,6 +6,7 @@ import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security";
 import { archivePost, deletePost, getPostById, updatePost } from "@/modules/post/server";
 import { postIdSchema, updatePostSchema } from "@/modules/post/schemas";
 import { formatValidationDetails, getActorInfo, mapPostError } from "../../_lib";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -26,11 +27,17 @@ function resolvePostUpdateEventType(nextStatus: string, previousStatus: string) 
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireAuth("STAFF");
+    const session = await requireAuth("STAFF");
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.NOTIFICATION_READ,
+      { actorId: session.userId, actorRole: session.role },
+    );
+    if (rateLimitResponse) return rateLimitResponse;
 
     const { id } = await params;
 
@@ -69,6 +76,13 @@ export async function PATCH(
 ) {
   try {
     const session = await requireAuth("STAFF");
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.FILE_UPLOAD,
+      { actorId: session.userId, actorRole: session.role },
+    );
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id } = await params;
     const parsedId = postIdSchema.safeParse({ id });
 
@@ -144,11 +158,18 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await requireAuth("STAFF");
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.FILE_UPLOAD,
+      { actorId: session.userId, actorRole: session.role },
+    );
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id } = await params;
     const parsedId = postIdSchema.safeParse({ id });
 

@@ -6,12 +6,19 @@ import { SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS } from "@/modules/security";
 import { createPost, getPosts } from "@/modules/post/server";
 import { createPostSchema, postListQuerySchema } from "@/modules/post/schemas";
 import { formatValidationDetails, getActorInfo, mapPostError } from "../_lib";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    await requireAuth("STAFF");
+    const session = await requireAuth("STAFF");
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.NOTIFICATION_READ,
+      { actorId: session.userId, actorRole: session.role },
+    );
+    if (rateLimitResponse) return rateLimitResponse;
 
     const { searchParams } = new URL(request.url);
     const parsed = postListQuerySchema.safeParse({
@@ -59,6 +66,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await requireAuth("STAFF");
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.FILE_UPLOAD,
+      { actorId: session.userId, actorRole: session.role },
+    );
+    if (rateLimitResponse) return rateLimitResponse;
+
     const contentType = request.headers.get("content-type") ?? "";
     let body: unknown = null;
     let files: File[] = [];
