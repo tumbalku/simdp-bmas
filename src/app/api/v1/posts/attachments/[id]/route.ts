@@ -6,6 +6,7 @@ import { errorResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
 import { env } from "@/lib/env";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { storage } from "@/lib/storage";
 import { normalizeStoragePath } from "@/lib/storage/path";
 import { getPostAttachmentForUser } from "@/modules/post/server";
@@ -15,11 +16,18 @@ const SAFE_INLINE_MIME_TYPES = new Set(["application/pdf", "image/png", "image/j
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await requireAuth();
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.FILE_DOWNLOAD,
+      { actorId: session.userId, actorRole: session.role },
+    );
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id } = await params;
     const attachment = await getPostAttachmentForUser({
       attachmentId: id,

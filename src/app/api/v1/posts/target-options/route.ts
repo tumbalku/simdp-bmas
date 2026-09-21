@@ -1,13 +1,20 @@
 import { errorResponse, successResponse } from "@/lib/api-response";
 import { requireAuth } from "@/lib/auth";
 import { AppError } from "@/lib/errors";
+import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
 import { getPostTargetOptions } from "@/modules/post/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    await requireAuth("STAFF");
+    const session = await requireAuth("STAFF");
+    const rateLimitResponse = await enforceApiRateLimit(
+      request,
+      API_RATE_LIMIT_CATEGORY.NOTIFICATION_READ,
+      { actorId: session.userId, actorRole: session.role },
+    );
+    if (rateLimitResponse) return rateLimitResponse;
 
     const data = await getPostTargetOptions();
 
