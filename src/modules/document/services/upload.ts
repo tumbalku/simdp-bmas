@@ -45,10 +45,6 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown error";
 }
 
-function parseDateOrNull(value?: string) {
-  return value ? new Date(value) : null;
-}
-
 function isValidDateString(value?: string) {
   if (!value) return false;
   const parsed = new Date(value);
