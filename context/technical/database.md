@@ -1,15 +1,24 @@
 # Database Reference — SIMDP
 
 **Status:** Draft awal
-**Sumber utama:** `dms_pegawai_schema.sql`, `PRD-SIMDP-v2.0-20260708.md` §8 dan §24
-**Terakhir diperbarui:** 2026-07-08
+**Sumber utama:** `prisma/schema.prisma` (v2.3) + `prisma/migrations-v2/**`; `PRD-SIMDP-v2.0-20260708.md` A8 dan A24
+**Terakhir diperbarui:** 2026-09-21
 
 ## Database
 
 - Engine: PostgreSQL.
 - Hosting target: Supabase.
 - ORM target: Prisma.
-- SQL source of truth awal: `dms_pegawai_schema.sql`.
+- **Sumber kebenaran schema: `prisma/schema.prisma` (v2.3)** — diverifikasi
+  parity-nya via `npx prisma migrate diff --from-migrations
+  prisma/migrations-v2 --to-schema-datamodel prisma/schema.prisma`.
+- `dms_pegawai_schema.sql` **sudah deprecated** (schema v1 historis); hanya
+  dipakai untuk membahas pembacaan data v1 saat migrasi — lihat
+  `prisma/migrations-archive/README.md` dan
+  `context/technical/migration-v1-to-v2.md`.
+- Folder migrasi aktif: `prisma/migrations-v2` (dikonfigurasi di
+  `prisma.config.ts`). Folder v1 ada di `prisma/migrations-archive`
+  (tidak terpakai; baseline ganda dilarang).
 
 ## Enums
 

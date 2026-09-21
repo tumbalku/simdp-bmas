@@ -6,6 +6,14 @@
 - [ ] [#63](https://github.com/tumbalku/simdp-bmas/issues/63) SIMDP-ROADMAP-004: Fase 4 — Statistik & Dashboard
 - [ ] [#65](https://github.com/tumbalku/simdp-bmas/issues/65) SIMDP-ROADMAP-006: Fase 6 — Polish UI/UX
 
+### Epic v2.3 — Penyelarasan Schema v2.3, StoredFile, Modul `post`, dan Hardening Database
+
+Pekerjaan schema v2.3 (branch `codex/align-v2-code`, review `REVIEW.md`): pemisahan `StoredFile`, modul `post` baru, revisi enum registrasi, trigger hardening DB, Tiptap rich text, serta perubahan folder migrasi ke `prisma/migrations-v2`. Issue turunan dari review:
+
+- [ ] [#325](https://github.com/tumbalku/simdp-bmas/issues/325) task(review): catat hal yang sudah baik, temuan Low, dan gap test trigger DB (mock Prisma tidak menguji trigger; pertimbangkan integration test DB nyata)
+- [x] [#324](https://github.com/tumbalku/simdp-bmas/issues/324) task(repo): adakan branch development sebagai target integrasi (selesai: 2026-09-21; `origin/development` ada, PR #326 menargetkannya)
+- [ ] [#323](https://github.com/tumbalku/simdp-bmas/issues/323) task(post): fan-out notifikasi PUBLIC, pisahkan read-state dari notifikasi, dan peringan query visibilitas attachment (M-3/M-4/M-5)
+
 ### UI Implementation Queue
 
 (SIMDP-UI-006 sudah selesai dan dipindah ke Done)
@@ -17,6 +25,12 @@
 ### API Implementation Queue
 
 (Semua antrean implementasi v1 selesai)
+
+## Done
+
+- [x] [#319](https://github.com/tumbalku/simdp-bmas/issues/319) fix(document): validasi `requiresPeriod` + status auto-final di service upload (selesai: 2026-09-21)
+- [x] [#317](https://github.com/tumbalku/simdp-bmas/issues/317) fix(database): migration path v1 → v2.3 untuk database production yang sudah ada data (selesai: 2026-09-21 — migration transisi `20260922000000_migrate_v1_to_v2` + arsip `prisma/migrations` → `prisma/migrations-archive` + runbook `context/technical/migration-v1-to-v2.md`; **eksekusi di production tetap menunggu persetujuan user + jendela maintenance**)
+- [x] [#322](https://github.com/tumbalku/simdp-bmas/issues/322) task(context): perbarui changelog, decisions-log, task-board, dan module-boundaries (dokumentasi epic v2.3 + modul `post`; selesai: 2026-09-21)
 
 ## In Progress
 
@@ -43,6 +57,10 @@
 
 ## Done
 
+- [x] [#321](https://github.com/tumbalku/simdp-bmas/issues/321) fix(post): batasi pencarian feed pengumuman pada judul saja (selesai: 2026-09-21)
+- [x] [#320](https://github.com/tumbalku/simdp-bmas/issues/320) fix(post): terapkan rate limiting pada endpoint manage dan attachments (selesai: 2026-09-21)
+- [x] [#318](https://github.com/tumbalku/simdp-bmas/issues/318) fix(post): validasi konten (magic bytes) dan malware scan pada lampiran pengumuman (selesai: 2026-09-21)
+- [x] [#316](https://github.com/tumbalku/simdp-bmas/issues/316) feat: penyelarasan schema v2.3, pemisahan `StoredFile`, modul `post`, trigger hardening DB, Tiptap rich text, dan folder migrasi `prisma/migrations-v2` (selesai: 2026-09-21; implementasi di branch `codex/align-v2-code`, draft PR #326 ke `development`)
 - [x] [#314](https://github.com/tumbalku/simdp-bmas/issues/314) fix(upload): tampilkan error 4xx upload sebagai toast, bukan dashboard error boundary (selesai: 2026-09-13)
 - [x] [#284](https://github.com/tumbalku/simdp-bmas/issues/284) perf(security): prune high-frequency routine logs across service and UI (selesai: 2026-08-16)
 - [x] [#283](https://github.com/tumbalku/simdp-bmas/issues/283) fix(employee/settings): resolve CSV import label normalization, security log default seed, and reset pagination limit (selesai: 2026-08-16)
