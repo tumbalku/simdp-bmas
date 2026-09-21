@@ -4,6 +4,7 @@ import path from "path";
 import type { Prisma } from "@prisma/client";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
+import { scanFileBuffer, type MalwareScanResult } from "@/lib/malware-scanner";
 import { storage } from "@/lib/storage";
 import { normalizeStoragePath } from "@/lib/storage/path";
 import { STORAGE_PROVIDER_VALUE } from "@/modules/document";
@@ -12,6 +13,12 @@ import {
   NOTIFICATION_RELATED_ENTITY_TYPE,
   NOTIFICATION_TYPE,
 } from "@/modules/notification";
+import {
+  logActivity,
+  SECURITY_ACTOR_ROLE,
+  SECURITY_EVENT_TYPE,
+  SECURITY_LOG_STATUS,
+} from "@/modules/security/server";
 import { getSystemSettingValue } from "@/modules/settings/server";
 import { PAGINATION } from "@/constants";
 import {
@@ -21,6 +28,10 @@ import {
   POST_VISIBILITY_TYPE,
   type PostAttachmentLimits,
 } from "../constants";
+import {
+  sniffAttachmentMimeType,
+  type PostAttachmentMimeType,
+} from "../utils/file-content";
 import type {
   PostDetail,
   PostFeedItem,
@@ -238,6 +249,61 @@ export async function getPostByIdForUser(
   return detail;
 }
 
+async function enforceAttachmentMalwareScan(input: {
+  buffer: Buffer;
+  fileName: string;
+  mimeType: PostAttachmentMimeType;
+  authorId: string;
+  postId: string;
+}) {
+  const result = await scanFileBuffer(input.buffer, {
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+  });
+
+  if (result.status === "CLEAN") return;
+
+  const failure: Extract<MalwareScanResult, { status: "INFECTED" | "ERROR" }> = result;
+  const eventType =
+    failure.status === "INFECTED"
+      ? SECURITY_EVENT_TYPE.DOCUMENT_MALWARE_DETECTED
+      : SECURITY_EVENT_TYPE.DOCUMENT_MALWARE_SCAN_FAILED;
+
+  // Nama aktor hanya dicari di jalur kegagalan agar upload sehat tidak menanggung
+  // query tambahan; ambil lewat public boundary modul employee.
+  const { getActorDisplayName } = await import("@/modules/employee/server");
+  const actorName = await getActorDisplayName(input.authorId, input.authorId);
+
+  await logActivity({
+    actorId: input.authorId,
+    actorName,
+    actorRole: SECURITY_ACTOR_ROLE.SYSTEM,
+    eventType,
+    resource: `PostAttachment:${input.postId}`,
+    status: SECURITY_LOG_STATUS.FAILED,
+    metadata: {
+      postId: input.postId,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      fileSize: input.buffer.length,
+      scannerProvider: failure.provider,
+      ...(failure.status === "INFECTED"
+        ? { signature: failure.signature }
+        : { errorMessage: failure.errorMessage }),
+    },
+  });
+
+  if (failure.status === "INFECTED") {
+    throw new AppError("MALWARE_DETECTED", "Upload lampiran ditolak karena file terdeteksi berbahaya.", 422);
+  }
+
+  throw new AppError(
+    "MALWARE_SCAN_UNAVAILABLE",
+    "Upload lampiran belum dapat diproses karena pemeriksaan keamanan tidak tersedia. Coba lagi nanti.",
+    503,
+  );
+}
+
 export async function createPost(input: {
   authorId: string;
   title: string;
@@ -255,6 +321,12 @@ export async function createPost(input: {
   const isPublishing = input.status === POST_STATUS.PUBLISHED;
   const now = new Date();
   const id = crypto.randomUUID();
+  const validatedAttachments: Array<{
+    index: number;
+    buffer: Buffer;
+    safeName: string;
+    mimeType: PostAttachmentMimeType;
+  }> = [];
   const uploadedAttachments: Array<{
     id: string;
     storedFileId: string;
@@ -271,15 +343,35 @@ export async function createPost(input: {
   for (const [index, file] of (input.files ?? []).entries()) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const safeName = sanitizeFileName(file.name);
+
+    // MIME type dibaca dari isi file (magic bytes), bukan dari `file.type` yang
+    // dikontrol client, agar `StoredFile.mimeType` tidak bisa dipalsukan.
+    const mimeType = sniffAttachmentMimeType(buffer, file.type);
+
+    // Seluruh lampiran divalidasi & di-scan terlebih dahulu, baru kemudian
+    // ditulis ke storage — file yang ditolak tidak boleh sempat tertulis ke
+    // storage (decisions-log #212: setiap upload wajib lewat malware scanner).
+    await enforceAttachmentMalwareScan({
+      buffer,
+      fileName: safeName,
+      mimeType,
+      authorId: input.authorId,
+      postId: id,
+    });
+
+    validatedAttachments.push({ index, buffer, safeName, mimeType });
+  }
+
+  for (const { index, buffer, safeName, mimeType } of validatedAttachments) {
     const filePath = normalizeStoragePath(path.posix.join("posts", id, `${index + 1}-${safeName}`));
-    const savedPath = await storage.upload(filePath, buffer, file.type || "application/octet-stream");
+    const savedPath = await storage.upload(filePath, buffer, mimeType);
     uploadedAttachments.push({
       id: crypto.randomUUID(),
       storedFileId: crypto.randomUUID(),
       fileName: safeName,
       filePath: savedPath,
       fileSize: BigInt(buffer.length),
-      mimeType: file.type || "application/octet-stream",
+      mimeType,
       fileHash: crypto.createHash("sha256").update(buffer).digest("hex"),
       storageProvider: getActiveStorageProviderValue(),
       uploadedBy: input.authorId,
