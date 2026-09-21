@@ -21,6 +21,8 @@ export const ROUTES = {
   masterDataEmployeeExport: "/master-data/employees/export",
   registrationRequests: "/master-data/registration-requests",
   masterDataCategories: "/master-data/categories",
+  announcements: "/announcement",
+  announcementsManage: "/announcement/manage",
 } as const;
 
 export const routeTo = {
@@ -28,6 +30,9 @@ export const routeTo = {
   verificationDetail: (id: string) => `${ROUTES.verification}/${id}`,
   masterDataDocumentTypeEdit: (id: string) => `${ROUTES.masterDataDocumentTypes}/${id}/edit`,
   masterDataEmployeeDetail: (id: string) => `${ROUTES.masterDataEmployees}/${id}`,
+  announcementsDetail: (id: string) => `${ROUTES.announcements}/detail/${id}`,
+  announcementsManage: () => ROUTES.announcementsManage,
+  announcementsManageEdit: (id: string) => `${ROUTES.announcements}/edit/${id}`,
   masterDataEmployeeEdit: (id: string) => `${ROUTES.masterDataEmployees}/${id}/edit`,
   masterDataEmployeeExport: (queryString?: string) =>
     `${ROUTES.masterDataEmployeeExport}${queryString ? `?${queryString}` : ""}`,

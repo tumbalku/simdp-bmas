@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { BellRing, Loader2, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, UploadCloud } from "lucide-react";
+import { BellRing, Loader2, Megaphone, RotateCcw, Save, ShieldCheck, SquareCheck, SquareX, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import { CardContainer } from "@/components/cards/CardContainer";
@@ -19,6 +19,7 @@ import {
   type SecurityEventType,
 } from "@/modules/security";
 import { updateSystemSettingAction } from "@/modules/settings";
+import { DEFAULT_POST_ATTACHMENT_LIMITS, POST_ATTACHMENT_SETTING_KEYS } from "@/modules/post";
 
 type SystemSetting = {
   key: string;
@@ -85,6 +86,23 @@ const STORAGE_FIELDS = [
     fallbackDescription: "Batas waktu pemulihan data yang sudah dihapus sementara.",
     min: 1,
     unit: "hari",
+  },
+] as const satisfies readonly SettingField[];
+
+const ANNOUNCEMENT_FIELDS = [
+  {
+    key: POST_ATTACHMENT_SETTING_KEYS.maxFiles,
+    fallbackLabel: "Maksimal Lampiran Pengumuman",
+    fallbackDescription: "Jumlah file maksimal yang bisa dilampirkan saat membuat pengumuman.",
+    min: 1,
+    unit: "file",
+  },
+  {
+    key: POST_ATTACHMENT_SETTING_KEYS.maxFileSizeMb,
+    fallbackLabel: "Ukuran Maksimal Lampiran Pengumuman",
+    fallbackDescription: "Batas ukuran setiap gambar atau file lampiran pengumuman.",
+    min: 1,
+    unit: "MB",
   },
 ] as const satisfies readonly SettingField[];
 
@@ -251,7 +269,7 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
       />
 
       <Tabs defaultValue="reminder" className="space-y-6">
-        <TabsList className="w-full grid grid-cols-3 sm:flex sm:w-auto">
+        <TabsList className="grid w-full grid-cols-4 sm:w-auto">
           <TabsTrigger value="reminder" className="gap-2">
             <BellRing className="size-4" />
             <span className="hidden sm:inline">Reminder Dokumen</span>
@@ -259,6 +277,10 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
           <TabsTrigger value="upload" className="gap-2">
             <UploadCloud className="size-4" />
             <span className="hidden sm:inline">Upload & Retensi</span>
+          </TabsTrigger>
+          <TabsTrigger value="announcement" className="gap-2">
+            <Megaphone className="size-4" />
+            <span className="hidden sm:inline">Pengumuman</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="gap-2">
             <ShieldCheck className="size-4" />
@@ -284,6 +306,18 @@ export function SettingsPageView({ settings }: SettingsPageViewProps) {
             description="Konfigurasi batas file dan pemulihan data soft delete."
             icon={<UploadCloud className="size-4 shrink-0 text-primary" />}
             fields={STORAGE_FIELDS}
+            values={values}
+            settingsByKey={settingsByKey}
+            onChange={setValues}
+          />
+        </TabsContent>
+
+        <TabsContent value="announcement">
+          <SettingsCard
+            title="Lampiran Pengumuman"
+            description={`Default: ${DEFAULT_POST_ATTACHMENT_LIMITS.maxFiles} file dan ${DEFAULT_POST_ATTACHMENT_LIMITS.maxFileSizeMb} MB per file.`}
+            icon={<Megaphone className="size-4 shrink-0 text-primary" />}
+            fields={ANNOUNCEMENT_FIELDS}
             values={values}
             settingsByKey={settingsByKey}
             onChange={setValues}

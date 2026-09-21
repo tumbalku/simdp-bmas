@@ -12,6 +12,7 @@ function getErrorMessage(error: unknown) {
 export async function dispatchNotification(input: {
   notificationId: string;
   email?: string;
+  sendEmail?: boolean;
 }) {
   const notification = await repo.findNotificationById(input.notificationId);
 
@@ -29,6 +30,9 @@ export async function dispatchNotification(input: {
     relatedEntityId: notification.relatedEntityId,
     createdAt: notification.createdAt.toISOString(),
   });
+
+  const shouldSendEmail = input.sendEmail ?? true;
+  if (!shouldSendEmail) return;
 
   const user = await repo.findUserWithEmployeeById(notification.userId);
   const recipientEmail = input.email || user?.email;

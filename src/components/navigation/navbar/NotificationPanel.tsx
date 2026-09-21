@@ -58,7 +58,7 @@ export function NotificationPanel({ enabled, userId }: NotificationPanelProps) {
           </button>
         }
       />
-      <DropdownMenuContent align="end" className="mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-xl p-0">
+      <DropdownMenuContent align="end" className="navbar-solid-dropdown mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-xl p-0">
         <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
           <div>
             <p className="text-sm font-semibold text-foreground">{notificationCopy.title}</p>
@@ -79,7 +79,7 @@ export function NotificationPanel({ enabled, userId }: NotificationPanelProps) {
           </Button>
         </div>
 
-        <div className="max-h-96 overflow-y-auto p-2">
+        <div className="max-h-96 overflow-y-auto p-3">
           {loading ? (
             <div className="space-y-2 p-2">
               {Array.from({ length: 3 }).map((_, index) => (
@@ -87,13 +87,15 @@ export function NotificationPanel({ enabled, userId }: NotificationPanelProps) {
               ))}
             </div>
           ) : notifications.length > 0 ? (
-            notifications.map((notification) => (
-              <NotificationRow
-                key={notification.id}
-                notification={notification}
-                onMarkRead={markRead}
-              />
-            ))
+            <div className="space-y-2">
+              {notifications.map((notification) => (
+                <NotificationRow
+                  key={notification.id}
+                  notification={notification}
+                  onMarkRead={markRead}
+                />
+              ))}
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center">
               <Inbox className="size-8 text-muted-foreground" />
@@ -119,7 +121,7 @@ function NotificationRow({
   const href = getNotificationHref(notification)
   const content = (
     <div className={cn(
-      "flex gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-accent",
+      "flex gap-3 rounded-lg border border-transparent px-3 py-3 transition-colors hover:border-border hover:bg-accent",
       !notification.isRead && "bg-primary/5",
     )}>
       <div className={cn(

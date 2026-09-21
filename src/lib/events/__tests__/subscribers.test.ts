@@ -77,10 +77,12 @@ describe("event subscribers", () => {
     await handleNotificationDispatchRequested({
       notificationId: "notification-1",
       userId: "user-1",
+      sendEmail: false,
     });
 
     expect(mocks.dispatchNotification).toHaveBeenCalledWith({
       notificationId: "notification-1",
+      sendEmail: false,
     });
   });
 

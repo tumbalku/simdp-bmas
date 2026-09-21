@@ -2,6 +2,20 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-09-21] Excerpt Pengumuman Dibuat Client-Side dari Rich Text
+- Konteks: feed pengumuman perlu menampilkan ringkasan agar terbaca seperti berita, tetapi tidak ada kolom `summary`/`excerpt` di database dan prompt melarang perubahan schema.
+- Keputusan: excerpt dihitung di sisi client lewat helper `getPostExcerpt()` di `src/modules/post/utils/rich-content.ts`, yang menggunakan `getPostContentText()` (ekstrak teks dari dokumen JSON Tiptap) lalu memotong pada batas kata terakhir sebelum 180 karakter (default) dengan ellipsis. Helper murni/isomorphic sehingga aman dipakai di client component maupun service.
+- Alasan: nol perubahan schema, dependency, dan service; payload feed tidak berubah; fallback tetap berfungsi untuk konten teks biasa lama (bukan JSON).
+- Dampak: payload JSON Tiptap penuh tetap dikirim ke client. Jika feed menjadi berat nanti, pindahkan komputasi excerpt ke `getPostFeed` (tambah field `excerpt` di `PostFeedItem` + mapper) sebagai follow-up terpisah.
+- Referensi: task format announcement seperti berita, 2026-09-21.
+
+## [2026-09-21] Feed Pengumuman Memakai Daftar Vertikal, Detail Memakai Layout Artikel
+- Konteks: feed sebelumnya memakai grid 2 kolom `CardContainer` yang membuat judul terjepit 14px dan terasa seperti dashboard widget, bukan berita.
+- Keputusan: feed memakai daftar vertikal `max-w-4xl` dengan primitif `Card` (headline `h2` bold, badge "Baru", tanggal+penulis, excerpt, "Baca selengkapnya", thumbnail kanan di desktop). Halaman detail memakai `<article>` `max-w-3xl` dengan headline besar, byline publikasi (`Dipublikasikan pada … • Oleh …`), separator, galeri, dan "Dokumen Lampiran". `CardContainer` tidak dipakai di kedua tampilan karena memaksakan icon + judul 14px.
+- Alasan: sesuai design system SIMDP (shadcn/ui primitive, token semantic, spacing 4px) sekaligus memberi hierarki semantik berita (`h1`/`h2`/`article`), menjaga measure 65–75 karakter di detail, dan tetap profesional untuk sistem internal RSUD.
+- Dampak: hanya komponen presentasi modul post yang berubah; tidak ada perubahan route, API, atau database.
+- Referensi: task format announcement seperti berita, 2026-09-21.
+
 ## [2026-09-08] Registrasi User Sementara Menggunakan Tabel Staging Terpisah
 - Konteks: pengisian data pegawai perlu dipercepat dengan registrasi mandiri, tetapi fitur ini kemungkinan dinonaktifkan setelah masa input awal selesai.
 - Keputusan: registrasi mandiri memakai tabel `UserRegistrationRequest` tanpa foreign key ke tabel utama. Row `User` dan `Employee` baru dibuat hanya ketika admin approve setelah email user diverifikasi OTP.

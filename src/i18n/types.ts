@@ -12,6 +12,8 @@ export type Dictionary = {
     masterDataDocuments: string;
     masterDataEmployees: string;
     masterDataCategories: string;
+    announcements: string;
+    announcementsManage: string;
     security: string;
     settings: string;
     systemSettings: string;

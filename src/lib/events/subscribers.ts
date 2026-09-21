@@ -72,7 +72,7 @@ export async function handleEmailSendRequested(data: EventPayload<typeof EVENT_N
 export async function handleNotificationDispatchRequested(
   data: EventPayload<typeof EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED>
 ) {
-  await dispatchNotification({ notificationId: data.notificationId });
+  await dispatchNotification({ notificationId: data.notificationId, sendEmail: data.sendEmail });
 }
 
 export async function handleVerificationApproved(data: EventPayload<typeof EVENT_NAMES.VERIFICATION_APPROVED>) {

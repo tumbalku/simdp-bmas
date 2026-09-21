@@ -32,6 +32,7 @@ describe("event publisher", () => {
     await publishEvent(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, {
       notificationId: "notification-1",
       userId: "user-1",
+      sendEmail: false,
     });
 
     expect(mocks.send).toHaveBeenCalledWith({
@@ -39,6 +40,7 @@ describe("event publisher", () => {
       data: {
         notificationId: "notification-1",
         userId: "user-1",
+        sendEmail: false,
       },
     });
   });
@@ -53,6 +55,7 @@ describe("event publisher", () => {
       publishEvent(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, {
         notificationId: "notification-1",
         userId: "user-1",
+        sendEmail: true,
       })
     ).rejects.toThrow("Inngest unavailable");
   });
@@ -74,12 +77,14 @@ describe("event publisher", () => {
     await publishEvent(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, {
       notificationId: "notification-1",
       userId: "user-1",
+      sendEmail: false,
     });
 
     expect(mocks.send).not.toHaveBeenCalled();
     expect(mocks.dispatchNotification).toHaveBeenCalledWith({
       notificationId: "notification-1",
       userId: "user-1",
+      sendEmail: false,
     });
   });
 });

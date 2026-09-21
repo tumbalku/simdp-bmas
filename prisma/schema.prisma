@@ -95,6 +95,7 @@ enum NotificationType {
 
 enum NotificationRelatedEntityType {
   DOCUMENT_RECORD @map("DocumentRecord")
+  POST
 }
 
 enum SecurityLogStatus {

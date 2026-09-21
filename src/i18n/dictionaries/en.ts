@@ -14,6 +14,8 @@ export const en = {
     masterDataDocuments: "Documents",
     masterDataEmployees: "Employees",
     masterDataCategories: "Categories",
+    announcements: "Announcements",
+    announcementsManage: "Announcements",
     security: "Security",
     settings: "Settings",
     systemSettings: "System Settings",

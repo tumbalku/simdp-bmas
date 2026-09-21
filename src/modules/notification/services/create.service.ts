@@ -15,6 +15,7 @@ export async function createNotification(input: {
   relatedEntityType?: NotificationRelatedEntityType | string | null;
   relatedEntityId?: string | null;
   skipDispatch?: boolean;
+  sendEmail?: boolean;
 }) {
   const id = crypto.randomUUID();
   const normalizedRelatedEntityType =
@@ -36,6 +37,7 @@ export async function createNotification(input: {
     await enqueueNotificationDispatch({
       notificationId: notif.id,
       userId: notif.userId,
+      sendEmail: input.sendEmail ?? true,
     });
   }
 
@@ -45,6 +47,7 @@ export async function createNotification(input: {
 export async function enqueueNotificationDispatch(input: {
   notificationId: string;
   userId: string;
+  sendEmail?: boolean;
 }) {
   await publishEvent(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, input);
 }

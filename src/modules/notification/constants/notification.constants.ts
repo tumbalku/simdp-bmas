@@ -3,6 +3,7 @@ export const NOTIFICATION_TYPE = {
   DOCUMENT_VERIFICATION: "DOCUMENT_VERIFICATION",
   EXPIRY_REMINDER: "EXPIRY_REMINDER",
   VERIFICATION_REQUIRED: "VERIFICATION_REQUIRED",
+  ANNOUNCEMENT: "ANNOUNCEMENT",
   INFO: "INFO",
 } as const;
 
@@ -10,6 +11,7 @@ export type NotificationType = (typeof NOTIFICATION_TYPE)[keyof typeof NOTIFICAT
 
 export const NOTIFICATION_RELATED_ENTITY_TYPE = {
   DOCUMENT_RECORD: "DOCUMENT_RECORD",
+  POST: "POST",
 } as const;
 
 export type NotificationRelatedEntityType =
