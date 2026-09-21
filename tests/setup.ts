@@ -264,6 +264,17 @@ export const mockPrisma = {
     deleteMany: vi.fn(),
     findMany: vi.fn(),
   },
+  postAttachment: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn(),
+    count: vi.fn(),
+  },
   securityLog: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
