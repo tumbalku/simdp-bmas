@@ -15,6 +15,8 @@ describe("Settings Module Service", () => {
         { key: "reminder_days_h30", value: "30" },
         { key: "default_max_upload_mb", value: "10" },
         { key: "profile_image_max_upload_mb", value: "2" },
+        { key: "announcement_attachment_max_files", value: "5" },
+        { key: "announcement_attachment_max_file_mb", value: "10" },
         { key: "soft_delete_retention_days", value: "30" },
         { key: "security_log_enabled_events", value: "[]" },
         { key: "security_log_retention_days", value: "30" },

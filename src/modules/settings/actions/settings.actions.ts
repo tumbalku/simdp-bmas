@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 import { requireAuth } from "@/lib/auth";
+import { POST_ATTACHMENT_SETTING_KEYS } from "@/modules/post";
 import { getSystemSettings as getSettingsService, updateSettings } from "../service";
 import { findUserWithEmployeeById } from "../repositories/common";
 
@@ -14,6 +15,27 @@ const updateSettingsSchema = z.object({
     })
   ),
 });
+
+const positiveIntegerSettingKeys = new Set<string>([
+  POST_ATTACHMENT_SETTING_KEYS.maxFiles,
+  POST_ATTACHMENT_SETTING_KEYS.maxFileSizeMb,
+]);
+
+function validateSettingValues(settings: Array<{ key: string; value: string }>) {
+  return settings.flatMap((setting) => {
+    if (!positiveIntegerSettingKeys.has(setting.key)) return [];
+
+    const value = Number(setting.value);
+    if (Number.isInteger(value) && value >= 1) return [];
+
+    return [
+      {
+        path: setting.key,
+        message: "Nilai wajib berupa angka bulat minimal 1.",
+      },
+    ];
+  });
+}
 
 export async function getSystemSettings() {
   try {
@@ -51,6 +73,18 @@ export async function updateSystemSettingAction(data: unknown) {
           code: "VALIDATION_ERROR",
           message: "Input tidak valid.",
           details: parsed.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })),
+        },
+      };
+    }
+
+    const invalidValues = validateSettingValues(parsed.data.settings);
+    if (invalidValues.length > 0) {
+      return {
+        ok: false as const,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Input tidak valid.",
+          details: invalidValues,
         },
       };
     }

@@ -9,6 +9,7 @@ import {
   StorageProvider,
   NotificationType,
   NotificationRelatedEntityType,
+  RegistrationStatus,
   SecurityActorRole,
   SecurityLogStatus,
 } from "@prisma/client";
@@ -73,29 +74,23 @@ async function createDemoPdf(relativePath: string, title: string) {
 }
 
 async function resetDemoData() {
-  await prisma.notification.deleteMany({});
-  await prisma.verificationHistory.deleteMany({});
-  await prisma.documentRecord.deleteMany({});
-  await prisma.documentTypeProfessionGroup.deleteMany({});
-  await prisma.documentTypeEmploymentStatus.deleteMany({});
-  await prisma.documentTypeEmployeeGroup.deleteMany({});
-  await prisma.documentTypeEmployeePosition.deleteMany({});
-  await prisma.documentTypeEmployeeRank.deleteMany({});
-  await prisma.documentTypeWorkplace.deleteMany({});
-  await prisma.documentType.deleteMany({});
-  await prisma.refreshToken.deleteMany({});
-  await prisma.passwordResetToken.deleteMany({});
-  await prisma.employeeCareerHistory.deleteMany({});
-  await prisma.employee.deleteMany({});
-  await prisma.securityLog.deleteMany({});
-  await prisma.systemSetting.deleteMany({});
-  await prisma.employeePosition.deleteMany({});
-  await prisma.professionGroup.deleteMany({});
-  await prisma.employeeGroup.deleteMany({});
-  await prisma.employeeRank.deleteMany({});
-  await prisma.workplace.deleteMany({});
-  await prisma.employmentStatus.deleteMany({});
-  await prisma.user.deleteMany({});
+  // Demo seeding intentionally resets all application data. TRUNCATE bypasses
+  // append-only row triggers while retaining those protections for normal DML.
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "User",
+      "EmploymentStatus",
+      "EmployeeGroup",
+      "ProfessionGroup",
+      "EmployeePosition",
+      "EmployeeRank",
+      "Workplace",
+      "DocumentType",
+      "UserRegistrationRequest",
+      "SystemSetting",
+      "SecurityLog"
+    CASCADE
+  `);
 }
 
 async function main() {
@@ -320,21 +315,30 @@ async function main() {
     const fileName = `${docType.code.toLowerCase()}-${employees[item.owner].employee.id}.pdf`;
     const filePath = `uploads/demo-seed/${fileName}`;
     const fileMeta = await createDemoPdf(filePath, item.title);
-    await prisma.documentRecord.create({
+    const storedFileId = `seed_file_${item.id}`;
+    await prisma.storedFile.create({
       data: {
-        id: item.id,
-        ownerId: employees[item.owner].employee.id,
-        documentTypeId: docType.id,
-        title: item.title,
-        status: item.status,
-        isCurrent: item.status !== DocumentStatus.REPLACED,
-        allowMultipleSnapshot: docType.allowMultiple,
+        id: storedFileId,
         fileName,
         filePath,
         fileSize: fileMeta.fileSize,
         mimeType: "application/pdf",
         fileHash: fileMeta.fileHash,
         storageProvider: StorageProvider.LOCAL,
+        uploadedBy: employees[item.owner].user.id,
+        uploadedAt: daysAgo(item.uploadedDaysAgo),
+      },
+    });
+    await prisma.documentRecord.create({
+      data: {
+        id: item.id,
+        ownerId: employees[item.owner].employee.id,
+        documentTypeId: docType.id,
+        storedFileId,
+        title: item.title,
+        status: item.status,
+        isCurrent: item.status !== DocumentStatus.REPLACED,
+        allowMultipleSnapshot: docType.allowMultiple,
         documentNumber: item.number,
         issueDate: item.issue,
         expiryDate: item.expiry,
@@ -383,6 +387,65 @@ async function main() {
     ],
   });
 
+  await prisma.userRegistrationRequest.createMany({
+    data: [
+      {
+        id: "seed_reg_under_review",
+        email: "calon.pegawai.review@rsudbahteramas.test",
+        name: "Nur Fadilah",
+        nik: "7471010101900001",
+        claimedNip: "199001012026092001",
+        passwordHash,
+        phone: "081234567801",
+        workplaceName: "Instalasi Gawat Darurat",
+        status: RegistrationStatus.UNDER_REVIEW,
+        emailOtpHash: null,
+        emailOtpExpiresAt: null,
+        emailOtpSentAt: daysAgo(1),
+        emailVerifiedAt: daysAgo(1),
+        createdAt: daysAgo(2),
+        updatedAt: daysAgo(1),
+      },
+      {
+        id: "seed_reg_expired_email_pending",
+        email: "calon.pegawai.expired@rsudbahteramas.test",
+        name: "Rahman Yusuf",
+        nik: "7471010101900002",
+        claimedNip: null,
+        passwordHash: null,
+        phone: "081234567802",
+        workplaceName: "Rekam Medis",
+        status: RegistrationStatus.EMAIL_PENDING,
+        emailOtpHash: null,
+        emailOtpExpiresAt: daysAgo(1),
+        emailOtpSentAt: daysAgo(2),
+        emailVerifiedAt: null,
+        createdAt: daysAgo(2),
+        updatedAt: daysAgo(1),
+      },
+      {
+        id: "seed_reg_rejected_history",
+        email: "calon.pegawai.rejected@rsudbahteramas.test",
+        name: "Indra Pratama",
+        nik: "7471010101900003",
+        claimedNip: "199001012026092003",
+        passwordHash: null,
+        phone: "081234567803",
+        workplaceName: "Instalasi Farmasi",
+        status: RegistrationStatus.REJECTED,
+        emailOtpHash: null,
+        emailOtpExpiresAt: null,
+        emailOtpSentAt: daysAgo(9),
+        emailVerifiedAt: daysAgo(8),
+        reviewedAt: daysAgo(7),
+        reviewedByAdminId: employees[0].user.id,
+        reviewNote: "Data identitas pada dokumen pendukung belum sesuai.",
+        createdAt: daysAgo(9),
+        updatedAt: daysAgo(7),
+      },
+    ],
+  });
+
   await prisma.securityLog.createMany({
     data: [
       { id: "seed_log_001", actorId: employees[0].user.id, actorName: employees[0].employee.name, actorRole: SecurityActorRole.ADMIN, eventType: "EMPLOYEE_ACCOUNT_UPDATED", resource: "User:seed", status: SecurityLogStatus.SUCCESS, metadata: { source: "seed" }, timestamp: daysAgo(20) },
@@ -412,6 +475,8 @@ async function main() {
     pendingDocuments: await prisma.documentRecord.count({ where: { status: DocumentStatus.PENDING } }),
     notifications: await prisma.notification.count(),
     verificationHistories: await prisma.verificationHistory.count(),
+    registrationRequests: await prisma.userRegistrationRequest.count(),
+    registrationUnderReview: await prisma.userRegistrationRequest.count({ where: { status: RegistrationStatus.UNDER_REVIEW } }),
     securityLogs: await prisma.securityLog.count(),
     systemSettings: await prisma.systemSetting.count(),
   };

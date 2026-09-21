@@ -18,6 +18,7 @@ export async function findDocumentRecords(where: any) {
   return prisma.documentRecord.findMany({
     where,
     include: {
+      storedFile: true,
       documentType: { select: { id: true, name: true, archiveCategory: true } },
       owner: { select: { id: true, name: true, employeeId: true, nik: true } },
     },
@@ -49,6 +50,7 @@ export async function findDocumentRecordsWithPagination(
     prisma.documentRecord.findMany({
       where,
       include: {
+        storedFile: true,
         documentType: {
           select: { id: true, name: true, archiveCategory: true },
         },
@@ -86,6 +88,7 @@ export async function findDocumentRecordsForExport(
   return prisma.documentRecord.findMany({
     where,
     include: {
+      storedFile: true,
       documentType: {
         select: { id: true, code: true, name: true, archiveCategory: true },
       },
@@ -109,6 +112,7 @@ export async function findDocumentRecordDetailById(documentId: string) {
   return prisma.documentRecord.findUnique({
     where: { id: documentId, deletedAt: null },
     include: {
+      storedFile: true,
       documentType: {
         select: {
           id: true,

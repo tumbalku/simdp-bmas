@@ -30,7 +30,7 @@ export function RegistrationReviewDialog({
         ["Nama lengkap", request.name],
         ["Email", request.email],
         ["NIK", request.nik],
-        ["NIP", request.employeeId],
+        ["NIP", request.claimedNip],
         ["Nomor HP", request.phone],
       ]
     : [];

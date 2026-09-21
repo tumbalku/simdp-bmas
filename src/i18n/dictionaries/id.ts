@@ -14,6 +14,8 @@ export const id = {
     masterDataDocuments: "Dokumen",
     masterDataEmployees: "Pegawai",
     masterDataCategories: "Kategori",
+    announcements: "Pengumuman",
+    announcementsManage: "Pengumuman",
     security: "Keamanan",
     settings: "Pengaturan",
     systemSettings: "Pengaturan Sistem",

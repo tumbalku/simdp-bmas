@@ -1,4 +1,5 @@
 import { logActivity, invalidateEnabledSecurityEventsCache, SECURITY_EVENT_TYPE, SECURITY_LOG_STATUS, DEFAULT_ENABLED_EVENTS } from "@/modules/security/server";
+import { DEFAULT_POST_ATTACHMENT_LIMITS, POST_ATTACHMENT_SETTING_KEYS } from "@/modules/post";
 import * as repo from "../repositories/common";
 
 function getDefaults() {
@@ -34,6 +35,18 @@ function getDefaults() {
       value: "2",
       label: "Batas Upload Foto Profil (MB)",
       description: "Batas ukuran file gambar untuk foto profil pegawai",
+    },
+    {
+      key: POST_ATTACHMENT_SETTING_KEYS.maxFiles,
+      value: String(DEFAULT_POST_ATTACHMENT_LIMITS.maxFiles),
+      label: "Maksimal Lampiran Pengumuman",
+      description: "Jumlah file maksimal yang bisa dilampirkan saat membuat pengumuman",
+    },
+    {
+      key: POST_ATTACHMENT_SETTING_KEYS.maxFileSizeMb,
+      value: String(DEFAULT_POST_ATTACHMENT_LIMITS.maxFileSizeMb),
+      label: "Ukuran Maksimal Lampiran Pengumuman (MB)",
+      description: "Batas ukuran setiap gambar atau file lampiran pengumuman",
     },
     {
       key: "soft_delete_retention_days",

@@ -2,6 +2,118 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-09-21] Sumber Kebenaran Status Auto-Final Adalah Trigger DB, Service Hanya Mencerminkan
+- Status: **Diterima**.
+- Konteks: schema v2.3 menambahkan `DocumentType.adminUploadAutoFinal` dan `uploaderRole`. Trigger `handle_document_replacement` (`trg_03`) menimpa `NEW.status := 'APPROVED'` + `NEW.isFinal := true` saat admin/staff mengunggah dokumen dengan `adminUploadAutoFinal = true`, lalu trigger `auto_verification_history_for_final` (`trg_04`) membuat `VerificationHistory` APPROVED. Sebelum perbaikan, service `uploadDocumentRecord`/`replaceDocumentFile` selalu menulis `status: "PENDING"` dan membuat `VerificationHistory` PENDING, sehingga ada dua sumber kebenaran dan potensi history ganda (REVIEW.md H-2).
+- Keputusan: **trigger DB adalah sumber kebenaran tunggal** untuk `status`, `isFinal`, `replacesDocumentId`, dan `allowMultipleSnapshot` pada insert `DocumentRecord`. Service menghitung `resolveAutoFinalFields(docType, session.role)` untuk (a) memilih status awal yang **konsisten** dengan trigger, dan (b) **tidak** membuat `VerificationHistory` PENDING pada upload auto-final (guard `initialStatus === "PENDING" && documentRecord.status === "PENDING"` di repository). Service tidak mengandalkan trigger untuk *validasi* — `requiresPeriod`, `requiresDocumentNumber`, `requiresIssueDate`, `requiresExpiryDate`, dan `uploaderRole` divalidasi di service sebagai `AppError` 400 (defense-in-depth).
+- Alasan: validasi murni di DB membuat error menjadi exception mentah PostgreSQL → 500 generik dan UX buruk; sebaliknya, penulisan status murni di service akan hilang pada dump/restore tanpa trigger. Pembagian ini: **service memvalidasi input, DB menetapkan status final**.
+- Dampak: route upload menerjemahkan `Prisma.PrismaClientKnownRequestError` dari trigger menjadi `AppError` 400 via `translateDatabaseTriggerError()`. Pada DB tanpa trigger (test mock), status awal yang ditulis service sama dengan hasil trigger pada DB nyata; test suite memverifikasi kedua jalur (admin → APPROVED tanpa history PENDING; employee → PENDING + history PENDING).
+- Batasan: bila trigger dinonaktifkan di production, status auto-final tidak akan terjadi — ini disengaja (fail-open ke `PENDING` lebih aman daripada fail-closed ke APPROVED).
+- Referensi: #319, REVIEW.md H-2, `prisma/migrations-v2/20260920031000_harden_v2_database_rules/migration.sql`, ADR [2026-09-21] Business Rules di Tingkat Database (Trigger).
+
+## [2026-09-21] Post Attachment Scanning Policy (Revisi Kebijakan #212)
+- Status: **Diterima**.
+- Konteks: keputusan [2026-07-23] Malware Scanning Upload File menyatakan *semua upload/ganti file dokumen wajib melewati abstraction malware scanner*. Modul `post` baru memakai lampiran (gambar/PDF) yang diupload oleh STAFF/ADMIN, tetapi implementasi awalnya (`post.service.ts` versi pertama) hanya memakai `sanitizeFileName` + `normalizeStoragePath` dan menyimpan `mimeType` dari `file.type` yang dikontrol client, tanpa memanggil `scanFileBuffer()` sama sekali (REVIEW.md H-1).
+- Keputusan: **seluruh lampiran pengumuman divalidasi isinya dan di-scan**, tanpa pengecualian:
+  - `sniffAttachmentMimeType()` di `src/modules/post/utils/file-content.ts` membaca magic bytes buffer (`%PDF-`, PNG 8-byte, JPEG `FFD8FF`, WEBP `RIFF…WEBP`) dan menolak buffer yang tidak cocok signature manapun dengan `AppError` 400. `file.type` hanya dipakai untuk pesan error, tidak untuk `StoredFile.mimeType`.
+  - `enforceAttachmentMalwareScan()` memanggil `scanFileBuffer()` **sebelum** file ditulis ke storage, sehingga file yang ditolak tidak pernah tersimpan.
+  - Fail-closed sama dengan keputusan #212: `INFECTED` → `AppError` 422; scanner error/unavailable → `AppError` 503. Keduanya dicatat ke `SecurityLog` (`DOCUMENT_MALWARE_DETECTED` / `DOCUMENT_MALWARE_SCAN_FAILED`, status `FAILED`, resource `PostAttachment:<postId>`) tanpa menyimpan isi file.
+  - `getActorDisplayName` dari `@/modules/employee/server` di-import dinamis hanya di jalur kegagalan agar upload sehat tidak menanggung query tambahan.
+- Alasan: route attachment menyajikan file inline (`SAFE_INLINE_MIME_TYPES`), jadi MIME palsu + payload berbahaya bisa langsung dieksekusi browser. Kebijakan #212 sudah menyatakan server-side validation sebagai sumber kebenaran; pengecualian untuk lampiran non-dokumen tidak punya justifikasi keamanan.
+- Konsekuensi: jenis lampiran dibatasi ke PDF/PNG/JPEG/WEBP; lampiran lain ditolak dengan pesan jelas. Lampiran post membutuhkan ClamAV reachable seperti upload dokumen.
+- Dampak ke modul: `post` (service + utils), `security` (event constants), route `/api/v1/posts/manage` dan `/api/v1/posts/attachments/[id]`.
+- Referensi: #318, REVIEW.md H-1, decisions-log [2026-07-23] Malware Scanning Upload File (#212).
+
+## [2026-09-21] Posts Rate Limiting Coverage (Revisi Kebijakan #196)
+- Status: **Diterima**.
+- Konteks: keputusan [2026-07-22] API v1 Rate Limiting Coverage dan [2026-08-01] REVISED Scoped API Rate Limit Buckets menyatakan rate limiting diperluas ke endpoint upload, download, export, statistik, realtime, dan cron. Modul `post` baru menambahkan endpoint yang masuk kategori tersebut (`POST /posts/manage` = upload multipart, `GET /posts/attachments/[id]` = streaming file) tetapi semuanya tanpa `enforceApiRateLimit()` (REVIEW.md H-3).
+- Keputusan: setiap endpoint posts memakai `enforceApiRateLimit()` dengan kategori dan scope:
+  | Endpoint | Kategori |
+  |---|---|
+  | `GET /api/v1/posts` (feed) | `NOTIFICATION_READ` |
+  | `GET /api/v1/posts/manage` | `NOTIFICATION_READ` |
+  | `POST /api/v1/posts/manage` | `FILE_UPLOAD` |
+  | `GET /api/v1/posts/manage/[id]` | `NOTIFICATION_READ` |
+  | `PATCH` / `DELETE /api/v1/posts/manage/[id]` | `FILE_UPLOAD` |
+  | `GET /api/v1/posts/target-options` | `NOTIFICATION_READ` |
+  | `GET /api/v1/posts/attachments/[id]` | `FILE_DOWNLOAD` |
+  Pembagian kategori mengikuti pola scoped bucket decisions-log [2026-08-01]: endpoint write multipart tidak menghabiskan kuota read, dan streaming attachment memakai kategori download tersendiri.
+- Konsekuensi: request publish pengumuman dengan banyak lampiran bisa terkena `FILE_UPLOAD` bucket; publish tanpa lampiran tidak. Feed pegawai tidak terpengaruh oleh aktivitas manage admin/staff.
+- Dampak ke modul: `app/api/v1/posts/**` (semua route handler).
+- Referensi: #320, REVIEW.md H-3, decisions-log [2026-07-22] dan [2026-08-01].
+
+## [2026-09-21] Revisi Enum RegistrationStatus
+- Status: **Diterima** (breaking terhadap data v1 — lihat ADR strategi migrasi v1→v2).
+- Konteks: enum `RegistrationStatus` v1 memakai `PENDING_ADMIN_REVIEW` dan `EXPIRED` untuk menandai request menunggu admin dan request OTP kedaluwarsa. Pengaluran registrasi v2 menyederhanakan tahapan menjadi: email diverifikasi → menunggu review → keputusan admin.
+- Keputusan: nilai `PENDING_ADMIN_REVIEW` dan `EXPIRED` **dihapus**; nilai `EMAIL_VERIFIED` dan `UNDER_REVIEW` **ditambahkan**. Set nilai akhir: `EMAIL_PENDING`, `EMAIL_VERIFIED`, `UNDER_REVIEW`, `APPROVED`, `REJECTED`. Kolom `UserRegistrationRequest.employeeId` di-rename menjadi `claimedNip` agar jelas bahwa NIP saat pendaftaran adalah klaim calon user, bukan FK ke data pegawai yang sudah ada.
+- Alasan: nama state kini menyatakan status aktual alur (sudah verifikasi email / sedang direview) alih-alih aksi berikutnya yang akan dilakukan admin. `claimedNip` menghilangkan ambiguitas field `employeeId` yang semula terlihat seperti relasi ke `Employee`.
+- Konsekuensi: data v1 yang masih memakai `PENDING_ADMIN_REVIEW`/`EXPIRED` wajib dipetakan saat migrasi v1→v2 (lihat ADR strategi migrasi). Filter default `listRegistrationRequests` berubah ke `UNDER_REVIEW`, sehingga bookmark admin lama `?status=PENDING_ADMIN_REVIEW` akan gagal validasi (REVIEW.md L-3, breaking minor yang disengaja).
+- Dampak ke modul: `auth` (registrasi service, queue admin, schema validasi), prisma migration.
+- Referensi: REVIEW.md B-1/L-3, task registrasi 2026-09-21.
+
+## [2026-09-21] Business Rules di Tingkat Database (Trigger)
+- Status: **Diterima** — dengan catatan trade-off testing di bawah.
+- Konteks: rules dokumen (siapa boleh upload, apa dokumen final, kapan replace terjadi, kapan `updatedAt` berubah) sebelumnya tersebar di service Prisma dan rawan skip kalau dipanggil dari konteks lain (route handler, tooling, dump yang dipulihkan). Insiden review menunjukkan beberapa rules (mis. `uploaderRole`) tidak diterapkan service sama sekali.
+- Keputusan: rules invarian dipindah ke **trigger dan CHECK constraint PostgreSQL** di migration `prisma/migrations-v2/20260920031000_harden_v2_database_rules/migration.sql` (dengan revisi di `20260920113000_support_explicit_document_replacement` dan `20260920114500_allow_controlled_verification_purge`):
+  - `trg_01_*_updated_at` — `set_updated_at()` menjadi **satu-satunya** sumber kebenaran `updatedAt`. Komentar SQL secara eksplisit melarang menambah field Prisma `@updatedAt` pada model yang sama; pilih satu mekanisme, bukan dua.
+  - `trg_02_validate_document_fields` — `validate_document_fields()` mengecek flag `DocumentType.requiresPeriod`/`requiresExpiryDate`/`requiresIssueDate`/`requiresDocumentNumber` pada setiap INSERT/UPDATE `DocumentRecord`.
+  - `trg_03_document_replacement` — `handle_document_replacement()` (BEFORE INSERT): employee hanya upload untuk dirinya, enforce `uploaderRole`, `isFinal` selalu diputus trigger (tidak pernah pass-through client), auto-approve `APPROVED` saat `adminUploadAutoFinal` dan uploader ADMIN/STAFF, final document tidak bisa diganti non-admin/staff, `replacesDocumentId` diisi hanya untuk non-multiple types, dan menandai dokumen current lama `REPLACED`.
+  - `trg_04_auto_verification_history` — `auto_verification_history_for_final()` (AFTER INSERT) membuat `VerificationHistory` APPROVED untuk auto-approved final document agar history tetap lengkap.
+  - `trg_05_protect_final_document` — `protect_final_document_updates()` (BEFORE UPDATE) memblokir perubahan `storedFileId`, `status`, `isCurrent`, `deletedAt`, `documentTypeId`, `ownerId`, `documentNumber`, `issueDate`, `expiryDate`, `periodStartDate`, `periodEndDate` pada dokumen final oleh non-admin/staff; `updatedBy` wajib diisi.
+  - `trg_06`/`trg_07` — `prevent_mutation()` menjadikan `SecurityLog` dan `VerificationHistory` append-only di tingkat DB. Pengecualian terkontrol: purge `VerificationHistory` hanya jika session setting `app.allow_verification_history_purge = on` (dipakai `permanentlyDeleteDocumentRecord`).
+  - `trg_08_post_visibility_check` — `validate_post_visibility_targets()` (`DEFERRABLE INITIALLY DEFERRED`): post `TARGETED` tidak boleh `PUBLISHED` tanpa minimal satu target visibility.
+  - `trg_09`–`trg_12` — `prevent_orphaning_targeted_post()` mencegah menghapus target terakhir dari post `PUBLISHED TARGETED`.
+  - Partial unique index `uniq_storedfile_provider_path` (`storageProvider`, `filePath` WHERE `deletedAt IS NULL`) dan `uniq_current_document_per_type`, serta CHECK constraint yang tidak bisa direpresentasikan Prisma.
+- Alasan: invarian data tidak boleh bergantung pada setiap pemanggil service menentukan rules yang sama. Trigger memastikan rules berlaku tak tergantung client, tooling, atau jalur masuk mana pun; constraint `DEFERRABLE` memungkinkan insert post + targets dalam satu transaksi tanpa peduli urutan.
+- Konsekuensi (trade-off yang disadari): **seluruh test suite mem-mock Prisma Client** (`tests/setup.ts`), sehingga trigger **tidak teruji** oleh 499 test yang lulus. Perilaku production nyata (auto-approve admin, append-only audit, orphan guard) hanya bisa diverifikasi pada database nyata. Oleh karena itu **validasi paralel di service tetap wajib** (defense-in-depth sesuai `context/security/rbac.md`): service harus memberikan `AppError` 400 yang ramah untuk `requiresPeriod`, membaca `uploaderRole`/`adminUploadAutoFinal` untuk menentukan status awal yang konsisten dengan trigger, dan route handler harus menerjemahkan `PrismaClientKnownRequestError` dari trigger menjadi error 400 yang berpesan (REVIEW.md H-2 — diturunkan ke issue #319).
+- Dampak ke modul: prisma migrations, seluruh modul yang menulis `DocumentRecord`/`SecurityLog`/`VerificationHistory`/`Post`+`PostVisibility*`.
+- Referensi: REVIEW.md B-1/H-2/§8.2, issue #319 (validasi paralel di service), #325 (gap test trigger DB).
+
+## [2026-09-21] Pemisahan StoredFile dari DocumentRecord
+- Status: **Diterima**.
+- Konteks: `DocumentRecord` sebelumnya menyimpan metadata file (`fileName`, `filePath`, `fileSize`, `mimeType`, `fileHash`, `storageProvider`) langsung di baris dokumen. Akibatnya setiap replace/ganti dokumen menduplikasi metadata, path file tidak unik per provider secara terjamin, dan satu file fisik tidak bisa direferensikan ulang oleh lebih satu record.
+- Keputusan: metadata file dipindah ke model `StoredFile` (tabel tersendiri); `DocumentRecord` merujuknya lewat `storedFileId` **NOT NULL**. `PostAttachment` juga memakai `StoredFile` sehingga lampiran pengumuman dan dokumen pegawai berbagi abstraksi file yang sama. Partial unique index `uniq_storedfile_provider_path` pada `(storageProvider, filePath) WHERE deletedAt IS NULL` memastikan satu path hanya dipakai satu file aktif per provider. Mapper `withStoredFileMetadata()` di `src/modules/document/repositories/stored-file.ts` meratakan field `storedFile` ke top-level sehingga konsumen lama tetap menerima shape yang sama.
+- Alasan: (1) satu file bisa direferensikan ulang oleh beberapa record (mis. lampiran post dan dokumen, atau multi-snapshot); (2) path unik per provider mencegah tulis timpa tak sengaja; (3) metadata file tidak terduplikasi setiap replace; (4) `DocumentRecord` menjadi murni data kepegawaian + status verifikasi, bukan campuran adukan file dan domain.
+- Konsekuensi: **breaking** untuk database v1 — setiap baris `DocumentRecord` existing harus diberi `StoredFile` baru (backfill) sebelum kolom file lama di-drop dan `storedFileId` di-set NOT NULL; lihat ADR strategi migrasi v1→v2. Konsumen yang membaca field file langsung dari `DocumentRecord` harus lewat mapper.
+- Dampak ke modul: `document` (mapper, upload/replace/download repository), `post` (attachment), prisma schema + migration.
+- Referensi: REVIEW.md B-1/§8.1, issue #317.
+
+## [2026-09-21] Strategi Migrasi v1 → v2 (folder `prisma/migrations-v2`)
+- Status: **Diterima** untuk struktur repo; **TUNGGU PERSETUJUAN USER** untuk eksekusi di production.
+- Konteks: schema v2.3 bersifat breaking (lihat ADR di atas + REVIEW.md B-1): kolom file pindah ke `StoredFile` dengan FK NOT NULL baru, `DocumentRecord.createdBy` menjadi NOT NULL, rename `employeeId` → `claimedNip`, nilai enum `RegistrationStatus` dihapus/ditambah, `Employee.user` `onDelete` berubah `Cascade` → `Restrict`. Sementara itu production RSUD sudah berjalan dengan schema v1 **dan sudah ada data pegawai**.
+- Keputusan:
+  - Folder migrasi aktif dipindah ke `prisma/migrations-v2` melalui `prisma.config.ts` (6 migration). Folder v1 lama `prisma/migrations` (19 migration + `migration_lock.toml`) **diarsipkan** ke `prisma/migrations-archive/` (dengan README penjelas) dan tidak boleh dipakai tooling/dev lagi — memakainya akan menyebabkan baseline ganda dan `prisma migrate diff` mengambil baseline salah. Migration pertama `20260920024915_init_v2` adalah `CREATE TABLE` penuh untuk database **baru** (fresh install), bukan upgrade.
+  - Migrasi transisi `20260922000000_migrate_v1_to_v2` (issue #317, branch `fix/317-database-v1-to-v2-migration`) sudah ditulis dan **idempoten** (aman dijalankan ulang dan aman di database yang sudah v2). Berurutan: `CREATE TABLE "StoredFile"` → backfill dari `DocumentRecord` (id `StoredFile` sengaja = id `DocumentRecord` agar verifikasi trivial: `JOIN` pada id = jumlah baris persis) → update `storedFileId` → `SET NOT NULL` → drop kolom file lama; `RENAME COLUMN "employeeId" TO "claimedNip"`; mapping enum registrasi (`PENDING_ADMIN_REVIEW` → `UNDER_REVIEW`, `EXPIRED` → `EMAIL_PENDING`, nilai aneh lainnya → `EMAIL_PENDING`) **sebelum** konversi tipe kolom karena PostgreSQL tidak bisa menghapus nilai enum yang masih dipakai; backfill `createdBy` (fallback user admin pertama) sebelum `SET NOT NULL`; penyesuaian FK/`onDelete` `Employee.userId`, `DocumentRecord.ownerId`, `DocumentRecord.createdyBy` ke `RESTRICT`.
+  - Trigger hardening **tidak diduplikasi** di migration transisi (dua salinan logika DB sama = sumber bug). Database v1 yang sudah dimigrasi menjalankan migration `20260920031000_harden_v2_database_rules` (+ 4 migration penyusulnya) setelahnya — lihat runbook `context/technical/migration-v1-to-v2.md` bagian "Apply" langkah 3.
+  - Runbook lengkap (preflight check, backup + uji restore, dry-run, apply, verify, rollback, follow-up re-hash) ada di `context/technical/migration-v1-to-v2.md`.
+- Konsekuensi: environment baru (development segar, disposable DB) bisa langsung memakai branch ini. Environment existing (local dev yang sudah di-seed v1, staging, production RSUD) **tidak bisa** ikut sebelum migration transisi selesai. Menjalankan `prisma migrate deploy` pada database existing dengan rantai saat ini akan gagal atau menghancurkan data.
+- Batasan high-risk: eksekusi migrasi di production adalah tindakan high-risk per `AGENTS.md` §10 — **wajib persetujuan eksplisit user (Arsi) dan jendela maintenance**, serta wajib diuji di salinan database production asli (rehearsal) sebelumnya. **Jangan dijalankan tanpa persetujuan.**
+- Dampak ke modul: prisma config/migrations, tooling CI, runbook operasional.
+- Referensi: REVIEW.md B-1/M-6, issue #317, `context/plans/review-execution-plan.md` Fase 1, decisions-log [2026-07-22] Branch Utama `main` dan `development`.
+
+## [2026-09-21] Pencarian Pengumuman Dibatasi pada Judul Saja (Opsi A)
+- Konteks: pencarian feed/manajemen pengumuman memakai Prisma `contains` pada `Post.title` **dan** `Post.content`. Kolom `content` adalah string JSON Tiptap (`{"type":"doc","content":[{"type":"paragraph",...}]}`), sehingga kata kunci struktural seperti `paragraph`, `heading`, `text`, atau `attrs` cocok dengan hampir semua post dan menghasilkan false positive (review H-4).
+- Keputusan: untuk v1, pencarian pengumuman (feed pegawai dan daftar manage admin/staff) hanya mencocokkan `title`. Klausa `content` dihapus dari `findVisiblePosts`/`countVisiblePosts` di `post.repository.ts`; daftar manage sudah hanya memakai `title`.
+- Alasan: perbaikan paling sederhana dan sesuai scope v1 — akar masalahnya adalah JSON mentah yang tidak dimaksudkan sebagai teks yang dicari.
+- Batasan: isi teks pengumuman tidak bisa dicari sampai ada kolom teks yang diindeks.
+- Dampak: pencarian lebih akurat; query DB tetap ringan. Pencaharian isi konten akan butuh perbaikan lanjutan.
+- Follow-up: Opsi B yang ditolak untuk sekarang adalah menambah kolom `contentText` (generated dari rich text saat simpan) yang diindeks dan dipakai untuk pencarian, serta memperbaiki akurasi excerpt. Dibuka sebagai issue terpisah bila dibutuhkan.
+- Referensi: #321, REVIEW.md H-4.
+
+## [2026-09-21] Excerpt Pengumuman Dibuat Client-Side dari Rich Text
+- Konteks: feed pengumuman perlu menampilkan ringkasan agar terbaca seperti berita, tetapi tidak ada kolom `summary`/`excerpt` di database dan prompt melarang perubahan schema.
+- Keputusan: excerpt dihitung di sisi client lewat helper `getPostExcerpt()` di `src/modules/post/utils/rich-content.ts`, yang menggunakan `getPostContentText()` (ekstrak teks dari dokumen JSON Tiptap) lalu memotong pada batas kata terakhir sebelum 180 karakter (default) dengan ellipsis. Helper murni/isomorphic sehingga aman dipakai di client component maupun service.
+- Alasan: nol perubahan schema, dependency, dan service; payload feed tidak berubah; fallback tetap berfungsi untuk konten teks biasa lama (bukan JSON).
+- Dampak: payload JSON Tiptap penuh tetap dikirim ke client. Jika feed menjadi berat nanti, pindahkan komputasi excerpt ke `getPostFeed` (tambah field `excerpt` di `PostFeedItem` + mapper) sebagai follow-up terpisah.
+- Referensi: task format announcement seperti berita, 2026-09-21.
+
+## [2026-09-21] Feed Pengumuman Memakai Daftar Vertikal, Detail Memakai Layout Artikel
+- Konteks: feed sebelumnya memakai grid 2 kolom `CardContainer` yang membuat judul terjepit 14px dan terasa seperti dashboard widget, bukan berita.
+- Keputusan: feed memakai daftar vertikal `max-w-4xl` dengan primitif `Card` (headline `h2` bold, badge "Baru", tanggal+penulis, excerpt, "Baca selengkapnya", thumbnail kanan di desktop). Halaman detail memakai `<article>` `max-w-3xl` dengan headline besar, byline publikasi (`Dipublikasikan pada … • Oleh …`), separator, galeri, dan "Dokumen Lampiran". `CardContainer` tidak dipakai di kedua tampilan karena memaksakan icon + judul 14px.
+- Alasan: sesuai design system SIMDP (shadcn/ui primitive, token semantic, spacing 4px) sekaligus memberi hierarki semantik berita (`h1`/`h2`/`article`), menjaga measure 65–75 karakter di detail, dan tetap profesional untuk sistem internal RSUD.
+- Dampak: hanya komponen presentasi modul post yang berubah; tidak ada perubahan route, API, atau database.
+- Referensi: task format announcement seperti berita, 2026-09-21.
+
 ## [2026-09-08] Registrasi User Sementara Menggunakan Tabel Staging Terpisah
 - Konteks: pengisian data pegawai perlu dipercepat dengan registrasi mandiri, tetapi fitur ini kemungkinan dinonaktifkan setelah masa input awal selesai.
 - Keputusan: registrasi mandiri memakai tabel `UserRegistrationRequest` tanpa foreign key ke tabel utama. Row `User` dan `Employee` baru dibuat hanya ketika admin approve setelah email user diverifikasi OTP.

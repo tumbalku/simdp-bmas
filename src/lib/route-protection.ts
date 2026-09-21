@@ -1,4 +1,5 @@
 export const PROTECTED_ROUTE_PREFIXES = [
+  "/announcement",
   "/dashboard",
   "/documents",
   "/master-data",

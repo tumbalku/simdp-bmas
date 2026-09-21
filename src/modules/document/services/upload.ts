@@ -19,8 +19,138 @@ function getActiveStorageProviderValue() {
   return STORAGE_PROVIDER_VALUE.LOCAL;
 }
 
+type DocumentUploadInput = {
+  documentTypeId: string;
+  file: File;
+  title?: string;
+  documentNumber?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  periodStartDate?: string;
+  periodEndDate?: string;
+};
+
+type DocumentReplaceInput = {
+  documentId: string;
+  file: File;
+  title?: string;
+  documentNumber?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  periodStartDate?: string;
+  periodEndDate?: string;
+};
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown error";
+}
+
+function isValidDateString(value?: string) {
+  if (!value) return false;
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime());
+}
+
+function parseDateOrThrow(value: string, fieldLabel: string) {
+  if (!isValidDateString(value)) {
+    throw new AppError("VALIDATION_ERROR", `Format tanggal ${fieldLabel} tidak valid.`, 400);
+  }
+  return new Date(value);
+}
+
+/**
+ * Memvalidasi field periodik dokumen sesuai flag `DocumentType.requiresPeriod`.
+ * Trigger DB (`validate_document_fields`) menerapkan aturan yang sama, namun
+ * validasi ini dilakukan di service agar error langsung menjadi `AppError` 400
+ * yang informatif (bukan exception mentah PostgreSQL yang menjadi 500 generik),
+ * dan agar aturan tetap berlaku pada konteks tanpa trigger (DB test, hasil
+ * restore tanpa trigger, tooling script) — defense-in-depth.
+ */
+function validatePeriodFields(
+  requiresPeriod: boolean | null | undefined,
+  input: { periodStartDate?: string; periodEndDate?: string },
+) {
+  const hasStart = Boolean(input.periodStartDate);
+  const hasEnd = Boolean(input.periodEndDate);
+
+  if (requiresPeriod) {
+    if (!hasStart || !hasEnd) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Periode mulai dan periode berakhir wajib diisi untuk jenis dokumen ini.",
+        400,
+      );
+    }
+  } else if (hasStart || hasEnd) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Jenis dokumen ini tidak menggunakan periode. Hapus periode mulai dan periode berakhir.",
+      400,
+    );
+  }
+
+  if (hasStart && hasEnd) {
+    const start = parseDateOrThrow(input.periodStartDate as string, "periode mulai");
+    const end = parseDateOrThrow(input.periodEndDate as string, "periode berakhir");
+
+    if (end < start) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Periode berakhir harus sama atau setelah periode mulai.",
+        400,
+      );
+    }
+  }
+}
+
+function normalizePeriodInput(input: { periodStartDate?: string; periodEndDate?: string }) {
+  if (!input.periodStartDate && !input.periodEndDate) {
+    return { periodStartDate: null, periodEndDate: null };
+  }
+
+  return {
+    periodStartDate: input.periodStartDate ? parseDateOrThrow(input.periodStartDate, "periode mulai") : null,
+    periodEndDate: input.periodEndDate ? parseDateOrThrow(input.periodEndDate, "periode berakhir") : null,
+  };
+}
+
+function validateRequiredDocumentFields(
+  docType: {
+    requiresDocumentNumber?: boolean | null;
+    requiresIssueDate?: boolean | null;
+    requiresExpiryDate?: boolean | null;
+  },
+  data: { documentNumber?: string; issueDate?: string; expiryDate?: string },
+) {
+  if (docType.requiresDocumentNumber && !data.documentNumber) {
+    throw new AppError("VALIDATION_ERROR", "Nomor dokumen wajib diisi untuk jenis dokumen ini.", 400);
+  }
+  if (docType.requiresIssueDate && !data.issueDate) {
+    throw new AppError("VALIDATION_ERROR", "Tanggal terbit wajib diisi untuk jenis dokumen ini.", 400);
+  }
+  if (docType.requiresExpiryDate && !data.expiryDate) {
+    throw new AppError("VALIDATION_ERROR", "Tanggal kedaluwarsa wajib diisi untuk jenis dokumen ini.", 400);
+  }
+}
+
+/**
+ * Menentukan status awal dan flag `isFinal` secara paralel dengan trigger DB
+ * (`handle_document_replacement`). Trigger tetap merupakan sumber kebenaran
+ * tunggal untuk nilai yang disimpan (lihat ADR di decisions-log.md); fungsi ini
+ * hanya memastikan service memilih status awal yang konsisten sehingga
+ * `VerificationHistory` PENDING tidak dibuat ganda untuk upload admin auto-final.
+ */
+function resolveAutoFinalFields(
+  docType: { adminUploadAutoFinal?: boolean | null },
+  role: TokenPayload["role"],
+) {
+  const isAdminOrStaff = role === "ADMIN" || role === "STAFF";
+  const isAutoFinal = Boolean(docType.adminUploadAutoFinal) && isAdminOrStaff;
+
+  return {
+    isFinal: isAutoFinal,
+    status: isAutoFinal ? ("APPROVED" as const) : ("PENDING" as const),
+  };
 }
 
 function formatDateSegment(date: Date) {
@@ -177,14 +307,7 @@ async function enforceMalwareScan(input: {
 }
 
 export async function uploadDocumentRecord(
-  data: {
-    documentTypeId: string;
-    file: File;
-    title?: string;
-    documentNumber?: string;
-    issueDate?: string;
-    expiryDate?: string;
-  },
+  data: DocumentUploadInput,
   session: TokenPayload,
   ipAddress?: string | null
 ) {
@@ -213,16 +336,10 @@ export async function uploadDocumentRecord(
     }
   }
 
-  // 3. Validate conditional fields
-  if (docType.requiresDocumentNumber && !data.documentNumber) {
-    throw new AppError("VALIDATION_ERROR", "Nomor dokumen wajib diisi untuk jenis dokumen ini.", 400);
-  }
-  if (docType.requiresIssueDate && !data.issueDate) {
-    throw new AppError("VALIDATION_ERROR", "Tanggal terbit wajib diisi untuk jenis dokumen ini.", 400);
-  }
-  if (docType.requiresExpiryDate && !data.expiryDate) {
-    throw new AppError("VALIDATION_ERROR", "Tanggal kedaluwarsa wajib diisi untuk jenis dokumen ini.", 400);
-  }
+  // 3. Validate conditional fields (service-side, parallel to DB trigger
+  // `validate_document_fields` so input errors surface as AppError 400).
+  validateRequiredDocumentFields(docType, data);
+  validatePeriodFields(docType.requiresPeriod, data);
 
   // 4. File Buffer & Content check
   const fileArrayBuffer = await data.file.arrayBuffer();
@@ -240,7 +357,7 @@ export async function uploadDocumentRecord(
   await enforceMalwareScan({
     buffer,
     originalFileName: data.file.name,
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     session,
     actorName: employee.name,
     resource: `DocumentUpload:${docType.id}`,
@@ -253,16 +370,16 @@ export async function uploadDocumentRecord(
 
   // 5. Write record to DB and reserve filename sequence under a per-owner/type lock.
   const docId = crypto.randomUUID();
+  const storedFileId = crypto.randomUUID();
 
   const storageProvider = getActiveStorageProviderValue();
   const documentDate = data.issueDate ? new Date(data.issueDate) : new Date();
   const identifier = employee.nik || employee.employeeId || session.userId;
 
-  const reservedUpload = await repo.reserveUploadedDocumentTransaction({
-    docId,
+  const reservedUpload = await repo.reserveDocumentFileTransaction({
+    storedFileId,
     ownerId: employee.id,
     documentTypeId: docType.id,
-    title: data.title || docType.name,
     buildFile: (sequence) => {
       const fileName = buildDocumentFileName({
         identifier,
@@ -277,32 +394,48 @@ export async function uploadDocumentRecord(
       return { fileName, uploadPath };
     },
     fileSize: BigInt(buffer.length),
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     fileHash,
     storageProvider,
-    documentNumber: data.documentNumber || null,
-    issueDate: data.issueDate ? new Date(data.issueDate) : null,
-    expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-    createdBy: session.userId,
-    allowMultiple: docType.allowMultiple,
-    documentTypeName: docType.name,
-    ownerName: employee.name,
+    uploadedBy: session.userId,
   });
-  let record = reservedUpload.record;
+  let savedPath: string | null = null;
+  let finalizedUpload: Awaited<ReturnType<typeof repo.finalizeDocumentUploadTransaction>>;
+
+  const autoFinal = resolveAutoFinalFields(docType, session.role);
+  const periodDates = normalizePeriodInput(data);
 
   try {
-    const savedPath = await storage.upload(reservedUpload.uploadPath, buffer, data.file.type);
-    record = await repo.finalizeDocumentFilePath(record.id, savedPath);
-  } catch (error) {
-    await repo.abortUploadedDocumentReservation({
+    const uploadedPath = await storage.upload(reservedUpload.uploadPath, buffer, data.file.type);
+    savedPath = uploadedPath;
+    finalizedUpload = await repo.finalizeDocumentUploadTransaction({
       docId,
-      replacedDocuments: reservedUpload.replacedDocuments,
+      storedFileId,
+      savedPath: uploadedPath,
+      ownerId: employee.id,
+      documentTypeId: docType.id,
+      title: data.title || docType.name,
+      documentNumber: data.documentNumber || null,
+      issueDate: data.issueDate ? new Date(data.issueDate) : null,
+      expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+      periodStartDate: periodDates.periodStartDate,
+      periodEndDate: periodDates.periodEndDate,
+      createdBy: session.userId,
+      replacesDocumentId: null,
+      allowMultiple: docType.allowMultiple,
+      initialStatus: autoFinal.status,
+      isFinal: autoFinal.isFinal,
     });
+  } catch (error) {
+    if (savedPath) await storage.delete(savedPath).catch(() => undefined);
+    await repo.abortDocumentFileReservation(storedFileId).catch(() => undefined);
     throw error;
   }
 
-  const replacedDocumentIds = reservedUpload.replacedDocuments.map((doc) => doc.id);
-  const verificationRecipientUserIds = reservedUpload.verificationRecipientUserIds;
+  const record = finalizedUpload.record;
+
+  const replacedDocumentIds = finalizedUpload.replacedDocuments.map((doc) => doc.id);
+  const verificationRecipientUserIds = finalizedUpload.verificationRecipientUserIds;
 
   for (const replacedDocumentId of replacedDocumentIds) {
     await logActivity({
@@ -349,14 +482,7 @@ export async function uploadDocumentRecord(
 }
 
 export async function replaceDocumentFile(
-  data: {
-    documentId: string;
-    file: File;
-    title?: string;
-    documentNumber?: string;
-    issueDate?: string;
-    expiryDate?: string;
-  },
+  data: DocumentReplaceInput,
   session: TokenPayload,
   ipAddress?: string | null
 ) {
@@ -376,15 +502,8 @@ export async function replaceDocumentFile(
     throw new AppError("FORBIDDEN", "Jenis dokumen ini tidak berlaku untuk data kepegawaian Anda.", 403);
   }
 
-  if (doc.documentType.requiresDocumentNumber && !data.documentNumber) {
-    throw new AppError("VALIDATION_ERROR", "Nomor dokumen wajib diisi untuk jenis dokumen ini.", 400);
-  }
-  if (doc.documentType.requiresIssueDate && !data.issueDate) {
-    throw new AppError("VALIDATION_ERROR", "Tanggal terbit wajib diisi untuk jenis dokumen ini.", 400);
-  }
-  if (doc.documentType.requiresExpiryDate && !data.expiryDate) {
-    throw new AppError("VALIDATION_ERROR", "Tanggal kedaluwarsa wajib diisi untuk jenis dokumen ini.", 400);
-  }
+  validateRequiredDocumentFields(doc.documentType, data);
+  validatePeriodFields(doc.documentType.requiresPeriod, data);
 
   const fileArrayBuffer = await data.file.arrayBuffer();
   const buffer = Buffer.from(fileArrayBuffer);
@@ -399,7 +518,7 @@ export async function replaceDocumentFile(
   await enforceMalwareScan({
     buffer,
     originalFileName: data.file.name,
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     session,
     actorName: doc.owner.name,
     resource: `DocumentRecord:${doc.id}`,
@@ -413,8 +532,12 @@ export async function replaceDocumentFile(
   const documentDate = data.issueDate ? new Date(data.issueDate) : doc.issueDate ?? new Date();
   const identifier = doc.owner.nik || doc.owner.employeeId || session.userId;
 
-  const reservedReplace = await repo.reserveReplaceDocumentFileTransaction({
-    documentId: doc.id,
+  const replacementDocumentId = crypto.randomUUID();
+  const storedFileId = crypto.randomUUID();
+  const autoFinal = resolveAutoFinalFields(doc.documentType, session.role);
+  const periodDates = normalizePeriodInput(data);
+  const reservedReplace = await repo.reserveDocumentFileTransaction({
+    storedFileId,
     ownerId: doc.ownerId,
     documentTypeId: doc.documentTypeId,
     buildFile: (sequence) => {
@@ -431,32 +554,44 @@ export async function replaceDocumentFile(
       return { fileName, uploadPath };
     },
     fileSize: BigInt(buffer.length),
-    mimeType: data.file.type || null,
+    mimeType: data.file.type || "application/octet-stream",
     fileHash,
     storageProvider,
-    updatedBy: session.userId,
-    documentTypeName: doc.documentType.name,
-    ownerName: doc.owner.name,
-    title: data.title || doc.title || doc.documentType.name,
-    documentNumber: doc.documentType.requiresDocumentNumber ? data.documentNumber || null : doc.documentNumber,
-    issueDate: doc.documentType.requiresIssueDate && data.issueDate ? new Date(data.issueDate) : doc.issueDate,
-    expiryDate: doc.documentType.requiresExpiryDate && data.expiryDate ? new Date(data.expiryDate) : doc.expiryDate,
+    uploadedBy: session.userId,
   });
-  let record = reservedReplace.record;
+  let savedPath: string | null = null;
+  let finalizedReplace: Awaited<ReturnType<typeof repo.finalizeDocumentUploadTransaction>>;
 
   try {
-    const savedPath = await storage.upload(reservedReplace.uploadPath, buffer, data.file.type);
-    record = await repo.finalizeDocumentFilePath(record.id, savedPath);
-  } catch (error) {
-    await repo.abortReplaceDocumentReservation({
-      documentId: doc.id,
-      previousRecord: reservedReplace.previousRecord,
-      verificationHistoryId: reservedReplace.verificationHistoryId,
+    const uploadedPath = await storage.upload(reservedReplace.uploadPath, buffer, data.file.type);
+    savedPath = uploadedPath;
+    finalizedReplace = await repo.finalizeDocumentUploadTransaction({
+      docId: replacementDocumentId,
+      storedFileId,
+      savedPath: uploadedPath,
+      ownerId: doc.ownerId,
+      documentTypeId: doc.documentTypeId,
+      title: data.title || doc.title || doc.documentType.name,
+      documentNumber: doc.documentType.requiresDocumentNumber ? data.documentNumber || null : doc.documentNumber,
+      issueDate: doc.documentType.requiresIssueDate && data.issueDate ? new Date(data.issueDate) : doc.issueDate,
+      expiryDate: doc.documentType.requiresExpiryDate && data.expiryDate ? new Date(data.expiryDate) : doc.expiryDate,
+      periodStartDate: periodDates.periodStartDate ?? doc.periodStartDate,
+      periodEndDate: periodDates.periodEndDate ?? doc.periodEndDate,
+      createdBy: session.userId,
+      replacesDocumentId: doc.id,
+      allowMultiple: doc.documentType.allowMultiple,
+      initialStatus: autoFinal.status,
+      isFinal: autoFinal.isFinal,
     });
+  } catch (error) {
+    if (savedPath) await storage.delete(savedPath).catch(() => undefined);
+    await repo.abortDocumentFileReservation(storedFileId).catch(() => undefined);
     throw error;
   }
 
-  const verificationRecipientUserIds = reservedReplace.verificationRecipientUserIds;
+  const record = finalizedReplace.record;
+
+  const verificationRecipientUserIds = finalizedReplace.verificationRecipientUserIds;
 
   const notificationPublish = await publishDocumentVerificationRequested({
     recipientUserIds: verificationRecipientUserIds,
@@ -471,7 +606,7 @@ export async function replaceDocumentFile(
     actorName: doc.owner.name,
     actorRole: session.role,
     eventType: SECURITY_EVENT_TYPE.DOCUMENT_UPLOADED,
-    resource: `DocumentRecord:${doc.id}`,
+    resource: `DocumentRecord:${record.id}`,
     ipAddress,
     status: SECURITY_LOG_STATUS.SUCCESS,
     metadata: {

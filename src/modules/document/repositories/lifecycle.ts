@@ -1,28 +1,45 @@
 import { NOTIFICATION_RELATED_ENTITY_TYPE } from "@/modules/notification";
 import { prisma } from "./common";
+import { withStoredFileMetadata } from "./stored-file";
 
 export async function findDocumentRecordByFilePath(filePath: string) {
-  return prisma.documentRecord.findFirst({
-    where: { filePath, deletedAt: null },
-    include: { owner: true },
+  const record = await prisma.documentRecord.findFirst({
+    where: { storedFile: { filePath, deletedAt: null }, deletedAt: null },
+    include: { owner: true, storedFile: true },
   });
+
+  return record ? withStoredFileMetadata(record) : null;
 }
 
-export async function softDeleteDocumentRecord(id: string) {
-  return prisma.documentRecord.update({
-    where: { id },
-    data: {
-      deletedAt: new Date(),
-      isCurrent: false,
-    },
+export async function softDeleteDocumentRecord(id: string, updatedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.documentRecord.findUnique({
+      where: { id },
+      select: { storedFileId: true },
+    });
+
+    if (!record) return null;
+
+    const deletedAt = new Date();
+    const updatedRecord = await tx.documentRecord.update({
+      where: { id },
+      data: { deletedAt, isCurrent: false, updatedBy },
+    });
+    await tx.storedFile.update({
+      where: { id: record.storedFileId },
+      data: { deletedAt },
+    });
+
+    return updatedRecord;
   });
 }
 
 export async function findDocumentRecordWithDeletedWithOwner(id: string) {
-  return prisma.documentRecord.findUnique({
+  const record = await prisma.documentRecord.findUnique({
     where: { id },
     include: {
       owner: true,
+      storedFile: true,
       documentType: {
         select: {
           allowMultiple: true,
@@ -30,6 +47,8 @@ export async function findDocumentRecordWithDeletedWithOwner(id: string) {
       },
     },
   });
+
+  return record ? withStoredFileMetadata(record) : null;
 }
 
 export async function findActiveDocumentRecordByOwnerAndType(ownerId: string, documentTypeId: string) {
@@ -43,28 +62,51 @@ export async function findActiveDocumentRecordByOwnerAndType(ownerId: string, do
     select: {
       id: true,
       title: true,
-      fileName: true,
+      storedFile: { select: { fileName: true } },
     },
   });
 }
 
-export async function restoreDocumentRecord(id: string, allowMultipleSnapshot: boolean) {
-  return prisma.documentRecord.update({
-    where: { id },
-    data: {
-      deletedAt: null,
-      isCurrent: true,
-      allowMultipleSnapshot,
-    },
+export async function restoreDocumentRecord(id: string, allowMultipleSnapshot: boolean, updatedBy: string) {
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.documentRecord.findUnique({
+      where: { id },
+      select: { storedFileId: true },
+    });
+
+    if (!record) return null;
+
+    const updatedRecord = await tx.documentRecord.update({
+      where: { id },
+      data: { deletedAt: null, isCurrent: true, allowMultipleSnapshot, updatedBy },
+    });
+    await tx.storedFile.update({
+      where: { id: record.storedFileId },
+      data: { deletedAt: null },
+    });
+
+    return updatedRecord;
   });
 }
 
 export async function permanentlyDeleteDocumentRecord(id: string) {
   return prisma.$transaction(async (tx) => {
+    const record = await tx.documentRecord.findUnique({
+      where: { id },
+      select: { storedFileId: true },
+    });
+
+    if (!record) return null;
+
     await tx.notification.deleteMany({
       where: { relatedEntityType: NOTIFICATION_RELATED_ENTITY_TYPE.DOCUMENT_RECORD, relatedEntityId: id },
     });
 
+    await tx.$executeRaw`SELECT set_config('app.allow_verification_history_purge', 'on', true)`;
+    await tx.verificationHistory.deleteMany({ where: { documentRecordId: id } });
     await tx.documentRecord.delete({ where: { id } });
+    await tx.storedFile.delete({ where: { id: record.storedFileId } });
+
+    return record;
   });
 }

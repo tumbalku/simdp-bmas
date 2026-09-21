@@ -90,7 +90,7 @@ function ThemeSelector() {
           </Button>
         }
       />
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="end" className="navbar-solid-dropdown w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Tema tampilan</DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -245,7 +245,7 @@ function MobileMenuPanel({
   }
 
   return (
-    <div className="mobile-nav-panel absolute inset-x-3 top-full z-50 mt-2 flex max-h-[calc(100dvh-4.5rem)] flex-col gap-2 overflow-y-auto rounded-xl border border-border bg-card/95 p-2.5 shadow-xl backdrop-blur-md animate-in slide-in-from-top-4 duration-200 md:hidden">
+    <div className="mobile-nav-panel navbar-solid-panel absolute inset-x-3 top-full z-50 mt-2 flex max-h-[calc(100dvh-4.5rem)] flex-col gap-2 overflow-y-auto rounded-xl border border-border bg-popover p-2.5 shadow-xl animate-in slide-in-from-top-4 duration-200 md:hidden">
       <div className="relative flex items-center justify-between border-b border-border/70 px-1 pb-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Navigasi</span>
         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">

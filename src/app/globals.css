@@ -316,25 +316,11 @@
   }
 
   .pastel-glass .mobile-nav-panel {
-    background:
-      linear-gradient(135deg, rgb(255 255 255 / 0.9), rgb(255 247 251 / 0.8)),
-      radial-gradient(circle at 12% 8%, rgb(255 214 166 / 0.34), transparent 38%),
-      radial-gradient(circle at 92% 4%, rgb(200 180 254 / 0.32), transparent 34%);
-    border-color: rgb(185 68 217 / 0.36);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.78),
-      0 18px 52px rgb(129 78 134 / 0.2);
-    backdrop-filter: blur(22px) saturate(155%);
-    -webkit-backdrop-filter: blur(22px) saturate(155%);
-  }
-
-  .pastel-glass .mobile-nav-panel::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.34), transparent 38%);
+    background: #ffffff;
+    border-color: var(--border);
+    box-shadow: 0 18px 52px rgb(15 23 42 / 0.16);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .pastel-glass .mobile-nav-link {
@@ -357,11 +343,11 @@
   }
 
   .pastel-glass [data-slot="select-content"] {
-    background: #fff7fb;
+    background: #ffffff !important;
     border-color: rgb(185 68 217 / 0.38);
     box-shadow: 0 16px 38px rgb(129 78 134 / 0.16);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   .pastel-glass [data-slot="select-item"]:focus,
@@ -371,8 +357,6 @@
   }
 
   .pastel-glass [data-slot="card"],
-  .pastel-glass [data-slot="dropdown-menu-content"],
-  .pastel-glass [data-slot="popover-content"],
   .pastel-glass [data-slot="dialog-content"],
   .pastel-glass [data-slot="sheet-content"] {
     border-color: rgb(185 68 217 / 0.34);
@@ -383,7 +367,26 @@
     -webkit-backdrop-filter: blur(18px) saturate(150%);
   }
 
+  .pastel-glass [data-slot="dropdown-menu-content"],
+  .pastel-glass [data-slot="popover-content"],
+  .pastel-glass [data-slot="menubar-content"],
+  .pastel-glass .navbar-solid-dropdown,
+  .pastel-glass .navbar-solid-panel {
+    background: #ffffff !important;
+    border-color: var(--border);
+    box-shadow: 0 18px 48px rgb(15 23 42 / 0.14);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .pastel-glass header.sticky {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   .pastel-glass [data-slot="button"].bg-primary {
+
     background-image: linear-gradient(135deg, #ffd6a6 0%, #ff7aaa 52%, #b944d9 100%);
     box-shadow: 0 10px 24px rgb(185 68 217 / 0.18);
   }

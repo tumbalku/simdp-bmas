@@ -65,7 +65,7 @@ function buildDocumentWhere(filter: DocumentListFilter = {}) {
   if (filter.search) {
     where.OR = [
       { title: { contains: filter.search, mode: "insensitive" } },
-      { fileName: { contains: filter.search, mode: "insensitive" } },
+      { storedFile: { fileName: { contains: filter.search, mode: "insensitive" } } },
       {
         documentType: {
           name: { contains: filter.search, mode: "insensitive" },
@@ -198,7 +198,7 @@ export async function getMasterDataDocumentsPdfData(
         status: record.status,
         statusLabel: getStatusLabel(record.status),
         documentNumber: record.documentNumber || null,
-        fileName: record.fileName,
+        fileName: record.storedFile?.fileName ?? (record as any).fileName,
         uploadedAt: toIsoDate(record.uploadedAt),
         expiryDate: toIsoDate(record.expiryDate),
       };

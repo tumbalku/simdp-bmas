@@ -36,7 +36,7 @@ export function RegistrationPage({ enabled }: RegistrationPageProps) {
       name: String(formData.get("name") || ""),
       email: String(formData.get("email") || ""),
       nik: String(formData.get("nik") || ""),
-      employeeId: String(formData.get("employeeId") || ""),
+      claimedNip: String(formData.get("claimedNip") || ""),
       password: String(formData.get("password") || ""),
       confirmPassword: String(formData.get("confirmPassword") || ""),
       phone: String(formData.get("phone") || ""),

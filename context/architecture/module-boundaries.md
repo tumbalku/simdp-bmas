@@ -2,7 +2,7 @@
 
 **Status:** Draft awal
 **Sumber utama:** `PRD-SIMDP-v2.0-20260708.md` §6.3-6.5
-**Terakhir diperbarui:** 2026-07-08
+**Terakhir diperbarui:** 2026-09-21
 
 ## 1. Prinsip Boundary
 
@@ -38,6 +38,7 @@ import { employeeRepository } from "@/modules/employee/repository";
 | `statistics` | Dashboard aggregation read-only. | Boleh query lintas tabel via repository sendiri, tetapi tidak boleh write. |
 | `security` | SecurityLog, audit helper `logActivity()`. | `logActivity()` diekspor untuk dipakai modul lain. SecurityLog append-only. |
 | `settings` | SystemSetting. | Mengelola konfigurasi runtime seperti reminder days dan upload limit. |
+| `post` | Sistem pengumuman: CRUD `Post`, feed pegawai, visibility targeting (`PUBLIC`/`TARGETED`), lampiran (relasi `StoredFile`), rich text Tiptap, dan notifikasi publish. | Modul ke-9. Boundary public untuk server adalah `server.ts` (re-export `services/post.service.ts` + `constants`); `index.ts` hanya re-export `constants` + `types` untuk client. Memakai `notification.service`, `settings.service`, `security.service` lewat boundary `*/server` modul lain. |
 
 ## 3. Struktur Modul Standar
 
@@ -52,6 +53,53 @@ src/modules/<module>/
 ├── hooks.ts        # TanStack Query hooks
 └── components/     # UI modul
 ```
+
+Modul yang sudah berkembang (`auth`, `document`, `employee`, `notification`, `security`, `settings`, `statistics`, `verification`, `post`) memakai struktur folder terfokus sesuai §6: `services/`, `repositories/`, `schemas/`, `types/`, `constants/`, `hooks/`, `components/`, `utils/`, masing-masing dengan `index.ts` aggregator. Struktur lengkap modul `post` ada di §3.1.
+
+### 3.1 Contoh: struktur aktual modul `post`
+
+```txt
+src/modules/post/
+├── index.ts                          # aggregator: re-export constants + types (client-safe)
+├── server.ts                         # public boundary server: re-export services/post.service.ts + constants
+├── api.ts                            # satu-satunya tempat fetch() di modul ini
+├── components/
+│   ├── index.ts                      # aggregator komponen
+│   ├── PostFeedView.tsx              # feed pegawai (item utama/pin + daftar, badge "Baru", excerpt)
+│   ├── PostDetailView.tsx            # layout artikel editorial (byline, cover, galeri, lampiran)
+│   ├── PostComposer.tsx              # form buat/edit + urutan lampiran
+│   ├── PostEditorView.tsx            # editor Tiptap + submit
+│   ├── RichTextEditor.tsx            # editor Tiptap (link/placeholder/underline)
+│   ├── RichTextContent.tsx           # renderer React markup tree (bukan dangerouslySetInnerHTML)
+│   └── ManagePostsView.tsx           # tabel manajemen admin/staff (DataTable + filter)
+├── hooks/
+│   ├── index.ts
+│   └── post.hooks.ts                 # TanStack Query hooks -> api.ts (query keys feed/manage/targetOptions)
+├── schemas/
+│   ├── index.ts
+│   └── post.schema.ts                # Zod: createPost, updatePost, postListQuery, postFeedQuery, postId
+├── services/
+│   └── post.service.ts               # business logic: create/update/archive/delete, feed, target options, attachment scan
+├── repositories/
+│   ├── index.ts
+│   └── post.repository.ts            # Prisma internal: findPosts, findVisiblePosts, visibility targets, read states
+├── constants/
+│   ├── index.ts
+│   └── post.constants.ts             # POST_STATUS, POST_VISIBILITY_TYPE + label ID, POST_ATTACHMENT_SETTING_KEYS, DEFAULT_POST_ATTACHMENT_LIMITS
+├── types/
+│   ├── index.ts
+│   └── post.types.ts                 # PostDetail, PostFeedItem, PostSummary, PostListMeta, PostTargetInput, PostVisibilityContext
+├── utils/
+│   ├── rich-content.ts               # isomorphic: getPostContentText() + getPostExcerpt() dari JSON Tiptap
+│   └── file-content.ts               # magic-byte sniffing: sniffAttachmentMimeType() PDF/PNG/JPEG/WEBP
+└── __tests__/
+    ├── post.service.test.ts
+    ├── post-search.test.ts
+    ├── post-excerpt.test.ts
+    └── post-attachment-scan.test.ts
+```
+
+Titik masuk modul lain: **`@/modules/post/server`** untuk Route Handler/Server Action/service modul lain (mengembalikan fungsi service + constants); **`@/modules/post`** hanya untuk constants/types yang aman di client (mis. `POST_ATTACHMENT_SETTING_KEYS` yang dipakai modul `settings`).
 
 ## 4. Import Rules
 
@@ -93,3 +141,14 @@ Kandidat jangka panjang: `document` + `verification`, karena beban file dan work
 - Nilai enum di database wajib menggunakan bahasa Inggris (English), contoh: `PENDING`, `APPROVED`, `REJECTED`.
 - Penulisan label atau deskripsi dalam bahasa Indonesia hanya dilakukan di tingkat UI (React components) atau mapping domain helper.
 - Setiap migrasi skema database yang menyangkut enum (terutama penambahan/perubahan/penghapusan nilai) wajib menyertakan script mapping data legacy yang aman serta dokumentasi preflight.
+
+## 8. Catatan Module Boundaries: modul `post` (2026-09-21)
+
+Diverifikasi dari kode saat epic v2.3 di-review:
+
+- **Boundary public terjaga.** `server.ts` hanya re-export `./services/post.service` + `./constants`; `index.ts` hanya re-export `./constants` + `./types`. `api.ts`/`hooks` di-import langsung hanya oleh komponen modul `post` yang sama.
+- **Import lintas modul hanya lewat boundary `*/server`:** `createNotification` dari `@/modules/notification/server`, `logActivity` dari `@/modules/security/server`, `getSystemSettingValue` dari `@/modules/settings/server`, serta dynamic import `getActorDisplayName` dari `@/modules/employee/server` (hanya di jalur kegagalan malware scan). Constants notification (`NOTIFICATION_TYPE`, `NOTIFICATION_RELATED_ENTITY_TYPE`) diimpor dari `@/modules/notification` (aggregator client-safe), dan `STORAGE_PROVIDER_VALUE` dari `@/modules/document` (constants boundary).
+- **Arah balah:** modul `settings` memakai `@/modules/post` (hanya constants — `POST_ATTACHMENT_SETTING_KEYS`, `DEFAULT_POST_ATTACHMENT_LIMITS`) di `services/system-settings.service.ts` dan `actions/settings.actions.ts`. Tidak ada modul lain yang mengimpor internal `post`.
+- **Route handlers** `/api/v1/posts/**` hanya memanggil `@/modules/post/server` + `@/modules/post/schemas` (schema Zod), tidak pernah repository langsung.
+- **`page.tsx` tipis:** kelima halaman `src/app/(dashboard)/announcement/` hanya auth/role guard + render komponen `@/modules/post/components` (feed guard `EMPLOYEE`; `detail/[id]` guard `EMPLOYEE` + `getPostByIdForUser`; `edit/[id]` dan `manage` guard `STAFF`; `manage/[id]` redirect legacy ke `routeTo.announcementsManageEdit`).
+- **Client component tidak `fetch()` langsung:** seluruh request melalui `post/api.ts`; `post.hooks.ts` (TanStack Query) hanya memanggil `../api`.

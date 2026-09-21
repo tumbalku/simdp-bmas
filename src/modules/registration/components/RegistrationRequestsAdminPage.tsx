@@ -158,7 +158,7 @@ export function RegistrationRequestsAdminPage({
       cell: (request) => (
         <div className="space-y-0.5 text-xs">
           {request.nik && <p>NIK: {request.nik}</p>}
-          {request.employeeId && <p>NIP: {request.employeeId}</p>}
+          {request.claimedNip && <p>NIP: {request.claimedNip}</p>}
         </div>
       ),
     },
@@ -343,7 +343,7 @@ export function RegistrationRequestsAdminPage({
                   </Badge>
                   <div className="space-y-1 text-xs text-muted-foreground">
                     {request.nik && <p>NIK: {request.nik}</p>}
-                    {request.employeeId && <p>NIP: {request.employeeId}</p>}
+                    {request.claimedNip && <p>NIP: {request.claimedNip}</p>}
                     <p>Mendaftar {formatRegistrationDate(request.createdAt)}</p>
                   </div>
                   <div className="flex justify-end border-t pt-3">

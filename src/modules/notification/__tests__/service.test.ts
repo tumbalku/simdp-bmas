@@ -140,6 +140,7 @@ describe("Notification Module Service", () => {
       expect(publishEvent).toHaveBeenCalledWith(EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED, {
         notificationId: "mock-uuid",
         userId: "user-1",
+        sendEmail: true,
       });
     });
 
@@ -209,6 +210,31 @@ describe("Notification Module Service", () => {
           subject: "Test Title",
         })
       );
+    });
+
+    it("should skip email delivery when dispatch is configured without email", async () => {
+      const notif = {
+        id: "n-1",
+        userId: "user-1",
+        type: "ANNOUNCEMENT",
+        title: "Pengumuman baru",
+        message: "Test Message",
+        relatedEntityType: "POST",
+        relatedEntityId: "post-1",
+        createdAt: new Date(),
+        isRead: false,
+      };
+
+      mockPrisma.notification.findUnique.mockResolvedValue(notif);
+
+      await dispatchNotification({ notificationId: "n-1", sendEmail: false });
+
+      expect(notificationProviderMocks.publishToUser).toHaveBeenCalledWith(
+        "user-1",
+        expect.objectContaining({ id: "n-1" })
+      );
+      expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
+      expect(notificationProviderMocks.sendEmail).not.toHaveBeenCalled();
     });
 
     it("should not fail in-app dispatch when email delivery fails", async () => {

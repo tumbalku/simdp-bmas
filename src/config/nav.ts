@@ -11,6 +11,7 @@ import {
   UserCog,
   UserPlus,
   Layers,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 
@@ -63,6 +64,12 @@ export const navItems = [
     href: ROUTES.verification,
     icon: ClipboardCheck,
     roles: ROLE_GROUPS.adminStaff,
+  },
+  {
+    label: navCopy.announcements,
+    href: ROUTES.announcements,
+    icon: Megaphone,
+    roles: ROLE_GROUPS.all,
   },
   {
     label: navCopy.statistics,

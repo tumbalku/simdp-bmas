@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { replaceDocumentFile, uploadDocumentRecord } from "@/modules/document/server";
 import { AppError } from "@/lib/errors";
 import { API_RATE_LIMIT_CATEGORY, enforceApiRateLimit } from "@/lib/rate-limit";
+import { Prisma } from "@prisma/client";
 
 function getHttpStatusFromError(error: unknown) {
   if (!error || typeof error !== "object") return null;
@@ -11,6 +12,36 @@ function getHttpStatusFromError(error: unknown) {
   const statusCode = "statusCode" in error ? Number((error as { statusCode?: unknown }).statusCode) : NaN;
   if (Number.isInteger(status) && status >= 400) return status;
   if (Number.isInteger(statusCode) && statusCode >= 400) return statusCode;
+  return null;
+}
+
+/**
+ * Menerjemahkan error yang dilempar trigger database (`validate_document_fields`,
+ * `handle_document_replacement`) menjadi `AppError` 400 yang informatif.
+ * Tanpa ini, exception mentah PostgreSQL menjadi 500 generik (REVIEW.md H-2).
+ */
+function translateDatabaseTriggerError(error: unknown): AppError | null {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return null;
+
+  const message = error.message ?? "";
+
+  if (error.code === "P2002") {
+    return new AppError("CONFLICT", "Data dokumen tersebut sudah ada di sistem.", 409);
+  }
+
+  const knownTriggerMessages: Array<{ match: string; message: string }> = [
+    { match: "wajib diisi", message: "Field wajib dokumen tidak lengkap sesuai jenis dokumen." },
+    { match: "tidak boleh diisi", message: "Field tidak diizinkan untuk jenis dokumen ini." },
+    { match: "hanya boleh diunggah", message: "Jenis dokumen ini tidak dapat diunggah oleh peran Anda." },
+    { match: "tidak dapat digantikan", message: "Dokumen final tidak dapat diganti oleh non-admin/staff." },
+    { match: "hanya dapat mengunggah", message: "Dokumen hanya dapat diunggah untuk pemiliknya." },
+  ];
+
+  const triggerMessage = knownTriggerMessages.find((item) => message.includes(item.match));
+  if (triggerMessage) {
+    return new AppError("VALIDATION_ERROR", triggerMessage.message, 400);
+  }
+
   return null;
 }
 
@@ -31,6 +62,8 @@ export async function POST(request: NextRequest) {
     const documentNumber = (formData.get("documentNumber") as string) || undefined;
     const issueDate = (formData.get("issueDate") as string) || undefined;
     const expiryDate = (formData.get("expiryDate") as string) || undefined;
+    const periodStartDate = (formData.get("periodStartDate") as string) || undefined;
+    const periodEndDate = (formData.get("periodEndDate") as string) || undefined;
 
     if (!documentTypeId || !file) {
       return errorResponse("VALIDATION_ERROR", "Field documentTypeId dan file wajib diisi.", undefined, 400);
@@ -47,6 +80,8 @@ export async function POST(request: NextRequest) {
             documentNumber,
             issueDate,
             expiryDate,
+            periodStartDate,
+            periodEndDate,
           },
           session,
           ipAddress
@@ -59,6 +94,8 @@ export async function POST(request: NextRequest) {
             documentNumber,
             issueDate,
             expiryDate,
+            periodStartDate,
+            periodEndDate,
           },
           session,
           ipAddress
@@ -81,6 +118,15 @@ export async function POST(request: NextRequest) {
                 ? error.message
                 : "Terjadi kesalahan saat upload dokumen.";
       return errorResponse(error.code, message, error.details, error.status);
+    }
+    const triggerError = translateDatabaseTriggerError(error);
+    if (triggerError) {
+      return errorResponse(
+        triggerError.code,
+        triggerError.message,
+        triggerError.details,
+        triggerError.status,
+      );
     }
     const httpStatus = getHttpStatusFromError(error);
     if (httpStatus === 413) {

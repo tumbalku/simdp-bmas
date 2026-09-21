@@ -26,7 +26,7 @@ import { approveRegistrationRequest } from "../service";
 const input = { id: "registration-1", actor: { userId: "admin-1", name: "Admin", role: "ADMIN" } };
 const request = {
   id: input.id, email: "verified@example.com", name: "<script>untrusted</script>",
-  nik: "7401010101010001", employeeId: null, status: "PENDING_ADMIN_REVIEW", emailVerifiedAt: new Date(),
+  nik: "7401010101010001", claimedNip: null, status: "UNDER_REVIEW", emailVerifiedAt: new Date(),
 };
 
 describe("registration approval email", () => {

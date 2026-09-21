@@ -79,7 +79,7 @@ export function UserProfileMenu({ profile, loading }: UserProfileMenuProps) {
           </button>
         }
       />
-      <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl">
+      <DropdownMenuContent align="end" className="navbar-solid-dropdown w-56 mt-2 rounded-xl">
         <div className="px-3 py-2 text-xs font-normal">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">

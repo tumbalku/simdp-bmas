@@ -16,7 +16,7 @@ type RegistrationFormValues = {
   name: string;
   email: string;
   nik: string;
-  employeeId: string;
+  claimedNip: string;
   password: string;
   confirmPassword: string;
   phone: string;
@@ -30,7 +30,7 @@ const initialValues: RegistrationFormValues = {
   name: "",
   email: "",
   nik: "",
-  employeeId: "",
+  claimedNip: "",
   password: "",
   confirmPassword: "",
   phone: "",
@@ -40,7 +40,7 @@ const helperText: Record<RegistrationField, string> = {
   name: "Isi sesuai nama lengkap pegawai.",
   email: "Gunakan email aktif untuk menerima kode OTP.",
   nik: "Isi NIK 16 digit angka jika tidak memakai NIP.",
-  employeeId: "Isi NIP minimal 10 digit angka jika tidak memakai NIK.",
+  claimedNip: "Isi NIP minimal 10 digit angka jika tidak memakai NIK.",
   password: "Minimal 8 karakter.",
   confirmPassword: "Ulangi password yang sama.",
   phone: "Gunakan format nomor HP aktif.",
@@ -51,16 +51,16 @@ function validateRegistrationForm(values: RegistrationFormValues) {
   const name = values.name.trim();
   const email = values.email.trim();
   const nik = values.nik.trim();
-  const employeeId = values.employeeId.trim();
+  const claimedNip = values.claimedNip.trim();
   const password = values.password;
   const confirmPassword = values.confirmPassword;
   const phone = values.phone.trim();
 
   if (name.length < 2) errors.name = "Nama minimal 2 karakter.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Format email tidak valid.";
-  if (!nik && !employeeId) errors.nik = "Isi minimal salah satu: NIK atau NIP.";
+  if (!nik && !claimedNip) errors.nik = "Isi minimal salah satu: NIK atau NIP.";
   if (nik && !/^\d{16}$/.test(nik)) errors.nik = "NIK harus 16 digit angka.";
-  if (employeeId && !/^\d{10,32}$/.test(employeeId)) errors.employeeId = "NIP minimal 10 digit angka.";
+  if (claimedNip && !/^\d{10,32}$/.test(claimedNip)) errors.claimedNip = "NIP minimal 10 digit angka.";
   if (password.length < 8) errors.password = "Password minimal 8 karakter.";
   if (confirmPassword.length < 8) errors.confirmPassword = "Konfirmasi password minimal 8 karakter.";
   if (confirmPassword.length >= 8 && password !== confirmPassword) {
@@ -120,7 +120,7 @@ export function RegistrationForm({ isPending, onSubmit }: RegistrationFormProps)
         name: true,
         email: true,
         nik: true,
-        employeeId: true,
+        claimedNip: true,
         password: true,
         confirmPassword: true,
         phone: true,
@@ -186,21 +186,21 @@ export function RegistrationForm({ isPending, onSubmit }: RegistrationFormProps)
           <p {...getHintProps("nik")}>{getFieldHint({ field: "nik", errors, touched, values })}</p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="employeeId">NIP</Label>
+          <Label htmlFor="claimedNip">NIP</Label>
           <Input
-            id="employeeId"
-            name="employeeId"
+            id="claimedNip"
+            name="claimedNip"
             className="h-10"
             inputMode="numeric"
             placeholder="Jika ada"
             disabled={isPending}
-            value={values.employeeId}
-            onChange={(event) => updateField("employeeId", event.target.value.replace(/\D/g, "").slice(0, 32))}
-            onBlur={() => markTouched("employeeId")}
-            aria-invalid={getAriaInvalid("employeeId")}
-            aria-describedby="employeeId-hint"
+            value={values.claimedNip}
+            onChange={(event) => updateField("claimedNip", event.target.value.replace(/\D/g, "").slice(0, 32))}
+            onBlur={() => markTouched("claimedNip")}
+            aria-invalid={getAriaInvalid("claimedNip")}
+            aria-describedby="claimedNip-hint"
           />
-          <p {...getHintProps("employeeId")}>{getFieldHint({ field: "employeeId", errors, touched, values })}</p>
+          <p {...getHintProps("claimedNip")}>{getFieldHint({ field: "claimedNip", errors, touched, values })}</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>

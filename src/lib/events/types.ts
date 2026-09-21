@@ -26,6 +26,7 @@ export type EventPayloadMap = {
   [EVENT_NAMES.NOTIFICATION_DISPATCH_REQUESTED]: {
     notificationId: string;
     userId: string;
+    sendEmail?: boolean;
   };
   [EVENT_NAMES.VERIFICATION_APPROVED]: {
     userId: string;

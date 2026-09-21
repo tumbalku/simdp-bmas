@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   createDocumentTypeWithRelations,
-  reserveUploadedDocumentTransaction,
+  abortDocumentFileReservation,
+  finalizeDocumentUploadTransaction,
+  reserveDocumentFileTransaction,
+  restoreDocumentRecord,
+  softDeleteDocumentRecord,
   findDocumentRecords,
   findDocumentRecordsWithPagination,
   findDocumentRecordDetailById,
@@ -207,6 +211,38 @@ describe("Document Module Repository", () => {
   });
 
   describe("Document Records Queries", () => {
+    it("should archive the document record and stored file atomically", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({ storedFileId: "file-1" });
+
+      await softDeleteDocumentRecord("doc-1", "admin-1");
+
+      expect(mockPrisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith({
+        where: { id: "doc-1" },
+        data: { deletedAt: expect.any(Date), isCurrent: false, updatedBy: "admin-1" },
+      });
+      expect(mockPrisma.storedFile.update).toHaveBeenCalledWith({
+        where: { id: "file-1" },
+        data: { deletedAt: expect.any(Date) },
+      });
+    });
+
+    it("should restore the document record and stored file atomically", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({ storedFileId: "file-1" });
+
+      await restoreDocumentRecord("doc-1", false, "admin-1");
+
+      expect(mockPrisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+      expect(mockPrisma.documentRecord.update).toHaveBeenCalledWith({
+        where: { id: "doc-1" },
+        data: { deletedAt: null, isCurrent: true, allowMultipleSnapshot: false, updatedBy: "admin-1" },
+      });
+      expect(mockPrisma.storedFile.update).toHaveBeenCalledWith({
+        where: { id: "file-1" },
+        data: { deletedAt: null },
+      });
+    });
+
     it("should find document records with filter", async () => {
       mockPrisma.documentRecord.findMany.mockResolvedValue([]);
 
@@ -216,6 +252,7 @@ describe("Document Module Repository", () => {
       expect(mockPrisma.documentRecord.findMany).toHaveBeenCalledWith({
         where,
         include: {
+          storedFile: true,
           documentType: { select: { id: true, name: true, archiveCategory: true } },
           owner: { select: { id: true, name: true, employeeId: true, nik: true } },
         },
@@ -247,42 +284,40 @@ describe("Document Module Repository", () => {
       });
     });
 
-    it("should permanently delete document record and related notifications", async () => {
+    it("should permanently delete document record, stored file, and related notifications", async () => {
+      mockPrisma.documentRecord.findUnique.mockResolvedValue({ storedFileId: "file-1" });
+
       await permanentlyDeleteDocumentRecord("doc-1");
 
       expect(mockPrisma.notification.deleteMany).toHaveBeenCalledWith({
         where: { relatedEntityType: "DOCUMENT_RECORD", relatedEntityId: "doc-1" },
       });
+      expect(mockPrisma.$executeRaw).toHaveBeenCalled();
+      expect(mockPrisma.verificationHistory.deleteMany).toHaveBeenCalledWith({
+        where: { documentRecordId: "doc-1" },
+      });
       expect(mockPrisma.documentRecord.delete).toHaveBeenCalledWith({ where: { id: "doc-1" } });
+      expect(mockPrisma.storedFile.delete).toHaveBeenCalledWith({ where: { id: "file-1" } });
     });
 
-    it("should replace current records and return verifier recipients when uploading single-current document", async () => {
+    it("should reserve physical file metadata without creating a document record", async () => {
       mockPrisma.documentRecord.count.mockResolvedValue(0);
-      mockPrisma.documentRecord.findMany.mockResolvedValue([{ id: "old-doc", status: "APPROVED" }]);
-      mockPrisma.documentRecord.create.mockResolvedValue({ id: "doc-1" });
-      mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }, { id: "staff-1" }]);
+      mockPrisma.storedFile.create.mockResolvedValue({ id: "file-1" });
       const buildFile = vi.fn().mockReturnValue({
         fileName: "sk.pdf",
         uploadPath: "uploads/sk.pdf",
       });
 
-      const result = await reserveUploadedDocumentTransaction({
-        docId: "doc-1",
+      const result = await reserveDocumentFileTransaction({
+        storedFileId: "file-1",
         ownerId: "emp-1",
         documentTypeId: "type-1",
-        title: "SK Pangkat",
         buildFile,
         fileSize: BigInt(10),
         mimeType: "application/pdf",
         fileHash: "hash",
         storageProvider: "LOCAL",
-        documentNumber: null,
-        issueDate: null,
-        expiryDate: null,
-        createdBy: "user-1",
-        allowMultiple: false,
-        documentTypeName: "SK",
-        ownerName: "Sil",
+        uploadedBy: "user-1",
       });
 
       expect(mockPrisma.$executeRaw).toHaveBeenCalled();
@@ -290,20 +325,74 @@ describe("Document Module Repository", () => {
         where: { ownerId: "emp-1", documentTypeId: "type-1" },
       });
       expect(buildFile).toHaveBeenCalledWith(1);
-      expect(mockPrisma.documentRecord.updateMany).toHaveBeenCalledWith({
-        where: { ownerId: "emp-1", documentTypeId: "type-1", isCurrent: true },
-        data: { isCurrent: false, status: "REPLACED" },
+      expect(mockPrisma.storedFile.create).toHaveBeenCalledWith({
+        data: {
+          id: "file-1",
+          fileName: "sk.pdf",
+          filePath: "uploads/sk.pdf",
+          fileSize: BigInt(10),
+          mimeType: "application/pdf",
+          fileHash: "hash",
+          storageProvider: "LOCAL",
+          uploadedBy: "user-1",
+        },
+      });
+      expect(mockPrisma.documentRecord.create).not.toHaveBeenCalled();
+      expect(result).toEqual({ storedFileId: "file-1", fileName: "sk.pdf", uploadPath: "uploads/sk.pdf" });
+    });
+
+    it("should create document after storage succeeds and let database triggers replace current records", async () => {
+      mockPrisma.documentRecord.findMany.mockResolvedValue([{ id: "old-doc", status: "APPROVED" }]);
+      mockPrisma.documentRecord.create.mockResolvedValue({ id: "doc-1", status: "PENDING" });
+      mockPrisma.storedFile.update.mockResolvedValue({
+        id: "file-1",
+        fileName: "sk.pdf",
+        filePath: "uploads/sk.pdf",
+        fileSize: BigInt(10),
+        mimeType: "application/pdf",
+        fileHash: "hash",
+        storageProvider: "LOCAL",
+      });
+      mockPrisma.user.findMany.mockResolvedValue([{ id: "admin-1" }, { id: "staff-1" }]);
+
+      const result = await finalizeDocumentUploadTransaction({
+        docId: "doc-1",
+        storedFileId: "file-1",
+        savedPath: "uploads/sk.pdf",
+        ownerId: "emp-1",
+        documentTypeId: "type-1",
+        title: "SK Pangkat",
+        documentNumber: null,
+        issueDate: null,
+        expiryDate: null,
+        createdBy: "user-1",
+        replacesDocumentId: null,
+      });
+
+      expect(mockPrisma.documentRecord.updateMany).not.toHaveBeenCalled();
+      expect(mockPrisma.documentRecord.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          id: "doc-1",
+          storedFileId: "file-1",
+          ownerId: "emp-1",
+          documentTypeId: "type-1",
+          replacesDocumentId: null,
+        }),
       });
       expect(mockPrisma.verificationHistory.create).toHaveBeenCalledWith({
         data: expect.objectContaining({ documentRecordId: "doc-1", status: "PENDING" }),
       });
-      expect(mockPrisma.notification.createMany).not.toHaveBeenCalled();
       expect(result).toEqual({
-        record: { id: "doc-1" },
-        uploadPath: "uploads/sk.pdf",
+        record: expect.objectContaining({ id: "doc-1", fileName: "sk.pdf", filePath: "uploads/sk.pdf" }),
         replacedDocuments: [{ id: "old-doc", status: "APPROVED" }],
         verificationRecipientUserIds: ["admin-1", "staff-1"],
       });
+    });
+
+    it("should remove an unused stored-file reservation after upload failure", async () => {
+      await abortDocumentFileReservation("file-1");
+
+      expect(mockPrisma.storedFile.delete).toHaveBeenCalledWith({ where: { id: "file-1" } });
     });
   });
 });

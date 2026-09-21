@@ -45,7 +45,7 @@ export default async function RegistrationRequestsPage({
   try {
     const result = await listRegistrationRequests({
       ...params,
-      status: REGISTRATION_STATUS.PENDING_ADMIN_REVIEW,
+      status: REGISTRATION_STATUS.UNDER_REVIEW,
     });
     return (
       <RegistrationRequestsAdminPage

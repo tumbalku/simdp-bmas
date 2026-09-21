@@ -23,6 +23,8 @@ type DocumentUploadInitialValues = {
   documentNumber?: string | null;
   issueDate?: string | null;
   expiryDate?: string | null;
+  periodStartDate?: string | null;
+  periodEndDate?: string | null;
 };
 
 type DocumentUploadFormProps = {
@@ -112,6 +114,8 @@ export function DocumentUploadForm({
   const [documentNumber, setDocumentNumber] = useState(initialValues?.documentNumber ?? "");
   const [issueDate, setIssueDate] = useState(formatDateInput(initialValues?.issueDate));
   const [expiryDate, setExpiryDate] = useState(formatDateInput(initialValues?.expiryDate));
+  const [periodStartDate, setPeriodStartDate] = useState(formatDateInput(initialValues?.periodStartDate));
+  const [periodEndDate, setPeriodEndDate] = useState(formatDateInput(initialValues?.periodEndDate));
   const [isDragging, setIsDragging] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -121,7 +125,16 @@ export function DocumentUploadForm({
     setDocumentNumber(initialValues?.documentNumber ?? "");
     setIssueDate(formatDateInput(initialValues?.issueDate));
     setExpiryDate(formatDateInput(initialValues?.expiryDate));
-  }, [initialValues?.documentNumber, initialValues?.expiryDate, initialValues?.issueDate, initialValues?.title]);
+    setPeriodStartDate(formatDateInput(initialValues?.periodStartDate));
+    setPeriodEndDate(formatDateInput(initialValues?.periodEndDate));
+  }, [
+    initialValues?.documentNumber,
+    initialValues?.expiryDate,
+    initialValues?.issueDate,
+    initialValues?.periodEndDate,
+    initialValues?.periodStartDate,
+    initialValues?.title,
+  ]);
 
   const selectedDocumentType = useMemo(
     () => documentTypes.find((type) => type.id === documentTypeId),
@@ -192,6 +205,8 @@ export function DocumentUploadForm({
         setDocumentNumber(initialValues?.documentNumber ?? "");
         setIssueDate(formatDateInput(initialValues?.issueDate));
         setExpiryDate(formatDateInput(initialValues?.expiryDate));
+        setPeriodStartDate(formatDateInput(initialValues?.periodStartDate));
+        setPeriodEndDate(formatDateInput(initialValues?.periodEndDate));
         setDocumentTypeId(lockDocumentType ? initialDocumentTypeId : "");
 
         const successMessage = replaceDocumentId
@@ -214,6 +229,7 @@ export function DocumentUploadForm({
   const shouldShowDocumentNumber = selectedDocumentType?.requiresDocumentNumber === true;
   const shouldShowIssueDate = selectedDocumentType?.requiresIssueDate === true;
   const shouldShowExpiryDate = selectedDocumentType?.requiresExpiryDate === true;
+  const shouldShowPeriod = selectedDocumentType?.requiresPeriod === true;
   const acceptedFormats = getAcceptedFormats(selectedDocumentType);
 
   const formContent = (
@@ -303,6 +319,33 @@ export function DocumentUploadForm({
             required
           />
         </div>
+      ) : null}
+
+      {shouldShowPeriod ? (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="periodStartDate">Periode mulai</Label>
+            <Input
+              id="periodStartDate"
+              name="periodStartDate"
+              type="date"
+              value={periodStartDate}
+              onChange={(event) => setPeriodStartDate(event.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="periodEndDate">Periode berakhir</Label>
+            <Input
+              id="periodEndDate"
+              name="periodEndDate"
+              type="date"
+              value={periodEndDate}
+              onChange={(event) => setPeriodEndDate(event.target.value)}
+              required
+            />
+          </div>
+        </>
       ) : null}
 
       <div className="space-y-2 md:col-span-2">
