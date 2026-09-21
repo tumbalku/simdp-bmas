@@ -1,5 +1,43 @@
 -- ============================================================
--- DMS PEGAWAI — PRODUCTION SCHEMA (PostgreSQL)
+-- ⚠️  DEPRECATED — SCHEMA v1 (tidak lagi sumber kebenaran)
+-- ============================================================
+-- File ini adalah snapshot schema v1 (database production RSUD
+-- sebelum v2.3). DIPERTAHANKAN HANYA UNTUK REFERENSI HISTORIS dan
+-- untuk membahas pembacaan data v1 saat migrasi.
+--
+-- JANGAN pakai file ini untuk:
+--   - membuat database baru            -> pakai `prisma migrate deploy`
+--                                        (mengikuti `prisma.config.ts`,
+--                                        folder aktif `prisma/migrations-v2`);
+--   - memvalidasi struktur database    -> pakai
+--                                        `npx prisma migrate diff
+--                                         --from-migrations prisma/migrations-v2
+--                                         --to-schema-datamodel prisma/schema.prisma`;
+--   - mengambil definisi tabel/kolom   -> `prisma/schema.prisma` (v2.3)
+--                                        adalah satu-satunya sumber
+--                                        kebenaran schema.
+--
+-- Sumber kebenaran tunggal schema SIMDP:
+--   prisma/schema.prisma  (v2.3) + prisma/migrations-v2/**
+--
+-- Database v1 yang sudah ada data harus melalui migration transisi
+-- `20260922000000_migrate_v1_to_v2` (issue #317) — lihat runbook
+-- `context/technical/migration-v1-to-v2.md`.
+--
+-- Perbedaan utama v1 vs v2.3 (detail lengkap di runbook lampiran):
+--   - metadata file pindah ke tabel "StoredFile"
+--     (DocumentRecord.storedFileId NOT NULL);
+--   - DocumentRecord.createdBy NOT NULL;
+--   - UserRegistrationRequest.employeeId -> claimedNip;
+--   - enum RegistrationStatus direvisi (PENDING_ADMIN_REVIEW/EXPIRED
+--     dihapus, EMAIL_VERIFIED/UNDER_REVIEW ditambah);
+--   - FK Employee.userId / DocumentRecord.ownerId Cascade -> Restrict;
+--   - tabel Post + PostAttachment + PostVisibility*;
+--   - trigger hardening trg_01..trg_12.
+-- ============================================================
+
+-- ============================================================
+-- DMS PEGAWAI — PRODUCTION SCHEMA (PostgreSQL) — v1 (HISTORIS)
 -- File ini bisa langsung dieksekusi untuk membuat database.
 -- Urutan CREATE TABLE sudah memperhatikan dependency FK.
 -- ============================================================
