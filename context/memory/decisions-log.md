@@ -2,6 +2,15 @@
 
 File ini adalah log keputusan jangka panjang proyek. Jangan menghapus keputusan lama. Jika keputusan berubah, tambahkan entri baru dengan label `REVISED` dan referensikan keputusan sebelumnya.
 
+## [2026-09-21] Pencarian Pengumuman Dibatasi pada Judul Saja (Opsi A)
+- Konteks: pencarian feed/manajemen pengumuman memakai Prisma `contains` pada `Post.title` **dan** `Post.content`. Kolom `content` adalah string JSON Tiptap (`{"type":"doc","content":[{"type":"paragraph",...}]}`), sehingga kata kunci struktural seperti `paragraph`, `heading`, `text`, atau `attrs` cocok dengan hampir semua post dan menghasilkan false positive (review H-4).
+- Keputusan: untuk v1, pencarian pengumuman (feed pegawai dan daftar manage admin/staff) hanya mencocokkan `title`. Klausa `content` dihapus dari `findVisiblePosts`/`countVisiblePosts` di `post.repository.ts`; daftar manage sudah hanya memakai `title`.
+- Alasan: perbaikan paling sederhana dan sesuai scope v1 — akar masalahnya adalah JSON mentah yang tidak dimaksudkan sebagai teks yang dicari.
+- Batasan: isi teks pengumuman tidak bisa dicari sampai ada kolom teks yang diindeks.
+- Dampak: pencarian lebih akurat; query DB tetap ringan. Pencaharian isi konten akan butuh perbaikan lanjutan.
+- Follow-up: Opsi B yang ditolak untuk sekarang adalah menambah kolom `contentText` (generated dari rich text saat simpan) yang diindeks dan dipakai untuk pencarian, serta memperbaiki akurasi excerpt. Dibuka sebagai issue terpisah bila dibutuhkan.
+- Referensi: #321, REVIEW.md H-4.
+
 ## [2026-09-21] Excerpt Pengumuman Dibuat Client-Side dari Rich Text
 - Konteks: feed pengumuman perlu menampilkan ringkasan agar terbaca seperti berita, tetapi tidak ada kolom `summary`/`excerpt` di database dan prompt melarang perubahan schema.
 - Keputusan: excerpt dihitung di sisi client lewat helper `getPostExcerpt()` di `src/modules/post/utils/rich-content.ts`, yang menggunakan `getPostContentText()` (ekstrak teks dari dokumen JSON Tiptap) lalu memotong pada batas kata terakhir sebelum 180 karakter (default) dengan ellipsis. Helper murni/isomorphic sehingga aman dipakai di client component maupun service.

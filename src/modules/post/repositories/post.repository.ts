@@ -228,15 +228,11 @@ export function findVisiblePosts(input: {
     orConditions.push({ visibilityEmployeeGroups: { some: { employeeGroupId: input.employeeGroupId } } });
   }
 
+  // Pencarian hanya pada judul: `content` adalah string JSON Tiptap sehingga
+  // `contains` pada JSON mentah memunculkan false positive (nama key struktur
+  // seperti "paragraph"/"text" cocok dengan hampir semua post). Lihat #321.
   const searchConditions: Prisma.PostWhereInput[] = input.search
-    ? [
-        {
-          OR: [
-            { title: { contains: input.search, mode: "insensitive" } },
-            { content: { contains: input.search, mode: "insensitive" } },
-          ],
-        },
-      ]
+    ? [{ title: { contains: input.search, mode: "insensitive" } }]
     : [];
 
   return getClient(input.tx).post.findMany({
@@ -285,15 +281,11 @@ export function countVisiblePosts(input: {
     orConditions.push({ visibilityEmployeeGroups: { some: { employeeGroupId: input.employeeGroupId } } });
   }
 
+  // Pencarian hanya pada judul: `content` adalah string JSON Tiptap sehingga
+  // `contains` pada JSON mentah memunculkan false positive (nama key struktur
+  // seperti "paragraph"/"text" cocok dengan hampir semua post). Lihat #321.
   const searchConditions: Prisma.PostWhereInput[] = input.search
-    ? [
-        {
-          OR: [
-            { title: { contains: input.search, mode: "insensitive" } },
-            { content: { contains: input.search, mode: "insensitive" } },
-          ],
-        },
-      ]
+    ? [{ title: { contains: input.search, mode: "insensitive" } }]
     : [];
 
   return getClient(input.tx).post.count({
